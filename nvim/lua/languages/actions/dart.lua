@@ -31,7 +31,7 @@ return {
   { "l", "log toggle", ex "FlutterLogToggle" },
   { "t", "devtools", ex "FlutterDevTools" },
   { "p", "pub get", ex "FlutterPubGet" },
-  { "m", "test", tool("test", "test") },
+  { "m", "test (flutter or dart, auto-detected)", tool("test", "test") },
   { "v", "analyze", tool("analyze", "analyze") },
   { "x", "dart fix --apply", tool("pub get && dart fix --apply", "fix --apply") },
   { "f", "format", actions.format },

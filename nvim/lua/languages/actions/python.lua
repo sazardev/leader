@@ -32,23 +32,23 @@ return {
   },
   {
     "m",
-    "pytest",
+    "pytest (whole project)",
     function()
       terminal.run(use_uv() and "uv run pytest" or "python3 -m pytest", project.root(MARKERS))
     end,
   },
   {
     "t",
-    "pytest (file)",
+    "pytest (current file)",
     function()
       terminal.run("python3 -m pytest " .. current_file(), project.root(MARKERS))
     end,
   },
-  { "v", "ruff check", actions.run("ruff", "ruff check .", MARKERS) },
-  { "x", "ruff check --fix", actions.run("ruff", "ruff check --fix .", MARKERS) },
+  { "v", "ruff check .", actions.run("ruff", "ruff check .", MARKERS) },
+  { "x", "ruff check --fix .", actions.run("ruff", "ruff check --fix .", MARKERS) },
   {
     "f",
-    "ruff format (file)",
+    "ruff format (current file)",
     function()
       if vim.fn.executable "ruff" ~= 1 then
         return log.warn "`ruff` is not installed"

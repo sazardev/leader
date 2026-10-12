@@ -13,7 +13,7 @@ end
 
 return {
   { "r", "toggle render", actions.ex "RenderMarkdown toggle" },
-  { "d", "toggle diagnostics (linter errors)", toggle_diagnostics },
+  { "d", "toggle linter diagnostics (this buffer only)", toggle_diagnostics },
   { "z", "reading mode (centered, distraction-free)", md.reading_mode },
   { "s", "spell check (es, en)", md.toggle_spell },
   { "w", "word count and reading time", md.word_count },

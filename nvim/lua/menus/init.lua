@@ -8,12 +8,22 @@
 local M = {}
 
 ---@return table[]
-local function contexts()
+function M.contexts()
   local list = require("languages").menus()
   table.insert(list, require "menus.git")
   table.insert(list, require "menus.settings")
   table.insert(list, require "menus.session")
   return list
+end
+
+--- `desc` con el que se registra una acción. Empieza por la primera palabra del
+--- nombre del menú ("Go run", "Git status"): NvCheatsheet (botón Mappings del
+--- dashboard) agrupa por la primera palabra del desc, y exige al menos dos.
+---@param ctx table
+---@param text string
+---@return string
+function M.desc(ctx, text)
+  return ctx.name:match "%S+" .. " " .. text
 end
 
 ---@param buf integer
@@ -27,7 +37,7 @@ local function bind(buf, ctx)
   vim.b[buf].menu_contexts = seen
 
   for _, m in ipairs(ctx.maps) do
-    vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { buffer = buf, desc = m[2] })
+    vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { buffer = buf, desc = M.desc(ctx, m[2]) })
   end
   -- nombre del grupo en which-key, solo para este buffer
   local ok, wk = pcall(require, "which-key")
@@ -40,7 +50,7 @@ end
 ---@param ctx table
 local function bind_global(ctx)
   for _, m in ipairs(ctx.maps) do
-    vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { desc = m[2] })
+    vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { desc = M.desc(ctx, m[2]) })
   end
   local ok, wk = pcall(require, "which-key")
   if ok then
@@ -62,7 +72,7 @@ local function applies(ctx, buf)
 end
 
 function M.setup()
-  local list = contexts()
+  local list = M.contexts()
 
   for _, ctx in ipairs(list) do
     if ctx.global then

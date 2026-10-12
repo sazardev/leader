@@ -10,7 +10,7 @@ return {
   { "b", "cargo build", cargo "build" },
   { "m", "cargo test", cargo "test" },
   { "c", "cargo check", cargo "check" },
-  { "v", "clippy", cargo "clippy" },
-  { "x", "clippy --fix", cargo "clippy --fix --allow-dirty" },
+  { "v", "cargo clippy", cargo "clippy" },
+  { "x", "cargo clippy --fix --allow-dirty", cargo "clippy --fix --allow-dirty" },
   { "f", "cargo fmt", cargo "fmt" },
 }

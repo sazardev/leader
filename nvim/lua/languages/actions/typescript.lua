@@ -66,15 +66,15 @@ local function pm_command(sub)
 end
 
 return {
-  { "r", "run script…", pick_script },
-  { "d", "dev", script "dev" },
-  { "b", "build", script "build" },
-  { "m", "test", pm_command "test" },
-  { "v", "lint", script("lint", "npx --no-install eslint .") },
-  { "c", "typecheck (tsc)", actions.run("npx", "npx --no-install tsc --noEmit", MARKERS) },
+  { "r", "run a package.json script (picker)", pick_script },
+  { "d", "dev (script `dev`)", script "dev" },
+  { "b", "build (script `build`)", script "build" },
+  { "m", "test (package manager)", pm_command "test" },
+  { "v", "lint (script `lint`, else eslint .)", script("lint", "npx --no-install eslint .") },
+  { "c", "typecheck (tsc --noEmit)", actions.run("npx", "npx --no-install tsc --noEmit", MARKERS) },
   {
     "x",
-    "eslint --fix (file)",
+    "eslint --fix (current file)",
     function()
       local _, root = package_manager()
       terminal.run("npx --no-install eslint --fix " .. vim.fn.shellescape(vim.fn.expand "%:p"), root)
@@ -82,5 +82,5 @@ return {
   },
   { "f", "format", actions.format },
   { "o", "organize imports", actions.code_action "source.organizeImports" },
-  { "i", "install deps", pm_command "install" },
+  { "i", "install dependencies", pm_command "install" },
 }

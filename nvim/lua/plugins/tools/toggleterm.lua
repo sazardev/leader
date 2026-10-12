@@ -28,7 +28,7 @@ return {
   config = function(_, opts)
     require("toggleterm").setup(opts)
     -- Esc en terminal cierra el panel/ventana flotante
-    vim.keymap.set("t", "<Esc>", "<cmd>lua require('toggleterm').toggle()<cr>", { desc = "Close terminal (Esc)" })
+    vim.keymap.set("t", "<Esc>", "<cmd>lua require('toggleterm').toggle()<cr>", { desc = "Terminal close (Esc)" })
     -- Responsivo: reajusta los paneles abiertos al cambiar el tamaño de la ventana
     vim.api.nvim_create_autocmd("VimResized", {
       group = vim.api.nvim_create_augroup("TerminalResponsive", { clear = true }),

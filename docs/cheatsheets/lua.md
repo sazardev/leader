@@ -15,15 +15,13 @@ Filetype: `lua`.
 
 En Lua las fuentes de blink son: `lazydev`, LSP, path, snippets, buffer (lazydev con prioridad).
 
-## Útiles aquí
+## Comandos útiles
 
-| Tecla / comando | Acción |
+| Comando | Acción |
 |---|---|
 | `:luafile %` | ejecutar el archivo actual |
 | `:lua =expr` | evaluar e imprimir una expresión |
 | `:Lazy sync` | instalar/actualizar plugins (el auto-reload de `git pull` no lo hace) |
-| `daf` / `dif` | borrar función entera / su cuerpo |
-| `]f` / `[f` | siguiente / anterior función |
 
 ## Auto-reload
 

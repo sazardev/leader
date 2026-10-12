@@ -19,11 +19,3 @@ No tienen menú de leader; se apoyan en LSP, formato al guardar (`<leader>fm`) y
   (`dotnet tool install -g yarn-spinner`, requiere `dotnet`).
   Formato de error: `path(lnum,col): severity CODE: message`.
 
-## Útiles aquí
-
-| Tecla | Acción |
-|---|---|
-| `<leader>xd` | ver el error de la línea (schema inválido, YAML mal indentado...) |
-| `<leader>xx` | lista de diagnósticos |
-| `za` | plegar secciones (folds por treesitter/indentación) |
-| `di{` / `da{` | borrar el interior / el objeto JSON completo |

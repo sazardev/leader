@@ -14,6 +14,7 @@ M.base46 = {
 }
 
 M.nvdash = require("ui.dashboard").config()
+M.cheatsheet = require("ui.dashboard").cheatsheet()
 
 M.ui = {
   -- statusline se delega a lualine.nvim (ver plugins/ui/lualine.lua)

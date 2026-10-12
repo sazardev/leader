@@ -2,9 +2,9 @@
 return {
   "echasnovski/mini.surround",
   keys = {
-    { "sa", mode = { "n", "x" }, desc = "Add surrounding" },
-    { "sd", mode = "n", desc = "Delete surrounding" },
-    { "sr", mode = "n", desc = "Replace surrounding" },
+    { "sa", mode = { "n", "x" }, desc = "Surround add" },
+    { "sd", mode = "n", desc = "Surround delete" },
+    { "sr", mode = "n", desc = "Surround replace" },
   },
   opts = {
     mappings = {

@@ -3,7 +3,7 @@ return {
   "MagicDuck/grug-far.nvim",
   cmd = "GrugFar",
   keys = {
-    { "<leader>fr", "<cmd>GrugFar<cr>", desc = "replace" },
+    { "<leader>fr", "<cmd>GrugFar<cr>", desc = "Find replace in project (grug-far)" },
   },
   opts = {
     keymaps = {

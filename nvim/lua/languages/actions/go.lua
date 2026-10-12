@@ -39,17 +39,17 @@ local function go_cmd(cmd)
 end
 
 return {
-  { "a", "struct: add json tags", go_cmd "GoAddTag json" },
+  { "a", "struct: add json tags (snake_case)", go_cmd "GoAddTag json" },
   { "A", "struct: add json tags + omitempty", go_cmd "GoAddTag json -add-options json=omitempty" },
   { "D", "struct: remove json tags", go_cmd "GoRmTag json" },
   { "s", "struct: fill literal", go_cmd "GoFillStruct" },
-  { "e", "if err != nil (call)", go_cmd "GoIfErr" },
-  { "T", "add test (func)", go_cmd "GoAddTest" },
+  { "e", "if err != nil for the call under the cursor", go_cmd "GoIfErr" },
+  { "T", "add test for the function under the cursor", go_cmd "GoAddTest" },
   { "r", "run", target "run" },
   { "b", "build", target "build" },
   {
     "v",
-    "vet / lint",
+    "lint (golangci-lint, or go vet if missing)",
     function()
       in_root(vim.fn.executable "golangci-lint" == 1 and "golangci-lint run ./..." or "go vet ./...")()
     end,
@@ -57,7 +57,7 @@ return {
   { "f", "format", actions.format },
   {
     "t",
-    "mod tidy",
+    "go mod tidy",
     function()
       local _, mod_root = paths()
       if not mod_root then
@@ -66,13 +66,13 @@ return {
       terminal.run("go mod tidy", mod_root)
     end,
   },
-  { "x", "lint --fix", in_root "golangci-lint run --fix ./..." },
-  { "m", "test", in_root "go test ./..." },
-  { "R", "test -race", in_root "go test -race ./..." },
-  { "c", "test coverage", in_root "go test -cover ./..." },
+  { "x", "golangci-lint --fix", in_root "golangci-lint run --fix ./..." },
+  { "m", "go test ./...", in_root "go test ./..." },
+  { "R", "go test -race ./...", in_root "go test -race ./..." },
+  { "c", "go test -cover ./...", in_root "go test -cover ./..." },
   -- go fix (modernizers del toolchain: any, rangeint, minmax, slices*, etc.)
-  { "p", "fix preview (diff)", in_root "go fix -diff ./..." },
-  { "i", "fix (apply modernizers)", in_root "go fix ./..." },
-  { "g", "generate", in_root "go generate ./..." },
-  { "u", "update deps + tidy", in_root "go get -u ./... && go mod tidy" },
+  { "p", "go fix -diff (modernizers preview)", in_root "go fix -diff ./..." },
+  { "i", "go fix (apply modernizers)", in_root "go fix ./..." },
+  { "g", "go generate ./...", in_root "go generate ./..." },
+  { "u", "go get -u + go mod tidy", in_root "go get -u ./... && go mod tidy" },
 }

@@ -9,14 +9,14 @@ local keys = {
     function()
       list():add()
     end,
-    desc = "Add file",
+    desc = "Harpoon add file",
   },
   {
     "<leader>hm",
     function()
       require("harpoon").ui:toggle_quick_menu(list())
     end,
-    desc = "Menu",
+    desc = "Harpoon menu",
   },
 }
 for i = 1, 4 do
@@ -25,7 +25,7 @@ for i = 1, 4 do
     function()
       list():select(i)
     end,
-    desc = "File " .. i,
+    desc = "Harpoon jump to file " .. i,
   })
 end
 

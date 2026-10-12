@@ -13,22 +13,7 @@ Filetype: `markdown`.
 
 ## Menú `<leader>m` (solo en `*.md`)
 
-| Tecla | Acción |
-|---|---|
-| `mr` | activar/desactivar el render |
-| `md` | mostrar/ocultar diagnósticos del linter **solo en este buffer** (el linter sigue corriendo) |
-| `mz` | modo lectura (centrado, sin ruido) |
-| `ms` | ortografía (es, en) |
-| `mw` | palabras y tiempo de lectura |
-| `mx` | marcar/desmarcar checkbox `- [ ]` |
-| `mo` | outline (Aerial) |
-| `mf` | formatear |
+Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
 
-## Útiles aquí
-
-| Tecla | Acción |
-|---|---|
-| `sa` / `sd` / `sr` | surround: `**negrita**`, `` `código` ``, `[texto]()` |
-| `gcc` | comentar (`<!-- -->`) |
-| `]s` / `[s` | siguiente / anterior error ortográfico (con `ms` activo) |
-| `z=` | sugerencias de ortografía |
+- El toggle de diagnósticos oculta los del linter **solo en este buffer** (el linter sigue corriendo).
+- Con la ortografía activa (es, en): `]s` / `[s` saltan entre errores y `z=` sugiere correcciones (nativos de Vim).

@@ -11,37 +11,11 @@
 
 ## Menú `<leader>g` (solo en `*.go`)
 
-### Editar código
-| Tecla | Acción |
-|---|---|
-| `ga` | struct: añadir tags json en snake_case |
-| `gA` | struct: añadir tags json + `omitempty` |
-| `gD` | struct: quitar tags json |
-| `gs` | struct: rellenar el literal (`GoFillStruct`) |
-| `ge` | `if err != nil` para la llamada bajo el cursor |
-| `gT` | generar test de la función bajo el cursor |
+Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
 
-`ga`/`gA`/`gD` actúan sobre el struct donde está el cursor y **guardan el archivo** al terminar (así lo hace go.nvim).
-En modo ligero go.nvim no carga: estas seis acciones avisan en vez de fallar.
-
-### Correr y revisar
-| Tecla | Acción |
-|---|---|
-| `gr` | `go run` |
-| `gb` | `go build` |
-| `gv` | `golangci-lint run ./...` (o `go vet ./...`) |
-| `gx` | `golangci-lint run --fix ./...` |
-| `gf` | formatear |
-| `gm` | `go test ./...` |
-| `gR` | `go test -race ./...` |
-| `gc` | `go test -cover ./...` |
-| `gt` | `go mod tidy` |
-| `gu` | `go get -u ./... && go mod tidy` |
-| `gg` | `go generate ./...` |
-| `gp` | `go fix -diff ./...` (vista previa de modernizers) |
-| `gi` | `go fix ./...` (aplicar) |
-
-`gr` y `gb` corren sobre el directorio del archivo (`.` si hay `go.mod`, o el archivo suelto si no). Lo demás, desde la raíz del módulo.
+- Las acciones de struct (tags, rellenar literal, `if err`, añadir test) actúan sobre el cursor. Las de **tags** (`ga`/`gA`/`gD`) **guardan el archivo** al terminar (así lo hace go.nvim).
+- En modo ligero go.nvim no carga: esas acciones avisan en vez de fallar.
+- `run` y `build` corren sobre el directorio del archivo (`.` si hay `go.mod`, o el archivo suelto si no). El resto, desde la raíz del módulo.
 
 ## Tags de struct mientras escribes (`utils/gotags.lua`)
 
@@ -267,17 +241,6 @@ Nombres completos: se encuentran tecleando **cualquier parte** (`wrap` → `erro
 
 También siguen disponibles los de **friendly-snippets** que no se duplican (`if`, `ife`, `ir`, `for`, `forr`, `switch`, `sel`, `go`, `df`, `fp`, `ff`, `lp`, `make`, `tf`, `tdt`, `hand`…).
 Los de declaración de friendly (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `fmain`) están ocultos a nivel de paquete porque `gosmart` los reemplaza con más variantes.
-
-## Mover y borrar bloques
-
-| Tecla | Acción |
-|---|---|
-| `daf` / `dif` | borrar función entera / solo su cuerpo |
-| `cif` | cambiar el cuerpo |
-| `dac` | borrar el tipo/struct completo |
-| `]f` / `[f` | siguiente / anterior función |
-| `di{` / `da{` | interior / bloque `{}` completo |
-| `Alt+j` / `Alt+k` | mover línea o bloque |
 
 ## Dónde vive cada cosa
 

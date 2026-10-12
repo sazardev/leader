@@ -13,24 +13,15 @@ Filetypes: `java`, `kotlin`. Comparten las mismas acciones (Gradle o Maven).
 
 ## Menús: `<leader>j` (Java) y `<leader>k` (Kotlin)
 
+Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+
 Detecta el proyecto por `gradlew`, `build.gradle(.kts)`, `settings.gradle(.kts)` o `pom.xml`.
-Usa los wrappers (`./gradlew`, `./mvnw`) si existen; si no, `gradle` / `mvn`.
+Usa los wrappers (`./gradlew`, `./mvnw`) si existen; si no, `gradle` / `mvn`. Si no hay proyecto Gradle/Maven, avisa en vez de fallar.
 
-| Tecla (Java / Kotlin) | Gradle | Maven |
+| Acción | Gradle | Maven |
 |---|---|---|
-| `jr` / `kr` run | `run` | `spring-boot:run` si el `pom` usa Spring Boot; si no `compile exec:java` |
-| `jb` / `kb` build | `build` | `package` |
-| `jm` / `km` test | `test` | `test` |
-| `jv` / `kv` check / verify | `check` | `verify` |
-| `jc` / `kc` clean | `clean` | `clean` |
-
-Si no hay proyecto Gradle/Maven, avisa en vez de fallar.
-
-## Útiles generales aquí
-
-| Tecla | Acción |
-|---|---|
-| `daf` / `dif` | borrar método entero / su cuerpo |
-| `dac` | borrar clase completa |
-| `]f` / `[f` | siguiente / anterior método |
-| `di{` / `da{` | interior / bloque `{}` completo |
+| run | `run` | `spring-boot:run` si el `pom` usa Spring Boot; si no `compile exec:java` |
+| build | `build` | `package` |
+| test | `test` | `test` |
+| check / verify | `check` | `verify` |
+| clean | `clean` | `clean` |

@@ -15,11 +15,7 @@
 | Preview de colores | nvim-highlight-colors (hex, rgb, Tailwind) |
 
 ### Menú `<leader>s` (solo en css, scss, less)
-| Tecla | Acción |
-|---|---|
-| `sf` | formatear |
-| `sc` | alternar el preview de colores |
-| `so` | outline (Aerial) |
+Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
 
 ## Tailwind
 - Servidor `tailwindcss` (transversal: no tiene filetype propio, aplica donde el proyecto use Tailwind).
@@ -31,10 +27,3 @@
 | LSP | `astro-language-server` |
 | Formato | `prettier` — **requiere `prettier-plugin-astro`** en el proyecto (`node_modules`) o instalado global; Mason solo instala `prettier` |
 
-## Útiles aquí
-
-| Tecla | Acción |
-|---|---|
-| `s` / `S` | flash: saltar a un tag/palabra, o a un nodo treesitter |
-| `sa` / `sd` / `sr` | surround (comillas, tags) |
-| `Alt+j` / `Alt+k` | mover línea o bloque |

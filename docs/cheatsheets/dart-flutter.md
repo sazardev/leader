@@ -13,32 +13,6 @@ Filetype: `dart`.
 
 ## Menú `<leader>d` (solo en `*.dart`)
 
-| Tecla | Acción |
-|---|---|
-| `dr` | `FlutterRun` |
-| `dd` | `FlutterDebug` |
-| `dh` | hot reload |
-| `dR` | hot restart |
-| `dq` | cerrar la app |
-| `dD` | dispositivos |
-| `de` | emuladores |
-| `do` | outline de widgets |
-| `dl` | alternar el log |
-| `dt` | DevTools |
-| `dp` | `pub get` |
-| `dm` | test (`flutter test` o `dart test` según el proyecto) |
-| `dv` | analyze |
-| `dx` | `dart fix --apply` |
-| `df` | formatear |
+Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
 
-Necesita `pubspec.yaml`: detecta si es Flutter (bloque `flutter:`) o Dart puro y usa el comando correcto.
-
-## Útiles generales aquí
-
-| Tecla | Acción |
-|---|---|
-| `daf` / `dif` | borrar método entero / su cuerpo |
-| `dac` | borrar clase completa |
-| `]f` / `[f` | siguiente / anterior método |
-| `gd` / `grr` | definición / dónde se usa |
-| `<leader>ca` | code actions (envolver en widget, extraer, etc.) |
+Necesita `pubspec.yaml`: detecta si es Flutter (bloque `flutter:`) o Dart puro y usa el comando correcto (`flutter test` / `dart test`, etc.).

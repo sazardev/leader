@@ -64,4 +64,29 @@ function M.config()
   }
 end
 
+--- Tabla `cheatsheet` para chadrc (botón Mappings → NvCheatsheet).
+--- NvCheatsheet lista TODOS los keymaps con desc y agrupa por su primera palabra, así que
+--- aquí se excluyen los grupos de teclas nativas de Neovim. Los grupos propios salen de la
+--- convención de `desc` ("Harpoon add file", "Go run"...: ver utils/cheatsheet.lua).
+---@return table
+function M.cheatsheet()
+  return {
+    theme = "grid",
+    excluded_groups = {
+      -- defaults de NvChad
+      "terminal (t)",
+      "autopairs",
+      "Nvim",
+      "Opens",
+      -- nativos de Neovim 0.11+
+      ":help",
+      "Add",
+      "Jump",
+      "Select",
+      "Show",
+      "vim.snippet.jump",
+    },
+  }
+end
+
 return M

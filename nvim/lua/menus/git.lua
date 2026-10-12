@@ -4,6 +4,7 @@ local ex = require("utils.actions").ex
 return {
 	name = "Git",
 	prefix = "G",
+	where = "archivos dentro de un repo git",
 	detect = function(buf)
 		return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" and vim.fs.root(buf, ".git") ~= nil
 	end,

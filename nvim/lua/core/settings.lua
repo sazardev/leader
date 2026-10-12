@@ -109,8 +109,10 @@ local defaults = {
 
 local overrides = {}
 
+-- NVIM_NO_LOCAL=1 ignora lua/local.lua (lo usa scripts/gen-cheatsheet.sh para que
+-- el cheatsheet generado no dependa de la máquina)
 local ok, localcfg = pcall(require, "local")
-if ok and type(localcfg) == "table" then
+if ok and type(localcfg) == "table" and not vim.env.NVIM_NO_LOCAL then
   overrides = localcfg
 end
 

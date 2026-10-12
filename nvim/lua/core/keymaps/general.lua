@@ -52,14 +52,14 @@ end
 function M.setup()
   local map = vim.keymap.set
 
-  map("n", ";", ":", { desc = "CMD enter command mode" })
+  map("n", ";", ":", { desc = "General command mode (; instead of :)" })
   map("i", "jk", "<ESC>")
-  map("n", "<leader>w", "<cmd>w<CR>", { desc = "save" })
-  map("n", "<leader>q", close_or_quit, { desc = "close buffer / quit" })
+  map("n", "<leader>w", "<cmd>w<CR>", { desc = "General save" })
+  map("n", "<leader>q", close_or_quit, { desc = "General close buffer / quit" })
 
   -- <leader>d: borrar SIN copiar (registro "_"): el portapapeles queda intacto.
   -- Visual: <leader>d | Normal: <leader>dd (línea), <leader>dw (palabra), etc.
-  map({ "n", "v" }, "<leader>d", '"_d', { desc = "delete (don't copy)" })
+  map({ "n", "v" }, "<leader>d", '"_d', { desc = "General delete without copying" })
 
   -- Diagnóstico de la línea actual en un popup (como el hover de las docs); pulsarlo
   -- otra vez entra al popup para copiar o hacer scroll
@@ -67,7 +67,7 @@ function M.setup()
   map("n", "<leader>xd", function()
     local _, win = vim.diagnostic.open_float { border = "single", source = true }
     diag_win = win
-  end, { desc = "Line diagnostic (popup)" })
+  end, { desc = "Diagnostics line popup (press again to enter)" })
 
   -- <Esc>: primero cierra el popup de diagnóstico si está abierto; luego, tras
   -- gd / grr / Ctrl+click vuelve a donde estabas (si no editaste ahí);
@@ -81,25 +81,25 @@ function M.setup()
     if not require("utils.navigation").back() then
       vim.cmd "noh"
     end
-  end, { desc = "go back after jump / clear highlight" })
+  end, { desc = "General go back after jump / clear highlight" })
   map("n", "<leader>H", function()
     require("utils.navigation").history_picker()
-  end, { desc = "file history (session)" })
+  end, { desc = "Find file history (session)" })
 
   -- Multicursor nativo (sin plugin): Ctrl+↓/↑ abre un bloque visual y lo extiende línea a
   -- línea; luego `I` (insertar al inicio), `A` (al final), `c` (cambiar) o `$A` (fin de
   -- cada línea) escriben en TODAS las líneas a la vez. <Esc> sale.
-  map("n", "<C-Down>", "<C-v>j", { desc = "multicursor: block down" })
-  map("n", "<C-Up>", "<C-v>k", { desc = "multicursor: block up" })
-  map("x", "<C-Down>", "j", { desc = "multicursor: extend down" })
-  map("x", "<C-Up>", "k", { desc = "multicursor: extend up" })
+  map("n", "<C-Down>", "<C-v>j", { desc = "Multicursor block down" })
+  map("n", "<C-Up>", "<C-v>k", { desc = "Multicursor block up" })
+  map("x", "<C-Down>", "j", { desc = "Multicursor extend down" })
+  map("x", "<C-Up>", "k", { desc = "Multicursor extend up" })
 
   -- CTRL+click → ir a definición (LSP); <Esc> o <C-o> vuelve atrás, <C-i> adelante
   map(
     "n",
     "<C-LeftMouse>",
     require("utils.lsp").goto_definition_at_mouse,
-    { desc = "go to DEFINITION (Ctrl+click)" }
+    { desc = "LSP go to DEFINITION (Ctrl+click)" }
   )
 end
 

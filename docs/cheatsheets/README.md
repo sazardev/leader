@@ -1,8 +1,14 @@
 # Cheatsheets
 
-Referencia rápida de lo que tiene esta config. `<leader>` = `Space`.
+> **Teclas: [`CHEATSHEET.md`](../../CHEATSHEET.md)** (raíz del repo) — la **única** fuente.
+> Se **genera** leyendo los keymaps reales (`scripts/gen-cheatsheet.sh`) y se regenera en cada commit;
+> no se edita a mano ni se duplican sus tablas aquí. Dentro de nvim, el botón **Mappings** del dashboard
+> (`NvCheatsheet`) muestra lo mismo en vivo.
+>
+> Estas páginas guardan **lo que el código no dice**: qué hace cada cosa, flujos, herramientas, trampas.
+> `<leader>` = `Space`.
 
-| Cheatsheet | Qué cubre |
+| Chuleta | Qué cubre |
 |---|---|
 | [go.md](go.md) | **Go a fondo**: tags de struct, snippets, completado contextual, menú `<leader>g` |
 | [typescript.md](typescript.md) | TypeScript / JavaScript / TSX |
@@ -17,155 +23,32 @@ Referencia rápida de lo que tiene esta config. `<leader>` = `Space`.
 
 ## Cómo funciona el leader
 
-Cada lenguaje tiene **su propia letra** bajo `<leader>` y **solo existe en buffers de ese filetype**.
+Cada lenguaje tiene **su propia letra** bajo `<leader>` y **solo existe en buffers de ese filetype**;
+`<leader>G` (Git) solo dentro de un repo, y `<leader>P` (sesiones) y `<leader>S` (tema) son globales.
 Pulsa `<leader>` y which-key muestra únicamente lo que aplica al archivo actual (sin delay).
-
-| Letra | Menú | Dónde existe |
-|---|---|---|
-| `g` | Go | `*.go` |
-| `t` | TypeScript / JavaScript | ts, tsx, js, jsx |
-| `p` | Python | `*.py` |
-| `r` | Rust | `*.rs` |
-| `d` | Dart / Flutter | `*.dart` |
-| `j` / `k` | Java / Kotlin | `*.java` / `*.kt` |
-| `m` | Markdown | `*.md` |
-| `s` | CSS | css, scss, less |
-| `G` | Git | cualquier archivo dentro de un repo |
-| `P` | Session | global |
-| `S` | Settings (tema) | global |
 
 Los menús de lenguaje abren una terminal integrada (toggleterm) y corren los comandos en la **raíz del proyecto**
 (detectan `go.mod`, `package.json`, `Cargo.toml`, `pubspec.yaml`, `pom.xml`/`build.gradle`...).
 
-## Atajos globales
+## Flujos que conviene conocer
 
-### Edición
-| Tecla | Acción |
-|---|---|
-| `jk` (insert) | salir a normal |
-| `;` | `:` (modo comando) |
-| `<leader>w` / `Ctrl+s` | guardar |
-| `<leader>q` | cerrar buffer (o salir si es el último) |
-| `<leader>d` | borrar **sin copiar** (no pisa el portapapeles): `<leader>dd`, `<leader>dw`, visual `<leader>d` |
-| `<leader>/` | comentar línea / selección |
-| `Ctrl+c` | copiar todo el archivo |
-| `<leader>fm` | formatear (conform) — también se formatea al guardar |
-| `Alt+h/j/k/l` | mover línea o bloque (mini.move) |
-| `Ctrl+↓` / `Ctrl+↑` | multicursor nativo: bloque visual línea a línea, luego `I`, `A`, `c` o `$A` |
-| `sa` / `sd` / `sr` | surround: añadir / borrar / cambiar delimitadores (mini.surround) |
-| `s` / `S` | flash: saltar a una palabra / a un nodo treesitter |
+Las teclas exactas están en [`CHEATSHEET.md`](../../CHEATSHEET.md); aquí, cómo se combinan.
 
-### Textobjects (treesitter)
-| Tecla | Agarra |
-|---|---|
-| `af` / `if` | función entera / solo su cuerpo |
-| `ac` / `ic` | clase o tipo entero / su interior |
-| `]f` / `[f` | siguiente / anterior función |
-
-Combínalos con operadores: `daf` borra la función, `dif` borra el cuerpo, `cif` lo cambia, `yaf` la copia, `vaf` la selecciona.
-Para llaves de cualquier bloque (`if`, `for`...): `di{` (interior), `da{` (con llaves), `%` salta a la pareja.
-
-### Navegación y búsqueda
-| Tecla | Acción |
-|---|---|
-| `<leader>ff` | buscar archivos (respeta `.gitignore`), **con preview** del archivo |
-| `<leader>fw` | grep en el proyecto (con preview de la coincidencia) |
-| `<leader>fb` / `<leader>fo` | buffers abiertos / archivos recientes |
-| `<leader>fr` | buscar y reemplazar global (grug-far) |
-| `Ctrl+n` / `<leader>e` | explorador nvim-tree: alternar / enfocar |
-| `<leader>ha` / `<leader>hm` | harpoon: marcar archivo / menú |
-| `<leader>h1` … `h4` | harpoon: saltar al archivo 1…4 |
-| `<leader>H` | historial de archivos de la sesión |
-| `gd` | ir a la definición (también `Ctrl+click`) |
-| `grr` | ver dónde se usa (lista) |
-| `Esc` | volver a donde estabas tras `gd`/`grr`; cierra popups; quita resaltado |
-| `Ctrl+o` / `Ctrl+i` | atrás / adelante en el historial de saltos |
-| `K` | hover (documentación) |
-| `<leader>ca` | code actions del LSP |
-
-### Diagnósticos
-| Tecla | Acción |
-|---|---|
-| `<leader>xd` | diagnóstico de la línea en popup (púlsalo otra vez para entrar y copiar) |
-| `<leader>xx` | lista de diagnósticos (Trouble) |
-| `]d` / `[d` | siguiente / anterior diagnóstico (nativo) |
-
-### Telescope: preview siempre visible
-El layout es `flex`: en ventanas anchas (≥ 110 columnas) el preview va a la **derecha**; en angostas pasa **abajo** del listado.
-Nunca se oculta (antes Telescope lo apagaba solo por debajo de 120 columnas). Se ajusta en `lua/plugins/navigation/telescope.lua`.
-
-### nvim-tree
-| Tecla | Acción |
-|---|---|
-| `Enter` sobre archivo | abre y cierra el árbol |
-| `I` | mostrar / ocultar lo ignorado por git |
-| `<leader>nd` | crear carpeta(s) con vista de la ubicación |
-| `<leader>nx` | borrar carpeta con su contenido (avisa cuántos archivos) |
-
-### Terminal
-| Tecla | Acción |
-|---|---|
-| `Alt+i` / `Alt+h` / `Alt+v` | terminal flotante / horizontal / vertical (NvChad) |
-| `Esc` (dentro) | cerrar la terminal |
-| `Ctrl+x` | salir al modo normal dentro de la terminal |
-
-### Otros
-| Tecla / comando | Acción |
-|---|---|
-| `:TSContext toggle` | contexto fijo de la función/clase arriba |
-| `za` / `zc` / `zo` | plegar / desplegar (folds por treesitter con nvim-ufo; todo abierto al iniciar) |
-| `<leader>Gb` | git blame (apagado por defecto: sin costo) |
-| `:Lazy sync` | instalar/actualizar plugins (el auto-reload no lo hace) |
-
-## Autocompletado (blink.cmp)
-
-| Tecla | Acción |
-|---|---|
-| `Tab` / `Shift+Tab` | siguiente / anterior opción; si no hay menú, salta entre placeholders del snippet |
-| `Enter` | aceptar la opción elegida |
-| `Ctrl+Space` | abrir el menú / mostrar u ocultar la documentación |
-| `Ctrl+e` | cerrar el menú |
-
-- La ventanita de documentación aparece **al instante** al seleccionar (`auto_show_delay_ms = 0`) y muestra, en los snippets, **lo que se va a insertar**.
-- Nada viene preseleccionado, salvo dentro de un tag de struct de Go (ahí `Enter` acepta la primera sugerencia).
-- Fuentes: LSP, path, snippets, buffer. En Go se suman `gotags` y `gosmart`; en Lua, `lazydev`.
-
-## Sesiones — `<leader>P`
-
-| Tecla | Acción |
-|---|---|
-| `<leader>Pr` | restaurar la sesión de esta carpeta |
-| `<leader>Ps` | elegir sesión de cualquier proyecto |
-| `<leader>Pl` | restaurar la última |
-| `<leader>Pw` | guardar ahora |
-| `<leader>Px` | no guardar al salir |
-
-Una sesión por carpeta (y por rama de git; `main`/`master` usan la base). No se restauran solas:
-botón **Restore Session** (`rs`) del dashboard.
-
-## Git — `<leader>G`
-
-| Tecla | Acción |
-|---|---|
-| `Gt` | status (Telescope) |
-| `Gb` | blame toggle |
-| `Gd` | diff de todos los cambios (Diffview) |
-| `Gf` / `Gr` | historial de este archivo / del repo |
-| `Gq` | cerrar Diffview |
-| `Go` / `GT` / `GB` / `GN` | conflicto: quedarme con ours / theirs / ambos / ninguno |
-| `Gn` / `Gp` | conflicto siguiente / anterior |
-| `Gl` | conflictos del repo en quickfix |
-
-## Tema — `<leader>S`
-
-| Tecla | Acción |
-|---|---|
-| `St` | alternar tema (gruvbox ↔ gruvbox_light) |
-| `Sd` | tema por defecto |
-| `Sa` | tema heredado de la terminal (Alacritty), se sigue en vivo |
-| `Sr` | re-sincronizar el tema de la terminal |
-| `Sp` | selector de temas |
-| `Si` | info del tema activo |
+- **Saltar y volver**: tras `gd` / `grr` / `Ctrl+click`, `Esc` vuelve a donde estabas (si no editaste ahí); además cierra popups y quita el resaltado. `Ctrl+o` / `Ctrl+i` recorren el historial de saltos.
+- **Diagnóstico de la línea** (`<leader>xd`): abre un popup; púlsalo otra vez para entrar y copiar el texto.
+- **Borrar sin pisar el portapapeles**: `<leader>d` + movimiento (`<leader>dd` línea, `<leader>dw` palabra) o en visual.
+- **Multicursor nativo** (`Ctrl+↓/↑`): abre un bloque visual y lo extiende línea a línea; luego `I`, `A`, `c` o `$A` escriben en todas las líneas.
+- **Textobjects** (treesitter): combínalos con operadores — `daf` borra la función, `dif` el cuerpo, `cif` lo cambia, `yaf` la copia, `vaf` la selecciona; `dac` borra la clase. Para llaves de cualquier bloque: `di{` (interior), `da{` (con llaves), `%` salta a la pareja.
+- **Alt+hjkl** mueven línea o bloque (mini.move). La terminal horizontal de NvChad (`Alt+h`) se quitó para no pisarlo.
+- **Formato**: `<leader>fm` formatea (conform); también se formatea al guardar.
+- **Telescope**: el preview siempre es visible. Layout `flex`: a la derecha en ventanas ≥ 110 columnas, abajo en las angostas (`lua/plugins/navigation/telescope.lua`).
+- **nvim-tree**: abrir un archivo cierra el árbol; `I` muestra/oculta lo ignorado por git. Borrar carpeta avisa cuántos archivos contiene.
+- **Terminal**: `Esc` dentro de la terminal la cierra.
+- **Autocompletado** (blink.cmp): la documentación aparece **al instante** al seleccionar y muestra, en los snippets, **lo que se va a insertar**. Nada viene preseleccionado, salvo dentro de un tag de struct de Go (ahí `Enter` acepta la primera sugerencia). Fuentes: LSP, path, snippets, buffer; en Go se suman `gotags` y `gosmart`; en Lua, `lazydev`.
+- **Sesiones**: una por carpeta (y por rama de git; `main`/`master` usan la base). No se restauran solas: botón **Restore Session** (`rs`) del dashboard o su tecla de menú. Abrir un solo archivo (`nvim x`) y salir sobrescribe la sesión de esa carpeta; hay una tecla para no guardar al salir.
+- **Git**: git-blame está apagado por defecto (sin costo); se alterna desde el menú Git.
+- **Tema**: gruvbox ↔ gruvbox_light, o heredar el de la terminal (Alacritty), que se sigue en vivo.
+- **Otros**: `:TSContext toggle` fija el contexto de la función/clase arriba; `za`/`zc`/`zo` pliegan (folds por treesitter con nvim-ufo, todo abierto al iniciar); `:Lazy sync` instala/actualiza plugins (el auto-reload de la config no lo hace).
 
 ## Modo ligero
 
@@ -174,6 +57,8 @@ Forzar con `NVIM_LIGHT=1|0`. Ajustes por máquina en `lua/local.lua` (ignorado p
 
 ## Añadir cosas
 
-- **Lenguaje**: `lua/languages/<nombre>.lua` + agregarlo a `NAMES` en `languages/init.lua`.
+- **Lenguaje**: `lua/languages/<nombre>.lua` + agregarlo a `NAMES` en `languages/init.lua` + su página aquí.
 - **Plugin**: un archivo en `lua/plugins/<grupo>/`.
+- **Keymap nuevo**: ponle `desc` de **2+ palabras empezando por su sección** (`"Harpoon add file"`); el generador y NvCheatsheet agrupan por la primera palabra y descartan los de una sola.
 - **Snippet de Go**: `nvim/snippets/go.json` (formato VSCode).
+- Tras cambiar teclas o menús: nada que editar a mano; `scripts/gen-cheatsheet.sh` regenera `CHEATSHEET.md` (el hook `pre-commit` lo hace solo).
