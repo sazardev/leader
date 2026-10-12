@@ -22,20 +22,10 @@ return {
       lualine_b = { "filename" },
       lualine_c = { { "branch", icon = "" } },
       lualine_x = {
-        {
-          "diagnostics",
-          sources = { "nvim_diagnostic" },
-          symbols = { error = "E", warn = "W" },
-          diagnostics_color = {
-            error = "DiagnosticError",
-            warn = "DiagnosticWarn",
-          },
-          colored = true,
-          sections = { "error", "warn" },
-        },
+        components.diagnostic_count(vim.diagnostic.severity.ERROR),
+        components.diagnostic_count(vim.diagnostic.severity.WARN),
       },
       lualine_y = {
-        { components.lsp_clients, cond = components.has_lsp },
         { components.project_name, cond = components.is_wide },
       },
       lualine_z = { "location" },
