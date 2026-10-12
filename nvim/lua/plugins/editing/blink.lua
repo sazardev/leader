@@ -1,4 +1,6 @@
 -- Autocompletar: nativo, sin íconos, ultra rápido.
+local keys = require "utils.blinkkeys"
+
 return {
   "saghen/blink.cmp",
   version = "1.*", -- v2 (main) requiere blink.lib compilado con Rust
@@ -9,22 +11,28 @@ return {
     keymap = {
       preset = "enter",
       -- goerrors: con un `ErrX` a medio declarar, Tab acepta el texto fantasma y Enter lo acepta + línea nueva
+      -- Dentro de un snippet (p. ej. los argumentos de `gorm.Open(dialector, opts)`) Tab SALTA al
+      -- siguiente hueco y cierra el menú: lo que escribiste se queda tal cual. Con el menú abierto
+      -- fuera de un snippet, Tab elige la siguiente sugerencia. Para elegir una dentro de un snippet: Ctrl+n / Ctrl+p.
       ["<Tab>"] = {
-        function()
-          return require("utils.goerrors").accept()
-        end,
+        keys.goerrors_accept,
+        keys.snippet_next,
         "select_next",
-        "snippet_forward",
         "fallback",
       },
       ["<CR>"] = {
-        function()
-          return require("utils.goerrors").accept(true)
-        end,
+        keys.goerrors_accept_newline,
         "accept",
         "fallback",
       },
-      ["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
+      ["<S-Tab>"] = {
+        keys.snippet_prev,
+        "select_prev",
+        "fallback",
+      },
+      -- Esc con el menú abierto SOLO lo cierra (y deshace la sugerencia que estuviera insertada);
+      -- sigues en insert y en tu snippet. Sin menú, Esc sale de insert como siempre.
+      ["<Esc>"] = { "cancel", "fallback" },
       ["<Up>"] = false,
       ["<Down>"] = false,
     },

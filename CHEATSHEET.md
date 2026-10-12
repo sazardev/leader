@@ -236,9 +236,10 @@ Preset `enter` más los overrides de `plugins/editing/blink.lua`. `→` = se pru
 | `<C-n>` | next item |
 | `<C-p>` | previous item |
 | `<C-space>` | open menu → show documentation → hide documentation |
-| `<CR>` | custom hook (Go `ErrX` ghost text, `utils/goerrors`) → accept item |
-| `<S-Tab>` | previous item → previous snippet placeholder |
-| `<Tab>` | custom hook (Go `ErrX` ghost text, `utils/goerrors`) → next item → next snippet placeholder |
+| `<CR>` | accept Go `ErrX` ghost text + new line → accept item |
+| `<Esc>` | close menu |
+| `<S-Tab>` | jump to previous snippet placeholder (closes the menu) → previous item |
+| `<Tab>` | accept Go `ErrX` ghost text → jump to next snippet placeholder (closes the menu) → next item |
 
 ## nvim-tree (dentro del árbol)
 
@@ -352,6 +353,7 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 | `<leader>fm` | n,x | Format file |
 | `<leader>q` | n | Close buffer / quit |
 | `<leader>w` | n | Save |
+| `jk` | i | Leave insert (closes the completion menu first) |
 
 ### Harpoon
 

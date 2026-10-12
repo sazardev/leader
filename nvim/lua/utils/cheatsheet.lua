@@ -252,7 +252,7 @@ local function render_blink(lines)
         local parts = {}
         for _, c in ipairs(cmds) do
           if type(c) == "function" then
-            table.insert(parts, "custom hook (Go `ErrX` ghost text, `utils/goerrors`)")
+            table.insert(parts, require("utils.blinkkeys").LABELS[c] or "custom action")
           elseif c ~= "fallback" and c ~= "fallback_to_mappings" then
             table.insert(parts, BLINK_CMDS[c] or c)
           end

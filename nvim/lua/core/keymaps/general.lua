@@ -53,7 +53,13 @@ function M.setup()
   local map = vim.keymap.set
 
   map("n", ";", ":", { desc = "General command mode (; instead of :)" })
-  map("i", "jk", "<ESC>")
+  -- jk = Esc, pero con el menú de autocompletado abierto solo lo cierra (como Esc en blink)
+  map("i", "jk", function()
+    local ok, cmp = pcall(require, "blink.cmp")
+    if not (ok and cmp.cancel()) then
+      vim.api.nvim_feedkeys(vim.keycode "<Esc>", "n", false)
+    end
+  end, { desc = "General leave insert (closes the completion menu first)" })
   map("n", "<leader>w", "<cmd>w<CR>", { desc = "General save" })
   map("n", "<leader>q", close_or_quit, { desc = "General close buffer / quit" })
 

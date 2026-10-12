@@ -45,6 +45,8 @@ Las teclas exactas están en [`CHEATSHEET.md`](../../CHEATSHEET.md); aquí, cóm
 - **nvim-tree**: abrir un archivo cierra el árbol; `I` muestra/oculta lo ignorado por git. Borrar carpeta avisa cuántos archivos contiene.
 - **Terminal**: `Esc` dentro de la terminal la cierra.
 - **Autocompletado** (blink.cmp): la documentación aparece **al instante** al seleccionar y muestra, en los snippets, **lo que se va a insertar**. Nada viene preseleccionado, salvo dentro de un tag de struct de Go (ahí `Enter` acepta la primera sugerencia). Fuentes: LSP, path, snippets, buffer; en Go se suman `gotags` y `gosmart`; en Lua, `lazydev`.
+  - **Dentro de un snippet** (p. ej. `gorm.Open(dialector, opts)`), `Tab` **salta al siguiente hueco y cierra el menú**: lo que escribiste se queda tal cual. Para elegir una sugerencia ahí, `Ctrl+n` / `Ctrl+p`. Fuera de un snippet, `Tab` elige la siguiente sugerencia.
+  - **`Esc` (o `jk`) con el menú abierto solo lo cierra** y deshace la sugerencia que estuviera insertada; sigues en insert y en tu snippet. Sin menú, salen de insert como siempre.
 - **Sesiones**: una por carpeta (y por rama de git; `main`/`master` usan la base). No se restauran solas: botón **Restore Session** (`rs`) del dashboard o su tecla de menú. Abrir un solo archivo (`nvim x`) y salir sobrescribe la sesión de esa carpeta; hay una tecla para no guardar al salir.
 - **Git**: git-blame está apagado por defecto (sin costo); se alterna desde el menú Git.
 - **Tema**: gruvbox ↔ gruvbox_light, o heredar el de la terminal (Alacritty), que se sigue en vivo.
