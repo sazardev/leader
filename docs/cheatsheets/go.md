@@ -23,10 +23,12 @@ El valor del tag se **deriva del nombre del campo**: `SentAt` → `sent_at`, `Us
 
 | Escribes (en un campo de struct) | Sugiere |
 |---|---|
-| `` ` `` tras el tipo | `json:"kind"`, `json:"kind,omitempty"`, `json:"sentAt"` (camelCase si difiere), yaml, db, mapstructure, form, toml, xml, `json:"-"`, `validate:"required"` |
+| `` ` `` tras el tipo | `json:"kind"`, `json:"kind,omitempty"`, `json:"sentAt"` (camelCase si difiere), **las variantes de `gorm:"…"` para ese campo y su tipo** (ver abajo), yaml, db, mapstructure, form, toml, xml, `json:"-"`, `validate:"required"` |
 | `json:` | `"kind"`, `"kind,omitempty"`, camelCase, `"-"` |
 | `json:"` | `kind`, `kind,omitempty`, camelCase, `-` |
 | `json:"kind,` | `omitempty`, `omitzero`, `string` (las opciones cambian según la clave) |
+| `gorm:"` | valores completos según campo y tipo: `primaryKey;type:text`, `type:text;not null`… |
+| `gorm:"type:text;` | opciones sueltas que aún no usaste: `not null`, `index`, `size:255`, `column:title`, `default:…`… |
 
 ```go
 type Envelope struct {
@@ -40,6 +42,34 @@ type Envelope struct {
 - El cursor queda **dentro de las comillas**: teclea `,` para las opciones, o `Tab` para salir.
 - Salen solo las claves que aún no usaste en ese tag.
 - No se activa en raw strings (`` query := `SELECT… ``), `return`, asignaciones, etc. (treesitter vigila que estés en un struct).
+
+### gorm
+
+gorm separa sus opciones con **`;`** (no con `,`) y algunas llevan valor (`size:255`, `column:sent_at`). Al abrir el tag `gorm:"` salen **valores completos** elegidos por el **nombre y el tipo del campo**; tras un `;` salen las **opciones sueltas** (las ya usadas no se repiten, y el cursor queda en el valor de `size:`, `type:`, `column:`… con Tab para saltar).
+
+| Campo | Variantes que ofrece (en este orden) |
+|---|---|
+| `ID string` | `primaryKey;type:text`, `primaryKey`, `primaryKey;type:uuid` |
+| `ID` entero | `primaryKey;autoIncrement`, `primaryKey` |
+| `string` | `type:text;not null`, `type:text`, `not null`, `type:text;not null;index`, `uniqueIndex`, `index`, `size:255` |
+| `CreatedAt` / `UpdatedAt` (`time.Time`) | `autoCreateTime` / `autoUpdateTime`, `not null;auto…`, `not null`, `index` |
+| otro `time.Time`, `gorm.DeletedAt` | `not null`, `index` / `index` |
+| `bool` | `not null;default:false`, `default:false`, `index` |
+| enteros y floats | `not null`, `not null;default:0`, `default:0`, `index` |
+| `[]byte` | `type:blob`, `type:bytea` |
+| tipo propio o relación (`Author User`) | `foreignKey:AuthorID`, `embedded`, `many2many:author` |
+| (todos) | `column:<nombre_en_snake>`, `-` |
+
+Con un puntero (`*string`) no se ofrece `not null`. Los tags `gorm` salen **en cualquier archivo** `.go`.
+
+```go
+type NoteModel struct {
+    ID        string    `gorm:"primaryKey;type:text"`
+    Title     string    `gorm:"type:text;not null;index"`
+    Content   string    `gorm:"type:text"`
+    CreatedAt time.Time `gorm:"not null"`
+}
+```
 
 ## Completado contextual (`utils/gosmart.lua`)
 
@@ -72,6 +102,7 @@ Ahí **no** salen palabras sueltas del buffer ni el `func`/`type` genérico del 
 | `func (e *Envelope) error` | método que devuelve `error` |
 | `func (e Envelope)` | método con receptor valor |
 | `func (e Envelope) String` | `fmt.Stringer` |
+| `func (NoteModel) TableName` | gorm: `TableName() string` con el nombre derivado (`NoteModel` → `notes`, `Category` → `categories`). **Solo en archivos `*_model.go` o `model.go`**, y no si el struct ya lo tiene. También sale tecleando `Tab…`/`TableName` en columna 0. |
 
 **Constructor** — `NewEnvelope` aparece para cada struct **sin** `NewX` y ya trae los campos:
 
