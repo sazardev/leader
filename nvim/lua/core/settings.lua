@@ -42,7 +42,7 @@ local defaults = {
   -- Sesiones (persistence.nvim guarda al salir; ver core/autocmds/session.lua)
   session = {
     autosave_ms = 60000, -- guarda en segundo plano si algo cambió, para sobrevivir a un corte de luz (0 = solo al salir)
-    herdr = true, -- dentro de Herdr, el pane reabre `nvim` con la sesión tras reiniciar el servidor
+    herdr = false, -- dentro de Herdr, registra nvim como "agente" para reabrir el pane tras reiniciar el servidor. Apagado: Herdr 0.9.x ignora el resume y nvim estorba en el panel Agents (requiere Herdr >= 0.10.0)
   },
 
   format_on_save = {
