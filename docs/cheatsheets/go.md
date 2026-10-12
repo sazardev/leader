@@ -71,6 +71,15 @@ type NoteModel struct {
 }
 ```
 
+### Archivos de modelo (`*_model.go` / `model.go`, `utils/gomodel.lua`)
+
+Solo ahí salen `functable`, `funcdomain`, `functodomain` y `funcfromdomain`, **al principio de la lista** (teclea `funct…`, `funcd…`, `functo…`, `funcf…`; también `toDomain` / `fromDomain` / `TableName`). Se generan a partir de los campos del struct y solo para los que aún no tienen la función.
+
+- **Dominio por nombre**: `NoteModel` → `note.Note` (paquete `note`, tipo `Note`). Los campos se pasan en orden al constructor y se leen con getters (`n.Title()`).
+- **Constructor real**: si el archivo importa `…/note` y el paquete está en el módulo, se busca en él `Reconstitute`, `Rehydrate`, `Restore`, `Hydrate`, `FromPersistence` o `Load`. Si no se encuentra, queda `Reconstitute` como placeholder editable (Tab).
+- **Varios modelos en el archivo**: `functodomain NoteModel`, y `fromDomain` pasa a `fromNoteDomain` para no chocar.
+- El import del paquete de dominio lo añade `goimports` al guardar. El formato (alineación de `ID:   n.ID(),`) lo arregla `gofumpt`.
+
 ## Completado contextual (`utils/gosmart.lua`)
 
 Lee el árbol de treesitter para saber **dónde estás** y ofrece solo lo que aplica. La ventana de documentación muestra el código que se insertará.
@@ -102,7 +111,10 @@ Ahí **no** salen palabras sueltas del buffer ni el `func`/`type` genérico del 
 | `func (e *Envelope) error` | método que devuelve `error` |
 | `func (e Envelope)` | método con receptor valor |
 | `func (e Envelope) String` | `fmt.Stringer` |
-| `func (NoteModel) TableName` | gorm: `TableName() string` con el nombre derivado (`NoteModel` → `notes`, `Category` → `categories`). **Solo en archivos `*_model.go` o `model.go`**, y no si el struct ya lo tiene. También sale tecleando `Tab…`/`TableName` en columna 0. |
+| `functable` | gorm: `func (NoteModel) TableName() string` con el nombre derivado (`NoteModel` → `notes`, `Category` → `categories`). **Sale el primero**: basta teclear `funct…` (o `func ` / `TableName`). Con varios structs: `functable NoteModel`, `functable Category`… **Solo en archivos `*_model.go` o `model.go`**, y no para structs que ya lo tienen. |
+| `funcdomain` | `toDomain` + `fromDomain` de una vez (ver abajo). Sale con `func ` o tecleando `funcd…` |
+| `functodomain` | `func (m NoteModel) toDomain() *note.Note { return note.Reconstitute(m.ID, m.Title, …) }` |
+| `funcfromdomain` | `func fromDomain(n *note.Note) NoteModel { return NoteModel{ID: n.ID(), …} }` |
 
 **Constructor** — `NewEnvelope` aparece para cada struct **sin** `NewX` y ya trae los campos:
 
@@ -283,6 +295,7 @@ Los de declaración de friendly (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `
 | `lua/servers/gopls.lua` | ajustes de gopls |
 | `lua/utils/gotags.lua` | fuente blink: tags de struct |
 | `lua/utils/gosmart.lua` | fuente blink: func/type/métodos/constructor/interface + filtros |
+| `lua/utils/gomodel.lua` | atajos solo de `*_model.go`: `functable`, `funcdomain`, `functodomain`, `funcfromdomain` |
 | `lua/utils/goerrors.lua` | texto fantasma de errores centinela (`ErrX` → `ErrX = errors.New("x")`); Tab/Enter se cablean en `blink.lua` |
 | `lua/plugins/editing/blink.lua` | registra las fuentes y filtros (buffer, lsp, snippets) |
 | `snippets/go.json` | snippets de sentencias |

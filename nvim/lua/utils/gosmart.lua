@@ -492,28 +492,6 @@ local function starts(word, frag)
   return frag == "" or word:lower():sub(1, #frag) == frag:lower()
 end
 
--- ── gorm: TableName() solo en archivos de modelo ─────────────────────────────
--- Se ofrece únicamente cuando el archivo es `*_model.go` (o `model.go`): así no aparece
--- en cada struct de cada archivo. Cambia MODEL_FILE si usas otra convención.
-local function is_model_file()
-  local name = vim.fs.basename(vim.api.nvim_buf_get_name(0))
-  return name == "model.go" or name:match "_model%.go$" ~= nil
-end
-
---- `NoteModel` → `notes` (sin sufijo Model, snake_case, plural simple en inglés)
----@param struct string
----@return string
-local function table_name(struct)
-  local base = struct:gsub("Model$", "")
-  local snake = require("utils.gotags").snake(base ~= "" and base or struct)
-  if snake:match "[^aeiou]y$" then
-    return snake:sub(1, -2) .. "ies"
-  elseif snake:match "[sxz]$" or snake:match "[cs]h$" then
-    return snake .. "es"
-  end
-  return snake .. "s"
-end
-
 -- Filtro ESTRICTO por prefijo (no fuzzy): `pac` no debe traer nada de `type`.
 --   func family  → `f`, `fu`, `func`, o tras `func ` sin nada más
 --   type family  → `t`, `ty`, `type`, o tras `type ` sin nada más
@@ -539,6 +517,18 @@ local function declaration_items(ctx, mode, frag)
   if want_funcs then
     add_templates(FUNCS, items, range)
   end
+  -- Archivos *_model.go: functable, funcdomain, functodomain, funcfromdomain (ver utils/gomodel.lua).
+  -- Van ANTES que el resto de `func…` para no tener que bajar hasta la última opción.
+  for i, item in ipairs(require("utils.gomodel").items {
+    structs = structs_in_buffer(),
+    buf = buf,
+    mode = mode,
+    frag = frag,
+    want_funcs = want_funcs,
+    range = range,
+  }) do
+    table.insert(items, i, item)
+  end
   if mode ~= "type" then
     for _, s in ipairs(structs_in_buffer()) do
       local r = s.name:sub(1, 1):lower()
@@ -546,15 +536,6 @@ local function declaration_items(ctx, mode, frag)
       local function method(label, detail, text)
         items[#items + 1] =
           snippet_item(label, detail, text, #items + 1, range, ("func method %s %s"):format(s.name, label))
-      end
-      -- gorm: `func (NoteModel) TableName() string` (solo *_model.go, y si el struct aún no lo tiene)
-      local wants_table = want_funcs or (mode == "any" and #frag >= 2 and starts("TableName", frag))
-      if wants_table and is_model_file() and not buf:find("%(%s*%w*%s*%*?" .. s.name .. "%s*%)%s*TableName%s*%(") then
-        method(
-          ("func (%s) TableName"):format(s.name),
-          "gorm table name",
-          ("func (%s) TableName() string {\n\treturn \"${1:%s}\"\n}"):format(s.name, table_name(s.name))
-        )
       end
       if want_funcs then
         method(
