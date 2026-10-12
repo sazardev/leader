@@ -57,6 +57,8 @@ nvim/
 
 **Tema heredado de la terminal** (`<leader>S`): lee `alacritty.toml` (Linux, Windows o WSL en `/mnt/*/Users/*/AppData`), resuelve sus `import` y genera un tema de base46 (`lua/themes/terminal.lua`) con el fondo exacto de la terminal, grises interpolados y acentos con contraste mínimo (`theme.terminal.min_contrast`). Se recuerda entre sesiones (estado en `stdpath("state")/appearance.json` + marcador junto a la caché de base46) y se sigue EN VIVO: mientras el tema activo es el terminal, un sondeo (`theme.terminal.watch_ms`, 1000 ms; 0 = apagado) hace `stat` de los archivos de la config y recompila al detectar un cambio (inotify no sirve: en WSL la config está en `/mnt/c`). Con el tema por defecto no corre nada. También re-sincroniza al abrir nvim y al volver el foco. Ruta personalizada: `theme.terminal.config`.
 
+**Sesiones y Herdr**: `persistence.nvim` guarda al salir y `core/autocmds/session.lua` guarda también en segundo plano cada `session.autosave_ms` (solo si algo cambió y sin cerrar tus ventanas auxiliares), para que un corte de luz no pierda el estado. Dentro de Herdr (`HERDR_ENV=1`) `utils/herdr.lua` registra nvim como "agente" con el resume `nvim +HerdrResume` (comando de usuario que restaura la sesión de la carpeta); al salir lo libera, así que un `:q` normal no reabre el pane. No pisa a un agente real que ya ocupe el pane. Desactivar: `session = { herdr = false }` / `autosave_ms = 0` en `local.lua`.
+
 **Ajustes por máquina**: `lua/local.lua` (ignorado por git) devuelve una tabla parcial que se mezcla sobre `core/settings.lua` (tema, lenguajes desactivados, format-on-save, opciones de vim, clipboard, modo ligero...). Ejemplo: `return { languages = { disabled = { "astro" } } }`.
 
 ## Key tools included

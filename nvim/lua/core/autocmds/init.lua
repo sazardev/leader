@@ -1,7 +1,7 @@
 -- ── Autocmds: un módulo por responsabilidad ──────────────────────────────────
 local M = {}
 
-local MODULES = { "reload", "treesitter", "ui", "appearance", "navigation", "last-position", "autoread" }
+local MODULES = { "reload", "treesitter", "ui", "appearance", "navigation", "last-position", "autoread", "session" }
 
 function M.setup()
   require "nvchad.autocmds"

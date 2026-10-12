@@ -39,6 +39,12 @@ local defaults = {
     disabled = {},
   },
 
+  -- Sesiones (persistence.nvim guarda al salir; ver core/autocmds/session.lua)
+  session = {
+    autosave_ms = 60000, -- guarda en segundo plano si algo cambió, para sobrevivir a un corte de luz (0 = solo al salir)
+    herdr = true, -- dentro de Herdr, el pane reabre `nvim` con la sesión tras reiniciar el servidor
+  },
+
   format_on_save = {
     enabled = true,
     timeout_ms = 2000,
@@ -101,6 +107,7 @@ local defaults = {
     cursorlineopt = "number",
     signcolumn = "yes:1",
     jumpoptions = "view", -- <C-o>/<C-i> restauran también la vista (scroll), no solo el cursor
+    undofile = true, -- el undo sobrevive a cerrar nvim (y a un corte de luz)
     exrc = true, -- carga .nvim.lua por proyecto (protegido por :trust)
     -- Qué guarda una sesión (persistence.nvim); sin `terminal`/`blank`: no se restauran
     sessionoptions = "buffers,curdir,tabpages,winsize,help,globals,skiprtp,folds",
