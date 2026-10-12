@@ -11,13 +11,13 @@ return {
     keymap = {
       preset = "enter",
       -- goerrors: con un `ErrX` a medio declarar, Tab acepta el texto fantasma y Enter lo acepta + línea nueva
-      -- Dentro de un snippet (p. ej. los argumentos de `gorm.Open(dialector, opts)`) Tab SALTA al
-      -- siguiente hueco y cierra el menú: lo que escribiste se queda tal cual. Con el menú abierto
-      -- fuera de un snippet, Tab elige la siguiente sugerencia. Para elegir una dentro de un snippet: Ctrl+n / Ctrl+p.
+      -- Con el menú abierto Tab/S-Tab ELIGEN sugerencia (Enter la inserta). Sin menú, dentro de un
+      -- snippet (p. ej. `gorm.Open(dialector, opts)`) saltan de hueco. Para quedarte con lo que
+      -- tecleaste y seguir: Esc (cierra el menú sin salir del snippet) y luego Tab.
       ["<Tab>"] = {
         keys.goerrors_accept,
-        keys.snippet_next,
         "select_next",
+        keys.snippet_next,
         "fallback",
       },
       ["<CR>"] = {
@@ -26,8 +26,8 @@ return {
         "fallback",
       },
       ["<S-Tab>"] = {
-        keys.snippet_prev,
         "select_prev",
+        keys.snippet_prev,
         "fallback",
       },
       -- Esc con el menú abierto SOLO lo cierra (y deshace la sugerencia que estuviera insertada);

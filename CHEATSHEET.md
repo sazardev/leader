@@ -238,8 +238,8 @@ Preset `enter` más los overrides de `plugins/editing/blink.lua`. `→` = se pru
 | `<C-space>` | open menu → show documentation → hide documentation |
 | `<CR>` | accept Go `ErrX` ghost text + new line → accept item |
 | `<Esc>` | close menu |
-| `<S-Tab>` | jump to previous snippet placeholder (closes the menu) → previous item |
-| `<Tab>` | accept Go `ErrX` ghost text → jump to next snippet placeholder (closes the menu) → next item |
+| `<S-Tab>` | previous item → jump to previous snippet placeholder (when no menu is open) |
+| `<Tab>` | accept Go `ErrX` ghost text → next item → jump to next snippet placeholder (when no menu is open) |
 
 ## nvim-tree (dentro del árbol)
 

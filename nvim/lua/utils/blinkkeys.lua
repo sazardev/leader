@@ -23,15 +23,15 @@ M.goerrors_accept_newline = named("accept Go `ErrX` ghost text + new line", func
   return require("utils.goerrors").accept(true)
 end)
 
--- Dentro de un snippet: salta de hueco y cierra el menú (lo tecleado se queda tal cual)
-M.snippet_next = named("jump to next snippet placeholder (closes the menu)", function(cmp)
+-- Dentro de un snippet y SIN menú abierto (con menú, Tab elige sugerencia): salta de hueco
+M.snippet_next = named("jump to next snippet placeholder (when no menu is open)", function(cmp)
   if cmp.snippet_active { direction = 1 } then
     cmp.hide()
     return cmp.snippet_forward()
   end
 end)
 
-M.snippet_prev = named("jump to previous snippet placeholder (closes the menu)", function(cmp)
+M.snippet_prev = named("jump to previous snippet placeholder (when no menu is open)", function(cmp)
   if cmp.snippet_active { direction = -1 } then
     cmp.hide()
     return cmp.snippet_backward()
