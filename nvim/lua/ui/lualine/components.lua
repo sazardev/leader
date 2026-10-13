@@ -34,6 +34,25 @@ function M.diagnostic_count(severity)
   }
 end
 
+-- ── Agente ───────────────────────────────────────────────────────────────────
+--- Spinner mientras hay acciones del agente en marcha. No carga el agente: si nunca se usó
+--- (módulo sin cargar) no hay nada que mostrar.
+---@return table componente de lualine
+function M.agent_status()
+  return {
+    function()
+      local jobs = package.loaded["agent.jobs"]
+      return jobs and jobs.statusline() or ""
+    end,
+    cond = function()
+      local jobs = package.loaded["agent.jobs"]
+      return jobs ~= nil and #jobs.running() > 0
+    end,
+    color = "AgentStatus",
+    padding = 0,
+  }
+end
+
 ---@return string nombre de la carpeta de trabajo
 function M.project_name()
   local cwd = vim.uv.cwd() or ""

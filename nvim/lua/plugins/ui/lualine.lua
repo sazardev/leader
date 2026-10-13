@@ -22,6 +22,7 @@ return {
       lualine_b = { "filename" },
       lualine_c = { { "branch", icon = "" } },
       lualine_x = {
+        components.agent_status(),
         components.diagnostic_count(vim.diagnostic.severity.ERROR),
         components.diagnostic_count(vim.diagnostic.severity.WARN),
       },

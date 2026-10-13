@@ -11,6 +11,7 @@
 | Chuleta | Qué cubre |
 |---|---|
 | [go.md](go.md) | **Go a fondo**: tags de struct, snippets, completado contextual, menú `<leader>g` |
+| [agent.md](agent.md) | **Agente inline** (`<leader>a`): implementar/revisar/explicar... de un disparo con Claude u OpenCode |
 | [typescript.md](typescript.md) | TypeScript / JavaScript / TSX |
 | [python.md](python.md) | Python |
 | [rust.md](rust.md) | Rust |
@@ -24,7 +25,7 @@
 ## Cómo funciona el leader
 
 Cada lenguaje tiene **su propia letra** bajo `<leader>` y **solo existe en buffers de ese filetype**;
-`<leader>G` (Git) solo dentro de un repo, y `<leader>P` (sesiones) y `<leader>S` (tema) son globales.
+`<leader>G` (Git) solo dentro de un repo, y `<leader>P` (sesiones), `<leader>S` (tema) y `<leader>C` (comentarios) son globales.
 Pulsa `<leader>` y which-key muestra únicamente lo que aplica al archivo actual (sin delay).
 
 Los menús de lenguaje abren una terminal integrada (toggleterm) y corren los comandos en la **raíz del proyecto**
@@ -36,9 +37,10 @@ Las teclas exactas están en [`CHEATSHEET.md`](../../CHEATSHEET.md); aquí, cóm
 
 - **Saltar y volver**: tras `gd` / `grr` / `Ctrl+click`, `Esc` vuelve a donde estabas (si no editaste ahí); además cierra popups y quita el resaltado. `Ctrl+o` / `Ctrl+i` recorren el historial de saltos.
 - **Diagnóstico de la línea** (`<leader>xd`): abre un popup; púlsalo otra vez para entrar y copiar el texto.
+- **Diagnósticos en bloques** (`utils/diagblocks.lua`): `<leader>xa` los pinta todos bajo su línea (barra del color de la severidad, fuente/código y contador `2/5`); `<leader>xc` alterna entre todos desplegados y uno por uno (cada uno una línea, solo se abre el de la línea del cursor); `<leader>xn`/`xp` saltan al siguiente/anterior y encienden la vista en modo uno por uno. Salen solos en cada buffer con diagnósticos (el texto a la derecha, `virtual_text`, está apagado) y `<leader>xa` los apaga en ese buffer; entonces queda solo un icono de color (`✖ ▲ ● ○`, el de la severidad más alta) al final de la línea. **Gutter**: sin iconos junto al número. El FONDO del número se tiñe con la severidad más alta de la línea (rojo error, amarillo aviso, azul info, cian pista) y el git es una barra fina `┃` en la signcolumn (verde añadido, azul cambiado, rojo borrado), así no se confunden. Tu elección (`<leader>xa` encendido/apagado, `<leader>xc` desplegado/colapsado) es global y se guarda en `stdpath("state")/diagblocks.json`, así que vuelve igual al reabrir nvim; `settings.diagnostic_blocks` (`auto`, `mode`, `marker`) solo da el valor inicial. `<leader>xn`/`xp` con la vista apagada la encienden solo en ese buffer y no tocan lo guardado. Se actualiza solo al cambiar diagnósticos o cursor. El panel de abajo (`<leader>xx`, Trouble) entra con foco: `Enter` salta al diagnóstico y abre su popup, como `<leader>xd`.
 - **Borrar sin pisar el portapapeles**: `<leader>d` + movimiento (`<leader>dd` línea, `<leader>dw` palabra) o en visual.
-- **Multicursor nativo** (`Ctrl+↓/↑`): abre un bloque visual y lo extiende línea a línea; luego `I`, `A`, `c` o `$A` escriben en todas las líneas.
-- **Textobjects** (treesitter): combínalos con operadores — `daf` borra la función, `dif` el cuerpo, `cif` lo cambia, `yaf` la copia, `vaf` la selecciona; `dac` borra la clase. Para llaves de cualquier bloque: `di{` (interior), `da{` (con llaves), `%` salta a la pareja.
+- **Multicursor** (`multicursor.nvim`, cursores reales como VS Code/Helix; se carga con la primera tecla): añade cursores por línea (`Ctrl+↑/↓`), por coincidencia de la palabra o selección (`Alt+n`/`Alt+p`, `Alt+Shift+n/p` salta una) o todas a la vez (`Alt+a`); `Alt+click` pone o quita uno con el ratón. Con varios cursores todo (motions, operadores, insert, undo) se repite en cada uno; `Esc` los limpia, `Ctrl+q` apaga/enciende el cursor principal, `←/→` cambian de cursor y `Alt+x` borra el actual. En insert, los cursores secundarios replican lo escrito AL SALIR de insert; si el menú de autocompletado está abierto, `Esc`/`jk` primero lo cierran y hace falta pulsarlos otra vez. Ideas: `Alt+a` sobre una palabra para renombrarla en el archivo; `Ctrl+↓` varias veces + `I`/`A` para editar columnas. El **bloque visual nativo** (`Ctrl+v` + `I`/`A`/`c`) sigue ahí para columnas simples. No uses `Ctrl+n` (es nvim-tree).
+- **Textobjects** (treesitter): combínalos con operadores — `daf` borra la función, `dif` el cuerpo, `cif` lo cambia, `yaf` la copia, `vaf` la selecciona; `dac` borra la clase. Para llaves de cualquier bloque: `di{` (interior), `da{` (con llaves), `%` salta a la pareja. **PageDown/PageUp** saltan de bloque en bloque (función, método, clase, struct/interface en Go); no se detienen en closures dentro de una función, aceptan contador (`3<PageDown>`) y, sin bloques o sin parser, hacen el scroll normal. **Home/End** van al inicio/fin del bloque actual; pulsarlos otra vez sube al bloque que lo envuelve (método → clase → archivo). Para inicio/fin de línea usa `^`/`$` (o `0`), y en insert siguen siendo nativos.
 - **Alt+hjkl** mueven línea o bloque (mini.move). La terminal horizontal de NvChad (`Alt+h`) se quitó para no pisarlo.
 - **Formato**: `<leader>fm` formatea (conform); también se formatea al guardar.
 - **Telescope**: el preview siempre es visible. Layout `flex`: a la derecha en ventanas ≥ 110 columnas, abajo en las angostas (`lua/plugins/navigation/telescope.lua`).
@@ -50,8 +52,10 @@ Las teclas exactas están en [`CHEATSHEET.md`](../../CHEATSHEET.md); aquí, cóm
   - **`Esc` (o `jk`) con el menú abierto solo lo cierra** y deshace la sugerencia que estuviera insertada (vuelve a lo que tecleaste); sigues en insert y en tu snippet. Sin menú, salen de insert como siempre.
 - **Sesiones**: una por carpeta (y por rama de git; `main`/`master` usan la base). No se restauran solas: botón **Restore Session** (`rs`) del dashboard o su tecla de menú. Abrir un solo archivo (`nvim x`) y salir sobrescribe la sesión de esa carpeta; hay una tecla para no guardar al salir.
 - **Git**: git-blame está apagado por defecto (sin costo); se alterna desde el menú Git.
+- **Commits convencionales** (`<leader>G`): `Gc` asistente (tipo → scope → asunto → ventana de mensaje donde puedes añadir cuerpo; `<CR>` o `<C-s>` commitea, `q` cancela); el tipo se sugiere por los archivos preparados y los scopes salen de las rutas y de los que ya usa el historial. `Gm` hace que la IA redacte el mensaje desde el diff preparado (modelo ligero, idioma en `git.commit.language`) y lo abre para revisarlo antes de commitear. `Ga` reescribe el mensaje del último commit (avisa si ya está en el remoto). Sin nada preparado ofrece `git add -A`. El hook `.githooks/commit-msg` exige el mismo formato en cualquier `git commit` (tipos y largo en `git.commit`; si cambias la lista de tipos, cámbiala también en el hook).
+- **Comentarios** (`<leader>C`): `Cd` inserta la plantilla de documentación idiomática de la función/tipo bajo el cursor (godoc, LuaCATS, JSDoc, docstring, rustdoc) con nombre, parámetros y retorno ya puestos; `Cm` lista en quickfix lo público que no tiene comentario de doc (para otros lenguajes usa el agente: `<leader>ad`). Snippets en cualquier lenguaje, con el comentario propio del lenguaje: `todo`, `fixme`, `note`, `hack`, `warn`, `perf`, `deprecated` (y con `o` al final, p. ej. `todoo`, `TODO(nombre):`); viven en `nvim/snippets/all.json`.
 - **Tema**: gruvbox ↔ gruvbox_light, o heredar el de la terminal (Alacritty), que se sigue en vivo.
-- **Otros**: `:TSContext toggle` fija el contexto de la función/clase arriba; `za`/`zc`/`zo` pliegan (folds por treesitter con nvim-ufo, todo abierto al iniciar); `:Lazy sync` instala/actualiza plugins (el auto-reload de la config no lo hace).
+- **Otros**: `:TSContext toggle` fija el contexto de la función/clase arriba; `za`/`zc`/`zo` pliegan (folds por treesitter con nvim-ufo, todo abierto al iniciar); `<leader>C` pliega los comentarios largos (bloques o líneas `//` seguidas de `comments.min_lines` o más, 4 por defecto): `Cc` los pliega todos, `Ce` los despliega, `Ct` alterna el de bajo el cursor; con `comments.auto_collapse = true` los archivos se abren con ellos ya plegados; `:Lazy sync` instala/actualiza plugins (el auto-reload de la config no lo hace).
 
 ## Modo ligero
 

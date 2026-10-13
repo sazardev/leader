@@ -3,7 +3,7 @@
 -- existe en los buffers donde aplica (keymaps + grupo de which-key
 -- buffer-locales). El popup de <leader> muestra únicamente lo relevante.
 --
--- Un contexto es: { name, prefix, maps = { {key, desc, fn}... },
+-- Un contexto es: { name, prefix, maps = { {key, desc, fn, modes?}... },
 --                   filetypes? = {...}, detect? = fun(buf): boolean }
 local M = {}
 
@@ -13,6 +13,11 @@ function M.contexts()
   table.insert(list, require "menus.git")
   table.insert(list, require "menus.settings")
   table.insert(list, require "menus.session")
+  table.insert(list, require "menus.agent")
+  table.insert(list, require "menus.agent_ddd")
+  table.insert(list, require "menus.agent_repository")
+  table.insert(list, require "menus.agent_service")
+  table.insert(list, require "menus.comments")
   return list
 end
 
@@ -50,11 +55,12 @@ end
 ---@param ctx table
 local function bind_global(ctx)
   for _, m in ipairs(ctx.maps) do
-    vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { desc = M.desc(ctx, m[2]) })
+    -- 4º elemento opcional: modos del mapeo (por defecto solo normal)
+    vim.keymap.set(m[4] or "n", "<leader>" .. ctx.prefix .. m[1], m[3], { desc = M.desc(ctx, m[2]) })
   end
   local ok, wk = pcall(require, "which-key")
   if ok then
-    wk.add { { "<leader>" .. ctx.prefix, group = ctx.name } }
+    wk.add { { "<leader>" .. ctx.prefix, group = ctx.name, mode = { "n", "x" } } }
   end
 end
 
