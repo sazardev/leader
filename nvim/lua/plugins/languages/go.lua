@@ -1,6 +1,8 @@
--- go.nvim: no se carga en modo ligero (residente y pesado).
+-- go.nvim: no se carga en modo ligero (residente y pesado) y no se instala si desactivas Go
+-- (`languages.disabled`): su `build` descarga las herramientas de Go.
 return {
   "ray-x/go.nvim",
+  enabled = not vim.tbl_contains(require("core.settings").languages.disabled, "go"),
   dependencies = { "ray-x/guihua.lua" },
   ft = { "go", "gomod", "gowork" },
   cond = function()

@@ -26,6 +26,7 @@ end
 
 return {
   "akinsho/flutter-tools.nvim",
+  enabled = not vim.tbl_contains(require("core.settings").languages.disabled, "dart"),
   ft = { "dart" },
   dependencies = {
     "nvim-lua/plenary.nvim",
