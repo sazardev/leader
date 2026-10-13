@@ -519,6 +519,12 @@ local function declaration_items(ctx, mode, frag)
   end
   -- Archivos *_model.go: functable, funcdomain, functodomain, funcfromdomain (ver utils/gomodel.lua).
   -- Van ANTES que el resto de `func…` para no tener que bajar hasta la última opción.
+  -- métodos que le faltan a un struct para cumplir su interfaz (utils/goimpl.lua): también AL PRINCIPIO
+  if want_funcs then
+    for i, item in ipairs(require("utils.goimpl").declaration_items(range, mode == "func" and "" or frag)) do
+      table.insert(items, i, item)
+    end
+  end
   for i, item in ipairs(require("utils.gomodel").items {
     structs = structs_in_buffer(),
     buf = buf,
@@ -1036,6 +1042,9 @@ function M.filter_snippets(ctx, items)
   if vim.bo.filetype ~= "go" then
     return items
   end
+  if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
+    return {} -- tras `func (s *T) ` solo se nombra un método: ningún snippet de sentencia o declaración
+  end
   local scope = M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line)
   return vim.tbl_filter(function(it)
     local label = it.label
@@ -1058,7 +1067,12 @@ function M.quiet_buffer(ctx, items)
   if vim.bo.filetype ~= "go" then
     return items
   end
-  if decl_start(ctx) or M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "interface" or literal_info(ctx) then
+  if
+    decl_start(ctx)
+    or M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "interface"
+    or literal_info(ctx)
+    or require("utils.goimpl").method_position(ctx.line, ctx.cursor[2])
+  then
     return {}
   end
   local value = value_info(ctx)
@@ -1082,6 +1096,9 @@ function M.quiet_lsp(ctx, items)
     return vim.tbl_filter(function(it)
       return not (it.kind == KIND.Keyword and (it.label == "func" or it.label == "type"))
     end, items)
+  end
+  if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
+    return {} -- los nombres salen de goimpl (lo que falta de la interfaz), no de gopls
   end
   if literal_info(ctx) then -- los campos ya salen de gosmart (con valores por defecto)
     return vim.tbl_filter(function(it)
@@ -1111,9 +1128,20 @@ function M.autotrigger()
       local line = vim.api.nvim_get_current_line()
       local row, col = unpack(vim.api.nvim_win_get_cursor(0))
       local prev = row > 1 and vim.api.nvim_buf_get_lines(0, row - 2, row - 1, false)[1] or ""
+      -- `func (s *noteService) ` recién escrito: abre el menú con los métodos que faltan (sin tener que teclear una letra)
+      local impl = require("utils.goimpl").method_position(line, col)
       local inline = line:sub(1, col):match "{$" ~= nil and line:sub(col + 1):match "^}" ~= nil
       -- `Envelope{|}`, o línea en blanco recién abierta tras `{` o tras `campo: valor,`
       local fresh = line:match "^%s*$" ~= nil and prev:match "[{,]%s*$" ~= nil
+      if impl and line:sub(1, col):match "%)%s$" then
+        return vim.defer_fn(function()
+          local ok, cmp = pcall(require, "blink.cmp")
+          local now = vim.api.nvim_win_get_cursor(0)
+          if ok and vim.api.nvim_get_mode().mode == "i" and now[1] == row and now[2] == col and not cmp.is_visible() then
+            cmp.show()
+          end
+        end, 40)
+      end
       if not (inline or fresh) then
         return
       end
@@ -1151,6 +1179,14 @@ function Source:get_completions(ctx, callback)
   local incomplete = false
   local before = ctx.line:sub(1, ctx.cursor[2])
   local items = type_body_items(before)
+  -- `func (s *noteService) |`: los métodos que faltan para cumplir su interfaz
+  if #items == 0 and require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
+    return callback {
+      is_incomplete_forward = false,
+      is_incomplete_backward = false,
+      items = require("utils.goimpl").method_items(ctx),
+    }
+  end
   local lit = #items == 0 and literal_info(ctx)
   local value = #items == 0 and not lit and value_info(ctx)
   if lit then

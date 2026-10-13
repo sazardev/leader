@@ -178,6 +178,29 @@ Los parámetros contiguos del mismo tipo se agrupan. Con un solo struct en el ar
 | `pac`, `package`, `i`, `v`, `c`… | nada de esto (lo demás lo ponen el LSP y friendly-snippets) |
 | `type Foo`, `func Foo` | nada: estás *nombrando* algo |
 
+### Métodos que faltan para cumplir una interfaz (`utils/goimpl.lua`)
+Si un struct **se nota** implementando una interfaz y le faltan métodos, el menú ofrece exactamente esos, con la firma de la
+interfaz y un cuerpo útil (0 tokens, sin LLM). Dos sitios:
+
+- **Tras escribir el receptor**: `func (s *noteService) ` abre el menú solo (sin teclear nada) con `…all missing (6)` y cada método
+  que falta (`Create`, `Get`, ...). Filtra al teclear (`Se` → `SetDone`). El receptor se usa como lo escribiste (`s`).
+- **Al empezar la declaración** (`func ` en columna 0): lo mismo para cada struct del archivo, con la cabecera `func (n *noteService)` ya puesta.
+
+Cómo sabe qué interfaz implementa (la primera que encaje): `var _ NoteService = (*noteService)(nil)`; un constructor que la
+devuelve (`func NewNoteService(...) NoteService { return &noteService{...} }`); el nombre (`noteService` ~ `NoteService`,
+`postgresNoteRepository` ~ `domain.NoteRepository`, también si la interfaz está en otro paquete del módulo); o lo que ya
+implementó. Lo ya escrito no se vuelve a ofrecer.
+
+**Cuerpo**: si el struct guarda una dependencia que es una interfaz (`repo domain.NoteRepository`) y esta tiene un método con la
+**misma forma** (tipos de parámetros y de retorno; el nombre da igual), el cuerpo la llama: `Get` → `return s.repo.FindByID(ctx, id)`,
+`List` → `s.repo.FindAll(ctx, filter)`, `Delete` → `s.repo.Delete(ctx, id)`. Si no hay equivalente (`Create`, `Update`...) queda el
+cursor en el cuerpo con un `return nil, nil` (valores cero) que compila. Con `…all missing` cada cuerpo vacío es un tabstop (Tab salta).
+
+Las interfaces de **otro paquete del módulo** se leen del disco (módulo de `go.mod`) y sus tipos se califican (`Note` →
+`domain.Note`); los imports que falten los añade `goimports` al guardar. Las de la librería estándar o de dependencias no se leen:
+para esas, gopls ya ofrece `<leader>ca` → "Declare missing methods of …" sobre el error del constructor (rellena todo con
+`panic("unimplemented")`).
+
 ### Después de `type Envelope `
 Ofrece `struct`, `interface` y `func(…)`. Si ya escribiste `struct`, no sale nada.
 
@@ -295,6 +318,7 @@ Los de declaración de friendly (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `
 | `lua/servers/gopls.lua` | ajustes de gopls |
 | `lua/utils/gotags.lua` | fuente blink: tags de struct |
 | `lua/utils/gosmart.lua` | fuente blink: func/type/métodos/constructor/interface + filtros |
+| `lua/utils/goimpl.lua` | métodos que faltan para cumplir una interfaz (receptor y declaración), cuerpos que llaman a la dependencia |
 | `lua/utils/gomodel.lua` | atajos solo de `*_model.go`: `functable`, `funcdomain`, `functodomain`, `funcfromdomain` |
 | `lua/utils/goerrors.lua` | texto fantasma de errores centinela (`ErrX` → `ErrX = errors.New("x")`); Tab/Enter se cablean en `blink.lua` |
 | `lua/plugins/editing/blink.lua` | registra las fuentes y filtros (buffer, lsp, snippets) |
