@@ -9,6 +9,7 @@
 --   el resto → cuerpo JSON (struct anónimo con tags en snake_case, o el struct tal cual si el servicio recibe uno)
 --   (T, error) → 200 con el JSON (201 en POST); solo error → 204. Errores: `writeError` (helpers opcionales: ítem aparte).
 -- Fiber u otros routers: sin ítems (no se inventa).
+local fws = require "utils.gohttpfw"
 local ix = require "utils.goindex"
 
 local M = {}
@@ -27,28 +28,6 @@ local function is_handler(name)
     end
   end
   return false
-end
-
----@param path string
----@return "nethttp"|"chi"|"gin"|"echo"|nil
-local function framework(path)
-  local gomod = vim.fs.find("go.mod", { path = vim.fs.dirname(path), upward = true })[1]
-  if not gomod then
-    return nil
-  end
-  local ok, lines = pcall(vim.fn.readfile, gomod)
-  local text = ok and table.concat(lines, "\n") or ""
-  if text:find("go-chi/chi", 1, true) then
-    return "chi"
-  elseif text:find("gin-gonic/gin", 1, true) then
-    return "gin"
-  elseif text:find("labstack/echo", 1, true) then
-    return "echo"
-  elseif text:find("gofiber/fiber", 1, true) then
-    return nil
-  end
-  local minor = text:match "\ngo%s+1%.(%d+)"
-  return (tonumber(minor) or 0) >= 22 and "nethttp" or nil
 end
 
 ---@param t string
@@ -103,104 +82,7 @@ local function plural(base)
   return s .. "s"
 end
 
--- ── lo que cambia por framework ──────────────────────────────────────────────
-
----@class GoHttpFw
----@field sig string
----@field ctx string
----@field path fun(name: string): string
----@field query_setup string?
----@field query fun(key: string): string
----@field decode fun(var: string): string  condición `err := ...; err != nil` completa
----@field bad fun(err: string): string[]
----@field fail fun(err: string): string[]
----@field ok fun(status: string, value: string): string[]
----@field empty fun(): string[]
-local FW = {
-  nethttp = {
-    sig = "(w http.ResponseWriter, r *http.Request)",
-    ctx = "r.Context()",
-    path = function(n)
-      return ('r.PathValue("%s")'):format(n)
-    end,
-    query_setup = "q := r.URL.Query()",
-    query = function(k)
-      return ('q.Get("%s")'):format(k)
-    end,
-    decode = function(v)
-      return ("json.NewDecoder(r.Body).Decode(&%s)"):format(v)
-    end,
-    bad = function(e)
-      return { ("http.Error(w, %s.Error(), http.StatusBadRequest)"):format(e), "return" }
-    end,
-    fail = function(e)
-      return { ("writeError(w, %s)"):format(e), "return" }
-    end,
-    ok = function(status, v)
-      return { ("writeJSON(w, %s, %s)"):format(status, v) }
-    end,
-    empty = function()
-      return { "w.WriteHeader(http.StatusNoContent)" }
-    end,
-  },
-  gin = {
-    sig = "(c *gin.Context)",
-    ctx = "c.Request.Context()",
-    path = function(n)
-      return ('c.Param("%s")'):format(n)
-    end,
-    query = function(k)
-      return ('c.Query("%s")'):format(k)
-    end,
-    decode = function(v)
-      return ("c.ShouldBindJSON(&%s)"):format(v)
-    end,
-    bad = function(e)
-      return { ('c.JSON(http.StatusBadRequest, gin.H{"error": %s.Error()})'):format(e), "return" }
-    end,
-    fail = function(e)
-      return { ('c.JSON(http.StatusInternalServerError, gin.H{"error": %s.Error()})'):format(e), "return" }
-    end,
-    ok = function(status, v)
-      return { ("c.JSON(%s, %s)"):format(status, v) }
-    end,
-    empty = function()
-      return { "c.Status(http.StatusNoContent)" }
-    end,
-  },
-  echo = {
-    sig = "(c echo.Context) error",
-    ctx = "c.Request().Context()",
-    path = function(n)
-      return ('c.Param("%s")'):format(n)
-    end,
-    query = function(k)
-      return ('c.QueryParam("%s")'):format(k)
-    end,
-    decode = function(v)
-      return ("c.Bind(&%s)"):format(v)
-    end,
-    bad = function(e)
-      return { ("return echo.NewHTTPError(http.StatusBadRequest, %s.Error())"):format(e) }
-    end,
-    fail = function(e)
-      return { ("return %s"):format(e) }
-    end,
-    ok = function(status, v)
-      return { ("return c.JSON(%s, %s)"):format(status, v) }
-    end,
-    empty = function()
-      return { "return c.NoContent(http.StatusNoContent)" }
-    end,
-  },
-}
-FW.chi = vim.tbl_extend("force", FW.nethttp, {
-  path = function(n)
-    return ('chi.URLParam(r, "%s")'):format(n)
-  end,
-})
-
----@param t string
+---@param verb string
 ---@return string
 local function status_const(verb)
   return verb == "POST" and "http.StatusCreated" or "http.StatusOK"
@@ -214,7 +96,7 @@ end
 ---@param pkg GoImplPackage
 ---@param path string
 ---@return string[] lines (sin sangría), string verb
-local function body_of(fw, m, field, recv, pkg, path, fw_name)
+local function body_of(fw, m, field, recv, pkg, path)
   local verb = verb_of(m.name)
   local lines, args = {}, {}
   local function push(...)
@@ -227,7 +109,6 @@ local function body_of(fw, m, field, recv, pkg, path, fw_name)
       lines[#lines + 1] = l
     end
   end
-  local is_echo = fw_name == "echo"
   local function block(cond, on_fail)
     push(("if err := %s; err != nil {"):format(cond))
     for _, l in ipairs(on_fail) do
@@ -345,16 +226,7 @@ local function body_of(fw, m, field, recv, pkg, path, fw_name)
     push(call)
     push_all(fw.empty())
   end
-  if is_echo then
-    -- echo devuelve error en cada camino: el último `return` ya está dentro de ok/empty
-  end
   return lines, verb
-end
-
----@param s string
----@return string
-local function esc(s)
-  return ix.esc(s)
 end
 
 --- Ítems de handlers para `struct` (handler) según sus servicios
@@ -368,8 +240,8 @@ end
 ---@param order integer
 ---@return table[]
 local function items_for(pkg, path, struct, recv, ptr, header, range, order)
-  local fw_name = framework(path)
-  local fw = fw_name and FW[fw_name]
+  local fw_name = fws.detect(path)
+  local fw = fw_name and fws.FRAMEWORKS[fw_name]
   if not fw then
     return {}
   end
@@ -400,8 +272,8 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
         end
       end
 
-      local function method_text(m, with_header, stop)
-        local lines = body_of(fw, m, f.name, recv, pkg, path, fw_name)
+      local function method_text(m, with_header)
+        local lines = body_of(fw, m, f.name, recv, pkg, path)
         local indented = {}
         for _, l in ipairs(lines) do
           indented[#indented + 1] = "\t" .. l
@@ -424,7 +296,7 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
           filterText = header and ("func method %s %s"):format(struct, m.name) or m.name,
           sortText = ("%03d"):format(order + #items + 1),
           documentation = { kind = "markdown", value = "```go\n" .. text .. "\n```" },
-          textEdit = { newText = esc(text) .. "$0", range = range },
+          textEdit = { newText = ix.esc(text) .. "$0", range = range },
         }
       end
 
@@ -463,7 +335,7 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
           filterText = header and ("func method %s Routes"):format(struct) or "Routes",
           sortText = ("%03d"):format(order),
           documentation = { kind = "markdown", value = "```go\n" .. text .. "\n```" },
-          textEdit = { newText = esc(text), range = range },
+          textEdit = { newText = ix.esc(text), range = range },
         })
       end
 
@@ -477,7 +349,7 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
           filterText = header and ("func method %s all handlers"):format(struct) or "all handlers",
           sortText = ("%03d"):format(order),
           documentation = { kind = "markdown", value = "```go\n" .. table.concat(texts, "\n\n") .. "\n```" },
-          textEdit = { newText = esc(table.concat(texts, "\n\n")), range = range },
+          textEdit = { newText = ix.esc(table.concat(texts, "\n\n")), range = range },
         })
       end
     end
@@ -510,7 +382,7 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
         filterText = "func handler helpers writeJSON writeError",
         sortText = ("%03d"):format(order + #items + 1),
         documentation = { kind = "markdown", value = "```go\n" .. text .. "\n```" },
-        textEdit = { newText = esc(text), range = range },
+        textEdit = { newText = ix.esc(text), range = range },
       }
     end
   end

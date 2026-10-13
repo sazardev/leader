@@ -90,10 +90,7 @@ local function convert(expr, from, to, qualify)
   then
     return ("%s(%s)"):format(qualify(to), expr)
   end
-  if f == "Time" or t == "Time" then
-    return expr, ("TODO: %s → %s"):format(from, to)
-  end
-  return expr, ("TODO: %s → %s"):format(from, to)
+  return expr, ("TODO: %s → %s"):format(from, to) -- p. ej. time.Time ↔ string: no se adivina el formato
 end
 
 ---@class GoMapSide

@@ -23,8 +23,7 @@ local ix = require "utils.goindex"
 local KEYWORDS = ix.KEYWORDS
 local BUILTIN = ix.BUILTIN
 local package_at, module_dir = ix.package_at, ix.module_dir
-local related, lower_first, resolve_interface, defined_methods =
-  ix.related, ix.lower_first, ix.resolve_interface, ix.defined_methods
+local related, resolve_interface, defined_methods = ix.related, ix.resolve_interface, ix.defined_methods
 local normalize, zero_value, esc, range_of = ix.normalize, ix.zero_value, ix.esc, ix.range_of
 local buffer_state, current_package = ix.buffer_state, ix.current_package
 
