@@ -213,7 +213,7 @@ local defaults = {
   -- Comentarios largos (menú <leader>C, lua/utils/comments.lua): se pliegan con nvim-ufo
   comments = {
     min_lines = 4, -- un comentario (bloque o líneas seguidas) con menos líneas no se pliega
-    auto_collapse = false, -- true: los comentarios largos se abren ya plegados
+    auto_collapse = false, -- valor INICIAL de "comentarios plegados"; lo que eliges con <leader>Cc / <leader>Ce se guarda y manda
   },
 
   -- Git (lua/commit/, menú <leader>G): commits con Conventional Commits

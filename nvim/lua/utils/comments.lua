@@ -1,9 +1,14 @@
 -- ── Comentarios largos plegables ─────────────────────────────────────────────
 -- Detecta con treesitter los comentarios de varias líneas (un bloque `/* */` o varias
 -- líneas `//` seguidas que están solas en su línea) y los expone como folds de nvim-ufo
--- (kind "comment", ver plugins/editing/ufo.lua). El menú <leader>C los pliega/despliega.
+-- (kind "longcomment", ver plugins/editing/ufo.lua). El menú <leader>C los pliega/despliega y
+-- guarda la preferencia (se mantiene al abrir otros archivos y al reiniciar).
 -- Sin parser no hay comentarios que detectar: el menú avisa y no hace nada.
 local M = {}
+
+--- `kind` con el que los folds de comentarios largos se registran en ufo (único: el proveedor de
+--- treesitter usa el nombre del nodo, p. ej. "comment", y cerraría también los comentarios cortos)
+M.KIND = "longcomment"
 
 -- Nombres de nodo de comentario según la gramática; solo vale el que existe en el lenguaje
 local NODE_TYPES = { "comment", "line_comment", "block_comment", "multiline_comment", "documentation_comment" }
@@ -106,44 +111,160 @@ local function open(c)
   end
 end
 
----@return CommentRange[]?
-local function current_ranges()
-  local ranges = M.ranges(vim.api.nvim_get_current_buf())
-  if #ranges == 0 then
-    vim.notify(
-      ("No comments of %d+ lines here"):format(require("core.settings").comments.min_lines),
-      vim.log.levels.INFO
-    )
-    return nil
+-- ── Preferencia persistente ──────────────────────────────────────────────────
+-- "Comentarios plegados" es global y se guarda en stdpath("state")/comments.json (como las de
+-- utils/diagblocks.lua): `<leader>Cc` la enciende, `<leader>Ce` la apaga y vale para los archivos
+-- que abras después y para las próximas sesiones. `settings.comments.auto_collapse` solo da el
+-- valor inicial, hasta que eliges algo.
+local PREFS_PATH = vim.fn.stdpath "state" .. "/comments.json"
+
+---@type { collapsed: boolean }?
+local prefs
+
+---@return { collapsed: boolean }
+local function get_prefs()
+  if prefs then
+    return prefs
   end
-  vim.wo.foldenable = true
-  return ranges
+  prefs = { collapsed = require("core.settings").comments.auto_collapse }
+  local f = io.open(PREFS_PATH, "r")
+  if f then
+    local ok, data = pcall(vim.json.decode, f:read "*a")
+    f:close()
+    if ok and type(data) == "table" and type(data.collapsed) == "boolean" then
+      prefs.collapsed = data.collapsed
+    end
+  end
+  return prefs
 end
 
---- Pliega todos los comentarios largos del buffer
-function M.collapse()
-  local ranges = current_ranges()
-  if not ranges then
+---@param collapsed boolean
+local function set_collapsed(collapsed)
+  get_prefs().collapsed = collapsed
+  vim.fn.mkdir(vim.fn.fnamemodify(PREFS_PATH, ":h"), "p")
+  local f = io.open(PREFS_PATH, "w")
+  if f then
+    f:write(vim.json.encode(prefs))
+    f:close()
+  end
+end
+
+---@return boolean
+function M.collapsed()
+  return get_prefs().collapsed
+end
+
+--- Kinds que ufo cierra solo la primera vez que muestra un buffer: con la preferencia encendida,
+--- los archivos nuevos se abren con los comentarios largos ya plegados
+---@return string[]
+function M.close_kinds()
+  return M.collapsed() and { M.KIND } or {}
+end
+
+--- ufo lee esta lista en vivo (la de su config): se pone o quita el kind sin reiniciar nada
+local function sync_ufo()
+  local ok, config = pcall(require, "ufo.config")
+  if not ok then
     return
   end
+  local kinds = config.close_fold_kinds_for_ft.default or {}
+  config.close_fold_kinds_for_ft.default = kinds
+  for i = #kinds, 1, -1 do
+    if kinds[i] == M.KIND then
+      table.remove(kinds, i)
+    end
+  end
+  if M.collapsed() then
+    kinds[#kinds + 1] = M.KIND
+  end
+end
+
+-- ── Acciones ─────────────────────────────────────────────────────────────────
+
+--- Pliega o despliega todos los comentarios largos del buffer de la ventana actual
+---@param collapse boolean
+---@return integer cuántos comentarios largos hay
+local function apply_here(collapse)
+  local ranges = M.ranges(vim.api.nvim_get_current_buf())
+  if #ranges > 0 then
+    vim.wo.foldenable = true
+  end
   for _, c in ipairs(ranges) do
+    if collapse then
+      close(c)
+    else
+      open(c)
+    end
+  end
+  return #ranges
+end
+
+--- Pliega AL INSTANTE, de forma síncrona y antes del primer repintado, un buffer recién mostrado.
+--- El proveedor de ufo es asíncrono (el archivo se vería abierto unas decenas de ms y luego
+--- "saltaría"): aquí se crean los folds de los comentarios largos y se cierran en el acto; cuando
+--- ufo termina, rehace todos los folds y los vuelve a cerrar por kind sin que se note.
+--- Solo actúa si el buffer aún no tiene folds (si ya los tiene, ufo ya trabajó: lo alinea `apply_here`).
+---@param buf integer
+---@return integer cuántos comentarios largos pliega
+local function fold_now(buf)
+  if vim.wo.foldmethod ~= "manual" then
+    return 0
+  end
+  local ranges = M.ranges(buf)
+  for _, c in ipairs(ranges) do
+    if vim.fn.foldlevel(c.first + 1) > 0 then
+      return 0
+    end
+  end
+  if #ranges > 0 then
+    vim.wo.foldenable = true
+  end
+  for _, c in ipairs(ranges) do
+    -- de abajo arriba no hace falta: los comentarios no se solapan entre sí
+    pcall(vim.cmd, ("%d,%dfold"):format(c.first + 1, c.last + 1))
     close(c)
   end
-  vim.notify(("Collapsed %d comments"):format(#ranges), vim.log.levels.INFO)
+  return #ranges
 end
 
---- Despliega todos los comentarios largos del buffer
+--- Aplica la preferencia a lo que ya está abierto en este tab (los archivos nuevos la toman de ufo)
+---@param collapse boolean
+---@return integer
+local function apply_visible(collapse)
+  local total = 0
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].buftype == "" then
+      total = total + vim.api.nvim_win_call(win, function()
+        return apply_here(collapse)
+      end)
+    end
+  end
+  return total
+end
+
+--- Pliega todos los comentarios largos y los mantiene plegados (preferencia guardada)
+function M.collapse()
+  set_collapsed(true)
+  sync_ufo()
+  local n = apply_visible(true)
+  vim.notify(
+    n > 0 and ("Collapsed %d comments — they stay collapsed (<leader>Ce to undo)"):format(n)
+      or ("No comments of %d+ lines here; they will be collapsed in files that have them"):format(
+        require("core.settings").comments.min_lines
+      ),
+    vim.log.levels.INFO
+  )
+end
+
+--- Despliega todos los comentarios largos y deja de plegarlos solos
 function M.expand()
-  local ranges = current_ranges()
-  if not ranges then
-    return
-  end
-  for _, c in ipairs(ranges) do
-    open(c)
-  end
+  set_collapsed(false)
+  sync_ufo()
+  apply_visible(false)
+  vim.notify("Comments expanded — they will open expanded", vim.log.levels.INFO)
 end
 
---- Pliega/despliega el comentario largo bajo el cursor
+--- Pliega/despliega el comentario largo bajo el cursor (solo ahí: no cambia la preferencia)
 function M.toggle()
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
   for _, c in ipairs(M.ranges(vim.api.nvim_get_current_buf())) do
@@ -156,6 +277,38 @@ function M.toggle()
     end
   end
   vim.notify("No long comment under the cursor", vim.log.levels.INFO)
+end
+
+--- Registra la preferencia en ufo y la aplica a los buffers que ya existían cuando se encendió
+--- (los nuevos los cierra ufo solo): al mostrarse, un buffer cuyo estado no coincide se alinea
+function M.setup()
+  sync_ufo()
+  vim.api.nvim_create_autocmd("BufWinEnter", {
+    group = vim.api.nvim_create_augroup("CommentFolds", { clear = true }),
+    callback = function(ev)
+      if vim.bo[ev.buf].buftype ~= "" then
+        return
+      end
+      local want = M.collapsed()
+      if vim.b[ev.buf].comments_collapsed == want then
+        return
+      end
+      -- al abrir un archivo se pliega ya, sin esperar a ufo (que es asíncrono)
+      if want and vim.api.nvim_get_current_buf() == ev.buf and fold_now(ev.buf) > 0 then
+        vim.b[ev.buf].comments_collapsed = true
+        return
+      end
+      -- si no (buffer ya con folds, o desplegar): se espera a que ufo los tenga
+      vim.defer_fn(function()
+        if not (vim.api.nvim_buf_is_valid(ev.buf) and vim.api.nvim_get_current_buf() == ev.buf) then
+          return
+        end
+        if want == M.collapsed() and apply_here(want) > 0 then
+          vim.b[ev.buf].comments_collapsed = want
+        end
+      end, 300)
+    end,
+  })
 end
 
 return M

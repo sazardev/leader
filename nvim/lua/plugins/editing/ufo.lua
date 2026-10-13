@@ -19,7 +19,7 @@ local function with_comments(name)
       for _, c in ipairs(require("utils.comments").ranges(bufnr)) do
         -- el proveedor ya pliega ese bloque: no se duplica el fold
         if not taken[c.first .. ":" .. c.last] then
-          ranges[#ranges + 1] = { startLine = c.first, endLine = c.last, kind = "comment" }
+          ranges[#ranges + 1] = { startLine = c.first, endLine = c.last, kind = require("utils.comments").KIND }
         end
       end
       return ranges
@@ -73,10 +73,9 @@ return {
     vim.o.foldlevel = 99
     vim.o.foldlevelstart = 99
     vim.o.foldenable = true
-    -- abrir ya plegados los comentarios largos (ajuste `comments.auto_collapse`)
-    opts.close_fold_kinds_for_ft = {
-      default = require("core.settings").comments.auto_collapse and { "comment" } or {},
-    }
+    -- con la preferencia de <leader>Cc encendida, los archivos nuevos abren los comentarios largos plegados
+    opts.close_fold_kinds_for_ft = { default = require("utils.comments").close_kinds() }
     require("ufo").setup(opts)
+    require("utils.comments").setup()
   end,
 }
