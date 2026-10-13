@@ -150,8 +150,9 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .pd{background:var(--soft);width:300px;padding:6px 12px;white-space:normal;color:var(--dim)}
 .ed .pd pre,.ed .fl2 pre{font:inherit;white-space:pre-wrap;margin:0}
 .ed .pd p,.ed .fl2 p{margin:0}
-.ed .pd hr,.ed .fl2 hr{height:1px;background:var(--faint);opacity:.45;margin:5px -12px}
-.ed .fl2{position:absolute;z-index:6;background:var(--soft);box-shadow:0 0 0 1px var(--faint);width:max-content;max-width:min(520px,calc(100% - var(--gut) - 24px));font-size:12px;line-height:1.6;white-space:normal;padding:6px 12px;color:var(--dim)}
+.ed .pd hr,.ed .fl2 hr{display:none}
+.ed .pd hr+p,.ed .fl2 hr+p{margin-top:6px}
+.ed .fl2{position:absolute;z-index:6;background:var(--soft);width:max-content;max-width:min(520px,calc(100% - var(--gut) - 24px));font-size:12px;line-height:1.6;white-space:normal;padding:6px 12px;color:var(--dim)}
 .ed .fl2.dn{top:100%} .ed .fl2.up{bottom:100%}
 .ed .fl2 .ft{color:var(--faint);font-size:11.5px;margin-top:2px}
 .ed .fl2 .hd{color:var(--fg);font-weight:600} .ed .fl2 .e{color:var(--red)} .ed .fl2 .w{color:var(--yellow)} .ed .fl2 .src{color:var(--faint)}
