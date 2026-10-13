@@ -16,4 +16,11 @@ printf '%s\n' "$out" | grep -q 'ALL OK' || status=1
 bash -n "$ROOT/install.sh" || status=1
 "$ROOT/install.sh" --bogus >/dev/null 2>&1 && { echo "FAIL install.sh accepts an unknown option"; status=1; }
 "$ROOT/install.sh" --help | grep -q -- '--agent' || { echo "FAIL --help does not document --agent"; status=1; }
+"$ROOT/install.sh" --help | grep -q -- '--ask' || { echo "FAIL --help does not document --ask"; status=1; }
+# one command: piped (curl | bash) there is no repo next to the script, so it must bootstrap; --dry-run only prints the plan
+plan="$(cat "$ROOT/install.sh" | NVIM_CONFIG_DIR=/nonexistent/my-nvim bash -s -- --dry-run --lang go 2>&1)"
+printf '%s\n' "$plan" | grep -q 'would fetch .* into /nonexistent/my-nvim' || { echo "FAIL piped install.sh does not bootstrap: $plan"; status=1; }
+printf '%s\n' "$plan" | grep -q -- '--lang go' || { echo "FAIL the bootstrap does not forward its options"; status=1; }
+# from a clone it must NOT bootstrap (no "would fetch")
+"$ROOT/install.sh" --dry-run --no-deps --no-plugins 2>&1 | grep -q 'would fetch' && { echo "FAIL install.sh bootstraps from inside a clone"; status=1; }
 exit "$status"

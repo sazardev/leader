@@ -1,30 +1,66 @@
 #!/usr/bin/env bash
-# Installs this Neovim config ready to work: dependencies, link, plugins, LSPs/formatters and parsers.
-# Linux, WSL and macOS. Idempotent: you can run it again whenever you want (it updates whatever is missing).
+# Installs this Neovim config ready to work, in ONE command: dependencies, Neovim, link, plugins, LSPs/formatters,
+# parsers and the AI agent. Linux, WSL and macOS. Idempotent: run it again whenever you want (it brings everything up to date).
 #
-#   ./install.sh                       installs everything, asking before touching the system
-#   ./install.sh -y                    no questions
-#   ./install.sh --lang go,typescript  only those languages (the rest are disabled in lua/local.lua)
-#   ./install.sh --theme catppuccin    default theme (lua/local.lua)
-#   ./install.sh --light | --no-light  forces light mode (no resident LSP) or turns it off; without this, it is detected by RAM
-#   ./install.sh --agent auto          configures the AI agent: `auto` (the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`...
-#                                      `none` skips it; without the option it only shows what it detects (scripts/agent-setup.sh)
-#   ./install.sh --no-deps             does not install system packages or Neovim
-#   ./install.sh --no-plugins          only links (plugins and tools are installed when nvim is opened)
-#   ./install.sh --dry-run             shows what it would do without doing anything
+#   curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go --theme catppuccin
+#
+# That clones the repo into ~/.local/share/my-nvim-setup (override: NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH) and
+# runs its install.sh. From a clone: ./install.sh [options]. It never asks anything (use --ask to be prompted); an existing
+# nvim config is moved to nvim.bak-<date>, never deleted.
+#
+#   --lang go,typescript   only those languages (the rest are disabled in lua/local.lua)
+#   --theme catppuccin     default theme (lua/local.lua)
+#   --light | --no-light   forces light mode (no resident LSP) or turns it off; without this, it is detected by RAM
+#   --agent MODE           AI agent: `auto` (default: the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`...; `none` skips it
+#   --ask                  asks before installing system packages or Neovim (default: just does it)
+#   --no-deps              does not install system packages or Neovim
+#   --no-plugins           only links (plugins and tools are installed when nvim is opened)
+#   --dry-run              shows what it would do without doing anything
 #
 # Native Windows: install.ps1.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+# ── 0. One command: when run from a pipe (curl | bash) there is no repo next to the script, so fetch it and hand over ──
+bootstrap() {
+  local repo="${NVIM_CONFIG_REPO:-https://github.com/sazardev/my-nvim-setup.git}"
+  local branch="${NVIM_CONFIG_BRANCH:-master}"
+  local dest="${NVIM_CONFIG_DIR:-$HOME/.local/share/my-nvim-setup}"
+  local a
+  for a in "$@"; do
+    if [ "$a" = --dry-run ]; then
+      printf '  [dry-run] would fetch %s (%s) into %s and run its install.sh %s\n' "$repo" "$branch" "$dest" "$*"
+      exit 0
+    fi
+  done
+  command -v curl >/dev/null 2>&1 || { echo "install: curl is required" >&2; exit 1; }
+  printf 'nvim config: fetching %s → %s\n' "$repo" "$dest"
+  if [ -d "$dest/.git" ] && command -v git >/dev/null 2>&1; then
+    git -C "$dest" pull --ff-only -q || echo "install: could not fast-forward $dest (local changes?); using it as is" >&2
+  elif command -v git >/dev/null 2>&1 && [ ! -e "$dest" ]; then
+    git clone -q --depth 1 --branch "$branch" "$repo" "$dest"
+  else
+    # no git (or a non-git folder from an earlier tarball install): a tarball needs only curl + tar
+    mkdir -p "$dest"
+    curl -fsSL "${repo%.git}/archive/refs/heads/$branch.tar.gz" | tar -xz --strip-components=1 -C "$dest"
+  fi
+  [ -f "$dest/install.sh" ] || { echo "install: could not fetch the config into $dest" >&2; exit 1; }
+  NVIM_CONFIG_BOOTSTRAPPED=1 exec bash "$dest/install.sh" "$@"
+}
+SELF="${BASH_SOURCE[0]:-}"
+case "$SELF" in "" | bash | -bash | /dev/fd/* | /proc/*) SELF="" ;; esac
+if [ -z "$SELF" ] || [ ! -d "$(cd "$(dirname "$SELF")" && pwd)/nvim" ]; then bootstrap "$@"; fi
+
+ROOT="$(cd "$(dirname "$SELF")" && pwd)"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 TARGET="$CONFIG_HOME/nvim"
 MIN_NVIM="0.11"
 
-YES=0 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT=""
+YES=1 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT="auto"
 while [ $# -gt 0 ]; do
   case "$1" in
     -y | --yes) YES=1 ;;
+    --ask) YES=0 ;;
     --dry-run) DRY=1 ;;
     --no-deps) DEPS=0 ;;
     --no-plugins) PLUGINS=0 ;;
@@ -36,20 +72,22 @@ while [ $# -gt 0 ]; do
     --no-light) LIGHT=0 ;;
     --agent) AGENT="${2:-}"; shift ;;
     --agent=*) AGENT="${1#--agent=}" ;;
-    -h | --help) awk 'NR > 1 { if (/^#/) { sub(/^# ?/, ""); print } else exit }' "$0"; exit 0 ;;
+    -h | --help) awk 'NR > 1 { if (/^#/) { sub(/^# ?/, ""); print } else exit }' "${BASH_SOURCE[0]:-$0}"; exit 0 ;;
     *) echo "install: unknown argument: $1 (use --help)" >&2; exit 2 ;;
   esac
   shift
 done
 
 if [ -t 1 ]; then B=$'\033[1m' G=$'\033[32m' Y=$'\033[33m' R=$'\033[31m' N=$'\033[0m'; else B="" G="" Y="" R="" N=""; fi
-step() { printf '\n%s==>%s %s\n' "$B" "$N" "$*"; }
+T0=$SECONDS
+step() { T0=$SECONDS; printf '\n%s==>%s %s\n' "$B" "$N" "$*"; }
+took() { printf '%ss' "$((SECONDS - T0))"; }
 ok() { printf '  %s✔%s %s\n' "$G" "$N" "$*"; }
 warn() { printf '  %s!%s %s\n' "$Y" "$N" "$*"; }
 die() { printf '  %s✘ %s%s\n' "$R" "$*" "$N" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 run() { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else "$@"; fi; }
-ask() { # ask "question" → 0 if yes (with -y always yes; without a terminal, no)
+ask() { # ask "question" → 0 if yes (by default always yes; with --ask it prompts; without a terminal, no)
   [ "$YES" = 1 ] && return 0
   [ -t 0 ] || return 1
   read -r -p "  $1 [Y/n] " a
@@ -177,7 +215,7 @@ if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then
   # headless nvim writes A LOT of progress: everything goes to a log and only lines that look like a failure are shown
   LOG="${TMPDIR:-/tmp}/nvim-config-install.log"
   NV_BAD=0
-  done_ok() { if [ "$NV_BAD" = 0 ]; then ok "$1"; else warn "$1 — with warnings (above); re-run ./install.sh or check $LOG"; fi; }
+  done_ok() { if [ "$NV_BAD" = 0 ]; then ok "$1 · $(took)"; else warn "$1 — with warnings (above); re-run ./install.sh or check $LOG"; fi; }
   : >"$LOG"
   nv() {
     local from rc=0
@@ -192,9 +230,13 @@ if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then
     return 0
   }
 
-  step "Plugins (lazy.nvim)"
-  nv "+Lazy! sync" +qa
-  done_ok "plugins up to date (nvim/lazy-lock.json)"
+  # `restore` installs what is missing at the commits pinned in nvim/lazy-lock.json (a `sync` would update everything to
+  # the latest and rewrite the lockfile). lazy.nvim bootstraps itself at its latest stable commit, so on a fresh clone that
+  # one lockfile line changes: put it back to keep the clone clean.
+  step "Plugins (lazy.nvim, pinned versions)"
+  nv "+Lazy! restore" +qa
+  [ "${NVIM_CONFIG_BOOTSTRAPPED:-}" = 1 ] && git -C "$ROOT" checkout -q -- nvim/lazy-lock.json 2>/dev/null || true
+  done_ok "plugins installed"
 
   step "LSPs, formatters and linters (Mason)"
   nv -c "luafile $ROOT/scripts/install-mason.lua" +qa
@@ -205,7 +247,7 @@ if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then
   done_ok "parsers compiled"
 elif [ "$DRY" = 1 ]; then
   step "Plugins"
-  printf '  [dry-run] lazy sync · MasonToolsInstallSync · treesitter install\n'
+  printf '  [dry-run] lazy restore · MasonToolsInstallSync · treesitter install\n'
 else
   warn "plugins, tools and parsers: they install themselves the first time you open nvim (or run ./install.sh without --no-plugins)"
 fi
@@ -228,6 +270,6 @@ if [ "$AGENT" != none ]; then
   fi
 fi
 
-step "Done"
+step "Done in $((SECONDS))s"
 [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ] && printf '  (install log: %s)\n' "${TMPDIR:-/tmp}/nvim-config-install.log"
 ok "open nvim: <Space> shows the menus; CHEATSHEET.md has all the keys"

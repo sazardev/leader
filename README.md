@@ -8,39 +8,51 @@ performance: everything loads lazily, one file = one responsibility, and whateve
 
 ## Installation
 
+**One command, everything done** (Linux, WSL, macOS):
+
 ```sh
-git clone <url-of-this-repo> ~/my-nvim-setup
-cd ~/my-nvim-setup
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash
 ```
 
-The script (idempotent, you can re-run it) does everything:
+Windows (PowerShell): `irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1 | iex`
+
+It needs nothing from you: no clone, no prompts. It fetches the repo into `~/.local/share/my-nvim-setup` and does everything
+(idempotent: run it again any time to bring it up to date):
 
 1. installs whatever is missing from the system (git, curl, C compiler, ripgrep, node, cmake) and **Neovim ≥ 0.11** if you don't have it
-   (in `~/.local/opt`, without `sudo`; with brew on macOS) — always asking first;
-2. links `nvim/` as your config (`~/.config/nvim`), saving the previous one as `nvim.bak-<date>`;
+   (in `~/.local/opt`, without `sudo`; with brew on macOS);
+2. links `nvim/` as your config (`~/.config/nvim`); an existing one is moved to `nvim.bak-<date>`, never deleted;
 3. enables the git hooks (`.githooks`: cheatsheet always up to date and conventional commits);
-4. writes your **per-machine settings** (`nvim/lua/local.lua`, git-ignored) if you ask for them with the options below;
-5. installs the plugins (lazy.nvim, versions pinned in `nvim/lazy-lock.json`), the LSPs/formatters/linters (Mason) and
-   builds the treesitter parsers (`tree-sitter-cli` comes from Mason);
-6. **sets up the AI agent** if you ask for it (or shows you what it detects: Claude Code, OpenCode, Ollama…).
+4. writes your **per-machine settings** (`nvim/lua/local.lua`, git-ignored) if you pass the options below;
+5. installs the plugins at the versions pinned in `nvim/lazy-lock.json` (in parallel), the LSPs/formatters/linters (Mason) and builds the
+   treesitter parsers (`tree-sitter-cli` comes from Mason), reporting the time each step took;
+6. **sets up the AI agent** with the best backend it finds (Claude Code, OpenCode, Ollama…); `--agent none` skips it.
+
+Options go after `bash -s --`, for example a Go laptop, fully configured:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go,lua --theme gruvbox
+```
+
+Prefer to clone it yourself (to hack on it)? `git clone https://github.com/sazardev/my-nvim-setup && cd my-nvim-setup && ./install.sh` does exactly
+the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVIM_CONFIG_BRANCH`.
 
 Then open `nvim`. Press `<Space>` and which-key shows you the menus.
 
 | Option | Effect |
 |---|---|
-| `-y` | no prompts |
+| `--ask` | prompts before installing system packages or Neovim (by default it asks nothing) |
 | `--lang go,typescript` | only those languages (+ lua): the rest are disabled in `local.lua`, so nothing you don't use gets installed |
 | `--theme catppuccin` | default theme (`local.lua`) |
 | `--light` / `--no-light` | forces light mode (no resident LSP) or turns it off; without this it is detected by RAM (≤ 2 GB) |
-| `--agent auto` | sets up the agent: `auto` (the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`…; `none` skips it; without the option it only shows what it detects |
+| `--agent auto` | the AI agent (`auto` is the default and picks the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`…; `none` skips it |
 | `--no-deps` | doesn't touch system packages or Neovim |
 | `--no-plugins` | only links; plugins and tools install themselves the first time you open nvim |
 | `--dry-run` | shows what it would do |
 
 ```sh
-./install.sh -y --lang go,lua --theme gruvbox --agent auto      # a laptop for Go, everything configured
-./install.sh --dry-run --no-deps --lang rust                     # see what it would do
+./install.sh --lang go,lua --theme gruvbox --agent claude/haiku   # from a clone: a Go laptop, everything configured
+./install.sh --dry-run --no-deps --lang rust                      # see what it would do
 ```
 
 Available languages: `lua go typescript html css tailwind json yaml toml markdown docker prisma astro dart rust python java kotlin yarnspinner`.
@@ -176,7 +188,7 @@ docs/cheatsheets/             per-language and agent documentation
 
 ## Maintenance
 
-- Update: `git pull` (the config reloads itself when nvim opens) and `:Lazy sync` if plugins change (or `./install.sh`).
+- Update: re-run the install command (or `git pull && ./install.sh`): it brings the plugins to the versions pinned in `lazy-lock.json`; the config reloads itself when nvim opens.
 - Check: `scripts/test.sh` runs everything (agent and commits, Go helpers, installer and up-to-date cheatsheet; no network or tokens); each
   suite can also be run on its own: `scripts/test-agent.sh`, `scripts/test-go.sh`, `scripts/test-install.sh`, `scripts/gen-cheatsheet.sh --check`.
 - Commits: Conventional Commits format (`feat(scope): subject`); the `commit-msg` hook validates it and `<leader>Gc` / `Gm` / `GM` assist with it.

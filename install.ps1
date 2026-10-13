@@ -1,13 +1,37 @@
-# Installs this Neovim config on Windows: junction at %LOCALAPPDATA%\nvim, git hooks, plugins, LSPs/formatters and parsers.
-# Idempotent. Usage (PowerShell):
-#   ./install.ps1 [-NoPlugins] [-Lang go,typescript] [-Theme catppuccin] [-Light | -NoLight] [-Agent auto|none|claude/haiku]
-# Same options as install.sh (-Lang/-Theme/-Light are written to lua/local.lua with scripts/install-local.lua; -Agent
-# configures the AI agent with its `agent.setup` module).
-# Requirements: Neovim >= 0.11, git and a C compiler (for example `winget install -e --id MartinStorsjo.LLVM-MinGW.UCRT`
-# or Visual Studio Build Tools). Optional: ripgrep, node, cmake.
-param([switch]$NoPlugins, [string]$Lang = '', [string]$Theme = '', [switch]$Light, [switch]$NoLight, [string]$Agent = '')
+# Installs this Neovim config on Windows in ONE command: junction at %LOCALAPPDATA%\nvim, git hooks, plugins, LSPs/formatters,
+# parsers and the AI agent. Idempotent.
+#
+#   irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1 | iex
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1))) -Lang go -Theme catppuccin
+#
+# That fetches the repo into %LOCALAPPDATA%\my-nvim-setup (override: $env:NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH)
+# and runs its install.ps1. From a clone: ./install.ps1 [-NoPlugins] [-Lang go,typescript] [-Theme catppuccin]
+# [-Light | -NoLight] [-Agent auto|none|claude/haiku] (same options as install.sh; -Agent defaults to auto).
+# Requirements: Neovim >= 0.11, git (or just curl/tar for the fetch) and a C compiler (for example
+# `winget install -e --id MartinStorsjo.LLVM-MinGW.UCRT` or Visual Studio Build Tools). Optional: ripgrep, node, cmake.
+param([switch]$NoPlugins, [string]$Lang = '', [string]$Theme = '', [switch]$Light, [switch]$NoLight, [string]$Agent = 'auto')
 $ErrorActionPreference = 'Stop'
-$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# One command: run from a pipe ($PSScriptRoot is empty) there is no repo next to the script, so fetch it and hand over
+$Root = $PSScriptRoot
+if (-not $Root -or -not (Test-Path (Join-Path $Root 'nvim'))) {
+  $repo = if ($env:NVIM_CONFIG_REPO) { $env:NVIM_CONFIG_REPO } else { 'https://github.com/sazardev/my-nvim-setup.git' }
+  $branch = if ($env:NVIM_CONFIG_BRANCH) { $env:NVIM_CONFIG_BRANCH } else { 'master' }
+  $dest = if ($env:NVIM_CONFIG_DIR) { $env:NVIM_CONFIG_DIR } else { Join-Path $env:LOCALAPPDATA 'my-nvim-setup' }
+  Write-Host "nvim config: fetching $repo -> $dest"
+  if (Get-Command git -ErrorAction SilentlyContinue) {
+    if (Test-Path (Join-Path $dest '.git')) { git -C $dest pull --ff-only -q }
+    elseif (-not (Test-Path $dest)) { git clone -q --depth 1 --branch $branch $repo $dest }
+  } else {
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    $tar = Join-Path $env:TEMP 'my-nvim-setup.tar.gz'
+    Invoke-WebRequest "$($repo -replace '\.git$','')/archive/refs/heads/$branch.tar.gz" -OutFile $tar
+    tar -xzf $tar --strip-components=1 -C $dest
+  }
+  if (-not (Test-Path (Join-Path $dest 'install.ps1'))) { throw "could not fetch the config into $dest" }
+  & (Join-Path $dest 'install.ps1') @PSBoundParameters
+  return
+}
 $RootU = $Root.Replace('\', '/')
 $Target = Join-Path $env:LOCALAPPDATA 'nvim'
 
@@ -61,7 +85,7 @@ if (-not $NoPlugins) {
   $log = Join-Path $env:TEMP 'nvim-config-install.log'
   Remove-Item $log -ErrorAction SilentlyContinue
   foreach ($job in @(
-      @('Plugins (lazy.nvim)', '+Lazy! sync', '+qa'),
+      @('Plugins (lazy.nvim, pinned versions)', '+Lazy! restore', '+qa'),
       @('LSPs, formatters and linters (Mason)', '-c', "luafile $RootU/scripts/install-mason.lua", '+qa'),
       @('Treesitter parsers', '-c', "luafile $RootU/scripts/install-treesitter.lua", '+qa'))) {
     Step $job[0]
@@ -70,7 +94,7 @@ if (-not $NoPlugins) {
   Write-Host "`n  (install log: $log)"
 }
 
-# AI agent (optional): -Agent auto | claude/haiku | none; without the option it only shows what it detects
+# AI agent (optional): -Agent auto (default) | claude/haiku | none
 if ($Agent -ne 'none') {
   Step 'AI agent'
   if ($NoPlugins) {
