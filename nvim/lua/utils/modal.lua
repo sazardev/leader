@@ -112,15 +112,23 @@ function M.input(lines, opts, on_submit)
   local last = #lines
 
   vim.api.nvim_win_set_cursor(win, { last, #prompt })
+  vim.b[buf].completion = false -- blink no debe sugerir nada en un campo de texto libre
   vim.cmd "startinsert!"
+
+  -- Al cerrar hay que salir de insert: `startinsert!` dejaría el modo insert activo en la ventana
+  -- de código a la que se vuelve, y lo siguiente que teclees se escribiría en tu archivo.
+  local function leave()
+    close()
+    vim.cmd "stopinsert"
+  end
 
   local function submit()
     local text = vim.api.nvim_buf_get_lines(buf, last - 1, last, false)[1]:sub(#prompt + 1)
-    close()
+    leave()
     on_submit(vim.trim(text))
   end
   vim.keymap.set({ "i", "n" }, "<CR>", submit, { buffer = buf, nowait = true, desc = "Submit" })
-  vim.keymap.set("i", "<Esc>", close, { buffer = buf, nowait = true, desc = "Close" })
+  vim.keymap.set("i", "<Esc>", leave, { buffer = buf, nowait = true, desc = "Close" })
 end
 
 ---@param lines (string|table[])[]

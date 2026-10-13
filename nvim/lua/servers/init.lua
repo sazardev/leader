@@ -11,6 +11,7 @@ local function configure_defaults()
   -- semantic tokens) y habilita lua_ls. Tomamos sus capabilities como base y
   -- forzamos encima las de blink, preservando on_init.
   require("nvchad.configs.lspconfig").defaults()
+  vim.diagnostic.config(require("core.settings").diagnostics) -- NvChad vuelve a activar virtual_text
 
   local base = vim.lsp.config["*"] or {}
   vim.lsp.config("*", {

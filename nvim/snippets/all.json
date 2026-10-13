@@ -1,0 +1,128 @@
+{
+  "TODO": {
+    "prefix": [
+      "todo"
+    ],
+    "body": [
+      "${LINE_COMMENT} TODO: ${0:something still to do}"
+    ],
+    "description": "TODO comment (works in any language)"
+  },
+  "TODO-owner": {
+    "prefix": [
+      "todoo"
+    ],
+    "body": [
+      "${LINE_COMMENT} TODO(${1:name}): ${0:something still to do}"
+    ],
+    "description": "TODO comment with owner"
+  },
+  "FIXME": {
+    "prefix": [
+      "fixme"
+    ],
+    "body": [
+      "${LINE_COMMENT} FIXME: ${0:known bug to fix}"
+    ],
+    "description": "FIXME comment (works in any language)"
+  },
+  "FIXME-owner": {
+    "prefix": [
+      "fixmeo"
+    ],
+    "body": [
+      "${LINE_COMMENT} FIXME(${1:name}): ${0:known bug to fix}"
+    ],
+    "description": "FIXME comment with owner"
+  },
+  "NOTE": {
+    "prefix": [
+      "note"
+    ],
+    "body": [
+      "${LINE_COMMENT} NOTE: ${0:context worth remembering}"
+    ],
+    "description": "NOTE comment (works in any language)"
+  },
+  "NOTE-owner": {
+    "prefix": [
+      "noteo"
+    ],
+    "body": [
+      "${LINE_COMMENT} NOTE(${1:name}): ${0:context worth remembering}"
+    ],
+    "description": "NOTE comment with owner"
+  },
+  "HACK": {
+    "prefix": [
+      "hack"
+    ],
+    "body": [
+      "${LINE_COMMENT} HACK: ${0:workaround, explain why}"
+    ],
+    "description": "HACK comment (works in any language)"
+  },
+  "HACK-owner": {
+    "prefix": [
+      "hacko"
+    ],
+    "body": [
+      "${LINE_COMMENT} HACK(${1:name}): ${0:workaround, explain why}"
+    ],
+    "description": "HACK comment with owner"
+  },
+  "WARN": {
+    "prefix": [
+      "warn"
+    ],
+    "body": [
+      "${LINE_COMMENT} WARN: ${0:careful: something fragile}"
+    ],
+    "description": "WARN comment (works in any language)"
+  },
+  "WARN-owner": {
+    "prefix": [
+      "warno"
+    ],
+    "body": [
+      "${LINE_COMMENT} WARN(${1:name}): ${0:careful: something fragile}"
+    ],
+    "description": "WARN comment with owner"
+  },
+  "PERF": {
+    "prefix": [
+      "perf"
+    ],
+    "body": [
+      "${LINE_COMMENT} PERF: ${0:performance concern}"
+    ],
+    "description": "PERF comment (works in any language)"
+  },
+  "PERF-owner": {
+    "prefix": [
+      "perfo"
+    ],
+    "body": [
+      "${LINE_COMMENT} PERF(${1:name}): ${0:performance concern}"
+    ],
+    "description": "PERF comment with owner"
+  },
+  "DEPRECATED": {
+    "prefix": [
+      "deprecated"
+    ],
+    "body": [
+      "${LINE_COMMENT} DEPRECATED: ${0:use X instead}"
+    ],
+    "description": "DEPRECATED comment (works in any language)"
+  },
+  "DEPRECATED-owner": {
+    "prefix": [
+      "deprecatedo"
+    ],
+    "body": [
+      "${LINE_COMMENT} DEPRECATED(${1:name}): ${0:use X instead}"
+    ],
+    "description": "DEPRECATED comment with owner"
+  }
+}

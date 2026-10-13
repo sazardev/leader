@@ -13,7 +13,12 @@ which-key muestra únicamente lo del buffer actual.
 
 | Letra | Menú | Dónde existe |
 |---|---|---|
+| `<leader>a` | Agent | global |
+| `<leader>aD` | Agent DDD | global |
+| `<leader>aP` | Agent Repository | global |
+| `<leader>aS` | Agent Service | global |
 | `<leader>s` | CSS | `css`, `scss`, `less` |
+| `<leader>C` | Comments | global |
 | `<leader>d` | Dart / Flutter | `dart` |
 | `<leader>G` | Git | archivos dentro de un repo git |
 | `<leader>g` | Go | `go`, `gomod`, `gowork` |
@@ -26,6 +31,61 @@ which-key muestra únicamente lo del buffer actual.
 | `<leader>S` | Settings | global |
 | `<leader>t` | TypeScript / JavaScript | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
 
+### Agent — `<leader>a`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>ai` | implement |
+| `<leader>ar` | review |
+| `<leader>ae` | explain |
+| `<leader>aa` | ask |
+| `<leader>af` | fix |
+| `<leader>ad` | docs |
+| `<leader>aR` | refactor |
+| `<leader>ag` | hand off |
+| `<leader>am` | model |
+| `<leader>ah` | history |
+| `<leader>ac` | clear |
+| `<leader>ax` | stop |
+| `<leader>al` | last answer |
+
+### Agent DDD — `<leader>aD`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>aDi` | ddd implement |
+| `<leader>aDr` | ddd review |
+| `<leader>aDf` | ddd fix |
+| `<leader>aDm` | ddd missing |
+| `<leader>aDa` | ddd ask |
+| `<leader>aDd` | ddd diagnose |
+| `<leader>aDc` | ddd clear |
+
+### Agent Repository — `<leader>aP`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>aPp` | repo port |
+| `<leader>aPi` | repo implement |
+| `<leader>aPr` | repo review |
+| `<leader>aPc` | repo check |
+
+### Agent Service — `<leader>aS`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>aSi` | service implement |
+| `<leader>aSr` | service review |
+| `<leader>aSd` | service deps |
+
 ### CSS — `<leader>s`
 
 _Dónde: `css`, `scss`, `less`_
@@ -35,6 +95,18 @@ _Dónde: `css`, `scss`, `less`_
 | `<leader>sf` | format |
 | `<leader>sc` | toggle color preview |
 | `<leader>so` | outline |
+
+### Comments — `<leader>C`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>Cc` | collapse long comments |
+| `<leader>Ce` | expand comments |
+| `<leader>Ct` | toggle comment under cursor |
+| `<leader>Cd` | doc comment template for this function/type |
+| `<leader>Cm` | public functions missing a doc comment (quickfix) |
 
 ### Dart / Flutter — `<leader>d`
 
@@ -64,6 +136,9 @@ _Dónde: archivos dentro de un repo git_
 
 | Tecla | Acción |
 |---|---|
+| `<leader>Gc` | commit (type, scope, subject) |
+| `<leader>Gm` | commit message written by AI (review first) |
+| `<leader>Ga` | amend last commit message |
 | `<leader>Gt` | status |
 | `<leader>Gb` | blame toggle |
 | `<leader>Gd` | diff of all changes (Diffview) |
@@ -314,17 +389,63 @@ Preset `enter` más los overrides de `plugins/editing/blink.lua`. `→` = se pru
 
 Secciones = primera palabra del `desc` (igual que el botón **Mappings** del dashboard).
 
+### Agent
+
+| Tecla | Modo | Acción |
+|---|---|---|
+| `<leader>aDa` | n,x | Ddd ask |
+| `<leader>aDc` | n | Ddd clear |
+| `<leader>aDd` | n | Ddd diagnose |
+| `<leader>aDf` | n,x | Ddd fix |
+| `<leader>aDi` | n,x | Ddd implement |
+| `<leader>aDm` | n,x | Ddd missing |
+| `<leader>aDr` | n,x | Ddd review |
+| `<leader>aPc` | n | Repo check |
+| `<leader>aPi` | n,x | Repo implement |
+| `<leader>aPp` | n,x | Repo port |
+| `<leader>aPr` | n,x | Repo review |
+| `<leader>aR` | n,x | Refactor |
+| `<leader>aSd` | n | Service deps |
+| `<leader>aSi` | n,x | Service implement |
+| `<leader>aSr` | n,x | Service review |
+| `<leader>aa` | n,x | Ask |
+| `<leader>ac` | n | Clear |
+| `<leader>ad` | n,x | Docs |
+| `<leader>ae` | n,x | Explain |
+| `<leader>af` | n,x | Fix |
+| `<leader>ag` | n,x | Hand off |
+| `<leader>ah` | n | History |
+| `<leader>ai` | n,x | Implement |
+| `<leader>al` | n | Last answer |
+| `<leader>am` | n | Model |
+| `<leader>ar` | n,x | Review |
+| `<leader>ax` | n | Stop |
+
 ### Comment
 
 | Tecla | Modo | Acción |
 |---|---|---|
 | `<leader>/` | n,x | Comment |
 
+### Comments
+
+| Tecla | Modo | Acción |
+|---|---|---|
+| `<leader>Cc` | n | Collapse long comments |
+| `<leader>Cd` | n | Doc comment template for this function/type |
+| `<leader>Ce` | n | Expand comments |
+| `<leader>Cm` | n | Public functions missing a doc comment (quickfix) |
+| `<leader>Ct` | n | Toggle comment under cursor |
+
 ### Diagnostics
 
 | Tecla | Modo | Acción |
 |---|---|---|
+| `<leader>xa` | n | Blocks inline (toggle) |
+| `<leader>xc` | n | Blocks collapse / expand |
 | `<leader>xd` | n | Line popup (press again to enter) |
+| `<leader>xn` | n | Next block |
+| `<leader>xp` | n | Previous block |
 | `<leader>xx` | n | Project list (Trouble) |
 
 ### Find
@@ -395,10 +516,14 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 
 | Tecla | Modo | Acción |
 |---|---|---|
-| `<C-Down>` | x | Extend down |
-| `<C-Down>` | n | Block down |
-| `<C-Up>` | x | Extend up |
-| `<C-Up>` | n | Block up |
+| `<A-LeftMouse>` | n | Toggle cursor at mouse |
+| `<A-N>` | n,x | Skip next match |
+| `<A-P>` | n,x | Skip previous match |
+| `<A-a>` | n,x | Add cursor on every match |
+| `<A-n>` | n,x | Add next match |
+| `<A-p>` | n,x | Add previous match |
+| `<C-Down>` | n,x | Add cursor below |
+| `<C-Up>` | n,x | Add cursor above |
 
 ### Nvim-tree
 
@@ -457,6 +582,10 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 
 | Tecla | Modo | Acción |
 |---|---|---|
+| `<End>` | n,x | Block end (End) |
+| `<Home>` | n,x | Block start (Home) |
+| `<PageDown>` | n,x | Next block (PageDown) |
+| `<PageUp>` | n,x | Previous block (PageUp) |
 | `[f` | n,x,o | Previous function |
 | `]f` | n,x,o | Next function |
 | `ac` | x,o | Outer class |

@@ -1,0 +1,30 @@
+#!/bin/sh
+# Exige Conventional Commits en la primera línea: `tipo(scope)!: asunto`.
+# Los tipos son los de settings.git.commit.types (nvim/lua/core/settings.lua): si cambias
+# la lista allí, cámbiala aquí. Deja pasar merges, reverts y fixup!/squash! de git.
+# Activar una vez por clon: git config core.hooksPath .githooks
+TYPES='feat|fix|refactor|docs|style|perf|test|build|ci|chore|revert'
+MAX=72
+
+header="$(grep -v '^#' "$1" | sed -n '1p')"
+
+case "$header" in
+  Merge\ *|Revert\ \"*|fixup!\ *|squash!\ *|amend!\ *) exit 0 ;;
+esac
+
+if ! printf '%s' "$header" | grep -Eq "^($TYPES)(\([^()]+\))?!?: .+"; then
+  cat >&2 <<MSG
+commit-msg: el mensaje no sigue Conventional Commits.
+  primera línea: "$header"
+  formato:       tipo(scope): asunto      (el scope es opcional)
+  tipos:         $(echo "$TYPES" | tr '|' ' ')
+  ejemplo:       feat(session): autoguardado periódico
+  desde nvim:    <leader>Gc (asistente) o <leader>Gm (mensaje con IA)
+MSG
+  exit 1
+fi
+
+if [ "${#header}" -gt "$MAX" ]; then
+  echo "commit-msg: la primera línea tiene ${#header} caracteres (máximo $MAX)." >&2
+  exit 1
+fi
