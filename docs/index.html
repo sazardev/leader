@@ -105,58 +105,87 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .list{list-style:none;display:grid;gap:2px}
 .list .grp{font:500 11px "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:14px 4px 6px;display:flex;justify-content:space-between}
 .list .grp:first-child{padding-top:0}
-.list button{width:100%;text-align:left;display:flex;gap:12px;align-items:baseline;padding:11px 14px;background:var(--deep);color:var(--dim);font-size:15px;transition:background .2s,color .2s}
+.list button{width:100%;text-align:left;display:flex;gap:12px;align-items:baseline;padding:8px 14px;background:var(--deep);color:var(--dim);font-size:14px;transition:background .2s,color .2s}
 .list button i{font:500 11px "Geist Mono",monospace;font-style:normal;color:var(--faint);transition:color .2s}
 .list button:hover{color:var(--fg)}
 .list button.on{background:var(--green);color:var(--on);font-weight:600}
 .list button.on i{color:color-mix(in srgb,var(--on) 60%,transparent)}
-.ed{background:var(--deep);position:relative;font:13.5px/1.75 "Geist Mono",ui-monospace,monospace;--gut:3.6em;overflow:hidden}
-.ed .code{height:440px;overflow:hidden;position:relative;padding:14px 0}
+.ed{background:var(--deep);position:sticky;top:76px;font:13px/1.75 "Geist Mono",ui-monospace,monospace;--gut:3.4em;overflow:hidden;--lb:color-mix(in srgb,var(--soft) 90%,var(--fg))}
+.ed .code{height:452px;display:flex;gap:2px;background:var(--soft)}
+.ed .pn{flex:1;min-width:0;overflow:hidden;position:relative;padding:12px 0;background:var(--deep)}
 .ed .r{display:flex;white-space:pre;tab-size:4;position:relative;min-height:1.75em}
-.ed .n{width:var(--gut);flex:none;text-align:right;padding-right:1.4em;color:var(--faint);user-select:none}
+.ed .n{width:var(--gut);flex:none;text-align:right;padding-right:1.2em;color:var(--faint);user-select:none}
+.ed .n.cl{color:var(--yellow);font-weight:600}
 .ed .n.e{background:var(--red);color:var(--on);font-weight:700}
 .ed .n.w{background:var(--yellow);color:var(--on);font-weight:700}
+.ed .n.d{background:var(--blue);color:var(--on);font-weight:700}
 .ed .t{flex:1;min-width:0;padding-right:16px;overflow:hidden;text-overflow:clip}
 .ed .vt{margin-left:auto;padding:0 14px;color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent)}
-.ed .cur{display:inline-block;width:.6em;height:1.2em;background:var(--green);vertical-align:text-bottom;margin-left:1px;animation:blink 1s steps(1) infinite}
-.ed.normal .cur{background:var(--blue)}
+.ed .cur{display:inline-block;width:.6em;height:1.25em;background:var(--fg);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+.ed.ins .cur{width:2px;background:var(--green)}
+.ed .cur.m{background:var(--purple)}
+.ed.ins .cur.m{background:var(--purple)}
+.ed .mk{background:color-mix(in srgb,var(--blue) 38%,transparent)}
 @keyframes blink{50%{opacity:0}}
 .ed .rm{background:color-mix(in srgb,var(--red) 16%,transparent)} .ed .rm .n{color:var(--red)}
 .ed .ad{background:color-mix(in srgb,var(--green) 16%,transparent)} .ed .ad .n{color:var(--green)}
+.ed .ga::before,.ed .gc::before{content:"";position:absolute;left:3px;top:1px;bottom:1px;width:2px;background:var(--green)}
+.ed .gc::before{background:var(--yellow)}
 .ed .fresh{animation:fresh 1.4s ease-out}
 @keyframes fresh{from{background:color-mix(in srgb,var(--yellow) 28%,transparent)}to{background:transparent}}
-.ed .ah{white-space:pre;color:var(--faint);padding-left:var(--gut);font-size:12.5px}
+.ed .ah{white-space:pre;color:var(--faint);padding-left:var(--gut);font-size:12px}
 .ed .ah b{color:var(--green);font-weight:500}
-.ed .blk{margin:2px 16px 4px var(--gut);padding:4px 14px;border-left:3px solid var(--red);background:color-mix(in srgb,var(--red) 12%,transparent);font-size:12.5px;line-height:1.6;white-space:normal}
+.ed .blk{display:flex;justify-content:space-between;gap:16px;margin:2px 16px 4px var(--gut);padding:4px 14px;border-left:3px solid var(--red);background:color-mix(in srgb,var(--red) 12%,transparent);font-size:12px;line-height:1.6;white-space:normal}
 .ed .blk.w{border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
-.ed .blk b{color:var(--red)} .ed .blk.w b{color:var(--yellow)} .ed .blk i{font-style:normal;color:var(--faint)}
-.ed .inp{margin:2px 16px 4px var(--gut);background:var(--soft);padding:6px 14px;border-left:3px solid var(--purple);white-space:normal;line-height:1.6}
+.ed .blk.i{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,transparent)}
+.ed .blk b{color:var(--red)} .ed .blk.w b{color:var(--yellow)} .ed .blk.i b{color:var(--blue)}
+.ed .blk i,.ed .blk em{font-style:normal;color:var(--faint)} .ed .blk em{flex:none}
+.ed .inp{margin:2px 16px 4px var(--gut);background:var(--soft);padding:6px 14px;border-left:3px solid var(--purple);white-space:normal;line-height:1.6;font-size:12px}
+.ed .inp>div{display:flex;justify-content:space-between;gap:16px}
 .ed .inp b{color:var(--purple)} .ed .inp i{font-style:normal;color:var(--faint)}
-.ed .pop{position:absolute;top:100%;z-index:5;background:var(--soft);min-width:300px;max-width:calc(100% - var(--gut) - 24px);font-size:12.5px;line-height:1.6}
-.ed .pop div{display:flex;justify-content:space-between;gap:28px;padding:3px 12px;color:var(--dim);white-space:pre}
+.ed .pop{position:absolute;top:100%;z-index:5;background:var(--soft);min-width:300px;max-width:calc(100% - var(--gut) - 24px);font-size:12px;line-height:1.6}
+.ed .pop div{display:flex;justify-content:space-between;gap:28px;padding:2px 12px;color:var(--dim);white-space:pre}
 .ed .pop div.s{background:var(--blue);color:var(--on);font-weight:500}
-.ed .wk{position:absolute;left:0;right:0;bottom:34px;background:var(--soft);padding:10px 20px 12px;z-index:6;font-size:12.5px;transform:translateY(120%);opacity:0;transition:transform .2s,opacity .2s}
+.ed .wk{position:absolute;left:0;right:0;bottom:24px;background:var(--soft);padding:8px 16px 6px;z-index:6;font-size:12px;line-height:1.6;transform:translateY(120%);opacity:0;transition:transform .18s,opacity .18s}
 .ed .wk.on{transform:none;opacity:1}
-.ed .wk h5{font:500 11px "Geist Mono",monospace;letter-spacing:.1em;color:var(--faint);margin-bottom:6px;text-transform:uppercase}
 .ed .wk ul{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:0 18px}
-.ed .wk li{color:var(--dim);display:flex;gap:10px;padding:0 4px}
-.ed .wk li b{color:var(--yellow);min-width:1.4em}
-.ed .wk li.p{background:var(--yellow);color:var(--on)} .ed .wk li.p b{color:var(--on)}
-.ed .note{position:absolute;top:14px;right:16px;max-width:min(560px,70%);background:var(--soft);padding:10px 14px;border-left:3px solid var(--green);z-index:7;font-size:12.5px;line-height:1.55;white-space:normal;opacity:0;transform:translateX(16px);transition:opacity .25s,transform .25s}
+.ed .wk li{color:var(--dim);display:flex;gap:8px;padding:0 4px;white-space:nowrap;overflow:hidden}
+.ed .wk li b{color:var(--yellow);min-width:1ch;font-weight:600}
+.ed .wk li u{text-decoration:none;color:var(--faint)}
+.ed .wk li s{text-decoration:none;color:var(--purple)}
+.ed .wk li.p{background:var(--yellow);color:var(--on)} .ed .wk li.p b,.ed .wk li.p u,.ed .wk li.p s{color:var(--on)}
+.ed .wk .crumb{display:flex;justify-content:space-between;margin-top:6px;color:var(--faint);font-size:11.5px}
+.ed .note{position:absolute;bottom:34px;right:12px;max-width:min(560px,80%);background:var(--soft);padding:8px 14px;border-left:3px solid var(--green);z-index:7;font-size:12px;line-height:1.55;white-space:normal;opacity:0;transform:translateX(16px);transition:opacity .25s,transform .25s}
 .ed .note.on{opacity:1;transform:none}
 .ed .note b{color:var(--green);font-weight:600}
-.ed .keys{position:absolute;right:16px;bottom:50px;display:flex;gap:6px;z-index:8;pointer-events:none}
-.ed.wkon .keys{bottom:120px}
-.ed .keys span{background:var(--fg);color:var(--on);font-weight:600;min-width:2.2em;text-align:center;padding:3px 9px;animation:keyin .22s ease-out}
-@keyframes keyin{from{transform:translateY(8px);opacity:0}}
-.ed .sl{display:flex;align-items:stretch;background:var(--soft);font-size:12.5px;height:34px}
-.ed .sl>span{display:flex;align-items:center;padding:0 14px}
-.ed .sl .m{background:var(--blue);color:var(--on);font-weight:700;min-width:84px;justify-content:center;transition:background .15s}
-.ed.ins .sl .m{background:var(--green)}
-.ed .sl .g{color:var(--dim)} .ed .sl .f{color:var(--fg)}
+.ed .keys{position:absolute;right:12px;top:10px;display:flex;gap:4px;z-index:9;pointer-events:none}
+.ed .keys span{background:var(--fg);color:var(--on);font-weight:600;font-size:12px;line-height:1;min-width:2.1em;text-align:center;padding:6px 9px;animation:keyin .16s ease-out,keyout .25s ease-in .95s forwards}
+@keyframes keyin{from{transform:translateY(6px);opacity:0}}
+@keyframes keyout{to{opacity:0}}
+.ed .ov,.ed .cp{position:absolute;left:50%;top:34px;transform:translate(-50%,10px);width:min(660px,92%);z-index:7;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;font-size:12px;line-height:1.7}
+.ed .ov.on,.ed .cp.on{opacity:1;transform:translate(-50%,0)}
+.ed .ov{background:var(--soft);padding:10px 16px 12px}
+.ed .ov h5{font:600 12px "Geist Mono",monospace;color:var(--blue);margin-bottom:6px}
+.ed .ov .ok{color:var(--green)} .ed .ov .no{color:var(--red)} .ed .ov .h{color:var(--blue);font-weight:600;margin-top:4px} .ed .ov .dd{color:var(--faint);margin-top:4px}
+.ed .cp{display:grid;gap:2px;background:transparent}
+.ed .cp .fl{background:var(--soft)}
+.ed .cp .ttl{display:flex;justify-content:space-between;gap:12px;padding:2px 14px;background:var(--blue);color:var(--on);font-weight:600}
+.ed .cp .bd{padding:4px 14px;min-height:1.75em}
+.ed .cp .rw{display:flex;gap:10px} .ed .cp .rw b{color:var(--green);font-weight:400} .ed .cp .rw em{margin-left:auto;font-style:normal;color:var(--faint)}
+.ed .cp .rw.off,.ed .cp .rw.off b{color:var(--dim)}
+.ed .cp .chip{color:var(--on)}
+.ed .cp .ai{background:var(--soft);padding:3px 14px;color:var(--dim)} .ed .cp .ai b{color:var(--purple)}
+.ed .sl{display:flex;align-items:stretch;background:var(--soft);font-size:12px;height:24px;line-height:24px}
+.ed .sl>span{display:flex;align-items:center;padding:0 10px;color:var(--dim)}
+.ed .sl .m{background:var(--blue);color:var(--on);font-weight:700;min-width:76px;justify-content:center;transition:background .15s}
+.ed .sl .b{background:var(--lb);color:var(--fg)}
+.ed .sl .z{background:var(--blue);color:var(--on);font-weight:700;min-width:64px;justify-content:center;transition:background .15s}
+.ed.ins .sl .m,.ed.ins .sl .z{background:var(--green)}
+.ed.vis .sl .m,.ed.vis .sl .z{background:var(--yellow)}
 .ed .sl .sp{flex:1;padding:0}
-.ed .sl .dg{font-weight:700;color:var(--on);min-width:44px;justify-content:center}
-.ed .sl .dg.e{background:var(--red)} .ed .sl .dg.w{background:var(--yellow)} .ed .sl .dg.o{background:var(--faint)}
+.ed .sl .ag{color:var(--purple)}
+.ed .sl .dg{font-weight:700;color:var(--on);margin:0 2px;padding:0 8px;height:16px;line-height:16px;align-self:center}
+.ed .sl .dg.e{background:var(--red)} .ed .sl .dg.w{background:var(--yellow)}
 .sy-k{color:var(--red)} .sy-s{color:var(--green)} .sy-f{color:var(--yellow)} .sy-t{color:var(--aqua)} .sy-n{color:var(--purple)} .sy-c{color:var(--faint);font-style:italic}
 
 /* ── keys ─────────────────────────────────────────────────────────────────────────────────────── */
@@ -183,7 +212,7 @@ footer a:hover{color:var(--fg)}
   .list{display:flex;overflow-x:auto;gap:2px;scrollbar-width:none}
   .list .grp{display:none}
   .list button{white-space:nowrap;width:auto}
-  .ed{font-size:12px}
+  .ed{font-size:12px;position:relative;top:0}
   .ed .wk ul{grid-template-columns:repeat(2,1fr)}
   .tiles{grid-template-columns:1fr 1fr}
   .hero-art{display:none}
@@ -253,11 +282,13 @@ footer a:hover{color:var(--fg)}
     <h2 class="rv">Type less.<br><span>Ask when it matters.</span></h2>
     <div class="stage rv" style="--d:.1s">
       <ol class="list" id="list"></ol>
-      <div class="ed" id="ed" role="img" aria-label="An animated Neovim editor showing completions and the AI agent">
+      <div class="ed" id="ed" role="img" aria-label="An animated Neovim editor showing completions, multicursor, the AI agent and the commit panel">
         <div class="code" id="code"></div>
         <div class="wk" id="wk"></div>
+        <div class="ov" id="panel"></div>
+        <div class="cp" id="cp"></div>
         <div class="note" id="note"></div>
-        <div class="keys" id="keys"></div>
+        <div class="keys" id="edkeys"></div>
         <div class="sl" id="sl"></div>
       </div>
     </div>
@@ -368,13 +399,15 @@ footer a:hover{color:var(--fg)}
   addEventListener("scroll", function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, { passive: true });
   addEventListener("resize", tick); tick();
 
-  /* ── the editor mock: a tiny scripted Neovim ──────────────────────────────────────────────────── */
-  var ed = $("#ed"), codeEl = $("#code"), wkEl = $("#wk"), noteEl = $("#note"), keysEl = $("#keys"), slEl = $("#sl");
+  /* ── the editor mock: a tiny scripted Neovim, faithful to the real one ───────────────────────── */
+  var ed = $("#ed"), codeEl = $("#code"), wkEl = $("#wk"), noteEl = $("#note"), keysEl = $("#edkeys"), slEl = $("#sl"), panelEl = $("#panel"), cpEl = $("#cp");
   var S = null, run = 0, FR = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
   function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
   var KW = /^(func|return|if|else|for|range|type|struct|interface|var|const|package|import|switch|case|go|defer|map|chan)$/;
+  /* \u0001 \u0002 wrap a multicursor selection, \u0003 is the cursor, \u0004 an extra multicursor cursor */
   function hl(t) {
-    return t.replace(/(\/\/.*$)|("(?:[^"\\]|\\.)*")|([A-Za-z_]\w*)(?=\()|([A-Za-z_]\w*)|([\s\S])/g, function (m, c, str, call, id, other) {
+    return t.replace(/([\u0001\u0002\u0003\u0004])|(\/\/.*$)|("(?:[^"\\]|\\.)*")|([A-Za-z_]\w*)(?=\()|([A-Za-z_]\w*)|([\s\S])/g, function (m, mk, c, str, call, id, other) {
+      if (mk) return mk === "\u0001" ? '<span class="mk">' : mk === "\u0002" ? "</span>" : mk === "\u0003" ? '<span class="cur"></span>' : '<span class="cur m"></span>';
       if (c) return '<span class="sy-c">' + esc(c) + "</span>";
       if (str) return '<span class="sy-s">' + esc(str) + "</span>";
       if (call) return '<span class="' + (KW.test(call) ? "sy-k" : "sy-f") + '">' + call + "</span>";
@@ -387,45 +420,110 @@ footer a:hover{color:var(--fg)}
       return esc(other);
     });
   }
-  function render() {
-    var out = [], ne = 0, nw = 0, num = 0;
-    S.lines.forEach(function (L, i) {
-      if (L.kind === "input") {
-        out.push('<div class="inp"><b>✦ ' + L.label + '</b> <i>· ⏎ run · ⎋ cancel</i><br><i>hint for the fix (⏎ to skip)</i></div>'); return;
-      }
-      if (L.kind === "hint") { out.push('<div class="ah"><b>⏎ accept · ⎋ reject</b> · ' + L.n + " change</div>"); return; }
-      var sign = L.cls === "rm" ? "-" : L.cls === "ad" ? "+" : null;
-      if (!sign) num++;
-      var nc = L.diag ? (L.diag.sev === "error" ? " e" : " w") : "";
-      if (L.diag) { if (L.diag.sev === "error") ne++; else nw++; }
-      var cursor = S.cur === i && S.showCursor ? '<span class="cur"></span>' : "";
-      var vt = L.vt ? '<span class="vt">' + esc(L.vt) + "</span>" : "";
-      var pop = "";
-      if (S.pop && S.cur === i) {
-        pop = '<div class="pop" style="left:calc(var(--gut) + ' + (L.t.replace(/\t/g, "    ").length - S.pop.back) + 'ch)">' +
-          S.pop.items.map(function (it, k) { return '<div class="' + (k === S.pop.sel ? "s" : "") + '"><span>' + esc(it[0]) + "</span><span>" + esc(it[1]) + "</span></div>"; }).join("") + "</div>";
-      }
-      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.fresh ? " fresh" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + hl(L.t.replace(/\t/g, "    ")) + cursor + "</span>" + vt + pop + "</div>");
-      if (L.diag) out.push('<div class="blk' + (L.diag.sev === "warn" ? " w" : "") + '"><b>' + (L.diag.sev === "error" ? "✖ Error" : "▲ Warn") + "</b> <i>" + esc(L.diag.src) + "</i><br>" + esc(L.diag.msg) + "</div>");
-    });
-    codeEl.innerHTML = out.join("");
-    var cr = codeEl.querySelector(".cur") || codeEl.querySelector(".pop"), row = cr && cr.closest(".r");
-    if (row) { var top = row.offsetTop, h = codeEl.clientHeight; if (top + 120 > codeEl.scrollTop + h) codeEl.scrollTop = top + 120 - h; if (top < codeEl.scrollTop + 20) codeEl.scrollTop = Math.max(0, top - 40); }
-    ed.classList.toggle("ins", S.mode === "INSERT"); ed.classList.toggle("normal", S.mode !== "INSERT");
-    slEl.innerHTML = '<span class="m">' + S.mode + '</span><span class="g">main</span><span class="f">' + S.file + '</span><span class="sp"></span>' +
-      '<span class="dg ' + (ne ? "e" : "o") + '">E' + ne + '</span><span class="dg ' + (nw ? "w" : "o") + '">W' + nw + '</span><span class="g">go</span>';
-    ed.classList.toggle("wkon", !!S.wk);
-    if (S.wk) {
-      wkEl.innerHTML = "<h5>" + esc(S.wk.title) + "</h5><ul>" + S.wk.items.map(function (it) { return '<li class="' + (S.wk.press === it[0] ? "p" : "") + '"><b>' + it[0] + "</b>" + it[1] + "</li>"; }).join("") + "</ul>";
-      wkEl.classList.add("on");
-    } else wkEl.classList.remove("on");
-    keysEl.innerHTML = S.keys.slice(-4).map(function (k) { return "<span>" + k + "</span>"; }).join("");
+
+  /* multicursor: the word is selected (and later replaced) on every row of S.mc.rows */
+  function mcText(text, mc, last) {
+    var i = text.indexOf(mc.word); if (i < 0) return text;
+    var cur = last ? "\u0003" : "\u0004";
+    if (mc.stage === "select") return text.slice(0, i) + "\u0001" + mc.word + "\u0002" + cur + text.slice(i + mc.word.length);
+    return text.slice(0, i) + mc.typed + cur + text.slice(i + mc.word.length);
   }
 
-  var WK = {
-    agent: { title: "<leader>a  Agent", items: [["i","implement"],["r","review"],["e","explain"],["a","ask"],["f","fix inline"],["F","fix block"],["d","docs"],["R","refactor"],["m","model"],["h","history"],["T","tests"],["L","lenses"]] },
-    lens: { title: "<leader>aL  Lenses", items: [["s","security"],["p","performance"],["c","concurrency"],["e","errors"],["a","api compat"]] },
-    git: { title: "<leader>G  Git", items: [["c","commit"],["m","commit + AI draft"],["M","commit auto"],["a","amend"],["d","diff"],["b","blame"],["f","file history"],["r","repo history"]] }
+  /* one pane of lines -> html; also counts diagnostics */
+  function rowsHtml(lines, o, tally) {
+    var out = [], num = 0;
+    lines.forEach(function (L, i) {
+      if (L.kind === "input") {
+        out.push('<div class="inp"><div><span><b>✦ ' + L.label + '</b></span><i>⏎ run · ⌃J newline · ↑ history · ⎋ cancel</i></div><i>' + L.ph + "</i></div>"); return;
+      }
+      if (L.kind === "hint") { out.push('<div class="ah"><b>⏎ accept · ⎋ reject</b> · ' + L.n + " change" + (L.n > 1 ? "s" : "") + "</div>"); return; }
+      var sign = L.cls === "rm" ? "-" : L.cls === "ad" ? "+" : null;
+      if (!sign) num++;
+      var isCur = o.cur === i, nc = "";
+      if (L.diag) {
+        if (L.diag.sev === "error") { nc = " e"; tally.e++; } else if (L.diag.sev === "warn") { nc = " w"; tally.w++; } else nc = " d";
+      } else if (isCur && !sign) nc = " cl";
+      var text = L.t.replace(/\t/g, "    "), pop = "";
+      if (o.mc && o.mc.rows.indexOf(i) >= 0) text = mcText(text, o.mc, o.mc.rows[o.mc.rows.length - 1] === i);
+      else if (isCur && o.showCursor) text += "\u0003";
+      if (o.pop && isCur) {
+        pop = '<div class="pop" style="left:calc(var(--gut) + ' + Math.max(0, L.t.replace(/\t/g, "    ").length - o.pop.back) + 'ch)">' +
+          o.pop.items.map(function (it, k) { return '<div class="' + (k === o.pop.sel ? "s" : "") + '"><span>' + esc(it[0]) + "</span><span>" + esc(it[1]) + "</span></div>"; }).join("") + "</div>";
+      }
+      var vt = L.vt ? '<span class="vt">' + esc(L.vt) + "</span>" : "";
+      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.gs ? " g" + L.gs : "") + (L.fresh ? " fresh" : "") + (isCur ? " foc" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + hl(text) + "</span>" + vt + pop + "</div>");
+      if (L.diag) {
+        var d = L.diag, cls = d.sev === "warn" ? " w" : d.sev === "info" ? " i" : "";
+        out.push('<div class="blk' + cls + '"><span><b>' + (d.icon || (d.sev === "error" ? "✖ Error" : "▲ Warn")) + "</b> <i>" + esc(d.src) + "</i><br>" + esc(d.msg) + "</span><em>1/" + (d.of || 1) + "</em></div>");
+      }
+    });
+    return out.join("");
+  }
+  function lineNo(lines, cur) { var n = 0; for (var i = 0; i <= cur && i < lines.length; i++) if (!lines[i].kind && lines[i].cls !== "rm" && lines[i].cls !== "ad") n++; return Math.max(n, 1); }
+  function keepVisible(pane, sel) {
+    var cr = pane.querySelector(sel); if (!cr) return;
+    var row = cr.closest(".r"); if (!row) return;
+    var top = row.offsetTop, h = pane.clientHeight;
+    if (top + 130 > pane.scrollTop + h) pane.scrollTop = top + 130 - h;
+    if (top < pane.scrollTop + 20) pane.scrollTop = Math.max(0, top - 40);
+  }
+
+  function render() {
+    var tally = { e: 0, w: 0 }, main = rowsHtml(S.lines, { cur: S.cur, showCursor: S.showCursor && !S.split, pop: S.pop, mc: S.mc }, tally);
+    var html = '<div class="pn" id="pn1">' + main + "</div>";
+    if (S.split) html += '<div class="pn" id="pn2">' + rowsHtml(S.split.lines, { cur: S.split.cur, showCursor: S.showCursor }, tally) + "</div>";
+    codeEl.innerHTML = html;
+    keepVisible($("#pn1"), ".foc");
+    if (S.split) keepVisible($("#pn2"), ".foc");
+    ed.classList.toggle("ins", S.mode === "INSERT"); ed.classList.toggle("vis", S.mode === "VISUAL");
+
+    var target = S.split ? S.split : S, nr = lineNo(target.lines, target.cur);
+    var colN = (target.lines[target.cur] ? target.lines[target.cur].t.replace(/\t/g, "    ").length : 0) + 1;
+    slEl.innerHTML = '<span class="m">' + S.mode + '</span><span class="b">' + (S.split ? S.split.file : S.file) + '</span><span class="c">⎇ main</span><span class="sp"></span>' +
+      (S.agent ? '<span class="ag">' + FR[Math.floor(Date.now() / 90) % FR.length] + " " + S.agent + "</span>" : "") +
+      (tally.e ? '<span class="dg e">E' + tally.e + "</span>" : "") + (tally.w ? '<span class="dg w">W' + tally.w + "</span>" : "") +
+      '<span class="b">notesapi</span><span class="z">' + nr + ":" + colN + "</span>";
+
+    if (S.wk) {
+      wkEl.innerHTML = "<ul>" + S.wk.items.map(function (it) {
+        return '<li class="' + (S.wk.press === it[0] ? "p" : "") + '"><b>' + esc(it[0]) + "</b><u>➜</u>" + (it[2] ? "<s>+" + esc(it[1]) + "</s>" : esc(it[1])) + "</li>";
+      }).join("") + '</ul><div class="crumb"><span>Space' + S.wk.path.map(function (x) { return " » +" + esc(x); }).join("") + "</span><span>Esc close · BS back</span></div>";
+      wkEl.classList.add("on");
+    } else wkEl.classList.remove("on");
+
+    if (S.panel) {
+      panelEl.innerHTML = "<h5>" + esc(S.panel.title) + "</h5>" + S.panel.lines.map(function (l) { return '<div class="' + (l[0] || "") + '">' + esc(l[1]) + "</div>"; }).join("");
+      panelEl.classList.add("on");
+    } else panelEl.classList.remove("on");
+
+    if (S.cp) {
+      var c = S.cp;
+      cpEl.innerHTML =
+        '<div class="fl"><div class="ttl"><span>Staged · 2 files — goes in the commit</span><span>main → origin/main ↑1</span></div><div class="bd">' +
+        '<div class="rw"><b>●</b>M  nvim/lua/utils/gosmart.lua<em>+38 −3</em></div><div class="rw"><b>●</b>A  nvim/lua/utils/goiferr.lua<em>+302</em></div></div>' +
+        '<div class="ttl"><span>Not staged · 1 — NOT included</span><span></span></div><div class="bd"><div class="rw off"><b>○</b>M  README.md<em>+12 −4</em></div></div></div>' +
+        '<div class="fl"><div class="ttl"><span>message</span>' + (c.msg ? '<span class="chip">✔ ' + esc(c.chip) + "</span>" : "<span>type(scope): subject</span>") + '</div><div class="bd">' + (c.msg ? esc(c.msg) : "&nbsp;") + "</div></div>" +
+        '<div class="ai"><b>✦ AI</b> ' + c.ai + "</div>";
+      cpEl.classList.add("on");
+    } else cpEl.classList.remove("on");
+  }
+
+  /* pressed keys: transient chips that fade by themselves (no state, so nothing can stick) */
+  function chip(label) {
+    var el = document.createElement("span"); el.textContent = label === "␣" ? "Space" : label;
+    keysEl.appendChild(el); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1200);
+    while (keysEl.children.length > 4) keysEl.removeChild(keysEl.firstChild);
+  }
+
+  /* which-key menus, as the real config shows them (key ➜ description, "+" for groups) */
+  var MENU = {
+    "": ["", [["a", "Agent", 1], ["C", "Comments", 1], ["G", "Git", 1], ["g", "Go", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1]]],
+    a: ["Agent", [["i", "Agent implement"], ["r", "Agent review"], ["e", "Agent explain"], ["a", "Agent ask"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["d", "Agent docs"], ["R", "Agent refactor"], ["m", "Agent model"], ["h", "Agent history"], ["c", "Agent clear"], ["x", "Agent stop"], ["D", "Agent DDD", 1], ["L", "Agent Lenses", 1], ["P", "Agent Repository", 1], ["T", "Agent Tests", 1]]],
+    aD: ["Agent DDD", [["i", "Agent ddd implement"], ["r", "Agent ddd review"], ["f", "Agent ddd fix"], ["m", "Agent ddd missing"], ["a", "Agent ddd ask"], ["d", "Agent ddd diagnose"], ["c", "Agent ddd clear"]]],
+    aL: ["Agent Lenses", [["s", "Agent lens security"], ["p", "Agent lens performance"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["a", "Agent lens api"]]],
+    aP: ["Agent Repository", [["p", "Agent repo port"], ["i", "Agent repo implement"], ["r", "Agent repo review"], ["c", "Agent repo check"]]],
+    aT: ["Agent Tests", [["w", "Agent test write"], ["m", "Agent test mock"], ["f", "Agent test fix"], ["g", "Agent test gaps"]]],
+    G: ["Git", [["c", "Git commit"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["a", "Git amend"], ["t", "Git status"], ["b", "Git blame"], ["d", "Git diff"], ["f", "Git file history"], ["r", "Git repo history"]]]
   };
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -434,117 +532,206 @@ footer a:hover{color:var(--fg)}
     var gone = function () { if (me !== run) throw 0; };
     var p = {
       w: function (ms) { return sleep(ms).then(gone); },
-      set: function (lines, file, mode) { S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, keys: [], showCursor: true }; render(); },
+      set: function (lines, file, mode) {
+        S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, showCursor: true, split: null, mc: null, panel: null, cp: null, agent: null };
+        render();
+      },
       cursor: function (r) { S.cur = r; render(); },
       mode: function (m) { S.mode = m; render(); },
       type: function (str, ms) {
-        var i = 0; ms = ms || 26;
+        var i = 0; ms = ms || 24;
         return (function step() {
           if (i >= str.length) return Promise.resolve();
           S.lines[S.cur].t += str[i++]; render();
-          return sleep(ms + Math.random() * 22).then(gone).then(step);
+          return sleep(ms + Math.random() * 20).then(gone).then(step);
         })();
       },
       nl: function (indent) { S.lines.splice(S.cur + 1, 0, { t: indent || "" }); S.cur++; render(); },
       pop: function (items, sel, back) { S.pop = { items: items, sel: sel, back: back || 0 }; render(); },
       sel: function (i) { S.pop.sel = i; render(); },
-      key: function (k, ms) { S.keys.push(k); render(); return p.w(ms || 330); },
-      keysOf: function (arr, between) { return arr.reduce(function (pr, k) { return pr.then(function () { return p.key(k, between || 240); }); }, Promise.resolve()); },
+      key: function (k, ms) { chip(k); return p.w(ms || 300); },
       accept: function (lines) {
-        S.pop = null; var at = S.cur, fresh = lines.map(function (t) { return { t: t, fresh: true }; });
-        S.lines.splice.apply(S.lines, [at, 1].concat(fresh)); S.cur = at + lines.length - 1; render();
+        S.pop = null; var at = S.cur;
+        S.lines.splice.apply(S.lines, [at, 1].concat(lines.map(function (t) { return { t: t, fresh: true, gs: "a" }; }))); S.cur = at + lines.length - 1; render();
       },
-      wk: function (name, press) { S.wk = name ? { title: WK[name].title, items: WK[name].items, press: press } : null; render(); },
-      diag: function (i, sev, src, msg) { S.lines[i].diag = { sev: sev, src: src, msg: msg }; render(); },
+      /* leader sequence with the which-key popup, like the real config */
+      seq: function (keys) {
+        var path = "", prom = Promise.resolve();
+        keys.forEach(function (k, i) {
+          prom = prom.then(function () {
+            chip(k);
+            if (i === 0) { S.wk = { path: [], items: MENU[""][1], press: null }; render(); return p.w(300); }
+            if (S.wk) { S.wk.press = k; render(); }
+            return p.w(220).then(function () {
+              path += k; var m = MENU[path];
+              if (m && i < keys.length - 1) { S.wk = { path: m[0].split(" "), items: m[1], press: null }; render(); return p.w(250); }
+              S.wk = null; render(); return p.w(80);
+            });
+          });
+        });
+        return prom;
+      },
+      diag: function (i, sev, src, msg, icon, of) { S.lines[i].diag = { sev: sev, src: src, msg: msg, icon: icon, of: of }; render(); },
       clearDiag: function () { S.lines.forEach(function (L) { delete L.diag; }); render(); },
-      input: function (i, label) { S.lines.splice(i, 0, { kind: "input", label: label }); S.cur++; render(); },
-      dropInput: function () { S.lines = S.lines.filter(function (L) { return L.kind !== "input"; }); S.cur = Math.min(S.cur, S.lines.length - 1); render(); },
-      spin: function (i, label, ms) {
-        var t0 = Date.now(), n = 0;
+      input: function (i, label, ph) { S.lines.splice(i, 0, { kind: "input", label: label, ph: ph || "hint for the fix (⏎ to skip)" }); S.cur++; render(); },
+      dropInput: function () {
+        var at = S.lines.findIndex(function (L) { return L.kind === "input"; });
+        if (at >= 0) { S.lines.splice(at, 1); if (at <= S.cur) S.cur--; } render();
+      },
+      spin: function (i, label, ms, statusLabel) {
+        var t0 = Date.now(), n = 0; S.agent = statusLabel || label.split(" · ")[0];
         return (function step() {
-          var el = Date.now() - t0; if (el >= ms) { delete S.lines[i].vt; render(); return Promise.resolve(); }
-          S.lines[i].vt = " " + FR[n++ % FR.length] + " " + label + " · " + (el / 1000).toFixed(1) + "s "; render();
-          return sleep(90).then(gone).then(step);
+          var el = Date.now() - t0; if (el >= ms) { if (S.lines[i]) delete S.lines[i].vt; S.agent = null; render(); return Promise.resolve(); }
+          if (S.lines[i]) S.lines[i].vt = " " + FR[n++ % FR.length] + " " + label + " · " + (el / 1000).toFixed(1) + "s ";
+          render(); return sleep(90).then(gone).then(step);
         })();
       },
-      diff: function (i, added) {
-        var old = S.lines[i]; old.cls = "rm"; delete old.diag;
+      diff: function (i, added, removed) {
+        var n = removed || 1;
+        for (var k = 0; k < n; k++) { S.lines[i + k].cls = "rm"; delete S.lines[i + k].diag; }
         var ad = added.map(function (t) { return { t: t, cls: "ad" }; });
-        S.lines.splice.apply(S.lines, [i + 1, 0].concat(ad, [{ kind: "hint", n: 1 }])); render();
+        S.lines.splice.apply(S.lines, [i + n, 0].concat(ad, [{ kind: "hint", n: 1 }])); render();
+      },
+      /* a proposal that only deletes lines (non-contiguous): marked in place, one hint after the last */
+      rmLines: function (idxs) {
+        idxs.forEach(function (i) { S.lines[i].cls = "rm"; delete S.lines[i].diag; });
+        S.lines.splice(Math.max.apply(null, idxs) + 1, 0, { kind: "hint", n: idxs.length }); render();
       },
       acceptDiff: function () {
         S.lines = S.lines.filter(function (L) { return L.cls !== "rm" && L.kind !== "hint"; });
-        S.lines.forEach(function (L) { if (L.cls === "ad") { delete L.cls; L.fresh = true; } }); render();
+        S.lines.forEach(function (L) { if (L.cls === "ad") { delete L.cls; L.fresh = true; L.gs = "c"; } }); render();
       },
-      note: function (html, on) { noteEl.innerHTML = html || ""; noteEl.classList.toggle("on", on !== false && !!html); }
+      note: function (html) { noteEl.innerHTML = html || ""; noteEl.classList.toggle("on", !!html); },
+      panel: function (title, lines) { S.panel = title ? { title: title, lines: lines } : null; render(); },
+      split: function (file, lines) { S.split = { file: file, lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1 }; render(); },
+      splitDiff: function (added) {
+        S.split.lines = S.split.lines.concat(added.map(function (t) { return { t: t, cls: "ad" }; }), [{ kind: "hint", n: 1 }]); S.split.cur = S.split.lines.length - 2; render();
+      },
+      splitAccept: function () {
+        S.split.lines = S.split.lines.filter(function (L) { return L.kind !== "hint"; });
+        S.split.lines.forEach(function (L) { if (L.cls === "ad") { delete L.cls; L.fresh = true; L.gs = "a"; } }); render();
+      },
+      /* multicursor */
+      mcStart: function (word, row) { S.mc = { word: word, rows: [row], stage: "select", typed: "" }; S.showCursor = false; render(); },
+      mcAdd: function (row) { S.mc.rows.push(row); render(); },
+      mcType: function (str) {
+        S.mc.stage = "edit"; var i = 0;
+        return (function step() {
+          if (i >= str.length) return Promise.resolve();
+          S.mc.typed += str[i++]; render(); return sleep(70 + Math.random() * 30).then(gone).then(step);
+        })();
+      },
+      mcDone: function () {
+        var mc = S.mc; mc.rows.forEach(function (r) { var L = S.lines[r]; L.t = L.t.replace(mc.word, mc.typed); L.gs = "c"; L.fresh = true; });
+        S.mc = null; S.showCursor = true; render();
+      },
+      commitPanel: function (o) { S.cp = o; render(); }
     };
     return p;
   }
 
-  var FIND = '\tn, err := s.repo.FindByID(ctx, id)';
+  var FIND = "\tn, err := s.repo.FindByID(ctx, id)";
   var SC = [
-    { g: "type", name: "if err", k: "⏎", go: async function (p) {
+    { g: "type", name: "if err", go: async function (p) {
         p.set(["package application", "", "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\t", "}"], "note_service.go", "INSERT"); p.cursor(3);
-        await p.type("n, err := s.repo.FindByID(ctx, id)"); await p.w(220); p.nl("\t"); await p.w(180);
-        p.pop([["if err != nil", "wrap · find by id"], ["if err != nil", "return err"]], 0); await p.w(850); await p.key("⏎", 260);
-        p.accept(["\tif err != nil {", "\t\treturn nil, fmt.Errorf(\"find by id: %w\", err)", "\t}"]); await p.w(1300); } },
-    { g: "type", name: "Missing methods", k: "⇥ ⏎", go: async function (p) {
+        await p.type("n, err := s.repo.FindByID(ctx, id)"); await p.w(200); p.nl("\t"); await p.w(160);
+        p.pop([["if err != nil", "wrap · find by id"], ["if err != nil", "return err"]], 0); await p.w(750); await p.key("⏎", 240);
+        p.accept(["\tif err != nil {", "\t\treturn nil, fmt.Errorf(\"find by id: %w\", err)", "\t}"]); await p.w(1200); } },
+    { g: "type", name: "Missing methods", go: async function (p) {
         p.set(["package application", "", "type noteService struct{ repo domain.NoteRepository }", "", "func NewNoteService(repo domain.NoteRepository) NoteService {", "\treturn &noteService{repo: repo}", "}", "", ""], "note_service.go", "INSERT");
-        await p.type("func (s *noteService) "); await p.w(180);
-        p.pop([["…all missing (6)", "NoteService"], ["Create", "NoteService · missing"], ["Get", "NoteService · missing"], ["List", "NoteService · missing"]], -1); await p.w(650);
-        await p.key("⇥", 300); p.sel(0); await p.w(300); await p.key("⏎", 260);
-        p.accept(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\treturn s.repo.FindByID(ctx, id)", "}", "", "func (s *noteService) Delete(ctx context.Context, id string) error {", "\treturn s.repo.Delete(ctx, id)", "}"]); await p.w(1400); } },
-    { g: "type", name: "Wiring", k: "⇥ ⏎", go: async function (p) {
+        await p.type("func (s *noteService) "); await p.w(160);
+        p.pop([["…all missing (6)", "NoteService"], ["Create", "NoteService · missing"], ["Get", "NoteService · missing"], ["List", "NoteService · missing"]], -1); await p.w(550);
+        await p.key("⇥", 260); p.sel(0); await p.w(240); await p.key("⏎", 240);
+        p.accept(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\treturn s.repo.FindByID(ctx, id)", "}", "", "func (s *noteService) Delete(ctx context.Context, id string) error {", "\treturn s.repo.Delete(ctx, id)", "}"]); await p.w(1300); } },
+    { g: "type", name: "Wiring", go: async function (p) {
         p.set(["package main", "", "func main() {", "\tdb, err := sql.Open(\"pgx\", dsn)", "\tnoteRepository := infrastructure.NewNoteRepository(db)", "\t", "}"], "main.go", "INSERT"); p.cursor(5);
-        await p.type("noteSer"); await p.w(120);
-        p.pop([["noteService := application.NewNoteService(…)", "application"]], -1, 7); await p.w(550);
-        await p.key("⇥", 280); p.sel(0); await p.w(260); await p.key("⏎", 240);
-        p.accept(["\tnoteService := application.NewNoteService(noteRepository)"]); await p.w(1400); } },
-    { g: "type", name: "Mappers", k: "⇥ ⏎", go: async function (p) {
+        await p.type("noteSer"); await p.w(100);
+        p.pop([["noteService := application.NewNoteService(…)", "application"]], -1, 7); await p.w(450);
+        await p.key("⇥", 240); p.sel(0); await p.w(200); await p.key("⏎", 220);
+        p.accept(["\tnoteService := application.NewNoteService(noteRepository)"]); await p.w(1200); } },
+    { g: "type", name: "Mappers", go: async function (p) {
         p.set(["package transport", "", "type NoteResponse struct {", "\tID     string", "\tTitle  string", "\tStatus string", "}", "", ""], "dto.go", "INSERT");
-        await p.type("func "); await p.w(120);
-        p.pop([["func toNoteResponse", "domain.Note → NoteResponse"], ["func toNoteResponses", "… (list)"], ["func (r NoteResponse) toNote", "→ domain.Note"]], -1, 5); await p.w(550);
-        await p.key("⇥", 280); p.sel(0); await p.w(240); await p.key("⏎", 240);
-        p.accept(["func toNoteResponse(n *domain.Note) NoteResponse {", "\treturn NoteResponse{", "\t\tID:     n.ID,", "\t\tTitle:  n.Title,", "\t\tStatus: string(n.Status),", "\t}", "}"]); await p.w(1400); } },
-    { g: "type", name: "HTTP handlers", k: "G ⇥ ⏎", go: async function (p) {
+        await p.type("func "); await p.w(100);
+        p.pop([["func toNoteResponse", "domain.Note → NoteResponse"], ["func toNoteResponses", "… (list)"], ["func (r NoteResponse) toNote", "→ domain.Note"]], -1, 5); await p.w(450);
+        await p.key("⇥", 240); p.sel(0); await p.w(200); await p.key("⏎", 220);
+        p.accept(["func toNoteResponse(n *domain.Note) NoteResponse {", "\treturn NoteResponse{", "\t\tID:     n.ID,", "\t\tTitle:  n.Title,", "\t\tStatus: string(n.Status),", "\t}", "}"]); await p.w(1200); } },
+    { g: "type", name: "HTTP handlers", go: async function (p) {
         p.set(["package transport", "", "type NoteHandler struct{ svc application.NoteService }", "", ""], "note_handler.go", "INSERT");
-        await p.type("func (h *NoteHandler) "); await p.w(150);
-        p.pop([["…all handlers (4)", "NoteService"], ["Routes", "NoteService · 4 routes"], ["Create", "NoteService · POST"], ["Get", "NoteService · GET"]], -1); await p.w(500);
-        await p.type("G", 90); p.pop([["Get", "NoteService · GET"]], -1, 1); await p.w(360);
-        await p.key("⇥", 280); p.sel(0); await p.w(220); await p.key("⏎", 240);
-        p.accept(["func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {", "\tid := r.PathValue(\"id\")", "\tres, err := h.svc.Get(r.Context(), id)", "\tif err != nil {", "\t\twriteError(w, err)", "\t\treturn", "\t}", "\twriteJSON(w, http.StatusOK, res)", "}"]); await p.w(1500); } },
-    { g: "type", name: "Enums", k: "⇥ ⇥ ⏎", go: async function (p) {
+        await p.type("func (h *NoteHandler) "); await p.w(120);
+        p.pop([["…all handlers (4)", "NoteService"], ["Routes", "NoteService · 4 routes"], ["Create", "NoteService · POST"], ["Get", "NoteService · GET"]], -1); await p.w(420);
+        await p.type("G", 80); p.pop([["Get", "NoteService · GET"]], -1, 1); await p.w(300);
+        await p.key("⇥", 240); p.sel(0); await p.w(180); await p.key("⏎", 220);
+        p.accept(["func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {", "\tid := r.PathValue(\"id\")", "\tres, err := h.svc.Get(r.Context(), id)", "\tif err != nil {", "\t\twriteError(w, err)", "\t\treturn", "\t}", "\twriteJSON(w, http.StatusOK, res)", "}"]); await p.w(1300); } },
+    { g: "type", name: "Enums", go: async function (p) {
         p.set(["type Status string", "", "const (", "\tStatusPending Status = \"pending\"", "\tStatusDone    Status = \"done\"", ")", "", ""], "status.go", "INSERT");
-        await p.type("func "); await p.w(120);
-        p.pop([["func …enum helpers Status (3)", "enum"], ["func ParseStatus", "Status · enum"], ["func (s *Status) UnmarshalText", "Status · enum"]], -1, 5); await p.w(500);
-        await p.key("⇥", 240); p.sel(0); await p.w(160); await p.key("⇥", 240); p.sel(1); await p.w(240); await p.key("⏎", 240);
-        p.accept(["func ParseStatus(v string) (Status, error) {", "\tswitch s := Status(v); s {", "\tcase StatusPending, StatusDone:", "\t\treturn s, nil", "\t}", "\treturn \"\", fmt.Errorf(\"invalid status %q\", v)", "}"]); await p.w(1400); } },
-    { g: "ask", name: "Fix inline", k: "␣ a f", go: async function (p) {
+        await p.type("func "); await p.w(100);
+        p.pop([["func …enum helpers Status (3)", "enum"], ["func ParseStatus", "Status · enum"], ["func (s *Status) UnmarshalText", "Status · enum"]], -1, 5); await p.w(420);
+        await p.key("⇥", 200); p.sel(0); await p.w(140); await p.key("⇥", 200); p.sel(1); await p.w(200); await p.key("⏎", 220);
+        p.accept(["func ParseStatus(v string) (Status, error) {", "\tswitch s := Status(v); s {", "\tcase StatusPending, StatusDone:", "\t\treturn s, nil", "\t}", "\treturn \"\", fmt.Errorf(\"invalid status %q\", v)", "}"]); await p.w(1200); } },
+
+    { g: "edit", name: "Multicursor", go: async function (p) {
+        p.set(["type Note struct {", "\tTitle string `json:\"title\"`", "}", "", "func (n Note) Heading() string { return n.Title }", "", "func (n *Note) Rename(t string) { n.Title = t }"], "note.go", "NORMAL"); p.cursor(1);
+        await p.w(700); await p.key("Alt+n", 400); p.mcStart("Title", 1);
+        await p.key("Alt+n", 420); p.mcAdd(4); await p.key("Alt+n", 420); p.mcAdd(6); await p.w(500);
+        await p.key("c", 300); p.mode("INSERT"); await p.mcType("Subject"); await p.w(450);
+        await p.key("Esc", 260); p.mode("NORMAL"); p.mcDone(); await p.w(1500); } },
+
+    { g: "ask", name: "Fix inline", go: async function (p) {
         p.set(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", FIND, "\tif err != nil {", "\t\treturn nil, err", "\t}", "\treturn nil, nil", "}"], "note_service.go", "NORMAL"); p.cursor(1);
-        S.showCursor = false; p.diag(1, "error", "compiler · UnusedVar", "declared and not used: n"); await p.w(560);
-        await p.key("␣", 195); await p.key("a", 150); p.wk("agent"); await p.w(266); await p.key("f", 150); p.wk("agent", "f"); await p.w(266); p.wk(null);
-        p.input(1, "fix inline · claude/sonnet"); await p.w(630); await p.key("⏎", 180); p.dropInput();
-        await p.spin(1, "fix inline · claude/sonnet", 1125); p.diff(1, ["\t_, err := s.repo.FindByID(ctx, id)"]); await p.w(909);
-        await p.key("⏎", 180); p.acceptDiff(); p.clearDiag(); await p.w(1050); } },
-    { g: "ask", name: "Lens → fix", k: "␣ a L s", go: async function (p) {
+        S.showCursor = false; p.diag(1, "error", "compiler · UnusedVar", "declared and not used: n"); await p.w(650);
+        await p.seq(["␣", "a", "f"]); p.input(1, "fix inline · claude/sonnet"); await p.w(650); await p.key("⏎", 220); p.dropInput();
+        await p.spin(1, "fix inline · claude/sonnet", 1100); p.diff(1, ["\t_, err := s.repo.FindByID(ctx, id)"]); await p.w(1000);
+        await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(1300); } },
+    { g: "ask", name: "Lens → fix", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = '\" + name + \"'\")", "\tn := &Note{}", "\tif err := row.Scan(&n.ID, &n.Title); err != nil {", "\t\treturn nil, err", "\t}", "\treturn n, nil", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
-        await p.w(350); await p.key("␣", 165); await p.key("a", 150); p.wk("agent"); await p.w(182); await p.key("L", 165); p.wk("lens"); await p.w(224); await p.key("s", 150); p.wk("lens", "s"); await p.w(224); p.wk(null);
-        await p.spin(1, "lens security · claude/sonnet", 1125); p.diag(1, "warn", "security", "SQL injection: `name` is concatenated into the query. Use a placeholder."); await p.w(909);
-        await p.keysOf(["␣", "a", "f"], 200); p.wk(null); await p.spin(1, "fix inline · claude/sonnet", 975);
-        p.diff(1, ["\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)"]); await p.w(909); await p.key("⏎", 180); p.acceptDiff(); p.clearDiag(); await p.w(1050); } },
-    { g: "ask", name: "Commit", k: "␣ G M", go: async function (p) {
+        await p.w(450); await p.seq(["␣", "a", "L", "s"]);
+        await p.spin(1, "lens security · claude/sonnet", 1100); p.diag(1, "warn", "security", "SQL injection: `name` is concatenated into the query. Use a placeholder."); await p.w(1000);
+        await p.seq(["␣", "a", "f"]); await p.spin(1, "fix inline · claude/sonnet", 950);
+        p.diff(1, ["\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)"]); await p.w(1000); await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(1300); } },
+    { g: "ask", name: "Tests", go: async function (p) {
+        p.set(["func Rename(r Repo, id int, title string) error {", "\tn, err := r.Get(id)", "\tif err != nil {", "\t\treturn err", "\t}", "\tif title == \"\" {", "\t\treturn ErrEmpty", "\t}", "\tn.Title = title", "\treturn r.Save(n)", "}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        await p.w(500); await p.seq(["␣", "a", "T", "w"]); p.input(0, "test write · claude/sonnet", "what to cover? (⏎ to skip)"); await p.w(600); await p.key("⏎", 220); p.dropInput();
+        await p.spin(0, "test write · claude/sonnet", 1100);
+        p.split("note_service_test.go", ["package application", "", "import (", "\t\"errors\"", "\t\"testing\"", ")", ""]);
+        p.splitDiff(["func TestRename(t *testing.T) {", "\tcases := []struct {", "\t\tname, title string", "\t\twant        error", "\t}{", "\t\t{\"ok\", \"new\", nil},", "\t\t{\"empty\", \"\", ErrEmpty},", "\t}", "\tfor _, c := range cases {", "\t\tt.Run(c.name, func(t *testing.T) {", "\t\t\tif err := Rename(fakeRepo(), 1, c.title); !errors.Is(err, c.want) {", "\t\t\t\tt.Fatalf(\"got %v, want %v\", err, c.want)", "\t\t\t}", "\t\t})", "\t}", "}"]);
+        await p.w(1700); await p.key("⏎", 220); p.splitAccept(); await p.w(1400); } },
+    { g: "ask", name: "DDD diagnose → fix", go: async function (p) {
+        p.set(["package domain", "", "import (", "\t\"context\"", "\t\"database/sql\"", "", "\t\"notesapi/internal/infrastructure\"", ")", "", "type Note struct {", "\tID    string", "\tTitle string", "\tdb    *sql.DB", "}"], "internal/domain/note.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        await p.w(450); await p.seq(["␣", "a", "D", "d"]); await p.w(350);
+        p.diag(4, "error", "ddd · domain", "domain must not depend on a framework: \"database/sql\"", "◈ DDD", 2);
+        p.diag(6, "error", "ddd · domain", "outward dependency: domain → infrastructure (\"notesapi/internal/infrastructure\")", "◈ DDD", 2);
+        p.note("<b>DDD diagnosis</b> · 2 violations in 1 file · 0 tokens"); await p.w(1700); p.note(null);
+        await p.seq(["␣", "a", "D", "f"]); await p.spin(4, "ddd fix · claude/sonnet", 1000, "ddd fix");
+        p.rmLines([4, 6, 12]);
+        await p.w(1000); await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(1300); } },
+    { g: "ask", name: "Repo check", go: async function (p) {
+        p.set(["type PostgresNoteRepository struct{ db *sql.DB }", "", "func NewPostgresNoteRepository(db *sql.DB) *PostgresNoteRepository {", "\treturn &PostgresNoteRepository{db: db}", "}", "", "func (r *PostgresNoteRepository) Save(ctx context.Context, n *domain.Note) error {", "\t// …", "}"], "internal/infrastructure/note_repo.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        await p.w(450); await p.seq(["␣", "a", "P", "c"]); await p.w(250);
+        p.panel("Repository check · PostgresNoteRepository", [["h", "Port"], ["", "domain.NoteRepository  internal/domain/note.go:21"], ["ok", "  Save       ✓"], ["no", "  FindByID   ✗ missing"], ["no", "  FindAll    ✗ missing"], ["no", "  Delete     ✗ missing"], ["ok", "  constructor NewPostgresNoteRepository  ✓"], ["h", "Entity vs table · Note"], ["no", "  Entity fields without a column (1): Done"], ["ok", "  Columns without an entity field (0): none ✓"], ["dd", "Static analysis, 0 tokens."]]);
+        await p.w(3600); await p.key("Esc", 200); p.panel(null); await p.w(500); } },
+
+    { g: "git", name: "Commit panel", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
-        await p.w(350); await p.key("␣", 165); await p.key("G", 150); p.wk("git"); await p.w(280); await p.key("M", 150); p.wk("git", "M"); await p.w(266); p.wk(null);
-        p.note("<b>Commit:</b> 2 files +4 −1 → claude/haiku is writing the message…"); await p.w(1050);
-        p.note("<b>✔ Committed</b> 9808147 feat(go): add go module and print greeting · 2 files +4 −1 · claude/haiku 2.4s · $0.0001"); await p.w(2380); p.note(null); } }
+        await p.w(400); await p.seq(["␣", "G", "c"]);
+        var ai0 = "<b>claude/haiku</b> · ⌃g to draft · reads 2 files, 3.1k chars";
+        p.commitPanel({ msg: "", chip: "", ai: ai0 }); await p.w(900); await p.key("Ctrl+g", 240);
+        var t0 = Date.now(); while (Date.now() - t0 < 800) { S.cp.ai = FR[Math.floor((Date.now() - t0) / 90) % FR.length] + " drafting…"; render(); await p.w(90); }
+        S.cp = { msg: "feat(go): complete missing interface methods", chip: "feat(go) · 44/72", ai: "drafted by claude/haiku · 2.1s · u undo · ⌃g redo" }; render(); await p.w(1100);
+        await p.key("Ctrl+s", 260); p.commitPanel(null); p.note("<b>✔ Committed</b> a1b2c3d feat(go): complete missing interface methods · 2 files +340 −3"); await p.w(2200); p.note(null); } },
+    { g: "git", name: "Auto commit", go: async function (p) {
+        p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
+        await p.w(400); await p.seq(["␣", "G", "M"]);
+        p.note("<b>Commit:</b> 2 files +4 −1 → claude/haiku is writing the message…"); await p.w(1200);
+        p.note("<b>✔ Committed</b> 9808147 feat(go): add go module and print greeting · 2 files +4 −1 · claude/haiku 2.4s · $0.0001"); await p.w(2800); p.note(null); } }
   ];
 
   /* the list on the left, grouped; click jumps to a scenario */
+  var GROUPS = { type: ["Complete", "0 tokens"], edit: ["Edit", ""], ask: ["Ask the agent", "one shot"], git: ["Git", ""] };
   var listEl = $("#list"), cur = 0, playing = false, visible = false;
   (function buildList() {
     var html = "", last = "";
     SC.forEach(function (sc, i) {
-      if (sc.g !== last) { html += '<li class="grp"><span>' + (sc.g === "type" ? "Complete" : "Ask the agent") + "</span><span>" + (sc.g === "type" ? "0 tokens" : "one shot") + "</span></li>"; last = sc.g; }
+      if (sc.g !== last) { html += '<li class="grp"><span>' + GROUPS[sc.g][0] + "</span><span>" + GROUPS[sc.g][1] + "</span></li>"; last = sc.g; }
       html += '<li><button data-i="' + i + '"><i>' + String(i + 1).padStart(2, "0") + "</i>" + sc.name + "</button></li>";
     });
     listEl.innerHTML = html;
@@ -553,14 +740,15 @@ footer a:hover{color:var(--fg)}
   function mark() { [].forEach.call(listEl.querySelectorAll("button"), function (b) { b.classList.toggle("on", +b.dataset.i === cur); }); }
   function play(i) {
     cur = i; mark(); var me = ++run; playing = true;
+    noteEl.classList.remove("on"); keysEl.innerHTML = "";
     if (reduce) { SC[i].go(P(me)); return; }
     SC[i].go(P(me)).then(function () { if (me === run) play((cur + 1) % SC.length); }, function () {});
   }
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function (es) {
       visible = es[0].isIntersecting;
-      if (visible && !playing) play(cur); else if (!visible && playing) { run++; playing = false; }
-    }, { threshold: 0.25 }).observe($("#go"));
+      if (visible && !playing && !document.hidden) play(cur); else if (!visible && playing) { run++; playing = false; }
+    }, { threshold: 0.2 }).observe($("#go"));
   } else play(0);
   document.addEventListener("visibilitychange", function () {
     if (document.hidden && playing) { run++; playing = false; }
