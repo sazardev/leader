@@ -6,6 +6,7 @@ Neovim + NvChad v2.5 config (not an application). No build, tests or CI. **`AGEN
 
 ## Commands
 
+- Install on a fresh machine: `./install.sh` (`--lang`, `--no-deps`, `--no-plugins`, `--dry-run`, `-y`; Windows: `install.ps1`). Config version lives in `VERSION` (release = `chore(release): vX.Y.Z` + git tag).
 - Activate hooks once per clone: `git config core.hooksPath .githooks` (`pre-commit` regenerates `CHEATSHEET.md` when a commit touches `nvim/`; `post-merge` drops a marker so the config auto-reloads after `git pull`).
 - Agent tests: `scripts/test-agent.sh` (protocol, backend parsers, diff, target, local backends + setup against fake Ollama/OpenAI servers in `scripts/fake-llm.py`; no network or tokens). Run it after touching `lua/agent/`. `scripts/agent-setup.sh` is the terminal front-end of `lua/agent/setup/` (`--check`/`--start`/`--pull`/`--auto`/`--use`/`--json`). `test-agent.lua` is at Lua's 200-locals limit: put new suites in their own file.
 - Regenerate cheatsheet: `scripts/gen-cheatsheet.sh`; verify it is current: `scripts/gen-cheatsheet.sh --check` (exit 1 if stale). It runs `nvim --headless` with the real config (`NVIM_NO_LOCAL=1 NVIM_LIGHT=0`), so nvim and the installed plugins are required.

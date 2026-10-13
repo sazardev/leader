@@ -4,7 +4,8 @@ Neovim + NvChad v2.5 config — not an application. No CI or build system; las �
 
 ## Repo structure
 
-- `nvim/` — mirrors `%LOCALAPPDATA%\nvim` on Windows. Symlink it:
+- `install.sh` / `install.ps1` — instalador de un solo paso (Linux/WSL/macOS · Windows): dependencias, Neovim ≥ 0.11, enlace de `nvim/`, hooks, plugins, Mason y parsers; `--lang a,b` deja solo esos lenguajes (escribe `languages.disabled` en `lua/local.lua`, sin pisar uno existente). Usa `scripts/install-mason.lua` y `scripts/install-treesitter.lua`. `VERSION` es la versión de la config (se sube con `chore(release)` + tag `vX.Y.Z`)
+- `nvim/` — mirrors `%LOCALAPPDATA%\nvim` on Windows. Symlink it (o usa el instalador):
 
   ```powershell
   New-Item -ItemType Junction -Path "$env:LOCALAPPDATA\nvim" -Target "C:\path\to\my-nvim-setup\nvim"
@@ -23,7 +24,7 @@ Neovim + NvChad v2.5 config — not an application. No CI or build system; las �
 - Plugins auto-install via `lazy.nvim` on first open
 - Activate the auto-reload hook once per clone: `git config core.hooksPath .githooks` (the hook picks the right data dir for Windows or Linux)
 - LSP servers and tools (gopls, vtsls, stylua, prettier, eslint_d, dart, etc.) auto-install via `mason-tool-installer`
-- No manual setup beyond the symlink
+- No manual setup beyond the symlink (o `./install.sh`, que además deja plugins, herramientas y parsers ya instalados). Un plugin con `build` pesado que dependa de un lenguaje debe llevar `enabled` según `languages.disabled` (ver `plugins/languages/go.lua`), si no `--lang` instalaría sus herramientas igualmente
 - **Auto-reload**: `.githooks/post-merge` creates a marker on `git pull`; `core/autocmds/reload.lua` detects it on `UIEnter` and runs `luafile $MYVIMRC` to reload config automatically
 
 ## Architecture
