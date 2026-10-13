@@ -16,7 +16,7 @@ Neovim + NvChad v2.5 config (not an application). No build, tests or CI. **`AGEN
 
 ## Landing page
 
-`docs/index.html` is a hand-written, single-file static site (inline CSS/JS, no build, no external requests; palette = base46 gruvbox/gruvbox_light). Keep every number on it measured or taken from the repo docs (startup ~20 ms, 54 locked plugins, 8 loaded at start, 19 languages, 131 braille arts, 579 vs ~46,000 agent input tokens) and update it when those change. `docs/.nojekyll` lets GitHub Pages serve `docs/` as is.
+`docs/index.html` is a hand-written static site: inline CSS/JS, no build, self-hosted Geist (`docs/fonts/`, SIL OFL license included), no external requests. Design rules: flat and square like the config (no borders, no radius, no shadows), palette = base46 gruvbox/gruvbox_light, very little content, smooth scroll reveals (respecting `prefers-reduced-motion`). Keep every number on it measured (startup ~20 ms) and update it when that changes. `docs/.nojekyll` lets GitHub Pages serve `docs/` as is.
 
 ## Generated files — don't hand-edit
 

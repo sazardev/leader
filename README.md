@@ -39,7 +39,7 @@ the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVI
 
 Then open `nvim`. Press `<Space>` and which-key shows you the menus.
 
-There is also a single-file landing page, `docs/index.html` (no build, no dependencies, same gruvbox look, dark/light with `t`); serve `docs/` with GitHub Pages or open it locally.
+There is also a landing page, `docs/index.html` (flat and square like the config, no build, self-hosted Geist in `docs/fonts/`, dark/light with `t`); serve `docs/` with GitHub Pages (`cd docs && python3 -m http.server`).
 
 | Option | Effect |
 |---|---|
