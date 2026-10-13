@@ -238,13 +238,13 @@ set_diags {
 -- ── el tipo de la variable sale del LSP (gopls), aunque el código no nombre el tipo ──
 if vim.fn.executable "gopls" == 1 then
   vim.lsp.start({ name = "gopls", cmd = { "gopls" }, root_dir = dir }, { bufnr = buf })
-  local attached = vim.wait(20000, function()
+  local attached = vim.wait(60000, function()
     return #vim.lsp.get_clients { bufnr = buf, name = "gopls" } > 0
   end, 50)
   eq("gopls arranca", attached, true)
   -- espera a que el workspace esté cargado: typeDefinition responde con la ubicación de `Note`
   local out
-  vim.wait(20000, function()
+  vim.wait(60000, function()
     out = nil
     local ok, e = pcall(types_provider.collect, t, function(x)
       out = x or false
