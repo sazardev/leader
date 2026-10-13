@@ -99,24 +99,65 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .row:hover p{color:color-mix(in srgb,var(--on) 70%,transparent)}
 .p-opin h2,.p-go h2,.p-keys h2,.p-install h2{font-size:clamp(44px,7.4vw,112px)}
 
-/* ── go demo ──────────────────────────────────────────────────────────────────────────────────── */
+/* ── go + agent: a real-looking editor, scripted ────────────────────────────────────────────── */
 .p-go h2 span{color:var(--green)}
-.demo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:64px}
-.pane{background:var(--deep);min-height:330px;display:flex;flex-direction:column;min-width:0}
-.pane h4{font:500 12px "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:20px 24px 0;display:flex;justify-content:space-between}
-.pane h4 b{background:var(--green);color:var(--on);font-weight:600;padding:2px 8px;letter-spacing:.06em}
-.pane pre{padding:22px 24px;font:14.5px/1.75 "Geist Mono",monospace;color:var(--fg);overflow-x:auto;tab-size:4;flex:1}
-.pane pre .l{display:block;opacity:0;transform:translateY(10px);animation:up .55s cubic-bezier(.2,.7,.1,1) forwards;animation-delay:calc(var(--i) * 90ms)}
-.menu{margin:0 24px 24px;background:var(--soft);font:13px "Geist Mono",monospace}
-.menu div{display:flex;justify-content:space-between;gap:20px;padding:6px 14px;color:var(--dim)}
-.menu .sel{background:var(--blue);color:var(--on);font-weight:500}
-.dots{display:flex;gap:8px;margin-top:28px;align-items:center}
-.dots button{width:44px;height:6px;background:var(--soft);position:relative;overflow:hidden}
-.dots button.on::after{content:"";position:absolute;inset:0;background:var(--green);transform-origin:0 50%;animation:fill var(--t,6s) linear forwards}
-.dots.paused button.on::after{animation-play-state:paused}
-@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.cap{margin-left:18px;color:var(--dim);font-size:15px}
-.c1{color:var(--red)} .c2{color:var(--green)} .c3{color:var(--yellow)} .c4{color:var(--aqua)} .c5{color:var(--purple)} .c6{color:var(--faint)}
+.stage{display:grid;grid-template-columns:270px 1fr;gap:12px;margin-top:56px;align-items:start}
+.list{list-style:none;display:grid;gap:2px}
+.list .grp{font:500 11px "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:14px 4px 6px;display:flex;justify-content:space-between}
+.list .grp:first-child{padding-top:0}
+.list button{width:100%;text-align:left;display:flex;gap:12px;align-items:baseline;padding:11px 14px;background:var(--deep);color:var(--dim);font-size:15px;transition:background .2s,color .2s}
+.list button i{font:500 11px "Geist Mono",monospace;font-style:normal;color:var(--faint);transition:color .2s}
+.list button:hover{color:var(--fg)}
+.list button.on{background:var(--green);color:var(--on);font-weight:600}
+.list button.on i{color:color-mix(in srgb,var(--on) 60%,transparent)}
+.ed{background:var(--deep);position:relative;font:13.5px/1.75 "Geist Mono",ui-monospace,monospace;--gut:3.6em;overflow:hidden}
+.ed .code{height:440px;overflow:hidden;position:relative;padding:14px 0}
+.ed .r{display:flex;white-space:pre;tab-size:4;position:relative;min-height:1.75em}
+.ed .n{width:var(--gut);flex:none;text-align:right;padding-right:1.4em;color:var(--faint);user-select:none}
+.ed .n.e{background:var(--red);color:var(--on);font-weight:700}
+.ed .n.w{background:var(--yellow);color:var(--on);font-weight:700}
+.ed .t{flex:1;min-width:0;padding-right:16px;overflow:hidden;text-overflow:clip}
+.ed .vt{margin-left:auto;padding:0 14px;color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent)}
+.ed .cur{display:inline-block;width:.6em;height:1.2em;background:var(--green);vertical-align:text-bottom;margin-left:1px;animation:blink 1s steps(1) infinite}
+.ed.normal .cur{background:var(--blue)}
+@keyframes blink{50%{opacity:0}}
+.ed .rm{background:color-mix(in srgb,var(--red) 16%,transparent)} .ed .rm .n{color:var(--red)}
+.ed .ad{background:color-mix(in srgb,var(--green) 16%,transparent)} .ed .ad .n{color:var(--green)}
+.ed .fresh{animation:fresh 1.4s ease-out}
+@keyframes fresh{from{background:color-mix(in srgb,var(--yellow) 28%,transparent)}to{background:transparent}}
+.ed .ah{white-space:pre;color:var(--faint);padding-left:var(--gut);font-size:12.5px}
+.ed .ah b{color:var(--green);font-weight:500}
+.ed .blk{margin:2px 16px 4px var(--gut);padding:4px 14px;border-left:3px solid var(--red);background:color-mix(in srgb,var(--red) 12%,transparent);font-size:12.5px;line-height:1.6;white-space:normal}
+.ed .blk.w{border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
+.ed .blk b{color:var(--red)} .ed .blk.w b{color:var(--yellow)} .ed .blk i{font-style:normal;color:var(--faint)}
+.ed .inp{margin:2px 16px 4px var(--gut);background:var(--soft);padding:6px 14px;border-left:3px solid var(--purple);white-space:normal;line-height:1.6}
+.ed .inp b{color:var(--purple)} .ed .inp i{font-style:normal;color:var(--faint)}
+.ed .pop{position:absolute;top:100%;z-index:5;background:var(--soft);min-width:300px;max-width:calc(100% - var(--gut) - 24px);font-size:12.5px;line-height:1.6}
+.ed .pop div{display:flex;justify-content:space-between;gap:28px;padding:3px 12px;color:var(--dim);white-space:pre}
+.ed .pop div.s{background:var(--blue);color:var(--on);font-weight:500}
+.ed .wk{position:absolute;left:0;right:0;bottom:34px;background:var(--soft);padding:10px 20px 12px;z-index:6;font-size:12.5px;transform:translateY(120%);opacity:0;transition:transform .2s,opacity .2s}
+.ed .wk.on{transform:none;opacity:1}
+.ed .wk h5{font:500 11px "Geist Mono",monospace;letter-spacing:.1em;color:var(--faint);margin-bottom:6px;text-transform:uppercase}
+.ed .wk ul{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:0 18px}
+.ed .wk li{color:var(--dim);display:flex;gap:10px;padding:0 4px}
+.ed .wk li b{color:var(--yellow);min-width:1.4em}
+.ed .wk li.p{background:var(--yellow);color:var(--on)} .ed .wk li.p b{color:var(--on)}
+.ed .note{position:absolute;top:14px;right:16px;max-width:min(560px,70%);background:var(--soft);padding:10px 14px;border-left:3px solid var(--green);z-index:7;font-size:12.5px;line-height:1.55;white-space:normal;opacity:0;transform:translateX(16px);transition:opacity .25s,transform .25s}
+.ed .note.on{opacity:1;transform:none}
+.ed .note b{color:var(--green);font-weight:600}
+.ed .keys{position:absolute;right:16px;bottom:50px;display:flex;gap:6px;z-index:8;pointer-events:none}
+.ed.wkon .keys{bottom:120px}
+.ed .keys span{background:var(--fg);color:var(--on);font-weight:600;min-width:2.2em;text-align:center;padding:3px 9px;animation:keyin .22s ease-out}
+@keyframes keyin{from{transform:translateY(8px);opacity:0}}
+.ed .sl{display:flex;align-items:stretch;background:var(--soft);font-size:12.5px;height:34px}
+.ed .sl>span{display:flex;align-items:center;padding:0 14px}
+.ed .sl .m{background:var(--blue);color:var(--on);font-weight:700;min-width:84px;justify-content:center;transition:background .15s}
+.ed.ins .sl .m{background:var(--green)}
+.ed .sl .g{color:var(--dim)} .ed .sl .f{color:var(--fg)}
+.ed .sl .sp{flex:1;padding:0}
+.ed .sl .dg{font-weight:700;color:var(--on);min-width:44px;justify-content:center}
+.ed .sl .dg.e{background:var(--red)} .ed .sl .dg.w{background:var(--yellow)} .ed .sl .dg.o{background:var(--faint)}
+.sy-k{color:var(--red)} .sy-s{color:var(--green)} .sy-f{color:var(--yellow)} .sy-t{color:var(--aqua)} .sy-n{color:var(--purple)} .sy-c{color:var(--faint);font-style:italic}
 
 /* ── keys ─────────────────────────────────────────────────────────────────────────────────────── */
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:64px}
@@ -137,7 +178,13 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
 footer a:hover{color:var(--fg)}
 
 @media(max-width:900px){
-  .demo,.row{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr}
+  .stage{grid-template-columns:1fr}
+  .list{display:flex;overflow-x:auto;gap:2px;scrollbar-width:none}
+  .list .grp{display:none}
+  .list button{white-space:nowrap;width:auto}
+  .ed{font-size:12px}
+  .ed .wk ul{grid-template-columns:repeat(2,1fr)}
   .tiles{grid-template-columns:1fr 1fr}
   .hero-art{display:none}
   .row{gap:8px}
@@ -203,9 +250,17 @@ footer a:hover{color:var(--fg)}
 <section class="panel p-go" id="go">
   <div class="wrap">
     <span class="eyebrow rv">Custom, for speed</span>
-    <h2 class="rv">Go that reads<br><span>your code.</span></h2>
-    <div class="demo" id="demo" aria-live="polite"></div>
-    <div class="dots" id="dots"><span class="cap" id="cap"></span></div>
+    <h2 class="rv">Type less.<br><span>Ask when it matters.</span></h2>
+    <div class="stage rv" style="--d:.1s">
+      <ol class="list" id="list"></ol>
+      <div class="ed" id="ed" role="img" aria-label="An animated Neovim editor showing completions and the AI agent">
+        <div class="code" id="code"></div>
+        <div class="wk" id="wk"></div>
+        <div class="note" id="note"></div>
+        <div class="keys" id="keys"></div>
+        <div class="sl" id="sl"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -313,42 +368,205 @@ footer a:hover{color:var(--fg)}
   addEventListener("scroll", function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, { passive: true });
   addEventListener("resize", tick); tick();
 
-  /* Go demos: what you type, the menu, what you get. Auto-advances; hover pauses */
-  var D = [
-    { cap: "After an err assignment", type: ["n, err := s.repo.<c4>FindByID</c4>(ctx, id)", "<c6>⏎</c6>"],
-      menu: [["if err != nil", "wrap · find by id", 1]],
-      out: ['<c1>if</c1> err != <c5>nil</c5> {', '\t<c1>return</c1> <c5>nil</c5>, fmt.<c3>Errorf</c3>(<c2>"find by id: %w"</c2>, err)', '}'] },
-    { cap: "In a struct that implements an interface", type: ["<c1>func</c1> (s *noteService) <c6>▌</c6>"],
-      menu: [["…all missing (6)", "NoteService", 1], ["Create", "missing", 0], ["Get", "missing", 0]],
-      out: ['<c3>Get</c3>(ctx context.Context, id <c4>string</c4>) (*domain.Note, <c4>error</c4>) {', '\t<c1>return</c1> s.repo.<c3>FindByID</c3>(ctx, id)', '}', '', '<c3>Delete</c3>(ctx context.Context, id <c4>string</c4>) <c4>error</c4> {', '\t<c1>return</c1> s.repo.<c3>Delete</c3>(ctx, id)', '}'] },
-    { cap: "In main", type: ["noteRepository := infrastructure.<c3>NewNoteRepository</c3>(db)", "noteSer<c6>▌</c6>"],
-      menu: [["noteService := application.NewNoteService(…)", "application", 1]],
-      out: ['noteService := application.<c3>NewNoteService</c3>(noteRepository)'] }
+  /* ── the editor mock: a tiny scripted Neovim ──────────────────────────────────────────────────── */
+  var ed = $("#ed"), codeEl = $("#code"), wkEl = $("#wk"), noteEl = $("#note"), keysEl = $("#keys"), slEl = $("#sl");
+  var S = null, run = 0, FR = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
+  function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  var KW = /^(func|return|if|else|for|range|type|struct|interface|var|const|package|import|switch|case|go|defer|map|chan)$/;
+  function hl(t) {
+    return t.replace(/(\/\/.*$)|("(?:[^"\\]|\\.)*")|([A-Za-z_]\w*)(?=\()|([A-Za-z_]\w*)|([\s\S])/g, function (m, c, str, call, id, other) {
+      if (c) return '<span class="sy-c">' + esc(c) + "</span>";
+      if (str) return '<span class="sy-s">' + esc(str) + "</span>";
+      if (call) return '<span class="' + (KW.test(call) ? "sy-k" : "sy-f") + '">' + call + "</span>";
+      if (id) {
+        if (KW.test(id)) return '<span class="sy-k">' + id + "</span>";
+        if (/^(nil|true|false)$/.test(id)) return '<span class="sy-n">' + id + "</span>";
+        if (/^[A-Z]\w*$/.test(id) || /^(string|error|int|bool|any)$/.test(id)) return '<span class="sy-t">' + id + "</span>";
+        return id;
+      }
+      return esc(other);
+    });
+  }
+  function render() {
+    var out = [], ne = 0, nw = 0, num = 0;
+    S.lines.forEach(function (L, i) {
+      if (L.kind === "input") {
+        out.push('<div class="inp"><b>✦ ' + L.label + '</b> <i>· ⏎ run · ⎋ cancel</i><br><i>hint for the fix (⏎ to skip)</i></div>'); return;
+      }
+      if (L.kind === "hint") { out.push('<div class="ah"><b>⏎ accept · ⎋ reject</b> · ' + L.n + " change</div>"); return; }
+      var sign = L.cls === "rm" ? "-" : L.cls === "ad" ? "+" : null;
+      if (!sign) num++;
+      var nc = L.diag ? (L.diag.sev === "error" ? " e" : " w") : "";
+      if (L.diag) { if (L.diag.sev === "error") ne++; else nw++; }
+      var cursor = S.cur === i && S.showCursor ? '<span class="cur"></span>' : "";
+      var vt = L.vt ? '<span class="vt">' + esc(L.vt) + "</span>" : "";
+      var pop = "";
+      if (S.pop && S.cur === i) {
+        pop = '<div class="pop" style="left:calc(var(--gut) + ' + (L.t.replace(/\t/g, "    ").length - S.pop.back) + 'ch)">' +
+          S.pop.items.map(function (it, k) { return '<div class="' + (k === S.pop.sel ? "s" : "") + '"><span>' + esc(it[0]) + "</span><span>" + esc(it[1]) + "</span></div>"; }).join("") + "</div>";
+      }
+      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.fresh ? " fresh" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + hl(L.t.replace(/\t/g, "    ")) + cursor + "</span>" + vt + pop + "</div>");
+      if (L.diag) out.push('<div class="blk' + (L.diag.sev === "warn" ? " w" : "") + '"><b>' + (L.diag.sev === "error" ? "✖ Error" : "▲ Warn") + "</b> <i>" + esc(L.diag.src) + "</i><br>" + esc(L.diag.msg) + "</div>");
+    });
+    codeEl.innerHTML = out.join("");
+    var cr = codeEl.querySelector(".cur") || codeEl.querySelector(".pop"), row = cr && cr.closest(".r");
+    if (row) { var top = row.offsetTop, h = codeEl.clientHeight; if (top + 120 > codeEl.scrollTop + h) codeEl.scrollTop = top + 120 - h; if (top < codeEl.scrollTop + 20) codeEl.scrollTop = Math.max(0, top - 40); }
+    ed.classList.toggle("ins", S.mode === "INSERT"); ed.classList.toggle("normal", S.mode !== "INSERT");
+    slEl.innerHTML = '<span class="m">' + S.mode + '</span><span class="g">main</span><span class="f">' + S.file + '</span><span class="sp"></span>' +
+      '<span class="dg ' + (ne ? "e" : "o") + '">E' + ne + '</span><span class="dg ' + (nw ? "w" : "o") + '">W' + nw + '</span><span class="g">go</span>';
+    ed.classList.toggle("wkon", !!S.wk);
+    if (S.wk) {
+      wkEl.innerHTML = "<h5>" + esc(S.wk.title) + "</h5><ul>" + S.wk.items.map(function (it) { return '<li class="' + (S.wk.press === it[0] ? "p" : "") + '"><b>' + it[0] + "</b>" + it[1] + "</li>"; }).join("") + "</ul>";
+      wkEl.classList.add("on");
+    } else wkEl.classList.remove("on");
+    keysEl.innerHTML = S.keys.slice(-4).map(function (k) { return "<span>" + k + "</span>"; }).join("");
+  }
+
+  var WK = {
+    agent: { title: "<leader>a  Agent", items: [["i","implement"],["r","review"],["e","explain"],["a","ask"],["f","fix inline"],["F","fix block"],["d","docs"],["R","refactor"],["m","model"],["h","history"],["T","tests"],["L","lenses"]] },
+    lens: { title: "<leader>aL  Lenses", items: [["s","security"],["p","performance"],["c","concurrency"],["e","errors"],["a","api compat"]] },
+    git: { title: "<leader>G  Git", items: [["c","commit"],["m","commit + AI draft"],["M","commit auto"],["a","amend"],["d","diff"],["b","blame"],["f","file history"],["r","repo history"]] }
+  };
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  /* primitives, all bound to one run so a click or scrolling away aborts it */
+  function P(me) {
+    var gone = function () { if (me !== run) throw 0; };
+    var p = {
+      w: function (ms) { return sleep(ms).then(gone); },
+      set: function (lines, file, mode) { S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, keys: [], showCursor: true }; render(); },
+      cursor: function (r) { S.cur = r; render(); },
+      mode: function (m) { S.mode = m; render(); },
+      type: function (str, ms) {
+        var i = 0; ms = ms || 26;
+        return (function step() {
+          if (i >= str.length) return Promise.resolve();
+          S.lines[S.cur].t += str[i++]; render();
+          return sleep(ms + Math.random() * 22).then(gone).then(step);
+        })();
+      },
+      nl: function (indent) { S.lines.splice(S.cur + 1, 0, { t: indent || "" }); S.cur++; render(); },
+      pop: function (items, sel, back) { S.pop = { items: items, sel: sel, back: back || 0 }; render(); },
+      sel: function (i) { S.pop.sel = i; render(); },
+      key: function (k, ms) { S.keys.push(k); render(); return p.w(ms || 330); },
+      keysOf: function (arr, between) { return arr.reduce(function (pr, k) { return pr.then(function () { return p.key(k, between || 240); }); }, Promise.resolve()); },
+      accept: function (lines) {
+        S.pop = null; var at = S.cur, fresh = lines.map(function (t) { return { t: t, fresh: true }; });
+        S.lines.splice.apply(S.lines, [at, 1].concat(fresh)); S.cur = at + lines.length - 1; render();
+      },
+      wk: function (name, press) { S.wk = name ? { title: WK[name].title, items: WK[name].items, press: press } : null; render(); },
+      diag: function (i, sev, src, msg) { S.lines[i].diag = { sev: sev, src: src, msg: msg }; render(); },
+      clearDiag: function () { S.lines.forEach(function (L) { delete L.diag; }); render(); },
+      input: function (i, label) { S.lines.splice(i, 0, { kind: "input", label: label }); S.cur++; render(); },
+      dropInput: function () { S.lines = S.lines.filter(function (L) { return L.kind !== "input"; }); S.cur = Math.min(S.cur, S.lines.length - 1); render(); },
+      spin: function (i, label, ms) {
+        var t0 = Date.now(), n = 0;
+        return (function step() {
+          var el = Date.now() - t0; if (el >= ms) { delete S.lines[i].vt; render(); return Promise.resolve(); }
+          S.lines[i].vt = " " + FR[n++ % FR.length] + " " + label + " · " + (el / 1000).toFixed(1) + "s "; render();
+          return sleep(90).then(gone).then(step);
+        })();
+      },
+      diff: function (i, added) {
+        var old = S.lines[i]; old.cls = "rm"; delete old.diag;
+        var ad = added.map(function (t) { return { t: t, cls: "ad" }; });
+        S.lines.splice.apply(S.lines, [i + 1, 0].concat(ad, [{ kind: "hint", n: 1 }])); render();
+      },
+      acceptDiff: function () {
+        S.lines = S.lines.filter(function (L) { return L.cls !== "rm" && L.kind !== "hint"; });
+        S.lines.forEach(function (L) { if (L.cls === "ad") { delete L.cls; L.fresh = true; } }); render();
+      },
+      note: function (html, on) { noteEl.innerHTML = html || ""; noteEl.classList.toggle("on", on !== false && !!html); }
+    };
+    return p;
+  }
+
+  var FIND = '\tn, err := s.repo.FindByID(ctx, id)';
+  var SC = [
+    { g: "type", name: "if err", k: "⏎", go: async function (p) {
+        p.set(["package application", "", "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\t", "}"], "note_service.go", "INSERT"); p.cursor(3);
+        await p.type("n, err := s.repo.FindByID(ctx, id)"); await p.w(220); p.nl("\t"); await p.w(180);
+        p.pop([["if err != nil", "wrap · find by id"], ["if err != nil", "return err"]], 0); await p.w(850); await p.key("⏎", 260);
+        p.accept(["\tif err != nil {", "\t\treturn nil, fmt.Errorf(\"find by id: %w\", err)", "\t}"]); await p.w(1300); } },
+    { g: "type", name: "Missing methods", k: "⇥ ⏎", go: async function (p) {
+        p.set(["package application", "", "type noteService struct{ repo domain.NoteRepository }", "", "func NewNoteService(repo domain.NoteRepository) NoteService {", "\treturn &noteService{repo: repo}", "}", "", ""], "note_service.go", "INSERT");
+        await p.type("func (s *noteService) "); await p.w(180);
+        p.pop([["…all missing (6)", "NoteService"], ["Create", "NoteService · missing"], ["Get", "NoteService · missing"], ["List", "NoteService · missing"]], -1); await p.w(650);
+        await p.key("⇥", 300); p.sel(0); await p.w(300); await p.key("⏎", 260);
+        p.accept(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\treturn s.repo.FindByID(ctx, id)", "}", "", "func (s *noteService) Delete(ctx context.Context, id string) error {", "\treturn s.repo.Delete(ctx, id)", "}"]); await p.w(1400); } },
+    { g: "type", name: "Wiring", k: "⇥ ⏎", go: async function (p) {
+        p.set(["package main", "", "func main() {", "\tdb, err := sql.Open(\"pgx\", dsn)", "\tnoteRepository := infrastructure.NewNoteRepository(db)", "\t", "}"], "main.go", "INSERT"); p.cursor(5);
+        await p.type("noteSer"); await p.w(120);
+        p.pop([["noteService := application.NewNoteService(…)", "application"]], -1, 7); await p.w(550);
+        await p.key("⇥", 280); p.sel(0); await p.w(260); await p.key("⏎", 240);
+        p.accept(["\tnoteService := application.NewNoteService(noteRepository)"]); await p.w(1400); } },
+    { g: "type", name: "Mappers", k: "⇥ ⏎", go: async function (p) {
+        p.set(["package transport", "", "type NoteResponse struct {", "\tID     string", "\tTitle  string", "\tStatus string", "}", "", ""], "dto.go", "INSERT");
+        await p.type("func "); await p.w(120);
+        p.pop([["func toNoteResponse", "domain.Note → NoteResponse"], ["func toNoteResponses", "… (list)"], ["func (r NoteResponse) toNote", "→ domain.Note"]], -1, 5); await p.w(550);
+        await p.key("⇥", 280); p.sel(0); await p.w(240); await p.key("⏎", 240);
+        p.accept(["func toNoteResponse(n *domain.Note) NoteResponse {", "\treturn NoteResponse{", "\t\tID:     n.ID,", "\t\tTitle:  n.Title,", "\t\tStatus: string(n.Status),", "\t}", "}"]); await p.w(1400); } },
+    { g: "type", name: "HTTP handlers", k: "G ⇥ ⏎", go: async function (p) {
+        p.set(["package transport", "", "type NoteHandler struct{ svc application.NoteService }", "", ""], "note_handler.go", "INSERT");
+        await p.type("func (h *NoteHandler) "); await p.w(150);
+        p.pop([["…all handlers (4)", "NoteService"], ["Routes", "NoteService · 4 routes"], ["Create", "NoteService · POST"], ["Get", "NoteService · GET"]], -1); await p.w(500);
+        await p.type("G", 90); p.pop([["Get", "NoteService · GET"]], -1, 1); await p.w(360);
+        await p.key("⇥", 280); p.sel(0); await p.w(220); await p.key("⏎", 240);
+        p.accept(["func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {", "\tid := r.PathValue(\"id\")", "\tres, err := h.svc.Get(r.Context(), id)", "\tif err != nil {", "\t\twriteError(w, err)", "\t\treturn", "\t}", "\twriteJSON(w, http.StatusOK, res)", "}"]); await p.w(1500); } },
+    { g: "type", name: "Enums", k: "⇥ ⇥ ⏎", go: async function (p) {
+        p.set(["type Status string", "", "const (", "\tStatusPending Status = \"pending\"", "\tStatusDone    Status = \"done\"", ")", "", ""], "status.go", "INSERT");
+        await p.type("func "); await p.w(120);
+        p.pop([["func …enum helpers Status (3)", "enum"], ["func ParseStatus", "Status · enum"], ["func (s *Status) UnmarshalText", "Status · enum"]], -1, 5); await p.w(500);
+        await p.key("⇥", 240); p.sel(0); await p.w(160); await p.key("⇥", 240); p.sel(1); await p.w(240); await p.key("⏎", 240);
+        p.accept(["func ParseStatus(v string) (Status, error) {", "\tswitch s := Status(v); s {", "\tcase StatusPending, StatusDone:", "\t\treturn s, nil", "\t}", "\treturn \"\", fmt.Errorf(\"invalid status %q\", v)", "}"]); await p.w(1400); } },
+    { g: "ask", name: "Fix inline", k: "␣ a f", go: async function (p) {
+        p.set(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", FIND, "\tif err != nil {", "\t\treturn nil, err", "\t}", "\treturn nil, nil", "}"], "note_service.go", "NORMAL"); p.cursor(1);
+        S.showCursor = false; p.diag(1, "error", "compiler · UnusedVar", "declared and not used: n"); await p.w(560);
+        await p.key("␣", 195); await p.key("a", 150); p.wk("agent"); await p.w(266); await p.key("f", 150); p.wk("agent", "f"); await p.w(266); p.wk(null);
+        p.input(1, "fix inline · claude/sonnet"); await p.w(630); await p.key("⏎", 180); p.dropInput();
+        await p.spin(1, "fix inline · claude/sonnet", 1125); p.diff(1, ["\t_, err := s.repo.FindByID(ctx, id)"]); await p.w(909);
+        await p.key("⏎", 180); p.acceptDiff(); p.clearDiag(); await p.w(1050); } },
+    { g: "ask", name: "Lens → fix", k: "␣ a L s", go: async function (p) {
+        p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = '\" + name + \"'\")", "\tn := &Note{}", "\tif err := row.Scan(&n.ID, &n.Title); err != nil {", "\t\treturn nil, err", "\t}", "\treturn n, nil", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
+        await p.w(350); await p.key("␣", 165); await p.key("a", 150); p.wk("agent"); await p.w(182); await p.key("L", 165); p.wk("lens"); await p.w(224); await p.key("s", 150); p.wk("lens", "s"); await p.w(224); p.wk(null);
+        await p.spin(1, "lens security · claude/sonnet", 1125); p.diag(1, "warn", "security", "SQL injection: `name` is concatenated into the query. Use a placeholder."); await p.w(909);
+        await p.keysOf(["␣", "a", "f"], 200); p.wk(null); await p.spin(1, "fix inline · claude/sonnet", 975);
+        p.diff(1, ["\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)"]); await p.w(909); await p.key("⏎", 180); p.acceptDiff(); p.clearDiag(); await p.w(1050); } },
+    { g: "ask", name: "Commit", k: "␣ G M", go: async function (p) {
+        p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
+        await p.w(350); await p.key("␣", 165); await p.key("G", 150); p.wk("git"); await p.w(280); await p.key("M", 150); p.wk("git", "M"); await p.w(266); p.wk(null);
+        p.note("<b>Commit:</b> 2 files +4 −1 → claude/haiku is writing the message…"); await p.w(1050);
+        p.note("<b>✔ Committed</b> 9808147 feat(go): add go module and print greeting · 2 files +4 −1 · claude/haiku 2.4s · $0.0001"); await p.w(2380); p.note(null); } }
   ];
-  var demo = $("#demo"), dots = $("#dots"), cap = $("#cap"), cur = 0, timer = 0, MS = 6500;
-  D.forEach(function (d, i) {
-    var b = document.createElement("button"); b.setAttribute("aria-label", "Example " + (i + 1));
-    b.onclick = function () { show(i); }; dots.insertBefore(b, cap);
+
+  /* the list on the left, grouped; click jumps to a scenario */
+  var listEl = $("#list"), cur = 0, playing = false, visible = false;
+  (function buildList() {
+    var html = "", last = "";
+    SC.forEach(function (sc, i) {
+      if (sc.g !== last) { html += '<li class="grp"><span>' + (sc.g === "type" ? "Complete" : "Ask the agent") + "</span><span>" + (sc.g === "type" ? "0 tokens" : "one shot") + "</span></li>"; last = sc.g; }
+      html += '<li><button data-i="' + i + '"><i>' + String(i + 1).padStart(2, "0") + "</i>" + sc.name + "</button></li>";
+    });
+    listEl.innerHTML = html;
+    listEl.addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) play(+b.dataset.i); });
+  })();
+  function mark() { [].forEach.call(listEl.querySelectorAll("button"), function (b) { b.classList.toggle("on", +b.dataset.i === cur); }); }
+  function play(i) {
+    cur = i; mark(); var me = ++run; playing = true;
+    if (reduce) { SC[i].go(P(me)); return; }
+    SC[i].go(P(me)).then(function () { if (me === run) play((cur + 1) % SC.length); }, function () {});
+  }
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (es) {
+      visible = es[0].isIntersecting;
+      if (visible && !playing) play(cur); else if (!visible && playing) { run++; playing = false; }
+    }, { threshold: 0.25 }).observe($("#go"));
+  } else play(0);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden && playing) { run++; playing = false; }
+    else if (!document.hidden && visible && !playing) play(cur);
   });
-  function lines(arr, base) {
-    return arr.map(function (l, i) { return '<span class="l" style="--i:' + (base + i) + '">' + (l || " ") + '</span>'; }).join("");
-  }
-  function esc(h) { return h.replace(/<c(\d)>/g, '<span class="c$1">').replace(/<\/c\d>/g, "</span>"); }
-  function show(i) {
-    cur = i; var d = D[i];
-    [].forEach.call(dots.querySelectorAll("button"), function (b, k) { b.classList.toggle("on", k === i); });
-    dots.style.setProperty("--t", MS + "ms"); cap.textContent = d.cap;
-    demo.innerHTML =
-      '<div class="pane"><h4>You type</h4><pre>' + lines(d.type.map(esc), 0) + '</pre><div class="menu">' +
-      d.menu.map(function (m) { return '<div class="' + (m[2] ? "sel" : "") + '"><span>' + m[0] + '</span><span>' + m[1] + '</span></div>'; }).join("") + '</div></div>' +
-      '<div class="pane"><h4>You get <b>0 tokens</b></h4><pre>' + lines(d.out.map(esc), d.type.length + 2) + '</pre></div>';
-    clearTimeout(timer);
-    if (!reduce) timer = setTimeout(function () { show((cur + 1) % D.length); }, MS);
-  }
-  var go = $("#go");
-  go.addEventListener("mouseenter", function () { clearTimeout(timer); dots.classList.add("paused"); });
-  go.addEventListener("mouseleave", function () { dots.classList.remove("paused"); show(cur); });
-  show(0);
+  mark();
 })();
 </script>
 </body>
