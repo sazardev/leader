@@ -11,6 +11,12 @@ needs-import: <imports>
 note: <max 15 words: what you assumed or added that is absent from the context, e.g. a field that does not exist>
 The block is the final answer: no draft, no second block, no prose. Change only what the task needs; keep names, signatures and comments.]=]
 
+M.APPEND_RULES = [=[
+OUTPUT: one fenced block with ONLY the new code, which is appended after what <target> already holds (never repeat <target> or any existing code); then, only if needed, one or both lines:
+needs-import: <imports>
+note: <max 15 words: what you assumed that is absent from the context>
+The block is the final answer: no draft, no second block, no prose.]=]
+
 M.FINDINGS_RULES = [[
 OUTPUT, one finding per line, nothing else: L<line>|<error|warn|info>|<problem and fix, max 140 chars>
 <line> = the absolute line number shown in <target>. At most 8, worst first. Real defects only (bugs, wrong edge cases, unhandled errors, races, leaks, security): no style, no praise. Nothing real: OK]]

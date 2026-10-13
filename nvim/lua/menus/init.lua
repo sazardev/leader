@@ -17,6 +17,8 @@ function M.contexts()
   table.insert(list, require "menus.agent_ddd")
   table.insert(list, require "menus.agent_repository")
   table.insert(list, require "menus.agent_service")
+  table.insert(list, require "menus.agent_tests")
+  table.insert(list, require "menus.agent_lenses")
   table.insert(list, require "menus.comments")
   return list
 end

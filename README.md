@@ -59,7 +59,7 @@ Lenguajes disponibles: `lua go typescript html css tailwind json yaml toml markd
 | Diagnóstico | bloques en línea bajo su línea, popup de la línea, Trouble |
 | UI | lualine, tema gruvbox ↔ claro **o heredado de la terminal en vivo** (Alacritty), dashboard con arte braille, render-markdown, colores en línea |
 | Sesiones | una por carpeta y rama, autoguardado periódico |
-| **Agente de IA** (opcional) | `<leader>a`: implementar, revisar, explicar, arreglar, documentar... de un disparo sobre la función bajo el cursor, con diff en línea; Claude Code, OpenCode, **Ollama (CPU/CUDA)**, LM Studio/llama.cpp/vLLM y otros CLIs. Detecta y configura sus backends solo (`<leader>am` → Setup, o `./scripts/agent-setup.sh`). Ver [docs/cheatsheets/agent.md](docs/cheatsheets/agent.md) |
+| **Agente de IA** (opcional) | `<leader>a`: implementar, revisar, explicar, arreglar, documentar, escribir pruebas, revisiones de seguridad/rendimiento/concurrencia... de un disparo sobre la función bajo el cursor, con diff en línea; Claude Code, OpenCode, **Ollama (CPU/CUDA)**, LM Studio/llama.cpp/vLLM y otros CLIs. Detecta y configura sus backends solo (`<leader>am` → Setup, o `./scripts/agent-setup.sh`). Ver [docs/cheatsheets/agent.md](docs/cheatsheets/agent.md) |
 
 El agente no es un plugin: es código Lua de esta config, sin dependencias, y no hace nada hasta que lo invocas.
 

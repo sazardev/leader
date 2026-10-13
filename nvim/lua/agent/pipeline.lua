@@ -49,33 +49,69 @@ function M.run(name, opts)
   if problem then
     return log.warn("Agent: " .. problem)
   end
+  -- `retarget`: el resultado va a OTRO sitio (p. ej. el archivo de pruebas); lo de aquí pasa a ser el `subject`,
+  -- de donde sale el contexto, mientras el objetivo (lo que se reemplaza y se envía) es el destino
+  local subject
+  if action.retarget then
+    local dest, why = action.retarget(target)
+    if not dest then
+      return log.warn("Agent: " .. why)
+    end
+    subject, target = target, dest
+  end
+  buf = target.buf
   if action.output == "replace" and jobs.overlaps(buf, target.first, target.last) then
     return log.warn "Agent: an agent is already working on that block"
+  end
+
+  ---@param input string?
+  ---@param extra { name: string, text: string }[]? secciones que añadió `prepare`
+  local function launch(input, extra)
+    local job = jobs.create {
+      action = action,
+      target = target,
+      subject = subject,
+      buf = buf,
+      selection = sel,
+      presenter = output.get(action.output),
+      anchor = anchor.create(buf, target.first, target.last),
+      -- el spinner y el resumen se ven donde estás (el código bajo prueba), no en el archivo de destino
+      view = subject and {
+        buf = subject.buf,
+        anchor = anchor.create(subject.buf, subject.first, subject.last),
+        first = subject.first,
+      } or nil,
+    }
+    status.attach(job) -- feedback inmediato, también mientras se reúne el contexto
+
+    context.build(action, subject or target, function(sections)
+      if job.state ~= "running" then
+        return
+      end
+      if extra then
+        sections = vim.list_extend(vim.list_slice(extra), sections)
+      end
+      job.input, job.sections = input, sections
+      job.system, job.prompt = prompt.build(action, target, sections, input)
+      runner.run(job)
+    end)
   end
 
   local function start(input)
     if action.handler then
       return action.handler { target = target, input = input, selection = sel }
     end
-
-    local job = jobs.create {
-      action = action,
-      target = target,
-      buf = buf,
-      selection = sel,
-      presenter = output.get(action.output),
-      anchor = anchor.create(buf, target.first, target.last),
-    }
-    status.attach(job) -- feedback inmediato, también mientras se reúne el contexto
-
-    context.build(action, target, function(sections)
-      if job.state ~= "running" then
-        return
-      end
-      job.input, job.sections = input, sections
-      job.system, job.prompt = prompt.build(action, target, sections, input)
-      runner.run(job)
-    end)
+    -- `prepare`: trabajo previo SIN modelo (correr las pruebas...). Si no hay nada que pedirle, se corta aquí: 0 tokens
+    if action.prepare then
+      log.info(("Agent %s: %s"):format(action.label, action.preparing or "preparing…"))
+      return action.prepare(target, function(extra, why)
+        if not extra then
+          return log.info(("Agent %s: %s"):format(action.label, why or "nothing to do"))
+        end
+        launch(input, extra)
+      end)
+    end
+    launch(input)
   end
 
   if action.input then

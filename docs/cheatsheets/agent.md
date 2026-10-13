@@ -215,6 +215,8 @@ historial y coste), y en el historial aparecen con su nombre (`repo_port`, `serv
 | `<leader>aD` | **Dominio / DDD** (`agent/ddd/`) | implement `i`, review `r`, fix `f`, missing `m`, ask `a` | diagnose `d` (capas, violaciones, agregados), clear `c` | `ddd` (capas, nomenclatura, piezas relacionadas) |
 | `<leader>aP` | **Repository** (`agent/repository/`) | port `p`, implement `i`, review `r` | **check** `c` (puerto vs métodos, entidad vs tabla) | `contracts`, `schema` |
 | `<leader>aS` | **Service** (`agent/service/`) | implement `i`, review `r` | **deps** `d` (puertos que usa, llamadas inexistentes, implementaciones, cableado) | `ports` |
+| `<leader>aT` | **Pruebas** (`agent/tests/`) | write `w`, mock `m`, fix `f` | **gaps** `g` (funciones públicas de la carpeta que ninguna prueba nombra) | `testing`, `subject`, `testfile` |
+| `<leader>aL` | **Lentes** (`agent/lenses/`) | security `s`, performance `p`, concurrency `c`, errors `e`, api `a` | — (cada lente descarta antes lo que no le toca) | `changes` |
 
 Los proveedores de cada nivel (`contracts`, `schema`, `ports`, `ddd`) son **silenciosos si el código no es de ese nivel**, así que
 `implement`/`review`/`fix` del menú genérico también los reciben cuando aplica, sin pagar nada cuando no. El código compartido
@@ -398,3 +400,42 @@ parser: las reglas del prompt y su lectura cambian siempre juntas.
   `needs-import:` / `note:` en vez de editar fuera de las líneas. En visual, la selección manda como objetivo.
 - **`<leader>aF` fix block**: el objetivo es la función entera (o la selección) y arregla todos sus diagnósticos a la vez, con las
   mismas definiciones de tipos. Úsalo cuando varios diagnósticos comparten causa o el arreglo toca varias líneas.
+
+## Pruebas (`<leader>aT`) y lentes (`<leader>aL`)
+
+Dos menús propios para no llenar `<leader>a`. Los dos corren por el mismo pipeline (campo de instrucción, diff en línea, `⏎`/`⎋`,
+historial y coste) y están pensados para **gastar lo mínimo**: lo que se puede decidir sin modelo se decide antes.
+
+**Pruebas** (`agent/tests/`): no reemplazan la función, **añaden al final del archivo de pruebas**.
+
+| Tecla | Qué hace | Cómo ahorra |
+|---|---|---|
+| `w` write | pruebas de la función bajo el cursor (o la selección), **solo lo que falta**: caso principal, límites y cada rama de error, máx. 6 casos, en el estilo del archivo | el objetivo que se envía es **una línea** (el final del archivo de pruebas), el modelo devuelve solo lo nuevo; del archivo de pruebas solo viajan cabecera, nombres, las pruebas que ya cubren esa función y, si no hay, UNA de ejemplo; una función de <4 líneas se rechaza antes de llamar |
+| `m` mock | un fake escrito a mano para la interfaz/clase bajo el cursor (registra llamadas, devuelve lo que la prueba fije) | modelo **ligero** |
+| `f` fix | arregla una prueba que falla | **corre la prueba primero** (`go test -run`, `vitest`/`jest -t`, `pytest -k`, `cargo test`) y solo si falla manda su salida real; si pasa, 0 tokens. Si el culpable es el código, deja la prueba igual y lo dice en `note:` |
+| `g` gaps | quickfix con las funciones públicas de la carpeta que ninguna prueba nombra | local, **0 tokens** (mapa aproximado: un nombre corto puede dar un falso "cubierta") |
+
+- El archivo de pruebas sale de la convención del lenguaje (`agent/tests/convention.lua`): Go `x_test.go`; TS/JS `x.test.ts`
+  (o `.spec.` si la carpeta ya lo usa; vitest/jest/mocha según `package.json`); Python `test_x.py` (en `tests/` si existe);
+  Lua `x_spec.lua`; Rust, un `mod x_tests` en el mismo archivo; Dart `lib/` → `test/`; Java/Kotlin `src/main` → `src/test`.
+- Al terminar, el archivo de pruebas **se abre a un lado con la propuesta** (`⏎` acepta, `⎋` rechaza); aceptar solo cambia el
+  buffer, guardas tú. Un archivo nuevo no se crea (ni su carpeta) hasta que lo guardas.
+- `fix` solo sabe correr Go, TS/JS (vitest/jest), Python y Rust; en otro lenguaje avisa sin gastar nada.
+- Cambiar el modelo: `agent.tiers.test_write = "light"` (o `test_mock`, `test_fix`).
+
+**Lentes** (`agent/lenses/`): revisiones con **un solo foco**, que salen como diagnósticos con su origen (`[security]`) en la línea
+exacta. `af`/`aF` los arreglan, y repetir una lente solo reemplaza los hallazgos de esa lente (no los de otra ni los de `review`).
+
+| Tecla | Busca | Modelo |
+|---|---|---|
+| `s` security | entrada no confiable que llega a un sumidero (inyección SQL/comandos/plantillas, traversal, SSRF, XSS), autenticación/autorización, secretos, criptografía, deserialización | principal |
+| `p` performance | N+1, trabajo repetido, algoritmos cuadráticos, copias y asignaciones en caminos calientes, memoria sin límite | ligero |
+| `c` concurrency | carreras y estado compartido sin sincronizar, deadlocks, goroutines/tareas que se filtran, promesas sin esperar, cierres dobles | principal |
+| `e` errors | errores ignorados o sin contexto, tragados en catch, recursos sin liberar en el camino de error, estado a medias | ligero |
+| `a` api | **cambios sin commitear** que rompen a quien lo usa (firmas, retorno, errores, nil, tags) | ligero |
+
+- Cada lente tiene una **puerta**: si el código no contiene nada de su tema (una función sin hilos para `c`, sin E/S para `s`, sin
+  cambios para `a`) avisa `skipped (0 tokens)` y no llama al modelo.
+- Contexto mínimo por lente (reglas y firmas de lo que llama; `c` añade tipos; `a` añade el diff): la salida son ≤ 8 líneas.
+- Añadir una lente = un archivo en `agent/lenses/actions/` (`key`, `title`, `focus`, `gate`) y su nombre en `NAMES`.
+- Cambiar el modelo de una: `agent.tiers.lens_security = "light"`.

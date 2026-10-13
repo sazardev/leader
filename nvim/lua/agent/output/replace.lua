@@ -132,11 +132,19 @@ function M.done(job, result)
     log.warn("Agent: " .. err .. " (showing the raw response)")
     return require("agent.output.text").done(job, result)
   end
+  -- `merge`: el modelo devolvió solo lo NUEVO (añadir pruebas al final de un archivo): se une a lo que ya hay
+  if job.action.merge then
+    code = job.action.merge(code, job.target)
+  end
   code = normalize(code, job.target)
 
   if vim.deep_equal(code, job.target.lines) then
     anchor.delete(job.buf, job.anchor)
     runs.event(job, "unchanged")
+    if note then
+      log.info("Agent: left unchanged — " .. note)
+      return "no changes · " .. note
+    end
     return "no changes"
   end
   if not anchor.unchanged(job) then
@@ -147,6 +155,13 @@ function M.done(job, result)
   end
 
   local first = anchor.range(job.buf, job.anchor)
+  -- el destino puede ser otro archivo (pruebas): se abre a un lado, en la propuesta, para decidir allí
+  if job.action.reveal and vim.fn.bufwinid(job.buf) == -1 then
+    vim.cmd "botright vsplit"
+    vim.api.nvim_win_set_buf(0, job.buf)
+    pcall(vim.api.nvim_win_set_cursor, 0, { math.min(first, vim.api.nvim_buf_line_count(job.buf)), 0 })
+    vim.cmd "normal! zz"
+  end
   local proposal = { job = job, lines = code, ids = {} }
   proposal.ids = preview.render(job.buf, first, job.target.lines, code, function(hunks)
     local keys = settings.keys

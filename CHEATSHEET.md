@@ -15,8 +15,10 @@ which-key muestra únicamente lo del buffer actual.
 |---|---|---|
 | `<leader>a` | Agent | global |
 | `<leader>aD` | Agent DDD | global |
+| `<leader>aL` | Agent Lenses | global |
 | `<leader>aP` | Agent Repository | global |
 | `<leader>aS` | Agent Service | global |
+| `<leader>aT` | Agent Tests | global |
 | `<leader>s` | CSS | `css`, `scss`, `less` |
 | `<leader>C` | Comments | global |
 | `<leader>d` | Dart / Flutter | `dart` |
@@ -67,6 +69,18 @@ _Dónde: global_
 | `<leader>aDd` | ddd diagnose |
 | `<leader>aDc` | ddd clear |
 
+### Agent Lenses — `<leader>aL`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>aLs` | lens security |
+| `<leader>aLp` | lens performance |
+| `<leader>aLc` | lens concurrency |
+| `<leader>aLe` | lens errors |
+| `<leader>aLa` | lens api |
+
 ### Agent Repository — `<leader>aP`
 
 _Dónde: global_
@@ -87,6 +101,17 @@ _Dónde: global_
 | `<leader>aSi` | service implement |
 | `<leader>aSr` | service review |
 | `<leader>aSd` | service deps |
+
+### Agent Tests — `<leader>aT`
+
+_Dónde: global_
+
+| Tecla | Acción |
+|---|---|
+| `<leader>aTw` | test write |
+| `<leader>aTm` | test mock |
+| `<leader>aTf` | test fix |
+| `<leader>aTg` | test gaps |
 
 ### CSS — `<leader>s`
 
@@ -405,6 +430,11 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 | `<leader>aDm` | n,x | Ddd missing |
 | `<leader>aDr` | n,x | Ddd review |
 | `<leader>aF` | n,x | Fix block |
+| `<leader>aLa` | n,x | Lens api |
+| `<leader>aLc` | n,x | Lens concurrency |
+| `<leader>aLe` | n,x | Lens errors |
+| `<leader>aLp` | n,x | Lens performance |
+| `<leader>aLs` | n,x | Lens security |
 | `<leader>aPc` | n | Repo check |
 | `<leader>aPi` | n,x | Repo implement |
 | `<leader>aPp` | n,x | Repo port |
@@ -413,6 +443,10 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 | `<leader>aSd` | n | Service deps |
 | `<leader>aSi` | n,x | Service implement |
 | `<leader>aSr` | n,x | Service review |
+| `<leader>aTf` | n,x | Test fix |
+| `<leader>aTg` | n | Test gaps |
+| `<leader>aTm` | n,x | Test mock |
+| `<leader>aTw` | n,x | Test write |
 | `<leader>aa` | n,x | Ask |
 | `<leader>ac` | n,x | Clear |
 | `<leader>ad` | n,x | Docs |

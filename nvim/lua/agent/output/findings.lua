@@ -66,9 +66,11 @@ function M.done(job, result)
     return nil
   end
 
-  -- un review nuevo reemplaza al anterior SOLO en ese rango
+  -- un review nuevo reemplaza al anterior SOLO en ese rango y SOLO el de su mismo origen: una lente (seguridad,
+  -- rendimiento...) no borra lo que dijo otra
+  local source = job.action.source or "agent"
   local kept = vim.tbl_filter(function(d)
-    return d.lnum + 1 < first or d.lnum + 1 > last
+    return d.lnum + 1 < first or d.lnum + 1 > last or (d.source or "agent") ~= source
   end, vim.diagnostic.get(job.buf, { namespace = NS }))
 
   local shift = first - job.target.first -- por si se editó encima mientras corría
@@ -82,7 +84,7 @@ function M.done(job, result)
       end_col = #content,
       severity = f.severity,
       message = f.message,
-      source = job.action.source or "agent",
+      source = source,
     }
   end
   vim.diagnostic.set(NS, job.buf, kept)

@@ -1,0 +1,21 @@
+return {
+  key = "e",
+  title = "errors",
+  tier = "light",
+  gate = {
+    "err",
+    "error",
+    "try",
+    "catch",
+    "except",
+    "throw",
+    "raise",
+    "panic",
+    "unwrap",
+    "result<",
+    "reject",
+    "expect(",
+    "fail",
+  },
+  focus = "error handling defects: errors ignored or overwritten, returned without context or wrapped wrongly, swallowed in catch/except, panics or throws on expected failures, error checked after use, resources not released on the error path (defer/finally/close missing), partial failure leaving inconsistent state, nil/null used after a failed call, wrong error type compared. Use the callee signatures to see which calls can fail.",
+}
