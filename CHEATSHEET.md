@@ -48,6 +48,7 @@ _Dónde: global_
 | `<leader>am` | model |
 | `<leader>ah` | history |
 | `<leader>ac` | clear |
+| `<leader>aC` | clear file |
 | `<leader>ax` | stop |
 | `<leader>al` | last answer |
 
@@ -393,6 +394,7 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 
 | Tecla | Modo | Acción |
 |---|---|---|
+| `<leader>aC` | n | Clear file |
 | `<leader>aDa` | n,x | Ddd ask |
 | `<leader>aDc` | n | Ddd clear |
 | `<leader>aDd` | n | Ddd diagnose |
@@ -409,7 +411,7 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 | `<leader>aSi` | n,x | Service implement |
 | `<leader>aSr` | n,x | Service review |
 | `<leader>aa` | n,x | Ask |
-| `<leader>ac` | n | Clear |
+| `<leader>ac` | n,x | Clear |
 | `<leader>ad` | n,x | Docs |
 | `<leader>ae` | n,x | Explain |
 | `<leader>af` | n,x | Fix |

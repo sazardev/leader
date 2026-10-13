@@ -22,6 +22,11 @@ vim.diagnostic.config({
   severity_sort = true,
 }, NS)
 
+---@return integer
+function M.namespace()
+  return NS
+end
+
 --- Quita los diagnósticos de DDD (de todos los buffers)
 function M.clear()
   vim.diagnostic.reset(NS)
@@ -32,12 +37,15 @@ end
 ---@param buf integer
 ---@param first integer 1-based
 ---@param last integer 1-based
+---@return integer removed cuántas quitó
 function M.resolve(buf, first, last)
+  local all = vim.diagnostic.get(buf, { namespace = NS })
   local kept = vim.tbl_filter(function(d)
     return d.lnum + 1 < first or d.lnum + 1 > last
-  end, vim.diagnostic.get(buf, { namespace = NS }))
+  end, all)
   vim.diagnostic.set(NS, buf, kept)
   persist.sync(buf, "ddd")
+  return #all - #kept
 end
 
 ---@param s string

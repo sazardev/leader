@@ -33,7 +33,7 @@ al prompt y manda sobre el comportamiento por defecto. Sirve para una `func main
 `a` ask y `R` refactor exigen el texto; `r` review y `e` explain corren al instante.
 
 **Menú corto**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix, `R` refactor, `g` hand off (solo dentro de
-Herdr), `h` history, `m` model (principal, ligero y esfuerzo en un solo selector), `c` clear (descarta los hallazgos de este archivo), `x` stop (cancela lo que corre y descarta las propuestas
+Herdr), `h` history, `m` model (principal, ligero y esfuerzo en un solo selector), `c` clear (descarta el hallazgo de la línea, o los de la selección en visual), `C` clear file (los de este archivo), `x` stop (cancela lo que corre y descarta las propuestas
 pendientes; **no** toca los hallazgos) y `l` last answer (reabre la última respuesta o propuesta rechazada). Aceptar y rechazar una propuesta no tienen
 entrada de menú: son `⏎` y `⎋` sobre la propuesta.
 
@@ -274,8 +274,9 @@ Los hallazgos de `review` y `ddd review`, y las violaciones de `ddd diagnose`, s
   rama...), se **reubica** por ese texto (hasta ±40 líneas); si la línea ya no existe, se descarta con un aviso
   (`Agent: 1 saved finding no longer matches the code and was dropped`). Al guardar el archivo se actualizan las posiciones.
 - Solo se guardan los del agente: los del LSP no se tocan. Si no hay archivo de hallazgos, abrir un archivo no cuesta nada.
-- **`<leader>ac` clear** descarta los de este archivo (de la memoria y del disco); `<leader>aDc` ddd clear, los del diagnóstico de
-  DDD de todo el proyecto. **`<leader>ax` stop no los borra**: solo cancela lo que corre y descarta propuestas pendientes.
+- **Limpiarlos** (de la memoria y del disco; review y ddd por igual): `<leader>ac` clear descarta el de la línea del cursor (en
+  visual, los de la selección) → de uno en uno; `<leader>aC` clear file, todos los de este archivo; `:AgentClear [file|all]`
+  (con rango: `:'<,'>AgentClear`), `all` = todos los archivos. `<leader>aDc` ddd clear, el diagnóstico de DDD de todo el proyecto. **`<leader>ax` stop no los borra**: solo cancela lo que corre y descarta propuestas pendientes.
 - **Arreglarlos**: `<leader>af` (fix) y `<leader>aDf` (**ddd fix**) leen los hallazgos que caen en la función o selección,
   junto con los diagnósticos del LSP, y proponen el cambio mínimo (en `ddd fix`, respetando las capas de `<ddd>`; si el arreglo
   necesita un puerto, tipo o archivo que no existe, lo dice en `note:` y no inventa su contenido). Al **aceptar** la propuesta, los

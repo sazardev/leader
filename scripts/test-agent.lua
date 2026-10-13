@@ -898,6 +898,47 @@ eq(
   { #vim.diagnostic.get(fbuf, { namespace = fns }), persist.count() },
   { 0, 0 }
 )
+
+-- clear: de uno en uno (línea / selección), por archivo y todo
+local agent_api = require "agent"
+local dns = require("agent.ddd.diagnose").namespace()
+vim.api.nvim_set_current_buf(fbuf)
+local function seed()
+  vim.diagnostic.set(fns, fbuf, {
+    { lnum = 3, col = 0, message = "A", severity = vim.diagnostic.severity.WARN, source = "agent" },
+    { lnum = 7, col = 0, message = "B", severity = vim.diagnostic.severity.INFO, source = "agent" },
+  })
+  vim.diagnostic.set(dns, fbuf, { { lnum = 7, col = 0, message = "C", severity = 2, source = "ddd" } })
+  persist.sync(fbuf, "findings")
+  persist.sync(fbuf, "ddd")
+end
+local function left()
+  return #vim.diagnostic.get(fbuf, { namespace = fns }) + #vim.diagnostic.get(fbuf, { namespace = dns })
+end
+seed()
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+agent_api.clear "line" -- sin hallazgo en esa línea: no toca nada
+eq("clear línea: sin hallazgo en la línea no quita nada", { left(), persist.count() }, { 3, 3 })
+vim.api.nvim_win_set_cursor(0, { 4, 0 })
+agent_api.clear "line"
+eq("clear línea: quita solo el de esa línea (memoria y disco)", { left(), persist.count() }, { 2, 2 })
+agent_api.clear("line", 7, 9) -- selección: review y ddd de ese rango
+eq("clear selección: quita review y ddd del rango", { left(), persist.count() }, { 0, 0 })
+seed()
+agent_api.clear "file"
+eq("clear file: quita todo lo del archivo", { left(), persist.count() }, { 0, 0 })
+seed()
+agent_api.clear "all"
+eq("clear all: quita todo, también lo guardado", { left(), persist.count() }, { 0, 0 })
+seed()
+vim.api.nvim_win_set_cursor(0, { 8, 0 })
+vim.cmd "AgentClear"
+eq("comando :AgentClear: la línea del cursor", left(), 1)
+vim.cmd "AgentClear file"
+eq("comando :AgentClear file", left(), 0)
+seed()
+vim.cmd "AgentClear all"
+eq("comando :AgentClear all", { left(), persist.count() }, { 0, 0 })
 -- el check de fix: sin diagnósticos no hay nada que arreglar
 local ddd_fix = require("agent.ddd.actions").get "fix"
 eq("ddd fix: sin nada por atender lo dice", ddd_fix.check { buf = fbuf, first = 1, last = 12 } ~= nil, true)

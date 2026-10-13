@@ -38,12 +38,15 @@ end
 ---@param buf integer
 ---@param first integer 1-based
 ---@param last integer 1-based
+---@return integer removed cuántos quitó
 function M.resolve(buf, first, last)
+  local all = vim.diagnostic.get(buf, { namespace = NS })
   local kept = vim.tbl_filter(function(d)
     return d.lnum + 1 < first or d.lnum + 1 > last
-  end, vim.diagnostic.get(buf, { namespace = NS }))
+  end, all)
   vim.diagnostic.set(NS, buf, kept)
   persist.sync(buf, "findings")
+  return #all - #kept
 end
 
 ---@param job AgentJob

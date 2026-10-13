@@ -39,7 +39,23 @@ vim.list_extend(maps, {
     "c",
     "clear",
     function()
-      agent().clear()
+      -- en visual, los de la selección; en normal, los de la línea
+      local mode = vim.fn.mode()
+      if mode == "v" or mode == "V" or mode == "\22" then
+        local a, b = vim.fn.line "v", vim.fn.line "."
+        vim.api.nvim_feedkeys(vim.keycode "<Esc>", "nx", false)
+        agent().clear("line", math.min(a, b), math.max(a, b))
+      else
+        agent().clear "line"
+      end
+    end,
+    { "n", "x" },
+  },
+  {
+    "C",
+    "clear file",
+    function()
+      agent().clear "file"
     end,
   },
   {

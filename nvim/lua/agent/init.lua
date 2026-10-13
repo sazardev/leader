@@ -55,10 +55,41 @@ function M.reject()
   require("agent.output.replace").reject()
 end
 
---- Descarta los hallazgos del agente (review y ddd review) de este archivo, también de lo guardado
-function M.clear()
-  require("agent.output.findings").clear(vim.api.nvim_get_current_buf())
-  require("utils.log").info "Agent: findings cleared for this file"
+--- Descarta hallazgos del agente (review y ddd, también de lo guardado):
+---   "line" (por defecto): los de la línea o el rango `first`–`last` (cursor / selección), uno por uno
+---   "file": todos los de este archivo
+---   "all": todos, de todos los archivos
+---@param scope "line"|"file"|"all"?
+---@param first integer? 1-based (por defecto, la línea del cursor)
+---@param last integer?
+function M.clear(scope, first, last)
+  local log = require "utils.log"
+  local findings, ddd = require "agent.output.findings", require "agent.ddd.diagnose"
+  local buf = vim.api.nvim_get_current_buf()
+  local count = function(ns, b)
+    return #vim.diagnostic.get(b, { namespace = ns })
+  end
+  local n
+  if scope == "all" then
+    n = math.max(require("agent.persist").count(), count(findings.namespace()), count(ddd.namespace()))
+    findings.clear()
+    ddd.clear()
+  elseif scope == "file" then
+    n = count(findings.namespace(), buf) + count(ddd.namespace(), buf)
+    findings.clear(buf)
+    ddd.resolve(buf, 1, math.huge)
+  else
+    first = first or vim.api.nvim_win_get_cursor(0)[1]
+    last = last or first
+    n = findings.resolve(buf, first, last) + ddd.resolve(buf, first, last)
+    if n == 0 then
+      return log.info(
+        first == last and "Agent: no finding on this line (<leader>aC clears the whole file)"
+          or "Agent: no findings in the selection"
+      )
+    end
+  end
+  log.info(("Agent: %d finding%s cleared"):format(n, n == 1 and "" or "s") .. (scope == "all" and " (all files)" or ""))
 end
 
 --- Reabre la última respuesta (o la última propuesta, si se rechazó)
