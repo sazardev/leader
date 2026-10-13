@@ -2,19 +2,19 @@
 
 Filetype: `python`.
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
 | Treesitter | `python` |
-| LSP / formatter / linter | **no hay declarados** en el registro (solo menú + treesitter); el formato/lint se hace con `ruff` desde el menú |
+| LSP / formatter / linter | **none declared** in the registry (menu + treesitter only); format/lint is done with `ruff` from the menu |
 
-> Si quieres LSP o formato automático al guardar, se añade en `lua/languages/python.lua` (campos `lsp`, `mason`, `formatters`, `linters`) sin tocar nada más.
+> If you want LSP or automatic format on save, add it in `lua/languages/python.lua` (fields `lsp`, `mason`, `formatters`, `linters`) without touching anything else.
 
-## Menú `<leader>p` (solo en `*.py`)
+## `<leader>p` menu (only in `*.py`)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-Usa `uv run` si `uv` está instalado y el proyecto tiene `pyproject.toml`; si no, `python3`.
-Raíz del proyecto: donde esté `pyproject.toml`, `pytest.ini`, `setup.cfg` o `.git`.
-Las acciones de ruff avisan si `ruff` no está instalado.
+It uses `uv run` if `uv` is installed and the project has `pyproject.toml`; otherwise `python3`.
+Project root: wherever `pyproject.toml`, `pytest.ini`, `setup.cfg` or `.git` is.
+The ruff actions warn if `ruff` is not installed.

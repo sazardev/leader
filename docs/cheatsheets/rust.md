@@ -2,17 +2,17 @@
 
 Filetype: `rust`.
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
 | Treesitter | `rust` |
-| LSP / formatter / linter | **no hay declarados** en el registro; el formato y clippy corren con `cargo` desde el menú |
+| LSP / formatter / linter | **none declared** in the registry; formatting and clippy run with `cargo` from the menu |
 
-> Para rust-analyzer o formato al guardar, añádelo en `lua/languages/rust.lua` (`lsp`, `mason`, `formatters`).
+> For rust-analyzer or format on save, add it in `lua/languages/rust.lua` (`lsp`, `mason`, `formatters`).
 
-## Menú `<leader>r` (solo en `*.rs`)
+## `<leader>r` menu (only in `*.rs`)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-Corre en la raíz del proyecto (donde está `Cargo.toml`) y avisa si `cargo` no está instalado.
+It runs at the project root (where `Cargo.toml` is) and warns if `cargo` is not installed.

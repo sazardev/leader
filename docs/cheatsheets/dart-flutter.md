@@ -2,17 +2,17 @@
 
 Filetype: `dart`.
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
-| LSP | `dartls`, gestionado por **flutter-tools.nvim** (no por `vim.lsp.enable`) |
-| Formato (al guardar y `<leader>fm`) | `dart_format` |
+| LSP | `dartls`, managed by **flutter-tools.nvim** (not by `vim.lsp.enable`) |
+| Format (on save and `<leader>fm`) | `dart_format` |
 | Treesitter | `dart` |
-| Snippets | los de Flutter de friendly-snippets (el language id `flutter` se pide explícito para filetype `dart`) |
+| Snippets | the Flutter ones from friendly-snippets (the `flutter` language id is requested explicitly for filetype `dart`) |
 
-## Menú `<leader>d` (solo en `*.dart`)
+## `<leader>d` menu (only in `*.dart`)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-Necesita `pubspec.yaml`: detecta si es Flutter (bloque `flutter:`) o Dart puro y usa el comando correcto (`flutter test` / `dart test`, etc.).
+Requires `pubspec.yaml`: it detects whether the project is Flutter (`flutter:` block) or plain Dart and uses the right command (`flutter test` / `dart test`, etc.).

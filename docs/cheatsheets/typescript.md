@@ -2,23 +2,23 @@
 
 Filetypes: `typescript`, `typescriptreact`, `javascript`, `javascriptreact`.
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
-| LSP | `vtsls` (TS/JS) y `eslint` (eslint-lsp) |
-| Formato (al guardar y `<leader>fm`) | `prettier` |
+| LSP | `vtsls` (TS/JS) and `eslint` (eslint-lsp) |
+| Format (on save and `<leader>fm`) | `prettier` |
 | Lint | `eslint_d` |
-| Extra | treesitter (`javascript`, `typescript`, `tsx`), `nvim-ts-autotag` (cierra/renombra tags JSX), `package-info` (versiones en `package.json`), preview de colores Tailwind |
+| Extra | treesitter (`javascript`, `typescript`, `tsx`), `nvim-ts-autotag` (closes/renames JSX tags), `package-info` (versions in `package.json`), Tailwind color preview |
 
-## Menú `<leader>t` (solo en ts/tsx/js/jsx)
+## `<leader>t` menu (only in ts/tsx/js/jsx)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-El gestor de paquetes se detecta por lockfile: `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `bun.lock(b)` → bun, si no npm.
-Usa los scripts de `package.json` cuando existen.
+The package manager is detected by lockfile: `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `bun.lock(b)` → bun, otherwise npm.
+It uses the `package.json` scripts when they exist.
 
-## Notas
+## Notes
 
-- Los scripts corren en la terminal integrada, en la raíz del proyecto (donde está `package.json`).
-- `npx --no-install`: no descarga nada; usa lo que ya está en `node_modules`.
+- Scripts run in the integrated terminal, at the project root (where `package.json` is).
+- `npx --no-install`: downloads nothing; it uses what is already in `node_modules`.

@@ -1,176 +1,176 @@
-# Agente inline (`<leader>a`)
+# Inline agent (`<leader>a`)
 
-Acciones de **un solo disparo** sobre lo que estás viendo: una función, una clase o una selección. Sin chat, sin
-sidebar, sin conversación. Cada acción tiene un prompt cerrado, un contexto acotado y una salida con formato fijo,
-así que es predecible y barata. Teclas: [`CHEATSHEET.md`](../../CHEATSHEET.md) (menú **Agent**).
+**One-shot** actions on what you are looking at: a function, a class or a selection. No chat, no sidebar, no
+conversation. Every action has a closed prompt, a bounded context and an output with a fixed format, so it is
+predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** menu).
 
-## Flujo
+## Flow
 
-1. Pon el cursor dentro de una función (o selecciona líneas en visual) y pulsa `<leader>a` + la acción.
-2. El código que se envía se resalta y a la derecha gira `⠋ implement · claude/haiku · 1.2s`.
-3. El resultado aparece **en el código**, según la acción:
+1. Put the cursor inside a function (or select lines in visual mode) and press `<leader>a` + the action.
+2. The code being sent is highlighted and a spinner turns on the right: `⠋ implement · claude/haiku · 1.2s`.
+3. The result shows up **in the code**, depending on the action:
 
-| Acción | Entrada | Resultado |
+| Action | Input | Result |
 |---|---|---|
-| `i` implement | función (su nombre, firma, doc o `TODO` son la especificación) + instrucción opcional | diff en línea: lo borrado en rojo, lo añadido en verde debajo. `⏎` acepta, `⎋` rechaza |
-| `r` review | función o selección | hallazgos reales como **diagnósticos** en su línea (`◆`); `<leader>xd` muestra el detalle |
-| `e` explain | función o selección | ventana junto al código, con streaming; se cierra sola al mover el cursor |
-| `a` ask | tu pregunta (campo de texto) | ventana, igual que explain |
-| `f` fix inline | el diagnóstico (LSP, linter o hallazgo del agente) de la línea del cursor + pista opcional | diff con el cambio mínimo sobre **solo esas líneas**; el código de alrededor y los objetos a los que apunta (tipo de la variable, firma de lo llamado) van de contexto de solo lectura; sin diagnóstico en la línea, no hace nada |
-| `F` fix block | todos los diagnósticos de la función (o selección) + pista opcional | diff con el cambio mínimo que deja el bloque coherente (varios diagnósticos con la misma causa se arreglan juntos) |
-| `d` docs | función + enfoque opcional | diff que solo añade/actualiza el comentario de documentación |
-| `R` refactor | tu instrucción (campo de texto) | diff que aplica exactamente esa instrucción |
-| `g` handoff | tu instrucción | manda `archivo:rango` + instrucción a un agente que ya corre en Herdr |
+| `i` implement | function (its name, signature, doc or `TODO` are the spec) + optional instruction | inline diff: deleted lines in red, added lines in green below. `⏎` accepts, `⎋` rejects |
+| `r` review | function or selection | real findings as **diagnostics** on their line (`◆`); `<leader>xd` shows the detail |
+| `e` explain | function or selection | window next to the code, streaming; closes by itself when the cursor moves |
+| `a` ask | your question (text field) | window, same as explain |
+| `f` fix inline | the diagnostic (LSP, linter or agent finding) on the cursor line + optional hint | diff with the minimal change on **only those lines**; the surrounding code and the objects it points to (the variable's type, the signature of what is called) go along as read-only context; with no diagnostic on the line, it does nothing |
+| `F` fix block | all the diagnostics of the function (or selection) + optional hint | diff with the minimal change that leaves the block coherent (several diagnostics with the same cause are fixed together) |
+| `d` docs | function + optional focus | diff that only adds/updates the documentation comment |
+| `R` refactor | your instruction (text field) | diff that applies exactly that instruction |
+| `g` handoff | your instruction | sends `file:range` + instruction to an agent already running in Herdr |
 
-**El campo de instrucción es en línea** (como el inline chat de Zed o VS Code): se abre justo ENCIMA del código objetivo y
-**empuja el código hacia abajo** en vez de taparlo, con una barra de acento, una cabecera (`✦ implement · claude/sonnet`) y
-un placeholder. Crece al escribir (hasta 6 filas), `⏎` envía, `⎋` cancela (también si cambias de ventana), `⌃J` / `Alt+Enter`
-hacen salto de línea y `↑`/`↓` (o `⌃P`/`⌃N`) recorren las instrucciones anteriores de esa acción, que se recuerdan entre
-sesiones. En ventanas estrechas la pista de teclas se acorta sola. No hay autocompletado ni auto-cierre de comillas dentro.
+**The instruction field is inline** (like the inline chat in Zed or VS Code): it opens right ABOVE the target code and
+**pushes the code down** instead of covering it, with an accent bar, a header (`✦ implement · claude/sonnet`) and
+a placeholder. It grows as you type (up to 6 rows), `⏎` sends, `⎋` cancels (also if you switch windows), `⌃J` / `Alt+Enter`
+insert a line break and `↑`/`↓` (or `⌃P`/`⌃N`) walk through the previous instructions of that action, which are remembered
+across sessions. In narrow windows the key hint shortens itself. There is no autocompletion or auto-closing of quotes inside.
 
-**Instrucción**: `i`, `d` y `f` abren el campo y **Enter con el campo vacío corre sin instrucción**; si escribes algo, se añade
-al prompt y manda sobre el comportamiento por defecto. Sirve para una `func main() {}` vacía ("lee un CSV y suma la columna
-3"), para una función poco clara ("esto valida pedidos antes de cobrar; falta el caso de cupones") o para guiar un arreglo.
-`a` ask y `R` refactor exigen el texto; `r` review y `e` explain corren al instante.
+**Instruction**: `i`, `d` and `f` open the field and **Enter with an empty field runs without an instruction**; if you type something, it is appended
+to the prompt and takes precedence over the default behaviour. Useful for an empty `func main() {}` ("read a CSV and sum column
+3"), for an unclear function ("this validates orders before charging; the coupon case is missing") or to steer a fix.
+`a` ask and `R` refactor require the text; `r` review and `e` explain run instantly.
 
-**Menú corto**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (solo dentro de
-Herdr), `h` history, `m` model (principal, ligero y esfuerzo en un solo selector), `c` clear (descarta el hallazgo de la línea, o los de la selección en visual), `C` clear file (los de este archivo), `x` stop (cancela lo que corre y descarta las propuestas
-pendientes; **no** toca los hallazgos) y `l` last answer (reabre la última respuesta o propuesta rechazada). Aceptar y rechazar una propuesta no tienen
-entrada de menú: son `⏎` y `⎋` sobre la propuesta.
+**Short menu**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
+Herdr), `h` history, `m` model (main, light and effort in a single selector), `c` clear (discards the finding on the line, or those in the selection in visual mode), `C` clear file (those in this file), `x` stop (cancels what is running and discards the
+pending proposals; it does **not** touch findings) and `l` last answer (reopens the last answer or rejected proposal). Accepting and rejecting a proposal have no
+menu entry: they are `⏎` and `⎋` on the proposal.
 
-**Aceptar es un solo cambio**: `u` lo deshace entero. Si editas el código mientras el agente trabaja, la propuesta
-se **descarta** en vez de pisar tu cambio. Varias acciones pueden correr a la vez (no sobre el mismo bloque).
+**Accepting is a single change**: `u` undoes it entirely. If you edit the code while the agent is working, the proposal
+is **discarded** instead of overwriting your change. Several actions can run at once (not on the same block).
 
-## Qué objetivo toma
+## Which target it takes
 
-Prioridad: **selección visual** (siempre líneas completas) > **función** bajo el cursor (con los comentarios
-contiguos de encima, que son la especificación) > **clase** > **párrafo** de líneas alrededor del cursor (sirve para
-una firma a medias: escribe `func ParseConfig(path string) (*Config, error)` y pulsa `<leader>ai`).
-"Función/clase" es la definición de `af`/`ac` (textobjects de treesitter), para cualquier lenguaje con parser.
-Más de `context.max_target_lines` (400) se rechaza: recortarlo rompería el reemplazo.
+Priority: **visual selection** (always whole lines) > **function** under the cursor (with the contiguous comments
+above it, which are the spec) > **class** > **paragraph** of lines around the cursor (useful for a half-written
+signature: type `func ParseConfig(path string) (*Config, error)` and press `<leader>ai`).
+"Function/class" is the definition of `af`/`ac` (treesitter textobjects), for any language with a parser.
+More than `context.max_target_lines` (400) is rejected: trimming it would break the replacement.
 
-## Contexto (y por qué cuesta poco)
+## Context (and why it is cheap)
 
-Cada acción pide proveedores; juntos tienen tope de `context.max_chars` (8000 caracteres), el objetivo va aparte:
+Each action asks for providers; together they are capped at `context.max_chars` (8000 characters), the target is counted separately:
 
-| Proveedor | Qué aporta | Coste |
+| Provider | What it contributes | Cost |
 |---|---|---|
-| `rules` | `settings.agent.rules` + `.agent.md` de la raíz del proyecto (tus convenciones) | texto |
-| `types` | **la definición de los tipos que usa el objetivo** (campos de un struct, miembros de una clase/interfaz/enum/trait), para que el modelo no adivine `Note.Done` | local + LSP |
-| `contracts` | si el objetivo es un **adaptador** (`PostgresOrderRepository`): el **puerto** que debe cumplir (con ruta), qué métodos ya existen y **cuáles faltan**, la **entidad** que el puerto nombra y, al implementar, **otra implementación del proyecto** como ejemplo de estilo (constructor, errores, mapeo) | rg + treesitter |
-| `schema` | para un adaptador de persistencia: la **tabla real** de la entidad (migraciones SQL con sus `ALTER`/índices posteriores, o `schema.prisma`) y la base de datos que se usa: dialecto, driver, estilo de parámetros (`$1`, `?`, `@p1`) | rg + manifiestos |
-| `diagnostics` | diagnósticos del LSP/linters dentro del objetivo, **cada uno con su línea de código** (el objetivo no va numerado) | local |
-| `callees` | firma REAL de lo que el objetivo llama, pedida al LSP (hover); lo que no llegue en 700 ms se omite | LSP |
-| `outline` | imports + primera línea de cada función (sin repetir los tipos que ya van en `types`) | local |
+| `rules` | `settings.agent.rules` + `.agent.md` at the project root (your conventions) | text |
+| `types` | **the definition of the types the target uses** (fields of a struct, members of a class/interface/enum/trait), so the model does not guess `Note.Done` | local + LSP |
+| `contracts` | if the target is an **adapter** (`PostgresOrderRepository`): the **port** it must satisfy (with path), which methods already exist and **which are missing**, the **entity** the port names and, when implementing, **another implementation in the project** as a style example (constructor, errors, mapping) | rg + treesitter |
+| `schema` | for a persistence adapter: the entity's **real table** (SQL migrations with their later `ALTER`s/indexes, or `schema.prisma`) and the database in use: dialect, driver, parameter style (`$1`, `?`, `@p1`) | rg + manifests |
+| `diagnostics` | LSP/linter diagnostics inside the target, **each one with its code line** (the target is not numbered) | local |
+| `callees` | REAL signature of what the target calls, requested from the LSP (hover); whatever does not arrive within 700 ms is omitted | LSP |
+| `outline` | imports + first line of each function (without repeating the types already included in `types`) | local |
 
-`types` es independiente del lenguaje (usa las mismas queries de treesitter que `af`/`ac`): Go (struct, interface, alias),
-TypeScript (interface, class, type, enum), Python, Rust (un método de `impl Note` trae `struct Note`, no el `impl`), Java...
-Un tipo del **mismo archivo** se lee al instante; uno de **otro archivo o paquete** se localiza con el LSP
-(`textDocument/definition`) y se extrae del archivo de destino (solo del proyecto, no de dependencias). Los tipos de los
-campos se siguen un nivel (`Tags []Tag`), y si el objetivo es un método de clase, se incluye la clase sin el propio método.
-Tope: `context.types` (4) definiciones de `context.type_lines` (30) líneas.
+`types` is language-independent (it uses the same treesitter queries as `af`/`ac`): Go (struct, interface, alias),
+TypeScript (interface, class, type, enum), Python, Rust (a method of `impl Note` brings `struct Note`, not the `impl`), Java...
+A type in the **same file** is read instantly; one in **another file or package** is located with the LSP
+(`textDocument/definition`) and extracted from the destination file (project only, not dependencies). Field types
+are followed one level (`Tags []Tag`), and if the target is a class method, the class is included without the method itself.
+Cap: `context.types` (4) definitions of `context.type_lines` (30) lines.
 
-Cada acción pide lo que necesita, **en orden de prioridad** (si el presupuesto aprieta, lo último se recorta):
+Each action asks for what it needs, **in priority order** (if the budget gets tight, the last ones are trimmed):
 
-| Acción | Contexto |
+| Action | Context |
 |---|---|
 | implement | rules, contracts, schema, types, callees, outline, diagnostics |
 | port | rules, contracts, schema, types, diagnostics |
 | review | rules, diagnostics, contracts, schema, types, callees |
-| fix (inline) | rules, **diagnostics**, findings, contracts, **around** (código de alrededor), types, callees |
+| fix (inline) | rules, **diagnostics**, findings, contracts, **around** (surrounding code), types, callees |
 | fix block | rules, **diagnostics**, findings, contracts, types, callees |
 | refactor | rules, types, callees, outline |
 | ask | rules, types, callees, outline, diagnostics |
 | explain | rules, types, callees |
-| docs | rules, types (documenta los campos y parámetros reales, sin pagar outline ni callees) |
+| docs | rules, types (documents the real fields and parameters, without paying for outline or callees) |
 
-**Transparencia (`note:`)**: tras el bloque de código el modelo puede añadir `note: ...` (máx. ~15 palabras) cuando asumió o
-añadió algo que no estaba en el contexto, y `needs-import: ...`. Ambos salen en la pista de la propuesta (`note: Note has no
-Done field; assumed one`) y quedan en el historial. Medido en una prueba con `SetDone` sin `types`: adivinó `Done` y `Updated` y lo avisó;
-con `types`: el mismo código, sin aviso, **-70 % de tokens de salida y -25 % de coste**.
+**Transparency (`note:`)**: after the code block the model may add `note: ...` (max. ~15 words) when it assumed or
+added something that was not in the context, and `needs-import: ...`. Both show up in the proposal hint (`note: Note has no
+Done field; assumed one`) and are kept in the history. Measured in a test with `SetDone` without `types`: it guessed `Done` and `Updated` and said so;
+with `types`: the same code, with no warning, **-70 % output tokens and -25 % cost**.
 
-**Medido con Claude**: una llamada normal de `claude -p` arrastra ~46 000 tokens de entrada (tus plugins, skills, hooks
-y memoria). Con `--setting-sources ""`, `--tools ""` y `--system-prompt` propio baja a **~600 tokens** (+ el contexto), unos
-2 s y fracciones de centavo por acción (haiku). Los CLIs corren en un directorio neutro (`stdpath("cache")/agent`), así que
-tampoco cargan el `AGENTS.md`/`CLAUDE.md` de tu repo. Por eso **no se usa `--bare`**: rompería el login por suscripción.
+**Measured with Claude**: a normal `claude -p` call drags ~46 000 input tokens (your plugins, skills, hooks
+and memory). With `--setting-sources ""`, `--tools ""` and its own `--system-prompt` it drops to **~600 tokens** (+ the context), about
+2 s and fractions of a cent per action (haiku). The CLIs run in a neutral directory (`stdpath("cache")/agent`), so they
+do not load the `AGENTS.md`/`CLAUDE.md` of your repo either. That is why **`--bare` is not used**: it would break subscription login.
 
-**Auditoría de coste (medida)**: cada llamada de `claude -p` se facturaba como una *escritura* de caché de 1 hora (hasta 2× el
-precio de entrada) y nunca acertaba en la caché, porque el mensaje cambia en cada llamada. Con `DISABLE_PROMPT_CACHING=1`
-(ajuste `agent.claude.prompt_cache = false`, el valor por defecto) una acción de Sonnet pasó de **$0.0065 a $0.0037** y una de
-Haiku de $0.0005 a $0.0003, sin cambio de latencia. Los prompts de sistema también se acortaron ~35 % (implement 1462 → 943 caracteres) y ahora dicen qué es verdad (`types`, `callees`, `diagnostics`) y que se avise con `note:` lo que se asumió. En total, la misma
-acción cuesta **~50 % menos** que antes de la auditoría. Quedan ~560 tokens de entrada fijos del propio CLI que ninguna
-bandera segura recorta (`CLAUDE_CODE_SIMPLE` y `--bare` rompen el login por suscripción). `agent.claude.max_cost_usd`
-(0.25) corta una llamada desbocada.
+**Cost audit (measured)**: every `claude -p` call was billed as a 1-hour cache *write* (up to 2× the
+input price) and never hit the cache, because the message changes on every call. With `DISABLE_PROMPT_CACHING=1`
+(setting `agent.claude.prompt_cache = false`, the default) a Sonnet action went from **$0.0065 to $0.0037** and a Haiku one
+from $0.0005 to $0.0003, with no change in latency. The system prompts were also shortened ~35 % (implement 1462 → 943 characters) and now state what is true (`types`, `callees`, `diagnostics`) and that whatever was assumed must be flagged with `note:`. In total, the same
+action costs **~50 % less** than before the audit. About ~560 fixed input tokens from the CLI itself remain, which no safe
+flag trims (`CLAUDE_CODE_SIMPLE` and `--bare` break subscription login). `agent.claude.max_cost_usd`
+(0.25) cuts off a runaway call.
 
-## Modelos por tier (barato donde basta)
+## Models per tier (cheap where it is enough)
 
-Cada acción corre en el modelo **principal** o en el **ligero**. `docs` y `explain` son ligeras (Claude: `haiku`); el resto
-usa el principal (`sonnet` por defecto). Medido con Claude, una acción de una función: **~$0.005 en sonnet vs ~$0.0003 en
-haiku**, unas 17 veces menos, y el spinner muestra el modelo que está corriendo. Las acciones ligeras tampoco heredan el
-esfuerzo: son las baratas y no deben salir caras por un ajuste pensado para otras.
+Each action runs on the **main** model or the **light** one. `docs` and `explain` are light (Claude: `haiku`); the rest
+use the main one (`sonnet` by default). Measured with Claude, a single-function action: **~$0.005 on sonnet vs ~$0.0003 on
+haiku**, about 17 times less, and the spinner shows the model that is running. Light actions do not inherit the
+effort either: they are the cheap ones and must not become expensive because of a setting meant for others.
 
-- `<leader>am` abre un selector con el modelo **principal** (y el backend), el modelo **ligero** y el esfuerzo, con su valor actual. Todo se recuerda.
-- Cambiar qué acciones son ligeras: `agent = { tiers = { review = "light", docs = "main" } }` en `local.lua`.
-- `agent.claude.light_model` / `agent.opencode.light_model` fijan el ligero por defecto. En OpenCode es `nil` (usa el
-  principal) porque sus ids dependen de tu proveedor: elígelo en `<leader>am`.
+- `<leader>am` opens a selector with the **main** model (and the backend), the **light** model and the effort, with their current value. Everything is remembered.
+- Change which actions are light: `agent = { tiers = { review = "light", docs = "main" } }` in `local.lua`.
+- `agent.claude.light_model` / `agent.opencode.light_model` set the default light model. In OpenCode it is `nil` (uses the
+  main one) because its ids depend on your provider: pick it in `<leader>am`.
 
-## Backend y modelo
+## Backend and model
 
-`<leader>am` → Main model abre UNA lista fuzzy con los modelos de todos los backends instalados (Claude: `haiku`/`sonnet`/`opus`;
-OpenCode: lo que devuelva `opencode models`). Elegir uno cambia también de backend y **se recuerda** entre sesiones
-(`stdpath("state")/agent.json`). El esfuerzo (solo Claude; `--effort`) está en el mismo selector. Con `backend = "auto"` se usa el
-primero disponible de `agent.order`.
+`<leader>am` → Main model opens ONE fuzzy list with the models of all installed backends (Claude: `haiku`/`sonnet`/`opus`;
+OpenCode: whatever `opencode models` returns). Choosing one also switches the backend and **is remembered** across sessions
+(`stdpath("state")/agent.json`). Effort (Claude only; `--effort`) is in the same selector. With `backend = "auto"` the
+first available one in `agent.order` is used.
 
-- **Claude Code** (`claude -p`): sin herramientas, sin sesión en disco, streaming de texto.
-- **OpenCode** (`opencode run`): cada acción viaja como un agente efímero sin herramientas (`OPENCODE_CONFIG_CONTENT`).
-  Arranca lento (~4 s): con `agent.opencode.attach = "http://localhost:4096"` (un `opencode serve` ya corriendo) se evita.
-  `agent.opencode.agent` usa un agente tuyo. Si opencode no encuentra el agente pedido avisa y cae al de por defecto, que
-  SÍ tiene herramientas: aquí eso se trata como error.
-- Cada sesión de opencode queda en su lista con el título `nvim <acción>`.
+- **Claude Code** (`claude -p`): no tools, no session on disk, text streaming.
+- **OpenCode** (`opencode run`): each action travels as an ephemeral agent with no tools (`OPENCODE_CONFIG_CONTENT`).
+  Slow to start (~4 s): with `agent.opencode.attach = "http://localhost:4096"` (an `opencode serve` already running) this is avoided.
+  `agent.opencode.agent` uses an agent of your own. If opencode does not find the requested agent it warns and falls back to the default one, which
+  DOES have tools: here that is treated as an error.
+- Each opencode session stays in its list with the title `nvim <action>`.
 
-## Backends y modelos locales (setup automático)
+## Local backends and models (automatic setup)
 
-Además de Claude Code y OpenCode, el agente habla con **modelos locales** (Ollama en CPU o CUDA, LM Studio, llama.cpp,
-vLLM...) y con cualquier otro CLI de agente (Hermes Agent, Gemini CLI, Codex, Aider). Un setup los detecta y los conecta.
+Besides Claude Code and OpenCode, the agent talks to **local models** (Ollama on CPU or CUDA, LM Studio, llama.cpp,
+vLLM...) and to any other agent CLI (Hermes Agent, Gemini CLI, Codex, Aider). A setup detects and connects them.
 
-**Arranque rápido**
+**Quick start**
 
-1. `<leader>am` → **Setup** (o `scripts/agent-setup.sh` desde la terminal). Detecta en paralelo, sin tocar nada: los CLIs
-   instalados, Ollama y los servidores OpenAI-compatibles (también el de **Windows si estás en WSL**: prueba `127.0.0.1`, el
-   nameserver y la puerta de enlace), sus modelos, si lo cargado corre en **GPU o CPU**, la VRAM/RAM, y recuerda el servidor
-   encontrado.
-2. **Use detected models** aplica la recomendación con lo que ya tienes. Si no hay modelos, ofrece **Download** de un par
-   según tu memoria (VRAM, o la mitad de la RAM sin GPU): `qwen2.5-coder` 32b/14b/7b/3b/1.5b. Son **sugerencias**, tú decides.
-3. Si Ollama está instalado pero apagado: **Start Ollama server** (`ollama serve` en segundo plano). Arrancar y descargar
-   siempre se piden explícitamente: nada se instala ni se descarga solo.
+1. `<leader>am` → **Setup** (or `scripts/agent-setup.sh` from the terminal). It detects in parallel, without touching anything: the installed
+   CLIs, Ollama and OpenAI-compatible servers (also the **Windows one if you are on WSL**: it tries `127.0.0.1`, the
+   nameserver and the gateway), their models, whether what is loaded runs on **GPU or CPU**, the VRAM/RAM, and it remembers the server
+   it found.
+2. **Use detected models** applies the recommendation with what you already have. If there are no models, it offers to **Download** a couple
+   according to your memory (VRAM, or half the RAM without a GPU): `qwen2.5-coder` 32b/14b/7b/3b/1.5b. They are **suggestions**, you decide.
+3. If Ollama is installed but stopped: **Start Ollama server** (`ollama serve` in the background). Starting and downloading
+   are always requested explicitly: nothing is installed or downloaded by itself.
 
-**Terminal** (`scripts/agent-setup.sh`; sin banderas solo informa y sale con 0 si hay un backend listo):
+**Terminal** (`scripts/agent-setup.sh`; with no flags it only reports and exits with 0 if a backend is ready):
 
-| Bandera | Hace |
+| Flag | Does |
 |---|---|
-| `--start` | arranca `ollama serve` si no responde |
-| `--pull MODELO` | descarga un modelo (repetible) |
-| `--auto` | aplica la recomendación con los modelos ya instalados |
-| `--use backend/modelo[@light]` | fija backend y modelo (principal, o ligero con `@light`) |
-| `--json` | la foto completa, para otras herramientas |
+| `--start` | starts `ollama serve` if it does not respond |
+| `--pull MODEL` | downloads a model (repeatable) |
+| `--auto` | applies the recommendation with the models already installed |
+| `--use backend/model[@light]` | sets backend and model (main, or light with `@light`) |
+| `--json` | the full snapshot, for other tools |
 
-Ejemplo: `scripts/agent-setup.sh --start --pull qwen2.5-coder:3b --auto`.
+Example: `scripts/agent-setup.sh --start --pull qwen2.5-coder:3b --auto`.
 
-**Lo mejor de cada nivel**: el principal sigue en Claude y los modelos locales cubren el **ligero** (`docs`, `explain`):
-`light_backend` (en `<leader>am` → Light model, o `agent.light_backend`) deja esas acciones en un modelo local gratis sin
-mover `implement`/`fix`/`review`. Sin ningún CLI de nube, el local pasa a ser también el principal.
+**The best of each tier**: the main one stays on Claude and local models cover the **light** tier (`docs`, `explain`):
+`light_backend` (in `<leader>am` → Light model, or `agent.light_backend`) keeps those actions on a free local model without
+moving `implement`/`fix`/`review`. With no cloud CLI at all, the local one becomes the main one too.
 
-**Backends** (todos usan `curl`, sin dependencias):
+**Backends** (all use `curl`, no dependencies):
 
-- `ollama`: `agent.ollama = { host, model, light_model, models, num_ctx, max_ctx, keep_alive, temperature, think }`. El host sale
-  de `host` > `OLLAMA_HOST` > lo que detectó el setup > `127.0.0.1:11434`. `num_ctx` es **automático** (potencia de dos según
-  el prompt, tope `max_ctx`): Ollama trunca EN SILENCIO lo que no cabe en su ventana y perdería justo las reglas del
-  principio. `keep_alive` deja el modelo cargado (la primera acción tarda, las siguientes no); `temperature` baja (0.1)
-  porque el formato exigido se respeta mejor. Coste siempre 0. Los `<think>…</think>` de qwen3/deepseek-r1 se descartan.
+- `ollama`: `agent.ollama = { host, model, light_model, models, num_ctx, max_ctx, keep_alive, temperature, think }`. The host comes
+  from `host` > `OLLAMA_HOST` > what the setup detected > `127.0.0.1:11434`. `num_ctx` is **automatic** (power of two depending on
+  the prompt, capped by `max_ctx`): Ollama SILENTLY truncates whatever does not fit in its window and would lose precisely the rules at
+  the beginning. `keep_alive` leaves the model loaded (the first action is slow, the following ones are not); `temperature` is low (0.1)
+  because the required format is respected better. Cost is always 0. The `<think>…</think>` blocks of qwen3/deepseek-r1 are discarded.
 - `openai`: `agent.openai = { base_url, api_key_env, model, light_model, models, temperature }` (LM Studio `:1234`, llama.cpp
-  `:8080`, vLLM `:8000`, LiteLLM, OpenRouter...). La clave se lee de la variable `api_key_env` y viaja por el entorno del
-  proceso, no en los argumentos (no sale en `ps`).
-- `custom` (Hermes Agent, Gemini CLI...): una entrada declarativa en `agent.custom`, sin escribir código:
+  `:8080`, vLLM `:8000`, LiteLLM, OpenRouter...). The key is read from the `api_key_env` variable and travels through the process
+  environment, not in the arguments (it does not show up in `ps`).
+- `custom` (Hermes Agent, Gemini CLI...): a declarative entry in `agent.custom`, without writing code:
 
 ```lua
 -- local.lua
@@ -185,257 +185,257 @@ return { agent = { custom = {
 } } }
 ```
 
-Las banderas del ejemplo de Hermes Agent **no están verificadas** (el CLI no estaba instalado al escribir esto): revísalas con
-`hermes --help`. Los *modelos* Hermes sí funcionan hoy vía Ollama (`ollama pull hermes3`).
+The flags in the Hermes Agent example are **not verified** (the CLI was not installed when this was written): check them with
+`hermes --help`. Hermes *models* do work today through Ollama (`ollama pull hermes3`).
 
-**Trampas**
+**Pitfalls**
 
-- Un modelo local pequeño falla más con el formato estructurado (bloque de código, `L<n>|sev|msg`): úsalo en `docs`/`explain`
-  y, si quieres más, sube a un modelo de código de 14b+. El `Esc` rechaza lo mal formado como siempre.
-- Sin GPU el modelo corre en CPU: para el nivel ligero va bien; el informe indica si lo cargado está en GPU, GPU+CPU o CPU.
-- WSL2: para llegar al Ollama de Windows ponle `OLLAMA_HOST=0.0.0.0` allí. En Docker con NVIDIA:
+- A small local model fails more often with the structured format (code block, `L<n>|sev|msg`): use it for `docs`/`explain`
+  and, if you want more, move up to a 14b+ code model. `Esc` rejects malformed output as usual.
+- Without a GPU the model runs on CPU: fine for the light tier; the report says whether what is loaded is on GPU, GPU+CPU or CPU.
+- WSL2: to reach the Windows Ollama, set `OLLAMA_HOST=0.0.0.0` there. In Docker with NVIDIA:
   `docker run -d --gpus all -p 11434:11434 -v ollama:/root/.ollama ollama/ollama`.
-- El setup (y el informe de terminal) guarda en `agent.json` los servidores que encuentra (`endpoints`).
+- The setup (and the terminal report) stores the servers it finds in `agent.json` (`endpoints`).
 
-## Handoff a Herdr
+## Handoff to Herdr
 
-`<leader>ah` (solo dentro de Herdr): escribes la instrucción, eliges un agente de `herdr agent list` (los de esta
-carpeta primero) y se envía `archivo:rango` + diagnósticos con `herdr agent prompt`. Con cambios sin guardar adjunta el
-código actual. Úsalo cuando la tarea ya no cabe en un disparo.
+`<leader>ah` (only inside Herdr): you type the instruction, pick an agent from `herdr agent list` (those in this
+folder first) and `file:range` + diagnostics are sent with `herdr agent prompt`. With unsaved changes it attaches the current
+code. Use it when the task no longer fits in a single shot.
 
-## Niveles de la arquitectura hexagonal (un menú por nivel)
+## Hexagonal architecture levels (one menu per level)
 
-`<leader>a` se queda con lo genérico (implement, review, explain, ask, fix inline, fix block, docs, refactor, hand off, model, history, clear, stop, last).
-Cada **nivel** de la arquitectura tiene su carpeta (`lua/agent/<nivel>/`), su registro de acciones y su menú propio, con su contexto y,
-en cada uno, un **análisis local de 0 tokens**. Las acciones de cada nivel corren por el mismo pipeline (diff en línea, hallazgos,
-historial y coste), y en el historial aparecen con su nombre (`repo_port`, `service_review`, `ddd_fix`...).
+`<leader>a` keeps the generic ones (implement, review, explain, ask, fix inline, fix block, docs, refactor, hand off, model, history, clear, stop, last).
+Each architecture **level** has its own folder (`lua/agent/<level>/`), its own action registry and its own menu, with its context and,
+in each one, a **local 0-token analysis**. The actions of each level run through the same pipeline (inline diff, findings,
+history and cost), and in the history they appear under their own name (`repo_port`, `service_review`, `ddd_fix`...).
 
-| Menú | Nivel | Acciones con LLM | Análisis local (0 tokens) | Contexto propio |
+| Menu | Level | LLM actions | Local analysis (0 tokens) | Own context |
 |---|---|---|---|---|
-| `<leader>aD` | **Dominio / DDD** (`agent/ddd/`) | implement `i`, review `r`, fix `f`, missing `m`, ask `a` | diagnose `d` (capas, violaciones, agregados), clear `c` | `ddd` (capas, nomenclatura, piezas relacionadas) |
-| `<leader>aP` | **Repository** (`agent/repository/`) | port `p`, implement `i`, review `r` | **check** `c` (puerto vs métodos, entidad vs tabla) | `contracts`, `schema` |
-| `<leader>aS` | **Service** (`agent/service/`) | implement `i`, review `r` | **deps** `d` (puertos que usa, llamadas inexistentes, implementaciones, cableado) | `ports` |
-| `<leader>aT` | **Pruebas** (`agent/tests/`) | write `w`, mock `m`, fix `f` | **gaps** `g` (funciones públicas de la carpeta que ninguna prueba nombra) | `testing`, `subject`, `testfile` |
-| `<leader>aL` | **Lentes** (`agent/lenses/`) | security `s`, performance `p`, concurrency `c`, errors `e`, api `a` | — (cada lente descarta antes lo que no le toca) | `changes` |
+| `<leader>aD` | **Domain / DDD** (`agent/ddd/`) | implement `i`, review `r`, fix `f`, missing `m`, ask `a` | diagnose `d` (layers, violations, aggregates), clear `c` | `ddd` (layers, naming, related pieces) |
+| `<leader>aP` | **Repository** (`agent/repository/`) | port `p`, implement `i`, review `r` | **check** `c` (port vs methods, entity vs table) | `contracts`, `schema` |
+| `<leader>aS` | **Service** (`agent/service/`) | implement `i`, review `r` | **deps** `d` (ports it uses, nonexistent calls, implementations, wiring) | `ports` |
+| `<leader>aT` | **Tests** (`agent/tests/`) | write `w`, mock `m`, fix `f` | **gaps** `g` (public functions in the folder that no test names) | `testing`, `subject`, `testfile` |
+| `<leader>aL` | **Lenses** (`agent/lenses/`) | security `s`, performance `p`, concurrency `c`, errors `e`, api `a` | — (each lens first discards what is not its concern) | `changes` |
 
-Los proveedores de cada nivel (`contracts`, `schema`, `ports`, `ddd`) son **silenciosos si el código no es de ese nivel**, así que
-`implement`/`review`/`fix` del menú genérico también los reciben cuando aplica, sin pagar nada cuando no. El código compartido
-(buscar con ripgrep, leer una definición de tipo) vive en `agent/discovery.lua`, para que los niveles no dependan entre sí.
+The providers of each level (`contracts`, `schema`, `ports`, `ddd`) are **silent if the code does not belong to that level**, so
+`implement`/`review`/`fix` of the generic menu also receive them when applicable, at no cost when not. The shared code
+(searching with ripgrep, reading a type definition) lives in `agent/discovery.lua`, so levels do not depend on each other.
 
-## Repository (`<leader>aP`): adaptadores de persistencia
+## Repository (`<leader>aP`): persistence adapters
 
-Implementar un repositorio (SQL, Postgres, MySQL, en memoria...) es largo pero mecánico, y el modelo necesita lo que **no está en el
-archivo que ves**. El agente lo busca solo, sin que menciones archivos, y cada pieza llega **con su ruta**:
+Implementing a repository (SQL, Postgres, MySQL, in-memory...) is long but mechanical, and the model needs what is **not in the
+file you are looking at**. The agent finds it by itself, without you mentioning files, and each piece arrives **with its path**:
 
-- **Puerto**: el interface que debe cumplir. Se deduce del nombre (`PostgresOrderRepository`, `pgOrderRepository`,
-  `OrderRepositoryImpl`, `CachedOrderRepository` → `OrderRepository`) y de lo declarado a las claras (`implements X`, `class T(X)`,
-  `impl X for T`, `var _ X = (*T)(nil)`); se localiza con ripgrep en **cualquier estructura de carpetas** y se lee con treesitter.
-- **Qué falta**: compara los métodos del puerto con los que el tipo ya tiene (en Go, las funciones con ese receptor del paquete)
-  y avisa también del constructor. Solo se piden los que faltan.
-- **Entidad y tipos que el puerto nombra** (`Order`, con sus campos y sus constantes) aunque el struct vacío no los mencione:
-  sin esto el modelo inventa los campos.
-- **Ejemplo hermano**: otra implementación del proyecto (se prefiere la de la misma carpeta) con el constructor y el método
-  equivalente: así copia tu estructura, tu manejo de errores (`fmt.Errorf("…: %w")`, `errors.Is(err, sql.ErrNoRows)`) y tu mapeo.
-- **Esquema**: la tabla real de la entidad con sus cambios posteriores y el **dialecto** (de la sintaxis del esquema y de
-  `go.mod`/`package.json`/`pyproject`/`Cargo.toml`/`pom.xml`), la librería de acceso y el estilo de parámetros. Es **agnóstico**: con
-  el mismo prompt, una migración de Postgres produce `$1` y `ON CONFLICT`, y una de MySQL, `?` y `ON DUPLICATE KEY UPDATE`.
+- **Port**: the interface it must satisfy. It is deduced from the name (`PostgresOrderRepository`, `pgOrderRepository`,
+  `OrderRepositoryImpl`, `CachedOrderRepository` → `OrderRepository`) and from what is declared explicitly (`implements X`, `class T(X)`,
+  `impl X for T`, `var _ X = (*T)(nil)`); it is located with ripgrep in **any folder structure** and read with treesitter.
+- **What is missing**: it compares the port's methods with those the type already has (in Go, the functions with that receiver in the package)
+  and also warns about the constructor. Only the missing ones are requested.
+- **Entity and types the port names** (`Order`, with its fields and constants) even if the empty struct does not mention them:
+  without this the model invents the fields.
+- **Sibling example**: another implementation in the project (the one in the same folder is preferred) with the constructor and the
+  equivalent method: this way it copies your structure, your error handling (`fmt.Errorf("…: %w")`, `errors.Is(err, sql.ErrNoRows)`) and your mapping.
+- **Schema**: the entity's real table with its later changes and the **dialect** (from the schema syntax and from
+  `go.mod`/`package.json`/`pyproject`/`Cargo.toml`/`pom.xml`), the access library and the parameter style. It is **agnostic**: with
+  the same prompt, a Postgres migration produces `$1` and `ON CONFLICT`, and a MySQL one, `?` and `ON DUPLICATE KEY UPDATE`.
 
-`<leader>aPp` (**repo port**) usa el tipo bajo el cursor (o el de su receptor, si estás dentro de uno de sus métodos) y escribe el tipo,
-el constructor y TODOS los métodos que faltan, en el orden del puerto. `<leader>aPi` (repo implement) escribe un solo método con ese contexto; `implement` (`i`/`aDi`) lo recibe también si el código es un
-adaptador, y `<leader>aPr` (repo review) revisa lo propio de la persistencia (columnas que no cuadran, parámetros del dialecto, SQL concatenado, `rows` sin cerrar,
-errores sin envolver, N+1) y `<leader>aPc` (**repo check**, 0 tokens) compara los métodos del puerto con los del tipo y los campos de la entidad con las columnas de su tabla. **Silencioso si no aplica**:
-un servicio, un handler o una función cualquiera no pagan ni la búsqueda (se mide: 0 caracteres de contexto extra).
+`<leader>aPp` (**repo port**) uses the type under the cursor (or that of its receiver, if you are inside one of its methods) and writes the type,
+the constructor and ALL the missing methods, in the port's order. `<leader>aPi` (repo implement) writes a single method with that context; `implement` (`i`/`aDi`) receives it too if the code is an
+adapter, and `<leader>aPr` (repo review) reviews what is specific to persistence (columns that do not match, dialect parameters, concatenated SQL, unclosed `rows`,
+unwrapped errors, N+1) and `<leader>aPc` (**repo check**, 0 tokens) compares the port's methods with those of the type and the entity's fields with the columns of its table. **Silent if it does not apply**:
+a service, a handler or any other function does not pay even for the search (measured: 0 characters of extra context).
 
-Probado con Claude sobre un `PostgresOrderRepository` vacío con un puerto de 4 métodos: devolvió constructor y los 4 métodos con las
-columnas reales de la migración, `$1…`, el estilo de errores de la implementación hermana y sin campos inventados (lo que asumió, como
-`order.ErrNotFound`, lo dice en `note:`), por ~$0.0013 con Haiku. **Límites**: el puerto se encuentra por nombre o declaración
-explícita (no por inferencia de tipos); el ejemplo hermano es el primero razonable que encuentra; el esquema solo se lee de `*.sql` y
-`*.prisma` (no de modelos de un ORM ni de la base de datos viva).
+Tested with Claude on an empty `PostgresOrderRepository` with a 4-method port: it returned the constructor and the 4 methods with the real
+columns from the migration, `$1…`, the error style of the sibling implementation and no invented fields (what it assumed, such as
+`order.ErrNotFound`, it states in `note:`), for ~$0.0013 with Haiku. **Limits**: the port is found by name or explicit
+declaration (not by type inference); the sibling example is the first reasonable one it finds; the schema is only read from `*.sql` and
+`*.prisma` (not from ORM models or the live database).
 
-## Service (`<leader>aS`): servicios de aplicación / casos de uso
+## Service (`<leader>aS`): application services / use cases
 
-Un servicio solo puede llamar a los métodos que sus **puertos** declaran. El proveedor `ports` encuentra las interfaces que el servicio recibe
-(campos, parámetros del constructor, parámetros del método, en cualquier lenguaje) y las lee con sus firmas reales, cada una con su ruta y la
-indicación de llamar solo a esos métodos; con `examples` añade otro servicio del proyecto como ejemplo de estilo.
+A service can only call the methods that its **ports** declare. The `ports` provider finds the interfaces the service receives
+(fields, constructor parameters, method parameters, in any language) and reads them with their real signatures, each with its path and the
+instruction to call only those methods; with `examples` it adds another service of the project as a style example.
 
-- **`<leader>aSi` service implement**: orquesta el dominio y llama SOLO a los puertos de `<ports>` con sus nombres y firmas exactos; las reglas de
-  negocio las llama en la entidad (no las reimplementa); propaga el contexto y traduce los errores de los puertos.
-- **`<leader>aSr` service review**: llamadas a métodos de puerto que no existen o con argumentos erróneos, reglas de negocio en el servicio, detalles
-  de infraestructura que se filtran, errores tragados o sin traducir, pasos no atómicos u ordenados de forma arriesgada (efectos antes de guardar), N+1.
-- **`<leader>aSd` service deps** (0 tokens): por cada puerto, qué métodos declara, **cuáles llama este archivo y cuáles NO declara el puerto** (no
-  compilaría), qué implementaciones tiene y si alguna está cableada (usada fuera de su archivo); lista lo que hay que atender.
+- **`<leader>aSi` service implement**: orchestrates the domain and calls ONLY the ports in `<ports>` with their exact names and signatures; business
+  rules are called on the entity (not reimplemented); it propagates the context and translates the ports' errors.
+- **`<leader>aSr` service review**: calls to port methods that do not exist or with wrong arguments, business rules in the service, leaking
+  infrastructure details, swallowed or untranslated errors, non-atomic steps or steps ordered in a risky way (effects before saving), N+1.
+- **`<leader>aSd` service deps** (0 tokens): for each port, which methods it declares, **which ones this file calls and which ones the port does NOT declare** (it
+  would not compile), which implementations it has and whether any is wired (used outside its file); it lists what needs attention.
 
-Probado con Claude: sobre un servicio que llamaba a `orders.FindByID` (el puerto declara `ByID`), `deps` lo detectó sin LLM y `service review` lo
-marcó contra el puerto real; `service implement` usó solo `ByID`, `Save` y `Mailer.Send` y llamó a `o.Confirm()` de la entidad en vez de repetir la
-regla (lo que asumió, como un método que la entidad no tiene, lo dijo en `note:`).
+Tested with Claude: on a service that called `orders.FindByID` (the port declares `ByID`), `deps` detected it without an LLM and `service review`
+flagged it against the real port; `service implement` used only `ByID`, `Save` and `Mailer.Send` and called the entity's `o.Confirm()` instead of repeating the
+rule (what it assumed, such as a method the entity does not have, it stated in `note:`).
 
-## Hallazgos que se quedan (y cómo arreglarlos)
+## Findings that stay (and how to fix them)
 
-Los hallazgos de `review` y `ddd review`, y las violaciones de `ddd diagnose`, son diagnósticos **por atender**: se guardan
-(`stdpath("state")/agent-findings.json`) y **vuelven al abrir el archivo en otra sesión**, aunque no los atiendas hoy.
+The findings of `review` and `ddd review`, and the violations of `ddd diagnose`, are diagnostics **pending attention**: they are saved
+(`stdpath("state")/agent-findings.json`) and **come back when you open the file in another session**, even if you do not deal with them today.
 
-- Cada uno se guarda con el **texto de la línea señalada**. Si el código se movió desde entonces (editaste encima, otra
-  rama...), se **reubica** por ese texto (hasta ±40 líneas); si la línea ya no existe, se descarta con un aviso
-  (`Agent: 1 saved finding no longer matches the code and was dropped`). Al guardar el archivo se actualizan las posiciones.
-- Solo se guardan los del agente: los del LSP no se tocan. Si no hay archivo de hallazgos, abrir un archivo no cuesta nada.
-- **Limpiarlos** (de la memoria y del disco; review y ddd por igual): `<leader>ac` clear descarta el de la línea del cursor (en
-  visual, los de la selección) → de uno en uno; `<leader>aC` clear file, todos los de este archivo; `:AgentClear [file|all]`
-  (con rango: `:'<,'>AgentClear`), `all` = todos los archivos. `<leader>aDc` ddd clear, el diagnóstico de DDD de todo el proyecto. **`<leader>ax` stop no los borra**: solo cancela lo que corre y descarta propuestas pendientes.
-- **Arreglarlos**: `<leader>af` (fix inline, el de la línea), `<leader>aF` (fix block, toda la función) y `<leader>aDf` (**ddd fix**) leen los hallazgos que caen en la función o selección,
-  junto con los diagnósticos del LSP, y proponen el cambio mínimo (en `ddd fix`, respetando las capas de `<ddd>`; si el arreglo
-  necesita un puerto, tipo o archivo que no existe, lo dice en `note:` y no inventa su contenido). Al **aceptar** la propuesta, los
-  hallazgos de ese rango se dan por resueltos y desaparecen también de lo guardado. `review` y `ddd review` **no** leen hallazgos
-  anteriores: un review nuevo no debe partir de lo que dijo el anterior.
-- Flujo: `<leader>aDr` (review) → mañana, otra sesión: los diagnósticos siguen ahí → `<leader>aDf` sobre la función → `⏎`.
+- Each one is saved with the **text of the flagged line**. If the code has moved since then (you edited above, another
+  branch...), it is **relocated** by that text (up to ±40 lines); if the line no longer exists, it is dropped with a warning
+  (`Agent: 1 saved finding no longer matches the code and was dropped`). Saving the file updates the positions.
+- Only the agent's are saved: LSP ones are not touched. If there is no findings file, opening a file costs nothing.
+- **Clearing them** (from memory and from disk; review and ddd alike): `<leader>ac` clear discards the one on the cursor line (in
+  visual mode, those in the selection) → one at a time; `<leader>aC` clear file, all those in this file; `:AgentClear [file|all]`
+  (with a range: `:'<,'>AgentClear`), `all` = all files. `<leader>aDc` ddd clear, the DDD diagnostic of the whole project. **`<leader>ax` stop does not delete them**: it only cancels what is running and discards pending proposals.
+- **Fixing them**: `<leader>af` (fix inline, the one on the line), `<leader>aF` (fix block, the whole function) and `<leader>aDf` (**ddd fix**) read the findings that fall in the function or selection,
+  together with the LSP diagnostics, and propose the minimal change (in `ddd fix`, respecting the layers in `<ddd>`; if the fix
+  needs a port, type or file that does not exist, it says so in `note:` and does not invent its content). When you **accept** the proposal, the
+  findings in that range are considered resolved and also disappear from what is saved. `review` and `ddd review` do **not** read earlier
+  findings: a new review must not start from what the previous one said.
+- Flow: `<leader>aDr` (review) → tomorrow, another session: the diagnostics are still there → `<leader>aDf` on the function → `⏎`.
 
 ## DDD (`<leader>aD`)
 
-Una función **aparte** del agente normal, con su menú, su registro de acciones (`lua/agent/ddd/`) y su contexto. Mismo
-pipeline y misma experiencia (diff en línea, hallazgos como diagnósticos, ventana, historial y coste, donde se distinguen
-como `ddd_implement`, `ddd_review`...), pero las acciones siguen las **capas y la nomenclatura de TU proyecto**.
+A feature **separate** from the normal agent, with its menu, its action registry (`lua/agent/ddd/`) and its context. Same
+pipeline and same experience (inline diff, findings as diagnostics, window, history and cost, where they are distinguished
+as `ddd_implement`, `ddd_review`...), but the actions follow the **layers and naming of YOUR project**.
 
-| Tecla | Acción | Cuesta |
+| Key | Action | Costs |
 |---|---|---|
-| `<leader>aDd` | **diagnose**: análisis estático de todo el proyecto | 0 tokens |
-| `<leader>aDi` | implement: escribe el código en la capa que le toca, con tus nombres y el modismo del lenguaje | LLM |
-| `<leader>aDr` | review: violaciones de DDD y SOLID como diagnósticos (sin repetir las que ya detectó el análisis local) | LLM |
-| `<leader>aDf` | **fix**: arregla lo que `ddd review` y el diagnóstico dejaron por atender (cambio mínimo, respetando las capas) | LLM |
-| `<leader>aDm` | missing: qué falta alrededor de lo que ves (puertos, implementaciones, casos de uso, DTOs, **cableado**, errores, tests), con nombres de archivo según tu convención | LLM |
-| `<leader>aDa` | ask: pregunta de arquitectura con las capas y piezas reales | LLM |
-| `<leader>aDc` | clear: descarta las violaciones del diagnóstico de todo el proyecto (también de lo guardado) | 0 tokens |
+| `<leader>aDd` | **diagnose**: static analysis of the whole project | 0 tokens |
+| `<leader>aDi` | implement: writes the code in the layer where it belongs, with your names and the language's idiom | LLM |
+| `<leader>aDr` | review: DDD and SOLID violations as diagnostics (without repeating those the local analysis already detected) | LLM |
+| `<leader>aDf` | **fix**: fixes what `ddd review` and the diagnostic left pending (minimal change, respecting the layers) | LLM |
+| `<leader>aDm` | missing: what is missing around what you see (ports, implementations, use cases, DTOs, **wiring**, errors, tests), with file names following your convention | LLM |
+| `<leader>aDa` | ask: architecture question with the real layers and pieces | LLM |
+| `<leader>aDc` | clear: discards the violations of the whole-project diagnostic (also from what is saved) | 0 tokens |
 
-**Qué hace el análisis local (gratis, sin LLM)**: recorre el proyecto una vez (asíncrono, por tandas; solo lee los archivos
-**dentro de directorios de capa** y que no sean tests; caché por mtime) y deduce:
+**What the local analysis does (free, no LLM)**: it walks the project once (asynchronously, in batches; it only reads files
+**inside layer directories** and that are not tests; cached by mtime) and deduces:
 
-- **Capas** por nombre de directorio (`domain`, `application`, `infrastructure`, `interface` y sinónimos: `usecases`, `adapters`,
-  `persistence`, `api`, `handlers`...; ajustable en `settings.agent.ddd.layers`). La regla de dependencia apunta hacia dentro:
-  dominio ← aplicación ← infraestructura / interfaz. Las raíces de composición (`main`, `cmd/`, `container`, `di`...) pueden cablear todo.
-- **Violaciones** (diagnósticos `◈` en el código + lista de quickfix + panel): dependencias hacia fuera (con el import exacto),
-  **frameworks en dominio/aplicación** (`database/sql`, `net/http`, `gorm`, `@nestjs`, `sqlalchemy`, `org.springframework`... por
-  lenguaje: Go, TS/JS, Python, Java/Kotlin/Scala, Rust, C#, PHP, Dart) y archivos mal nombrados (`PaymentService` en `pricing.go`).
-  Solo se capas los imports **del propio proyecto** (módulo de `go.mod`, relativos en TS/Python, `crate::` en Rust): `database/sql` es un framework, no "la capa database".
-- **Nomenclatura**: estilo de archivos (`snake_case`, `kebab-case`, `order.entity.ts`, `PascalCase`) y roles más usados
-  (`repository`, `service`, `handler`...), deducidos de lo que ya existe; las sugerencias de archivos faltantes la respetan.
-- **Agregados, huecos y conexiones**: por entidad del dominio (tipo con campo `ID`) busca su **puerto** de repositorio, su
-  **implementación**, si está **cableada** (su nombre se usa en algún otro archivo, vía `rg`) y sus **casos de uso**; lista lo que falta.
+- **Layers** by directory name (`domain`, `application`, `infrastructure`, `interface` and synonyms: `usecases`, `adapters`,
+  `persistence`, `api`, `handlers`...; adjustable in `settings.agent.ddd.layers`). The dependency rule points inwards:
+  domain ← application ← infrastructure / interface. Composition roots (`main`, `cmd/`, `container`, `di`...) may wire everything.
+- **Violations** (`◈` diagnostics in the code + quickfix list + panel): outward dependencies (with the exact import),
+  **frameworks in domain/application** (`database/sql`, `net/http`, `gorm`, `@nestjs`, `sqlalchemy`, `org.springframework`... per
+  language: Go, TS/JS, Python, Java/Kotlin/Scala, Rust, C#, PHP, Dart) and badly named files (`PaymentService` in `pricing.go`).
+  Only the **project's own** imports are assigned to layers (`go.mod` module, relative ones in TS/Python, `crate::` in Rust): `database/sql` is a framework, not "the database layer".
+- **Naming**: file style (`snake_case`, `kebab-case`, `order.entity.ts`, `PascalCase`) and most used roles
+  (`repository`, `service`, `handler`...), deduced from what already exists; suggestions for missing files respect it.
+- **Aggregates, gaps and connections**: for each domain entity (a type with an `ID` field) it looks for its repository **port**, its
+  **implementation**, whether it is **wired** (its name is used in some other file, via `rg`) and its **use cases**; it lists what is missing.
 
-**Lo que recibe el modelo** (sección `<ddd>`, máx. 1800 caracteres, solo lo relevante para ese objetivo): su capa y de quién
-puede depender, capas del proyecto, convención de nombres con ejemplos, archivos vecinos, las piezas que rodean a las entidades
-que toca (`Order: port OrderRepository (...) · impl PostgresOrderRepository (...) wired ✓ · use cases PlaceOrder`), las violaciones
-de ese archivo y **una línea con el modismo del lenguaje en curso** (constructores, errores, inyección). Más las reglas de DDD (~600 caracteres).
+**What the model receives** (`<ddd>` section, max. 1800 characters, only what is relevant to that target): its layer and what it
+may depend on, project layers, naming convention with examples, neighbouring files, the pieces surrounding the entities
+it touches (`Order: port OrderRepository (...) · impl PostgresOrderRepository (...) wired ✓ · use cases PlaceOrder`), the violations
+in that file and **a line with the idiom of the current language** (constructors, errors, injection). Plus the DDD rules (~600 characters).
 
-Medido en un proyecto Go con una entidad completa (puerto + implementación + caso de uso) y otra sin puerto: `implement` de
-`Order.Confirm()` usó `Pending`/`Confirmed` (las constantes del tipo `Status` viajan con él) y respetó la capa; `review` encontró el
-`*sql.DB` y el repositorio concreto metidos en la entidad, más primitivos sin invariante; `missing` listó la porción vertical de
-`Customer` con rutas en el estilo del proyecto. Cada acción, por debajo de $0.001 con Haiku. En un repo de 7500 archivos de código, el
-primer análisis tarda ~0.9 s (252 archivos de capa) y el siguiente 35 ms.
+Measured on a Go project with one complete entity (port + implementation + use case) and another without a port: `implement` of
+`Order.Confirm()` used `Pending`/`Confirmed` (the constants of the `Status` type travel with it) and respected the layer; `review` found the
+`*sql.DB` and the concrete repository stuffed into the entity, plus primitives without invariant; `missing` listed the vertical slice of
+`Customer` with paths in the project's style. Each action, under $0.001 with Haiku. On a repo with 7500 code files, the
+first analysis takes ~0.9 s (252 layer files) and the next one 35 ms.
 
-**Límites**: las capas se reconocen por nombre de directorio (si los tuyos se llaman distinto, ajusta `layers`); "entidad" es un tipo
-del dominio con campo `ID`; "cableada" es "su nombre aparece en otro archivo", no un análisis del grafo de dependencias; los imports
-se leen con regex y los tipos con treesitter, así que no es un compilador. Los lenguajes sin parser de treesitter solo aportan imports.
+**Limits**: layers are recognised by directory name (if yours are named differently, adjust `layers`); "entity" is a domain
+type with an `ID` field; "wired" means "its name appears in another file", not a dependency-graph analysis; imports
+are read with regex and types with treesitter, so it is not a compiler. Languages without a treesitter parser only contribute imports.
 
-## Historial y gasto (`<leader>ah`)
+## History and spending (`<leader>ah`)
 
-Cada acción se guarda en `stdpath("state")/agent-history.jsonl` (solo-añadir): cuándo, acción, modelo, objetivo, **tu
-instrucción, el prompt de sistema, el mensaje exacto enviado, la respuesta**, tokens (con lectura/escritura de caché), coste,
-tiempo y **qué hiciste con el resultado** (aceptada, rechazada, descartada, N hallazgos...). Así ves con transparencia qué se
-pidió y qué se pagó.
+Every action is stored in `stdpath("state")/agent-history.jsonl` (append-only): when, action, model, target, **your
+instruction, the system prompt, the exact message sent, the response**, tokens (with cache read/write), cost,
+time and **what you did with the result** (accepted, rejected, discarded, N findings...). This way you can see transparently what was
+asked and what was paid.
 
-- `<leader>ah` abre un selector con una fila por ejecución (fecha, resultado, acción, modelo, coste, objetivo); el título
-  suma el total gastado. La vista previa muestra todo el detalle; `⏎` lo abre en grande.
-- `⌃S` abre el **informe de gasto**: por periodo (hoy, 7 días, total), por acción, por modelo, por día, **coste por cambio
-  aplicado**, lo gastado en propuestas que no aplicaste, errores, aciertos de caché, **dónde se va el prompt** (system,
-  contexto por proveedor, objetivo) y las 5 ejecuciones más caras. Es la base para decidir qué recortar.
-- `⌃Y` **copia TODO lo de la ejecución** (el mismo texto que ves en el detalle): resultado y línea de eventos (aceptada a
-  las 09:38:27...), objetivo, tiempo, tokens, coste, tu instrucción, la respuesta, el prompt de sistema y el mensaje
-  exacto enviado. `⌃P` copia solo el prompt (sistema + mensaje) para reproducirlo o ajustarlo. En el panel de detalle y en
-  el de informe, `Y` copia todo el panel. Todo va al portapapeles (`+`) y al registro sin nombre.
-- Privacidad: el historial incluye tu código (va dentro del prompt). `agent.history.store_text = false` guarda solo métricas;
-  `enabled = false` lo apaga. Se compacta solo a las `max_entries` (1000) más recientes.
+- `<leader>ah` opens a selector with one row per run (date, outcome, action, model, cost, target); the title
+  adds up the total spent. The preview shows the full detail; `⏎` opens it large.
+- `⌃S` opens the **spending report**: by period (today, 7 days, total), by action, by model, by day, **cost per applied
+  change**, what was spent on proposals you did not apply, errors, cache hits, **where the prompt goes** (system,
+  context per provider, target) and the 5 most expensive runs. It is the basis for deciding what to cut.
+- `⌃Y` **copies EVERYTHING about the run** (the same text you see in the detail): outcome and event line (accepted at
+  09:38:27...), target, time, tokens, cost, your instruction, the response, the system prompt and the exact message
+  sent. `⌃P` copies only the prompt (system + message) to reproduce or tweak it. In the detail panel and in
+  the report panel, `Y` copies the whole panel. Everything goes to the clipboard (`+`) and the unnamed register.
+- Privacy: the history includes your code (it goes inside the prompt). `agent.history.store_text = false` stores only metrics;
+  `enabled = false` turns it off. It compacts itself to the `max_entries` (1000) most recent.
 
-## Convenciones del proyecto: `.agent.md`
+## Project conventions: `.agent.md`
 
-Un `.agent.md` en la raíz (o hacia arriba) se añade a TODOS los prompts: estilo, librerías preferidas, qué evitar. Máx.
-1500 caracteres útiles. Ejemplo: `Go idiomático; errores con %w; sin logs en funciones puras; tests con testify.`
+An `.agent.md` at the root (or further up) is added to ALL prompts: style, preferred libraries, what to avoid. Max.
+1500 useful characters. Example: `Idiomatic Go; errors with %w; no logs in pure functions; tests with testify.`
 
-## Ajustes (`settings.agent`, sobreescribibles en `local.lua`)
+## Settings (`settings.agent`, overridable in `local.lua`)
 
-`backend`, `order`, `light_backend`, `history`, `language` (de explicaciones, respuestas y hallazgos; por defecto `English`), `rules`, `timeout_ms`, `tiers`, `context.*`, `apply.format`
-(formatea el rango con conform al aceptar), `keys` (aceptar/rechazar), `claude.models`/`model`/`light_model`/`prompt_cache`/`max_cost_usd`, `opencode.*`, `ollama.*`, `openai.*`, `custom`.
+`backend`, `order`, `light_backend`, `history`, `language` (of explanations, answers and findings; `English` by default), `rules`, `timeout_ms`, `tiers`, `context.*`, `apply.format`
+(formats the range with conform on accept), `keys` (accept/reject), `claude.models`/`model`/`light_model`/`prompt_cache`/`max_cost_usd`, `opencode.*`, `ollama.*`, `openai.*`, `custom`.
 
-## Extender
+## Extending
 
-| Quiero... | Haz |
+| I want... | Do |
 |---|---|
-| otro backend (otro CLI) | `lua/agent/backends/<n>.lua` con el contrato de `backends/init.lua` + `NAMES`; sin código: una entrada en `agent.custom` |
-| otra acción | `lua/agent/actions/<n>.lua` con el contrato de `actions/init.lua` + `NAMES`; el menú y el cheatsheet salen solos |
-| otro tipo de salida | `lua/agent/output/<n>.lua` (`done` y opcional `stream`/`release`) + `NAMES` |
-| otro proveedor de contexto | `lua/agent/context/providers/<n>.lua` (`cap`, `collect(target, done)`) y úsalo en `context` de una acción |
+| another backend (another CLI) | `lua/agent/backends/<n>.lua` with the contract of `backends/init.lua` + `NAMES`; without code: an entry in `agent.custom` |
+| another action | `lua/agent/actions/<n>.lua` with the contract of `actions/init.lua` + `NAMES`; the menu and the cheatsheet come out by themselves |
+| another kind of output | `lua/agent/output/<n>.lua` (`done` and optional `stream`/`release`) + `NAMES` |
+| another context provider | `lua/agent/context/providers/<n>.lua` (`cap`, `collect(target, done)`) and use it in the `context` of an action |
 
-El formato que el modelo debe devolver (bloque de código, `L<n>|sev|msg`) vive en `lua/agent/protocol.lua` junto a su
-parser: las reglas del prompt y su lectura cambian siempre juntas.
+The format the model must return (code block, `L<n>|sev|msg`) lives in `lua/agent/protocol.lua` next to its
+parser: the prompt rules and how they are read always change together.
 
-## Trampas
+## Pitfalls
 
-- Si el modelo desobedece y manda varios bloques de código (borrador + versión corregida, 2 de cada 6 veces en una prueba
-  con Rust), se usa el **último que empieza como el objetivo** y la pista avisa: `model sent 2 blocks, check the diff`.
-- La pista de aceptar/rechazar se acorta en ventanas estrechas (descarta primero tokens/coste) y el spinner pasa a versión compacta.
-- Los colores del diff, el spinner, la pista y la ventana **se derivan de la paleta del tema activo** con contraste mínimo
-  garantizado (4.5:1 para texto) y se recalculan al cambiar de tema (`<leader>S`); probados con los 97 temas de base46 y el
-  tema heredado de la terminal. Los hallazgos usan los colores de diagnóstico de tu tema.
-- La selección visual se toma como **líneas completas**.
-- `Esc` rechaza la propuesta mientras hay una visible en el buffer (solo ahí; `settings.agent.keys` lo cambia).
-- Un modelo puede devolver el bloque vacío: significa borrar ese rango (p. ej. `fix` quitando imports sin usar).
-- `needs-import:` tras el bloque se muestra en la pista; los imports no se añaden solos.
-- `scripts/test-agent.sh` corre las pruebas de parsers, objetivo, backends locales y setup (sin red ni tokens: los servidores de Ollama/OpenAI son falsos, `scripts/fake-llm.py`).
+- If the model disobeys and sends several code blocks (draft + corrected version, 2 out of 6 times in a test
+  with Rust), the **last one that starts like the target** is used and the hint warns: `model sent 2 blocks, check the diff`.
+- The accept/reject hint shortens in narrow windows (it drops tokens/cost first) and the spinner switches to a compact version.
+- The colors of the diff, the spinner, the hint and the window are **derived from the active theme's palette** with guaranteed
+  minimum contrast (4.5:1 for text) and are recomputed when the theme changes (`<leader>S`); tested with the 97 base46 themes and the
+  terminal-inherited theme. Findings use the diagnostic colors of your theme.
+- A visual selection is taken as **whole lines**.
+- `Esc` rejects the proposal while one is visible in the buffer (only then; `settings.agent.keys` changes it).
+- A model may return an empty block: it means deleting that range (e.g. `fix` removing unused imports).
+- `needs-import:` after the block is shown in the hint; imports are not added by themselves.
+- `scripts/test-agent.sh` runs the tests for parsers, target, local backends and setup (no network or tokens: the Ollama/OpenAI servers are fake, `scripts/fake-llm.py`).
 
-## Fix: dos niveles
+## Fix: two levels
 
-- **`<leader>af` fix inline**: pon el cursor en la línea con el diagnóstico (el subrayado/bloque de LSP, linter o review). El objetivo
-  son **solo las líneas del diagnóstico** (si abarca más de `agent.context.diagnostic_lines`, solo lo que empieza ahí). Lleva de
-  contexto: el diagnóstico completo, las `agent.context.around` líneas de antes y después dentro de su función (`<around>`, solo
-  lectura), la firma de lo que llama (`<callees>`) y las definiciones de los **objetos a los que apunta**: de cada identificador del
-  diagnóstico (y del objeto de un acceso `x.Campo`) se pide al LSP su `typeDefinition`, así el modelo ve `type Note struct` aunque
-  el código no nombre el tipo (`n := load(); n.Titl`). Si el arreglo real vive fuera (un import, una declaración que falta) lo dice en
-  `needs-import:` / `note:` en vez de editar fuera de las líneas. En visual, la selección manda como objetivo.
-- **`<leader>aF` fix block**: el objetivo es la función entera (o la selección) y arregla todos sus diagnósticos a la vez, con las
-  mismas definiciones de tipos. Úsalo cuando varios diagnósticos comparten causa o el arreglo toca varias líneas.
+- **`<leader>af` fix inline**: put the cursor on the line with the diagnostic (the underline/block from LSP, linter or review). The target
+  is **only the diagnostic's lines** (if it spans more than `agent.context.diagnostic_lines`, only what starts there). It carries as
+  context: the full diagnostic, the `agent.context.around` lines before and after within its function (`<around>`, read-only),
+  the signature of what it calls (`<callees>`) and the definitions of the **objects it points to**: for each identifier in the
+  diagnostic (and the object of an `x.Field` access) the LSP is asked for its `typeDefinition`, so the model sees `type Note struct` even if
+  the code does not name the type (`n := load(); n.Titl`). If the real fix lives elsewhere (an import, a missing declaration) it says so in
+  `needs-import:` / `note:` instead of editing outside the lines. In visual mode, the selection is the target.
+- **`<leader>aF` fix block**: the target is the whole function (or the selection) and it fixes all its diagnostics at once, with the
+  same type definitions. Use it when several diagnostics share a cause or the fix touches several lines.
 
-## Pruebas (`<leader>aT`) y lentes (`<leader>aL`)
+## Tests (`<leader>aT`) and lenses (`<leader>aL`)
 
-Dos menús propios para no llenar `<leader>a`. Los dos corren por el mismo pipeline (campo de instrucción, diff en línea, `⏎`/`⎋`,
-historial y coste) y están pensados para **gastar lo mínimo**: lo que se puede decidir sin modelo se decide antes.
+Two menus of their own so `<leader>a` does not fill up. Both run through the same pipeline (instruction field, inline diff, `⏎`/`⎋`,
+history and cost) and are designed to **spend the minimum**: whatever can be decided without a model is decided beforehand.
 
-**Pruebas** (`agent/tests/`): no reemplazan la función, **añaden al final del archivo de pruebas**.
+**Tests** (`agent/tests/`): they do not replace the function, they **append to the end of the test file**.
 
-| Tecla | Qué hace | Cómo ahorra |
+| Key | What it does | How it saves |
 |---|---|---|
-| `w` write | pruebas de la función bajo el cursor (o la selección), **solo lo que falta**: caso principal, límites y cada rama de error, máx. 6 casos, en el estilo del archivo | el objetivo que se envía es **una línea** (el final del archivo de pruebas), el modelo devuelve solo lo nuevo; del archivo de pruebas solo viajan cabecera, nombres, las pruebas que ya cubren esa función y, si no hay, UNA de ejemplo; una función de <4 líneas se rechaza antes de llamar |
-| `m` mock | un fake escrito a mano para la interfaz/clase bajo el cursor (registra llamadas, devuelve lo que la prueba fije) | modelo **ligero** |
-| `f` fix | arregla una prueba que falla | **corre la prueba primero** (`go test -run`, `vitest`/`jest -t`, `pytest -k`, `cargo test`) y solo si falla manda su salida real; si pasa, 0 tokens. Si el culpable es el código, deja la prueba igual y lo dice en `note:` |
-| `g` gaps | quickfix con las funciones públicas de la carpeta que ninguna prueba nombra | local, **0 tokens** (mapa aproximado: un nombre corto puede dar un falso "cubierta") |
+| `w` write | tests for the function under the cursor (or the selection), **only what is missing**: main case, boundaries and each error branch, max. 6 cases, in the file's style | the target sent is **one line** (the end of the test file), the model returns only what is new; from the test file only the header, names, the tests that already cover that function and, if there are none, ONE example travel; a function of <4 lines is rejected before calling |
+| `m` mock | a hand-written fake for the interface/class under the cursor (records calls, returns what the test sets) | **light** model |
+| `f` fix | fixes a failing test | **runs the test first** (`go test -run`, `vitest`/`jest -t`, `pytest -k`, `cargo test`) and only if it fails sends its real output; if it passes, 0 tokens. If the code is at fault, it leaves the test as is and says so in `note:` |
+| `g` gaps | quickfix with the public functions in the folder that no test names | local, **0 tokens** (approximate map: a short name can give a false "covered") |
 
-- El archivo de pruebas sale de la convención del lenguaje (`agent/tests/convention.lua`): Go `x_test.go`; TS/JS `x.test.ts`
-  (o `.spec.` si la carpeta ya lo usa; vitest/jest/mocha según `package.json`); Python `test_x.py` (en `tests/` si existe);
-  Lua `x_spec.lua`; Rust, un `mod x_tests` en el mismo archivo; Dart `lib/` → `test/`; Java/Kotlin `src/main` → `src/test`.
-- Al terminar, el archivo de pruebas **se abre a un lado con la propuesta** (`⏎` acepta, `⎋` rechaza); aceptar solo cambia el
-  buffer, guardas tú. Un archivo nuevo no se crea (ni su carpeta) hasta que lo guardas.
-- `fix` solo sabe correr Go, TS/JS (vitest/jest), Python y Rust; en otro lenguaje avisa sin gastar nada.
-- Cambiar el modelo: `agent.tiers.test_write = "light"` (o `test_mock`, `test_fix`).
+- The test file comes from the language's convention (`agent/tests/convention.lua`): Go `x_test.go`; TS/JS `x.test.ts`
+  (or `.spec.` if the folder already uses it; vitest/jest/mocha according to `package.json`); Python `test_x.py` (in `tests/` if it exists);
+  Lua `x_spec.lua`; Rust, a `mod x_tests` in the same file; Dart `lib/` → `test/`; Java/Kotlin `src/main` → `src/test`.
+- When done, the test file **opens to the side with the proposal** (`⏎` accepts, `⎋` rejects); accepting only changes the
+  buffer, you save. A new file is not created (nor its folder) until you save it.
+- `fix` only knows how to run Go, TS/JS (vitest/jest), Python and Rust; in another language it warns without spending anything.
+- Change the model: `agent.tiers.test_write = "light"` (or `test_mock`, `test_fix`).
 
-**Lentes** (`agent/lenses/`): revisiones con **un solo foco**, que salen como diagnósticos con su origen (`[security]`) en la línea
-exacta. `af`/`aF` los arreglan, y repetir una lente solo reemplaza los hallazgos de esa lente (no los de otra ni los de `review`).
+**Lenses** (`agent/lenses/`): reviews with **a single focus**, which come out as diagnostics with their origin (`[security]`) on the
+exact line. `af`/`aF` fix them, and repeating a lens only replaces the findings of that lens (not those of another one or of `review`).
 
-| Tecla | Busca | Modelo |
+| Key | Looks for | Model |
 |---|---|---|
-| `s` security | entrada no confiable que llega a un sumidero (inyección SQL/comandos/plantillas, traversal, SSRF, XSS), autenticación/autorización, secretos, criptografía, deserialización | principal |
-| `p` performance | N+1, trabajo repetido, algoritmos cuadráticos, copias y asignaciones en caminos calientes, memoria sin límite | ligero |
-| `c` concurrency | carreras y estado compartido sin sincronizar, deadlocks, goroutines/tareas que se filtran, promesas sin esperar, cierres dobles | principal |
-| `e` errors | errores ignorados o sin contexto, tragados en catch, recursos sin liberar en el camino de error, estado a medias | ligero |
-| `a` api | **cambios sin commitear** que rompen a quien lo usa (firmas, retorno, errores, nil, tags) | ligero |
+| `s` security | untrusted input reaching a sink (SQL/command/template injection, traversal, SSRF, XSS), authentication/authorization, secrets, cryptography, deserialization | main |
+| `p` performance | N+1, repeated work, quadratic algorithms, copies and allocations in hot paths, unbounded memory | light |
+| `c` concurrency | races and unsynchronized shared state, deadlocks, leaking goroutines/tasks, unawaited promises, double closes | main |
+| `e` errors | ignored or context-less errors, swallowed in catch, resources not released on the error path, half-done state | light |
+| `a` api | **uncommitted changes** that break whoever uses it (signatures, return, errors, nil, tags) | light |
 
-- Cada lente tiene una **puerta**: si el código no contiene nada de su tema (una función sin hilos para `c`, sin E/S para `s`, sin
-  cambios para `a`) avisa `skipped (0 tokens)` y no llama al modelo.
-- Contexto mínimo por lente (reglas y firmas de lo que llama; `c` añade tipos; `a` añade el diff): la salida son ≤ 8 líneas.
-- Añadir una lente = un archivo en `agent/lenses/actions/` (`key`, `title`, `focus`, `gate`) y su nombre en `NAMES`.
-- Cambiar el modelo de una: `agent.tiers.lens_security = "light"`.
+- Each lens has a **gate**: if the code contains nothing of its topic (a function without threads for `c`, without I/O for `s`, without
+  changes for `a`) it warns `skipped (0 tokens)` and does not call the model.
+- Minimal context per lens (rules and signatures of what it calls; `c` adds types; `a` adds the diff): the output is ≤ 8 lines.
+- Adding a lens = one file in `agent/lenses/actions/` (`key`, `title`, `focus`, `gate`) and its name in `NAMES`.
+- Change the model of one: `agent.tiers.lens_security = "light"`.

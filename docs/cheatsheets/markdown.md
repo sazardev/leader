@@ -2,18 +2,18 @@
 
 Filetype: `markdown`.
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
-| Formato (al guardar y `<leader>fm`) | `markdownlint-cli2` (corrige reglas) y luego `prettier` |
+| Format (on save and `<leader>fm`) | `markdownlint-cli2` (fixes rules) and then `prettier` |
 | Lint | `markdownlint` |
-| Render | `render-markdown.nvim` (títulos, listas, código, checkboxes con estilo) |
+| Render | `render-markdown.nvim` (styled headings, lists, code, checkboxes) |
 | Treesitter | `markdown` |
 
-## Menú `<leader>m` (solo en `*.md`)
+## `<leader>m` menu (only in `*.md`)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-- El toggle de diagnósticos oculta los del linter **solo en este buffer** (el linter sigue corriendo).
-- Con la ortografía activa (es, en): `]s` / `[s` saltan entre errores y `z=` sugiere correcciones (nativos de Vim).
+- The diagnostics toggle hides the linter's diagnostics **only in this buffer** (the linter keeps running).
+- With spell checking on (es, en): `]s` / `[s` jump between errors and `z=` suggests corrections (native Vim).

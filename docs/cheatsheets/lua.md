@@ -1,35 +1,35 @@
-# Lua (la propia config)
+# Lua (the config itself)
 
 Filetype: `lua`.
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
-| LSP | `lua_ls` (NvChad lo habilita) |
-| Formato (al guardar y `<leader>fm`) | `stylua` (se instala siempre, también en modo ligero) |
+| LSP | `lua_ls` (NvChad enables it) |
+| Format (on save and `<leader>fm`) | `stylua` (always installed, also in light mode) |
 | Treesitter | `lua`, `vim`, `vimdoc` |
-| Extra | **lazydev**: tipos de la API de Neovim y completado de `require()` / módulos de plugins |
+| Extra | **lazydev**: Neovim API types and completion of `require()` / plugin modules |
 
-## Completado
+## Completion
 
-En Lua las fuentes de blink son: `lazydev`, LSP, path, snippets, buffer (lazydev con prioridad).
+In Lua the blink sources are: `lazydev`, LSP, path, snippets, buffer (lazydev with priority).
 
-## Comandos útiles
+## Useful commands
 
-| Comando | Acción |
+| Command | Action |
 |---|---|
-| `:luafile %` | ejecutar el archivo actual |
-| `:lua =expr` | evaluar e imprimir una expresión |
-| `:Lazy sync` | instalar/actualizar plugins (el auto-reload de `git pull` no lo hace) |
+| `:luafile %` | run the current file |
+| `:lua =expr` | evaluate and print an expression |
+| `:Lazy sync` | install/update plugins (the `git pull` auto-reload does not do it) |
 
 ## Auto-reload
 
-Tras `git pull`, el hook `.githooks/post-merge` deja un marcador y, al abrir nvim (`UIEnter`),
-`core/autocmds/reload.lua` corre `luafile $MYVIMRC`. Activar una vez por clon:
+After `git pull`, the `.githooks/post-merge` hook leaves a marker and, when nvim opens (`UIEnter`),
+`core/autocmds/reload.lua` runs `luafile $MYVIMRC`. Enable it once per clone:
 
 ```sh
 git config core.hooksPath .githooks
 ```
 
-Recarga Lua, pero **no** instala/quita plugins ni parsers de treesitter.
+It reloads Lua, but does **not** install/remove plugins or treesitter parsers.

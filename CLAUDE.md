@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Neovim + NvChad v2.5 config (not an application). No build, tests or CI. **`AGENTS.md` is the detailed reference** (architecture, gotchas, per-feature behaviour such as Go snippets, blink.cmp keys, sessions, terminal theme); read the relevant section before touching those areas. Docs and comments in this repo are written in Spanish — match that.
+Neovim + NvChad v2.5 config (not an application). No build, tests or CI. **`AGENTS.md` is the detailed reference** (architecture, gotchas, per-feature behaviour such as Go snippets, blink.cmp keys, sessions, terminal theme); read the relevant section before touching those areas. Docs, comments, user-facing text AND commit messages in this repo are written in English — match that.
 
 ## Commands
 
@@ -39,4 +39,4 @@ Neovim + NvChad v2.5 config (not an application). No build, tests or CI. **`AGEN
 
 - Runs on Windows and WSL/Linux; hooks and clipboard (OSC 52) handle both. Treesitter needs `gcc` and `tree-sitter-cli`; telescope-fzf-native needs `cmake`.
 - `lazy-lock.json` is committed; `.claude/` is git-ignored.
-- Commit messages use conventional style in Spanish (`feat(session): …`, `fix(completion): …`).
+- Commit messages are written in English, in Conventional Commits style (`feat(session): …`, `fix(completion): …`), first line ≤ 72 chars.

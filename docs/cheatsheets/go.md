@@ -1,34 +1,34 @@
 # Go
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
 | LSP | gopls (gofumpt, staticcheck, placeholders, analyses: unusedparams, shadow, unusedwrite, useany; inlay hints) |
-| Formato (al guardar y `<leader>fm`) | `goimports` y luego `gofumpt` |
-| Lint | `golangci-lint` (en modo ligero: `go vet`); no corre al salir de insert |
+| Format (on save and `<leader>fm`) | `goimports` then `gofumpt` |
+| Lint | `golangci-lint` (in light mode: `go vet`); does not run when leaving insert |
 | Extra | go.nvim (`GoAddTag`, `GoFillStruct`, `GoIfErr`, `GoAddTest`...), treesitter, gomodifytags |
 
-## Menú `<leader>g` (solo en `*.go`)
+## `<leader>g` menu (only in `*.go`)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-- Las acciones de struct (tags, rellenar literal, `if err`, añadir test) actúan sobre el cursor. Las de **tags** (`ga`/`gA`/`gD`) **guardan el archivo** al terminar (así lo hace go.nvim).
-- En modo ligero go.nvim no carga: esas acciones avisan en vez de fallar.
-- `run` y `build` corren sobre el directorio del archivo (`.` si hay `go.mod`, o el archivo suelto si no). El resto, desde la raíz del módulo.
+- Struct actions (tags, fill literal, `if err`, add test) act on the cursor. The **tag** ones (`ga`/`gA`/`gD`) **save the file** when done (that is how go.nvim works).
+- In light mode go.nvim does not load: those actions warn instead of failing.
+- `run` and `build` run on the file's directory (`.` if there is a `go.mod`, or the single file if not). The rest run from the module root.
 
-## Tags de struct mientras escribes (`utils/gotags.lua`)
+## Struct tags while you type (`utils/gotags.lua`)
 
-El valor del tag se **deriva del nombre del campo**: `SentAt` → `sent_at`, `UserID` → `user_id`, `HTTPServer` → `http_server`, `Kind` → `kind`.
+The tag value is **derived from the field name**: `SentAt` → `sent_at`, `UserID` → `user_id`, `HTTPServer` → `http_server`, `Kind` → `kind`.
 
-| Escribes (en un campo de struct) | Sugiere |
+| You type (in a struct field) | Suggests |
 |---|---|
-| `` ` `` tras el tipo | `json:"kind"`, `json:"kind,omitempty"`, `json:"sentAt"` (camelCase si difiere), **las variantes de `gorm:"…"` para ese campo y su tipo** (ver abajo), yaml, db, mapstructure, form, toml, xml, `json:"-"`, `validate:"required"` |
+| `` ` `` after the type | `json:"kind"`, `json:"kind,omitempty"`, `json:"sentAt"` (camelCase if it differs), **the `gorm:"…"` variants for that field and its type** (see below), yaml, db, mapstructure, form, toml, xml, `json:"-"`, `validate:"required"` |
 | `json:` | `"kind"`, `"kind,omitempty"`, camelCase, `"-"` |
 | `json:"` | `kind`, `kind,omitempty`, camelCase, `-` |
-| `json:"kind,` | `omitempty`, `omitzero`, `string` (las opciones cambian según la clave) |
-| `gorm:"` | valores completos según campo y tipo: `primaryKey;type:text`, `type:text;not null`… |
-| `gorm:"type:text;` | opciones sueltas que aún no usaste: `not null`, `index`, `size:255`, `column:title`, `default:…`… |
+| `json:"kind,` | `omitempty`, `omitzero`, `string` (options change depending on the key) |
+| `gorm:"` | full values by field and type: `primaryKey;type:text`, `type:text;not null`… |
+| `gorm:"type:text;` | loose options you have not used yet: `not null`, `index`, `size:255`, `column:title`, `default:…`… |
 
 ```go
 type Envelope struct {
@@ -38,29 +38,29 @@ type Envelope struct {
 }
 ```
 
-- Dentro de un tag **el primer ítem viene preseleccionado**: `Enter` lo acepta.
-- El cursor queda **dentro de las comillas**: teclea `,` para las opciones, o `Tab` para salir.
-- Salen solo las claves que aún no usaste en ese tag.
-- No se activa en raw strings (`` query := `SELECT… ``), `return`, asignaciones, etc. (treesitter vigila que estés en un struct).
+- Inside a tag **the first item comes preselected**: `Enter` accepts it.
+- The cursor ends up **inside the quotes**: type `,` for options, or `Tab` to leave.
+- Only keys you have not used yet in that tag are offered.
+- It does not trigger in raw strings (`` query := `SELECT… ``), `return`, assignments, etc. (treesitter checks that you are in a struct).
 
 ### gorm
 
-gorm separa sus opciones con **`;`** (no con `,`) y algunas llevan valor (`size:255`, `column:sent_at`). Al abrir el tag `gorm:"` salen **valores completos** elegidos por el **nombre y el tipo del campo**; tras un `;` salen las **opciones sueltas** (las ya usadas no se repiten, y el cursor queda en el valor de `size:`, `type:`, `column:`… con Tab para saltar).
+gorm separates its options with **`;`** (not `,`) and some take a value (`size:255`, `column:sent_at`). When you open the `gorm:"` tag, **full values** are offered, chosen by the **field name and type**; after a `;`, **loose options** are offered (already used ones are not repeated, and the cursor lands on the value of `size:`, `type:`, `column:`… with Tab to jump).
 
-| Campo | Variantes que ofrece (en este orden) |
+| Field | Variants offered (in this order) |
 |---|---|
 | `ID string` | `primaryKey;type:text`, `primaryKey`, `primaryKey;type:uuid` |
-| `ID` entero | `primaryKey;autoIncrement`, `primaryKey` |
+| integer `ID` | `primaryKey;autoIncrement`, `primaryKey` |
 | `string` | `type:text;not null`, `type:text`, `not null`, `type:text;not null;index`, `uniqueIndex`, `index`, `size:255` |
 | `CreatedAt` / `UpdatedAt` (`time.Time`) | `autoCreateTime` / `autoUpdateTime`, `not null;auto…`, `not null`, `index` |
-| otro `time.Time`, `gorm.DeletedAt` | `not null`, `index` / `index` |
+| other `time.Time`, `gorm.DeletedAt` | `not null`, `index` / `index` |
 | `bool` | `not null;default:false`, `default:false`, `index` |
-| enteros y floats | `not null`, `not null;default:0`, `default:0`, `index` |
+| integers and floats | `not null`, `not null;default:0`, `default:0`, `index` |
 | `[]byte` | `type:blob`, `type:bytea` |
-| tipo propio o relación (`Author User`) | `foreignKey:AuthorID`, `embedded`, `many2many:author` |
-| (todos) | `column:<nombre_en_snake>`, `-` |
+| custom type or relation (`Author User`) | `foreignKey:AuthorID`, `embedded`, `many2many:author` |
+| (all) | `column:<name_in_snake>`, `-` |
 
-Con un puntero (`*string`) no se ofrece `not null`. Los tags `gorm` salen **en cualquier archivo** `.go`.
+With a pointer (`*string`) `not null` is not offered. `gorm` tags show up **in any** `.go` file.
 
 ```go
 type NoteModel struct {
@@ -71,52 +71,52 @@ type NoteModel struct {
 }
 ```
 
-### Archivos de modelo (`*_model.go` / `model.go`, `utils/gomodel.lua`)
+### Model files (`*_model.go` / `model.go`, `utils/gomodel.lua`)
 
-Solo ahí salen `functable`, `funcdomain`, `functodomain` y `funcfromdomain`, **al principio de la lista** (teclea `funct…`, `funcd…`, `functo…`, `funcf…`; también `toDomain` / `fromDomain` / `TableName`). Se generan a partir de los campos del struct y solo para los que aún no tienen la función.
+Only there do `functable`, `funcdomain`, `functodomain` and `funcfromdomain` show up, **at the top of the list** (type `funct…`, `funcd…`, `functo…`, `funcf…`; also `toDomain` / `fromDomain` / `TableName`). They are generated from the struct fields and only for those that do not have the function yet.
 
-- **Dominio por nombre**: `NoteModel` → `note.Note` (paquete `note`, tipo `Note`). Los campos se pasan en orden al constructor y se leen con getters (`n.Title()`).
-- **Constructor real**: si el archivo importa `…/note` y el paquete está en el módulo, se busca en él `Reconstitute`, `Rehydrate`, `Restore`, `Hydrate`, `FromPersistence` o `Load`. Si no se encuentra, queda `Reconstitute` como placeholder editable (Tab).
-- **Varios modelos en el archivo**: `functodomain NoteModel`, y `fromDomain` pasa a `fromNoteDomain` para no chocar.
-- El import del paquete de dominio lo añade `goimports` al guardar. El formato (alineación de `ID:   n.ID(),`) lo arregla `gofumpt`.
+- **Domain by name**: `NoteModel` → `note.Note` (package `note`, type `Note`). Fields are passed in order to the constructor and read with getters (`n.Title()`).
+- **Real constructor**: if the file imports `…/note` and the package is in the module, it looks there for `Reconstitute`, `Rehydrate`, `Restore`, `Hydrate`, `FromPersistence` or `Load`. If none is found, `Reconstitute` stays as an editable placeholder (Tab).
+- **Several models in the file**: `functodomain NoteModel`, and `fromDomain` becomes `fromNoteDomain` to avoid a clash.
+- The domain package import is added by `goimports` on save. Formatting (alignment of `ID:   n.ID(),`) is fixed by `gofumpt`.
 
-## Completado contextual (`utils/gosmart.lua`)
+## Contextual completion (`utils/gosmart.lua`)
 
-Lee el árbol de treesitter para saber **dónde estás** y ofrece solo lo que aplica. La ventana de documentación muestra el código que se insertará.
+Reads the treesitter tree to know **where you are** and offers only what applies. The documentation window shows the code that will be inserted.
 
-### Al empezar una declaración (columna 0)
-Teclea `func`, `type`, `New…` o el nombre de un struct.
-Ahí **no** salen palabras sueltas del buffer ni el `func`/`type` genérico del LSP.
+### When starting a declaration (column 0)
+Type `func`, `type`, `New…` or the name of a struct.
+There, loose buffer words and the generic LSP `func`/`type` do **not** show up.
 
-**`func`** — variantes de función:
+**`func`** — function variants:
 
-| Opción | Genera |
+| Option | Generates |
 |---|---|
-| `func` | función simple |
-| `func error` | devuelve `error` (con `return nil`) |
-| `func value` | devuelve un `T` |
-| `func pointer` | devuelve un `*T` |
-| `func bool` | devuelve `bool` |
-| `func result error` | devuelve `(T, error)` |
-| `func pointer error` | devuelve `(*T, error)` |
-| `func ctx error` | recibe `ctx context.Context`, devuelve `error` |
-| `func ctx result error` | recibe `ctx`, devuelve `(T, error)` |
-| `func main` / `func init` | las funciones especiales |
+| `func` | simple function |
+| `func error` | returns `error` (with `return nil`) |
+| `func value` | returns a `T` |
+| `func pointer` | returns a `*T` |
+| `func bool` | returns `bool` |
+| `func result error` | returns `(T, error)` |
+| `func pointer error` | returns `(*T, error)` |
+| `func ctx error` | takes `ctx context.Context`, returns `error` |
+| `func ctx result error` | takes `ctx`, returns `(T, error)` |
+| `func main` / `func init` | the special functions |
 
-**Métodos por struct** (para *cada* struct del archivo, p. ej. `Envelope`):
+**Methods per struct** (for *each* struct in the file, e.g. `Envelope`):
 
-| Opción | Genera |
+| Option | Generates |
 |---|---|
-| `func (e *Envelope)` | método con receptor puntero |
-| `func (e *Envelope) error` | método que devuelve `error` |
-| `func (e Envelope)` | método con receptor valor |
+| `func (e *Envelope)` | method with pointer receiver |
+| `func (e *Envelope) error` | method that returns `error` |
+| `func (e Envelope)` | method with value receiver |
 | `func (e Envelope) String` | `fmt.Stringer` |
-| `functable` | gorm: `func (NoteModel) TableName() string` con el nombre derivado (`NoteModel` → `notes`, `Category` → `categories`). **Sale el primero**: basta teclear `funct…` (o `func ` / `TableName`). Con varios structs: `functable NoteModel`, `functable Category`… **Solo en archivos `*_model.go` o `model.go`**, y no para structs que ya lo tienen. |
-| `funcdomain` | `toDomain` + `fromDomain` de una vez (ver abajo). Sale con `func ` o tecleando `funcd…` |
+| `functable` | gorm: `func (NoteModel) TableName() string` with the derived name (`NoteModel` → `notes`, `Category` → `categories`). **Shows up first**: just type `funct…` (or `func ` / `TableName`). With several structs: `functable NoteModel`, `functable Category`… **Only in `*_model.go` or `model.go` files**, and not for structs that already have it. |
+| `funcdomain` | `toDomain` + `fromDomain` at once (see below). Shows up with `func ` or by typing `funcd…` |
 | `functodomain` | `func (m NoteModel) toDomain() *note.Note { return note.Reconstitute(m.ID, m.Title, …) }` |
 | `funcfromdomain` | `func fromDomain(n *note.Note) NoteModel { return NoteModel{ID: n.ID(), …} }` |
 
-**Constructor** — `NewEnvelope` aparece para cada struct **sin** `NewX` y ya trae los campos:
+**Constructor** — `NewEnvelope` shows up for every struct **without** a `NewX` and already includes the fields:
 
 ```go
 func NewEnvelope(kind Kind, id string, sentAt time.Time) *Envelope {
@@ -128,13 +128,13 @@ func NewEnvelope(kind Kind, id string, sentAt time.Time) *Envelope {
 }
 ```
 
-Los parámetros salen en lowerCamel (`UserID` → `userID`, `ID` → `id`). Los campos embebidos no entran.
+Parameters are in lowerCamel (`UserID` → `userID`, `ID` → `id`). Embedded fields are not included.
 
-**`funcnew`** — constructor que devuelve `(*X, error)`. Es **opcional**: no sale en la lista hasta que tecleas `funcn…` (a nivel de paquete). Tab/Enter lo insertan:
+**`funcnew`** — constructor that returns `(*X, error)`. It is **optional**: it does not show up in the list until you type `funcn…` (at package level). Tab/Enter insert it:
 
 ```go
 func New(id, title, content string) (*Note, error) {
-	|   // ← cursor aquí: validaciones (largos máximos, vacíos…)
+	|   // ← cursor here: validations (max lengths, empties…)
 	now := time.Now().UTC()
 	return &Note{
 		id:        id,
@@ -146,101 +146,101 @@ func New(id, title, content string) (*Note, error) {
 }
 ```
 
-Los `time.Time` cuyo nombre empieza por `created`, `updated` o `modified` **no son parámetros**: salen de un único `now := time.Now().UTC()`. Cualquier otro `time.Time` (`dueDate`) o `*time.Time` sigue siendo parámetro. Sin campos de ese tipo no se genera `now`.
+`time.Time` fields whose name starts with `created`, `updated` or `modified` **are not parameters**: they come from a single `now := time.Now().UTC()`. Any other `time.Time` (`dueDate`) or `*time.Time` is still a parameter. Without fields of that type, `now` is not generated.
 
-Los parámetros contiguos del mismo tipo se agrupan. Con un solo struct en el archivo se llama `New`; con varios, `NewX` (y salen varias entradas: `funcnew Note`, `funcnew Other`…).
+Contiguous parameters of the same type are grouped. With a single struct in the file it is called `New`; with several, `NewX` (and several entries show up: `funcnew Note`, `funcnew Other`…).
 
-**`type`** — variantes de tipo:
+**`type`** — type variants:
 
-| Opción | Genera |
+| Option | Generates |
 |---|---|
-| `type struct` | struct vacío |
+| `type struct` | empty struct |
 | `type struct constructor` | struct + `NewX` |
 | `type generic struct` | `Set[T comparable] struct` |
-| `type interface` | interface vacía |
-| `type interface method` | interface con un método |
-| `type interface ctx result error` | interface con `(ctx, …) (T, error)` |
-| `type enum string` | tipo string + constantes |
-| `type enum iota` | tipo int + `iota` |
+| `type interface` | empty interface |
+| `type interface method` | interface with one method |
+| `type interface ctx result error` | interface with `(ctx, …) (T, error)` |
+| `type enum string` | string type + constants |
+| `type enum iota` | int type + `iota` |
 | `type defined` | `type Name string` |
 | `type func` | `type Handler func(…) error` |
-| `type error` | error propio con `Error()` |
+| `type error` | custom error with `Error()` |
 | `type options` | functional options (`WithX`) |
 
-**Coincidencia estricta por prefijo** (no fuzzy): solo sale lo que *empieza* con lo que tecleaste.
+**Strict prefix matching** (not fuzzy): only what *starts with* what you typed shows up.
 
-| Tecleas | Sale |
+| You type | Shows up |
 |---|---|
-| `f`, `fu`, `func`, `func ` | solo las variantes de `func`, los métodos y los `NewX` pendientes |
-| `t`, `ty`, `type`, `type ` | solo las variantes de `type` |
-| `New`, `NewE`, `Env` | solo el constructor `NewEnvelope` |
-| `func Ne` | solo `NewEnvelope` |
-| `pac`, `package`, `i`, `v`, `c`… | nada de esto (lo demás lo ponen el LSP y friendly-snippets) |
-| `type Foo`, `func Foo` | nada: estás *nombrando* algo |
+| `f`, `fu`, `func`, `func ` | only the `func` variants, the methods and the pending `NewX` |
+| `t`, `ty`, `type`, `type ` | only the `type` variants |
+| `New`, `NewE`, `Env` | only the `NewEnvelope` constructor |
+| `func Ne` | only `NewEnvelope` |
+| `pac`, `package`, `i`, `v`, `c`… | none of this (the rest comes from the LSP and friendly-snippets) |
+| `type Foo`, `func Foo` | nothing: you are *naming* something |
 
-### Métodos que faltan para cumplir una interfaz (`utils/goimpl.lua`)
-Si un struct **se nota** implementando una interfaz y le faltan métodos, el menú ofrece exactamente esos, con la firma de la
-interfaz y un cuerpo útil (0 tokens, sin LLM). Dos sitios:
+### Missing methods to satisfy an interface (`utils/goimpl.lua`)
+If a struct **shows signs of** implementing an interface and is missing methods, the menu offers exactly those, with the interface's
+signature and a useful body (0 tokens, no LLM). Two places:
 
-- **Tras escribir el receptor**: `func (s *noteService) ` abre el menú solo (sin teclear nada) con `…all missing (6)` y cada método
-  que falta (`Create`, `Get`, ...). Filtra al teclear (`Se` → `SetDone`). El receptor se usa como lo escribiste (`s`).
-- **Al empezar la declaración** (`func ` en columna 0): lo mismo para cada struct del archivo, con la cabecera `func (s *noteService)` ya puesta.
+- **After typing the receiver**: `func (s *noteService) ` opens the menu by itself (without typing anything) with `…all missing (6)` and each
+  missing method (`Create`, `Get`, ...). Filter as you type (`Se` → `SetDone`). The receiver is used as you wrote it (`s`).
+- **When starting the declaration** (`func ` at column 0): the same for each struct in the file, with the `func (s *noteService)` header already in place.
 
-Cómo sabe qué interfaz implementa (la primera que encaje): `var _ NoteService = (*noteService)(nil)`; un constructor que la
-devuelve (`func NewNoteService(...) NoteService { return &noteService{...} }`); el nombre (`noteService` ~ `NoteService`,
-`postgresNoteRepository` ~ `domain.NoteRepository`, también si la interfaz está en otro paquete del módulo); o lo que ya
-implementó. Lo ya escrito no se vuelve a ofrecer.
+How it knows which interface it implements (the first that fits): `var _ NoteService = (*noteService)(nil)`; a constructor that
+returns it (`func NewNoteService(...) NoteService { return &noteService{...} }`); the name (`noteService` ~ `NoteService`,
+`postgresNoteRepository` ~ `domain.NoteRepository`, also if the interface is in another package of the module); or what it already
+implemented. What is already written is not offered again.
 
-**Cuerpo**: si el struct guarda una dependencia que es una interfaz (`repo domain.NoteRepository`) y esta tiene un método con la
-**misma forma** (tipos de parámetros y de retorno; el nombre da igual), el cuerpo la llama: `Get` → `return s.repo.FindByID(ctx, id)`,
-`List` → `s.repo.FindAll(ctx, filter)`, `Delete` → `s.repo.Delete(ctx, id)`. Si no hay equivalente (`Create`, `Update`...) queda el
-cursor en el cuerpo con un `return nil, nil` (valores cero) que compila. Con `…all missing` cada cuerpo vacío es un tabstop (Tab salta).
+**Body**: if the struct holds a dependency that is an interface (`repo domain.NoteRepository`) and it has a method with the
+**same shape** (parameter and return types; the name does not matter), the body calls it: `Get` → `return s.repo.FindByID(ctx, id)`,
+`List` → `s.repo.FindAll(ctx, filter)`, `Delete` → `s.repo.Delete(ctx, id)`. If there is no equivalent (`Create`, `Update`...) the
+cursor is left in the body with a `return nil, nil` (zero values) that compiles. With `…all missing` each empty body is a tabstop (Tab jumps).
 
-Las interfaces de **otro paquete del módulo** se leen del disco (módulo de `go.mod`) y sus tipos se califican (`Note` →
-`domain.Note`); los imports que falten los añade `goimports` al guardar. Las de la librería estándar o de dependencias no se leen:
-para esas, gopls ya ofrece `<leader>ca` → "Declare missing methods of …" sobre el error del constructor (rellena todo con
+Interfaces from **another package of the module** are read from disk (the `go.mod` module) and their types are qualified (`Note` →
+`domain.Note`); missing imports are added by `goimports` on save. Those from the standard library or from dependencies are not read:
+for those, gopls already offers `<leader>ca` → "Declare missing methods of …" on the constructor error (fills everything with
 `panic("unimplemented")`).
 
-### Más ayudas sin LLM (0 tokens, leen tu código y tu `go.mod`)
-Salen en el mismo menú de `func ` / `New…`, encima del resto. Comparten un índice (`utils/goindex.lua`: interfaces, structs, métodos,
-funciones y constantes de cada archivo, paquete y del módulo entero, en caché por fecha).
+### More helpers without an LLM (0 tokens, they read your code and your `go.mod`)
+They show up in the same `func ` / `New…` menu, above the rest. They share an index (`utils/goindex.lua`: interfaces, structs, methods,
+functions and constants of each file, package and the whole module, cached by date).
 
-- **`if err != nil` que sabe qué devolver** (`utils/goiferr.lua`): tras `n, err := s.repo.FindByID(ctx, id)` y **Enter**, el menú se abre solo
-  con el bloque ya hecho y **Enter lo acepta** (se apaga con `vim.g.goiferr_preselect = false`): los valores cero salen de los
-  RETORNOS de la función que contiene el cursor (`return nil, fmt.Errorf("find by id: %w", err)`), y el mensaje, del nombre de lo que
-  llamaste (editable; `FindByID` → "find by id"). Segunda variante: `return nil, err`. En `main` → `log.Fatalf`. Dentro de un `func`
-  literal usa SUS retornos. En una función que no devuelve error no ofrece nada. `fmt` lo añade goimports al guardar.
-- **Mapeadores entre capas** (`utils/gomap.lua`): para cada struct del archivo que acaba en `Response`/`Request`/`DTO`/`Model`/`Entity`/
-  `Record`/`Input`/`Output`... busca su par en el módulo (`NoteResponse` → `Note`; `CreateNoteRequest` → `Note`) y en `func ` ofrece
-  `func toNoteResponse(n *domain.Note) NoteResponse`, `toNoteResponses` (lista) y `func (r NoteResponse) toNote() *domain.Note`. Campos
-  por nombre (sin distinguir mayúsculas ni `_`); si el origen tiene el campo privado y un getter (`ID()`), usa el getter; tipos definidos
-  sobre un básico se convierten (`string(n.Status)` / `domain.Status(r.Status)`); lo que no encaja o no tiene origen sale como `// TODO`
-  (nada inventado). Los archivos `*_model.go` siguen con `toDomain`/`fromDomain` de gomodel.
-- **Cablear constructores** (`utils/gowire.lua`): en una función (típicamente `main`) teclea `New…` o el nombre de la variable
-  (`noteSer`): ofrece `noteService := application.NewNoteService(noteRepo)` con los argumentos ya puestos, para TODOS los paquetes del
-  módulo (aunque aún no los hayas importado; goimports lo añade). Cada argumento: una variable del mismo tipo → una variable cuyo tipo
-  concreto **implementa** la interfaz que pide el parámetro → una variable con el nombre del parámetro → `context.Background()` → un
-  hueco. Los tipos de las variables salen de los parámetros, `var x T`, `&T{}` y los retornos de los constructores ya llamados.
-- **Helpers de un enum** (`utils/goenum.lua`): con `type Status string` + su `const (...)`, `func ` ofrece `IsValid`, `ParseStatus`,
-  `UnmarshalText` y, en enums numéricos (iota), `String` y `MarshalText`; más "…enum helpers" con todos. Solo lo que falta.
-- **Interfaz desde un struct y `var _`** (`utils/goport.lua`): dentro de `type NoteService interface { }` ofrece los métodos exportados de
-  `noteService` que aún no declara (con su firma); y `var ` en columna 0 ofrece `var _ NoteService = (*noteService)(nil)` para los
-  structs cuya interfaz se reconoce (esa línea es la que hace que el compilador avise y la que goimpl reconoce con certeza).
-- **Handlers HTTP desde un servicio** (`utils/gohttp.lua`): en un struct `NoteHandler { svc application.NoteService }`, `func (h *NoteHandler) `
-  (o `func `) ofrece un handler por cada método del servicio que falta, `Routes` y "todos". Framework por `go.mod`: net/http (Go ≥ 1.22,
-  `PathValue`), chi, gin o echo (fiber: nada). Verbo por el nombre (Get/List → GET, Create → POST, Update → PUT, Set*/Patch* → PATCH,
-  Delete → DELETE); `id` → parámetro de ruta; un struct en un GET (`filter ListFilter`) → query string campo a campo
-  (`strconv.Atoi`/`ParseBool`); el resto → cuerpo JSON (struct anónimo con tags snake_case); `(T, error)` → 200 con el JSON (201 en
-  POST), solo `error` → 204. Para net/http y chi, un ítem aparte con `writeJSON`/`writeError` si no existen.
+- **`if err != nil` that knows what to return** (`utils/goiferr.lua`): after `n, err := s.repo.FindByID(ctx, id)` and **Enter**, the menu opens by itself
+  with the block already built and **Enter accepts it** (turn off with `vim.g.goiferr_preselect = false`): the zero values come from the
+  RETURNS of the function containing the cursor (`return nil, fmt.Errorf("find by id: %w", err)`), and the message from the name of what you
+  called (editable; `FindByID` → "find by id"). Second variant: `return nil, err`. In `main` → `log.Fatalf`. Inside a `func`
+  literal it uses ITS returns. In a function that does not return an error it offers nothing. `fmt` is added by goimports on save.
+- **Mappers between layers** (`utils/gomap.lua`): for each struct in the file ending in `Response`/`Request`/`DTO`/`Model`/`Entity`/
+  `Record`/`Input`/`Output`... it looks for its counterpart in the module (`NoteResponse` → `Note`; `CreateNoteRequest` → `Note`) and on `func ` offers
+  `func toNoteResponse(n *domain.Note) NoteResponse`, `toNoteResponses` (list) and `func (r NoteResponse) toNote() *domain.Note`. Fields
+  by name (ignoring case and `_`); if the source has the field private and a getter (`ID()`), it uses the getter; types defined
+  over a basic type are converted (`string(n.Status)` / `domain.Status(r.Status)`); whatever does not fit or has no source comes out as `// TODO`
+  (nothing made up). `*_model.go` files keep using `toDomain`/`fromDomain` from gomodel.
+- **Wiring constructors** (`utils/gowire.lua`): in a function (typically `main`) type `New…` or the variable name
+  (`noteSer`): it offers `noteService := application.NewNoteService(noteRepo)` with the arguments already filled in, for ALL packages of the
+  module (even if you have not imported them yet; goimports adds it). Each argument: a variable of the same type → a variable whose concrete
+  type **implements** the interface the parameter asks for → a variable named like the parameter → `context.Background()` → a
+  hole. Variable types come from parameters, `var x T`, `&T{}` and the returns of constructors already called.
+- **Enum helpers** (`utils/goenum.lua`): with `type Status string` + its `const (...)`, `func ` offers `IsValid`, `ParseStatus`,
+  `UnmarshalText` and, on numeric enums (iota), `String` and `MarshalText`; plus "…enum helpers" with all of them. Only what is missing.
+- **Interface from a struct and `var _`** (`utils/goport.lua`): inside `type NoteService interface { }` it offers the exported methods of
+  `noteService` it does not declare yet (with their signature); and `var ` at column 0 offers `var _ NoteService = (*noteService)(nil)` for the
+  structs whose interface is recognized (that line is what makes the compiler complain and what goimpl recognizes with certainty).
+- **HTTP handlers from a service** (`utils/gohttp.lua`): in a struct `NoteHandler { svc application.NoteService }`, `func (h *NoteHandler) `
+  (or `func `) offers one handler for each service method that is missing, `Routes` and "all". Framework by `go.mod`: net/http (Go ≥ 1.22,
+  `PathValue`), chi, gin or echo (fiber: nothing). Verb by name (Get/List → GET, Create → POST, Update → PUT, Set*/Patch* → PATCH,
+  Delete → DELETE); `id` → route parameter; a struct in a GET (`filter ListFilter`) → query string field by field
+  (`strconv.Atoi`/`ParseBool`); the rest → JSON body (anonymous struct with snake_case tags); `(T, error)` → 200 with the JSON (201 on
+  POST), only `error` → 204. For net/http and chi, a separate item with `writeJSON`/`writeError` if they do not exist.
 
-### Después de `type Envelope `
-Ofrece `struct`, `interface` y `func(…)`. Si ya escribiste `struct`, no sale nada.
+### After `type Envelope `
+Offers `struct`, `interface` and `func(…)`. If you already typed `struct`, nothing shows up.
 
-### Dentro de `interface { }`
-Firmas de método: `method`, `method error`, `method value`, `method result error`, `method ctx error`, `method ctx result error`, `embed interface`.
+### Inside `interface { }`
+Method signatures: `method`, `method error`, `method value`, `method result error`, `method ctx error`, `method ctx result error`, `embed interface`.
 
-### Nombre de struct en posición de valor → literal ya relleno
-Teclea el nombre (`x := Env`) y **`Enter` inserta el struct completo**, sin pasos extra:
+### Struct name in value position → literal already filled
+Type the name (`x := Env`) and **`Enter` inserts the full struct**, with no extra steps:
 
 ```go
 o := Envelope{
@@ -250,116 +250,116 @@ o := Envelope{
 }
 ```
 
-`Tab` salta de valor en valor (cada valor trae su cero por defecto seleccionado). Aplica cuando lo que escribes es un **valor**:
+`Tab` jumps from value to value (each value comes with its zero default selected). It applies when what you type is a **value**:
 
-| Contexto | Ejemplo |
+| Context | Example |
 |---|---|
-| lado derecho de `:=` / `=` | `o := Env`, `o = &Env` |
+| right side of `:=` / `=` | `o := Env`, `o = &Env` |
 | `return` | `return Env` |
-| valor de un campo | `Outer{In: Env` |
-| argumento de una llamada | `process(Env`, `process(a, Env` |
+| field value | `Outer{In: Env` |
+| call argument | `process(Env`, `process(a, Env` |
 
-En posición de **tipo** no se activa y sigue el completado normal de gopls: `var e Env`, parámetros `func(a Env`, `new(Env`, `[]Env`.
-Solo para structs del mismo paquete; el nombre suelto de gopls/buffer se oculta para no duplicar el ítem.
+In **type** position it does not trigger and normal gopls completion continues: `var e Env`, parameters `func(a Env`, `new(Env`, `[]Env`.
+Only for structs of the same package; the bare gopls/buffer name is hidden to avoid duplicating the item.
 
-### Dentro de un literal `Envelope{ }`
-Para structs del **mismo paquete** (mismo archivo u otro `.go` de la misma carpeta con el mismo `package`).
-El menú se abre **solo**, sin teclear nada, en tres momentos: al escribir `{` (queda `Envelope{|}`), al aceptar `Envelope{}` desde el menú de tipos, y al pulsar `Enter` tras `{` o tras un `campo: valor,`:
+### Inside a literal `Envelope{ }`
+For structs of the **same package** (same file or another `.go` in the same folder with the same `package`).
+The menu opens **by itself**, without typing anything, at three moments: when typing `{` (leaves `Envelope{|}`), when accepting `Envelope{}` from the type menu, and when pressing `Enter` after `{` or after a `field: value,`:
 
-| Opción | Hace |
+| Option | Does |
 |---|---|
-| `fill all fields` | inserta todos los campos que faltan, con valor por defecto; `Tab` salta de valor en valor |
-| `Kind`, `ID`, `SentAt`… | un campo suelto: `Kind: █,` con el cursor en el valor |
+| `fill all fields` | inserts all missing fields, with default values; `Tab` jumps from value to value |
+| `Kind`, `ID`, `SentAt`… | a single field: `Kind: █,` with the cursor on the value |
 
-- Los campos que ya pusiste no vuelven a salir; se repite tras cada `campo: valor,`.
-- Valores por defecto según el tipo: `string` → `""`, números → `0`, `bool` → `false`, punteros/slices/maps → `nil`, `time.Time{}`, `Inner{}` (struct del archivo).
-- Funciona con `Envelope{`, `&Envelope{` y elementos de `[]Envelope{ {…} }`.
-- Con `Envelope{|}` en una sola línea, abre las líneas por ti: queda `Envelope{` / campos / `}`.
-- Un `package x_test` no ve los structs de `package x` (no compila sin calificar), así que no los ofrece.
-- No se activa en literales posicionales (`T{a, b}`) ni dentro del valor de otro campo (p. ej. argumentos de una llamada).
-- Structs de **otros paquetes** (`http.Client{`): lo completa gopls como siempre. Para estos sirve `<leader>gs` (`GoFillStruct`).
-- Aquí no salen palabras del buffer, y los campos de gopls se ocultan para no duplicar.
+- Fields you already put do not show up again; it repeats after each `field: value,`.
+- Default values by type: `string` → `""`, numbers → `0`, `bool` → `false`, pointers/slices/maps → `nil`, `time.Time{}`, `Inner{}` (struct from the file).
+- Works with `Envelope{`, `&Envelope{` and elements of `[]Envelope{ {…} }`.
+- With `Envelope{|}` on a single line, it opens the lines for you: leaves `Envelope{` / fields / `}`.
+- A `package x_test` does not see the structs of `package x` (it does not compile without qualifying), so it does not offer them.
+- It does not trigger in positional literals (`T{a, b}`) nor inside another field's value (e.g. call arguments).
+- Structs from **other packages** (`http.Client{`): gopls completes it as usual. For those, use `<leader>gs` (`GoFillStruct`).
+- Buffer words do not show up here, and gopls fields are hidden to avoid duplicates.
 
-### Dentro de una función
-Salen los snippets de sentencia (abajo). Los de declaración se ocultan. Dentro de un struct no sale ninguno.
+### Inside a function
+Statement snippets show up (below). Declaration ones are hidden. Inside a struct none show up.
 
-## Declarar errores centinela (`goerrors`)
+## Declaring sentinel errors (`goerrors`)
 
-Teclea solo el **nombre** del error: el resto aparece solo, en gris, y crece con cada letra (`utils/goerrors.lua`).
+Type only the error **name**: the rest appears by itself, in gray, and grows with each letter (`utils/goerrors.lua`).
 
 ```go
 ErrDescriptionTooLong|  →  ErrDescriptionTooLong = errors.New("description too long")
 ```
 
-| Dónde | Tecleas | Se escribe |
+| Where | You type | Written |
 |---|---|---|
-| dentro de `var ( … )` | `ErrNotFound` | `ErrNotFound = errors.New("not found")` |
-| tras `var ` | `ErrInvalidID` | `ErrInvalidID = errors.New("invalid id")` |
-| nivel de paquete | `ErrEmptyTitle` | `var ErrEmptyTitle = errors.New("empty title")` |
+| inside `var ( … )` | `ErrNotFound` | `ErrNotFound = errors.New("not found")` |
+| after `var ` | `ErrInvalidID` | `ErrInvalidID = errors.New("invalid id")` |
+| package level | `ErrEmptyTitle` | `var ErrEmptyTitle = errors.New("empty title")` |
 
-| Tecla | Acción |
+| Key | Action |
 |---|---|
-| `Tab` | acepta el texto gris (cursor al final de la línea) |
-| `Enter` | lo acepta y abre línea nueva (ideal para seguir con el siguiente error del bloque) |
-| `Esc` | lo descarta |
+| `Tab` | accepts the gray text (cursor at end of line) |
+| `Enter` | accepts it and opens a new line (ideal to continue with the next error in the block) |
+| `Esc` | discards it |
 
-- Parte el nombre por mayúsculas y lo pasa a minúsculas (`TitleTooLong` → `title too long`, `HTTPError` → `http error`).
-- Acepta también nombres sin exportar (`errNotFound`). Necesita `Err` + mayúscula (`Error…` no dispara).
-- Solo sale con el cursor al final de la línea; mientras hay sugerencia no se abre el menú de completado.
-- El import de `errors` lo añade goimports al guardar.
-- Dentro de funciones no sale (ahí no se declaran centinelas).
+- Splits the name by capitals and lowercases it (`TitleTooLong` → `title too long`, `HTTPError` → `http error`).
+- Also accepts unexported names (`errNotFound`). It needs `Err` + capital letter (`Error…` does not trigger).
+- It only shows up with the cursor at the end of the line; while there is a suggestion the completion menu does not open.
+- The `errors` import is added by goimports on save.
+- It does not show up inside functions (sentinels are not declared there).
 
-## Snippets de sentencias (`nvim/snippets/go.json`)
+## Statement snippets (`nvim/snippets/go.json`)
 
-Nombres completos: se encuentran tecleando **cualquier parte** (`wrap` → `errorsis`…, `ctx` → los de context).
+Full names: you find them by typing **any part** (`wrap` → `errorsis`…, `ctx` → the context ones).
 
-| Snippet | Inserta |
+| Snippet | Inserts |
 |---|---|
-| `iferr` | `if err != nil { return err }` (el `err` queda seleccionado para cambiarlo; solo dentro de funciones) |
+| `iferr` | `if err != nil { return err }` (`err` is left selected so you can change it; only inside functions) |
 | `errorsis` | `if errors.Is(err, ErrX) { … }` |
 | `errorsas` | `var t *MyError; if errors.As(err, &t) { … }` |
-| `errorsentinel` | `var ErrX = errors.New("…")` (solo a nivel de paquete; el mensaje derivado del nombre: ver arriba) |
+| `errorsentinel` | `var ErrX = errors.New("…")` (package level only; message derived from the name: see above) |
 | `contexttimeout` | `ctx, cancel := context.WithTimeout(…)` + `defer cancel()` |
 | `contextcancel` | `context.WithCancel` + `defer cancel()` |
-| `waitgroup` | `sync.WaitGroup` sobre un range |
+| `waitgroup` | `sync.WaitGroup` over a range |
 | `errgroup` | `errgroup.WithContext` + `g.Go` + `g.Wait` |
 | `mutex` | `mu.Lock()` + `defer mu.Unlock()` |
 | `once` | `once.Do(func() { … })` |
-| `selectcontext` | `select` con `ctx.Done()` |
+| `selectcontext` | `select` with `ctx.Done()` |
 | `forrangeindex` | `for i, v := range items` |
 | `forrangeint` | `for i := range n` (Go 1.22+) |
 | `testsubtest` | `t.Run("name", func(t *testing.T) { … })` |
-| `testtable` | test table-driven con subtests (solo nivel de paquete) |
-| `testhelper` | helper con `t.Helper()` (solo nivel de paquete) |
-| `httphandlerjson` | handler HTTP que responde JSON (solo nivel de paquete) |
-| `jsondecodebody` | decodificar el JSON del body |
+| `testtable` | table-driven test with subtests (package level only) |
+| `testhelper` | helper with `t.Helper()` (package level only) |
+| `httphandlerjson` | HTTP handler that responds with JSON (package level only) |
+| `jsondecodebody` | decode the body's JSON |
 | `slog` | `slog.Info/Error/Warn/Debug(…)` |
 | `deferfunc` | `defer func() { … }()` |
-| `embed` | `//go:embed` (solo nivel de paquete) |
+| `embed` | `//go:embed` (package level only) |
 
-También siguen disponibles los de **friendly-snippets** que no se duplican (`if`, `ife`, `ir`, `for`, `forr`, `switch`, `sel`, `go`, `df`, `fp`, `ff`, `lp`, `make`, `tf`, `tdt`, `hand`…).
-Los de declaración de friendly (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `fmain`) están ocultos a nivel de paquete porque `gosmart` los reemplaza con más variantes.
+The **friendly-snippets** ones that are not duplicated are also still available (`if`, `ife`, `ir`, `for`, `forr`, `switch`, `sel`, `go`, `df`, `fp`, `ff`, `lp`, `make`, `tf`, `tdt`, `hand`…).
+The friendly declaration ones (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `fmain`) are hidden at package level because `gosmart` replaces them with more variants.
 
-## Dónde vive cada cosa
+## Where everything lives
 
-| Archivo | Rol |
+| File | Role |
 |---|---|
-| `lua/languages/go.lua` | declaración: gopls, goimports, gofumpt, golangci-lint, govet |
-| `lua/languages/actions/go.lua` | acciones del menú `<leader>g` |
+| `lua/languages/go.lua` | declaration: gopls, goimports, gofumpt, golangci-lint, govet |
+| `lua/languages/actions/go.lua` | `<leader>g` menu actions |
 | `lua/plugins/languages/go.lua` | go.nvim (`tag_transform = "snakecase"`, `tag_options = false`) |
-| `lua/servers/gopls.lua` | ajustes de gopls |
-| `lua/utils/gotags.lua` | fuente blink: tags de struct |
-| `lua/utils/gosmart.lua` | fuente blink: func/type/métodos/constructor/interface + filtros |
-| `lua/utils/goindex.lua` | índice compartido (treesitter sobre texto, por archivo/paquete/módulo) de las ayudas siguientes |
-| `lua/utils/goiferr.lua` · `gomap.lua` · `gowire.lua` · `goenum.lua` · `goport.lua` · `gohttp.lua` | `if err` con retornos, mapeadores, cableado, enums, interfaz desde un struct, handlers HTTP |
-| `lua/utils/goimpl.lua` | métodos que faltan para cumplir una interfaz (receptor y declaración), cuerpos que llaman a la dependencia |
-| `lua/utils/gomodel.lua` | atajos solo de `*_model.go`: `functable`, `funcdomain`, `functodomain`, `funcfromdomain` |
-| `lua/utils/goerrors.lua` | texto fantasma de errores centinela (`ErrX` → `ErrX = errors.New("x")`); Tab/Enter se cablean en `blink.lua` |
-| `lua/plugins/editing/blink.lua` | registra las fuentes y filtros (buffer, lsp, snippets) |
-| `snippets/go.json` | snippets de sentencias |
+| `lua/servers/gopls.lua` | gopls settings |
+| `lua/utils/gotags.lua` | blink source: struct tags |
+| `lua/utils/gosmart.lua` | blink source: func/type/methods/constructor/interface + filters |
+| `lua/utils/goindex.lua` | shared index (treesitter over text, per file/package/module) for the helpers below |
+| `lua/utils/goiferr.lua` · `gomap.lua` · `gowire.lua` · `goenum.lua` · `goport.lua` · `gohttp.lua` | `if err` with returns, mappers, wiring, enums, interface from a struct, HTTP handlers |
+| `lua/utils/goimpl.lua` | missing methods to satisfy an interface (receiver and declaration), bodies that call the dependency |
+| `lua/utils/gomodel.lua` | `*_model.go`-only shortcuts: `functable`, `funcdomain`, `functodomain`, `funcfromdomain` |
+| `lua/utils/goerrors.lua` | ghost text for sentinel errors (`ErrX` → `ErrX = errors.New("x")`); Tab/Enter are wired in `blink.lua` |
+| `lua/plugins/editing/blink.lua` | registers the sources and filters (buffer, lsp, snippets) |
+| `snippets/go.json` | statement snippets |
 
-## Notas
+## Notes
 
-- Si el árbol de treesitter sale roto (llave sin cerrar), el filtro prefiere **mostrar todo** antes que ocultar algo útil.
-- Para ajustar o añadir variantes de `func`/`type`/`method`: tablas `FUNCS`, `TYPES` y `METHODS` en `utils/gosmart.lua`.
-- Para añadir un snippet de sentencia: `snippets/go.json`, y si solo aplica dentro de funciones, agrega su nombre a `FUNC_ONLY` en `gosmart.lua`.
+- If the treesitter tree comes out broken (unclosed brace), the filter prefers to **show everything** rather than hide something useful.
+- To tweak or add `func`/`type`/`method` variants: `FUNCS`, `TYPES` and `METHODS` tables in `utils/gosmart.lua`.
+- To add a statement snippet: `snippets/go.json`, and if it only applies inside functions, add its name to `FUNC_ONLY` in `gosmart.lua`.

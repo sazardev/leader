@@ -1,26 +1,26 @@
-# Java y Kotlin
+# Java and Kotlin
 
-Filetypes: `java`, `kotlin`. Comparten las mismas acciones (Gradle o Maven).
+Filetypes: `java`, `kotlin`. They share the same actions (Gradle or Maven).
 
-## Herramientas
+## Tools
 
-| Qué | Con |
+| What | With |
 |---|---|
 | Treesitter | `java`, `kotlin` |
-| LSP / formatter / linter | **no hay declarados** en el registro; los menús corren las tareas de build |
+| LSP / formatter / linter | **none declared** in the registry; the menus run the build tasks |
 
-> Para jdtls / kotlin-language-server, añádelos en `lua/languages/java.lua` y `kotlin.lua` (`lsp`, `mason`).
+> For jdtls / kotlin-language-server, add them in `lua/languages/java.lua` and `kotlin.lua` (`lsp`, `mason`).
 
-## Menús: `<leader>j` (Java) y `<leader>k` (Kotlin)
+## Menus: `<leader>j` (Java) and `<leader>k` (Kotlin)
 
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-Detecta el proyecto por `gradlew`, `build.gradle(.kts)`, `settings.gradle(.kts)` o `pom.xml`.
-Usa los wrappers (`./gradlew`, `./mvnw`) si existen; si no, `gradle` / `mvn`. Si no hay proyecto Gradle/Maven, avisa en vez de fallar.
+It detects the project by `gradlew`, `build.gradle(.kts)`, `settings.gradle(.kts)` or `pom.xml`.
+It uses the wrappers (`./gradlew`, `./mvnw`) if they exist; otherwise `gradle` / `mvn`. If there is no Gradle/Maven project, it warns instead of failing.
 
-| Acción | Gradle | Maven |
+| Action | Gradle | Maven |
 |---|---|---|
-| run | `run` | `spring-boot:run` si el `pom` usa Spring Boot; si no `compile exec:java` |
+| run | `run` | `spring-boot:run` if the `pom` uses Spring Boot; otherwise `compile exec:java` |
 | build | `build` | `package` |
 | test | `test` | `test` |
 | check / verify | `check` | `verify` |

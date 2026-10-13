@@ -1,29 +1,28 @@
 # Web: HTML, CSS, Tailwind, Astro
 
 ## HTML
-| Qué | Con |
+| What | With |
 |---|---|
-| LSP | `html` y `emmet_ls` (expande abreviaturas Emmet: `ul>li*3` + completado) |
-| Formato (al guardar y `<leader>fm`) | `prettier` |
-| Extra | `nvim-ts-autotag`: al escribir `<div>` cierra `</div>` y renombra la pareja |
+| LSP | `html` and `emmet_ls` (expands Emmet abbreviations: `ul>li*3` + completion) |
+| Format (on save and `<leader>fm`) | `prettier` |
+| Extra | `nvim-ts-autotag`: typing `<div>` closes `</div>` and renames its pair |
 
 ## CSS / SCSS / Less
-| Qué | Con |
+| What | With |
 |---|---|
 | LSP | `cssls` |
-| Formato | `prettier` |
-| Preview de colores | nvim-highlight-colors (hex, rgb, Tailwind) |
+| Format | `prettier` |
+| Color preview | nvim-highlight-colors (hex, rgb, Tailwind) |
 
-### Menú `<leader>s` (solo en css, scss, less)
-Las teclas están en [`CHEATSHEET.md`](../../CHEATSHEET.md) (generado; no se duplican aquí).
+### `<leader>s` menu (only in css, scss, less)
+The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
 ## Tailwind
-- Servidor `tailwindcss` (transversal: no tiene filetype propio, aplica donde el proyecto use Tailwind).
-- Autocompletado de clases, y preview de colores Tailwind en el buffer.
+- `tailwindcss` server (cross-cutting: it has no filetype of its own, it applies wherever the project uses Tailwind).
+- Class completion, and Tailwind color preview in the buffer.
 
 ## Astro
-| Qué | Con |
+| What | With |
 |---|---|
 | LSP | `astro-language-server` |
-| Formato | `prettier` — **requiere `prettier-plugin-astro`** en el proyecto (`node_modules`) o instalado global; Mason solo instala `prettier` |
-
+| Format | `prettier` — **requires `prettier-plugin-astro`** in the project (`node_modules`) or installed globally; Mason only installs `prettier` |
