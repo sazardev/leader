@@ -19,8 +19,11 @@ for a in "$@"; do
   args="$args'$esc',"
 done
 
+# Without the user config (-u NONE): the agent is plain Lua on the runtimepath, so no plugins load, nothing is installed and it
+# runs in ~1 s even on a machine where the plugins are not installed yet (which is when the installer calls it)
 out="$(NVIM_NO_LOCAL=1 NVIM_LIGHT=0 \
-  nvim --headless -c "lua vim.defer_fn(function() require('agent.setup').cli({ $args }) end, 300)" 2>&1)"
+  nvim -u NONE --headless --cmd "set rtp^=$ROOT/nvim" \
+    -c "lua vim.defer_fn(function() require('agent.setup').cli({ $args }) end, 300)" 2>&1)"
 code=$?
 printf '%s\n' "$out" | tr -d '\r'
 exit "$code"

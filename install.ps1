@@ -101,7 +101,7 @@ if ($Agent -ne 'none') {
     Write-Warning 'skipped with -NoPlugins: when you first open nvim, use <Space>am -> Setup'
   } else {
     $flags = if (-not $Agent) { '' } elseif ($Agent -eq 'auto') { "'--auto'" } else { "'--use','$Agent'" }
-    & nvim --headless -c "lua vim.defer_fn(function() require('agent.setup').cli({ $flags }) end, 300)" 2>&1 | Write-Host
+    & nvim -u NONE --headless --cmd "set rtp^=$RootU/nvim" -c "lua vim.defer_fn(function() require('agent.setup').cli({ $flags }) end, 300)" 2>&1 | Write-Host
   }
 }
 
