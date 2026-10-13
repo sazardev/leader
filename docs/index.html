@@ -265,6 +265,19 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 @media(max-width:900px){.ed .tree{width:130px}.ed .tel .pv{display:none}.ed .tel .lf{flex:1}.ed .dv .dfl{display:none}}
 .sy-k{color:var(--red)} .sy-s{color:var(--green)} .sy-f{color:var(--yellow)} .sy-t{color:var(--aqua)} .sy-n{color:var(--purple)} .sy-c{color:var(--faint);font-style:italic}
 
+
+/* ── theme picker: a small flat menu, like the one in Neovim ─────────────────────────────────── */
+.thm-scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 60%,transparent);z-index:79;display:none}
+.thm-scrim.on{display:block}
+.thm{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,92vw);max-height:80vh;overflow:auto;background:var(--soft);color:var(--fg);z-index:80;padding:4px 0 12px;font:13px/1.7 "Geist Mono",ui-monospace,monospace;display:none;scrollbar-width:thin}
+.thm.on{display:block}
+.thm h6{display:flex;justify-content:space-between;padding:10px 16px 6px;font:600 11px "Geist Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.thm p{padding:10px 16px 4px;color:var(--faint);font-size:11.5px;line-height:1.5}
+.thm button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:2px 16px;color:var(--dim);text-align:left;white-space:pre}
+.thm button.s{background:var(--blue);color:var(--on)}
+.thm .sw{display:flex;gap:2px;flex:none}.thm .sw i{display:block;width:10px;height:10px}
+.thm footer{padding:10px 16px 0;color:var(--faint);font-size:11.5px}
+
 /* ── keys ─────────────────────────────────────────────────────────────────────────────────────── */
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:64px}
 .tile{background:var(--on);color:var(--fg);padding:26px 26px 24px;min-height:190px;display:flex;flex-direction:column;justify-content:space-between;
@@ -312,7 +325,7 @@ footer a:hover{color:var(--fg)}
     <a class="logo" href="#top"><i></i>my-nvim-setup</a>
     <nav>
       <a href="#go">Go</a><a href="#keys">Keys</a><a href="#install">Install</a>
-      <button id="theme" aria-label="Toggle theme">Theme <span class="k">t</span></button>
+      <button id="theme" aria-label="Choose theme">Theme <span class="k">t</span></button>
     </nav>
   </div>
 </header>
@@ -403,23 +416,106 @@ footer a:hover{color:var(--fg)}
   </div>
 </footer>
 
+<div class="thm-scrim" id="thm-scrim"></div>
+<div class="thm" id="thm" role="dialog" aria-label="Theme"></div>
+
 <script>
 (function () {
   var root = document.documentElement, $ = function (s) { return document.querySelector(s); };
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* theme: follows the system; `t` or the button toggles; remembered */
-  var saved = null; try { saved = localStorage.getItem("theme"); } catch (e) {}
-  root.dataset.theme = saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-  function flip() {
-    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
-    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
-    $("meta[name=theme-color]").content = root.dataset.theme === "dark" ? "#282828" : "#f2e5bc";
+  /* ── theme ────────────────────────────────────────────────────────────────────────────────────
+     Two worlds, like the config: the vanilla default (gruvbox, dark/light, follows the system) and "terminal" mode,
+     where every color is DERIVED from a terminal palette (bg, fg, 16 ANSI colors). The derivation below is a port of
+     nvim/lua/appearance/terminal_theme.lua + color.lua, so the page adapts exactly like Neovim does. `t` opens the picker. */
+  var Col = {
+    rgb: function (h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; },
+    hex: function (r, g, b) { function c(v) { return Math.max(0, Math.min(255, Math.floor(v + 0.5))); } return "#" + [r, g, b].map(function (v) { return ("0" + c(v).toString(16)).slice(-2); }).join(""); },
+    blend: function (a, b, t) { var x = Col.rgb(a), y = Col.rgb(b); return Col.hex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t); },
+    lum: function (h) { var v = Col.rgb(h).map(function (c) { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; },
+    contrast: function (a, b) { var x = Col.lum(a), y = Col.lum(b); if (x < y) { var t = x; x = y; y = t; } return (x + 0.05) / (y + 0.05); },
+    ensure: function (c, against, toward, min) {
+      var r = c; for (var s = 1; s <= 12; s++) { if (Col.contrast(r, against) >= min) return r; r = Col.blend(c, toward, s * 0.08); } return r;
+    }
+  };
+  /* palettes as the usual terminal theme files ship them: bg, fg and ANSI 0-15 (black red green yellow blue magenta cyan white, then bright) */
+  var THEMES = [
+    ["catppuccin-mocha", "Catppuccin Mocha", "#1e1e2e", "#cdd6f4", ["#45475a", "#f38ba8", "#a6e3a1", "#f9e2af", "#89b4fa", "#f5c2e7", "#94e2d5", "#bac2de", "#585b70", "#f38ba8", "#a6e3a1", "#f9e2af", "#89b4fa", "#f5c2e7", "#94e2d5", "#a6adc8"]],
+    ["catppuccin-latte", "Catppuccin Latte", "#eff1f5", "#4c4f69", ["#5c5f77", "#d20f39", "#40a02b", "#df8e1d", "#1e66f5", "#ea76cb", "#179299", "#acb0be", "#6c6f85", "#d20f39", "#40a02b", "#df8e1d", "#1e66f5", "#ea76cb", "#179299", "#bcc0cc"]],
+    ["tokyo-night", "Tokyo Night", "#1a1b26", "#c0caf5", ["#15161e", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#a9b1d6", "#414868", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#c0caf5"]],
+    ["nord", "Nord", "#2e3440", "#d8dee9", ["#3b4252", "#bf616a", "#a3be8c", "#ebcb8b", "#81a1c1", "#b48ead", "#88c0d0", "#e5e9f0", "#4c566a", "#bf616a", "#a3be8c", "#ebcb8b", "#81a1c1", "#b48ead", "#8fbcbb", "#eceff4"]],
+    ["dracula", "Dracula", "#282a36", "#f8f8f2", ["#21222c", "#ff5555", "#50fa7b", "#f1fa8c", "#bd93f9", "#ff79c6", "#8be9fd", "#f8f8f2", "#6272a4", "#ff6e6e", "#69ff94", "#ffffa5", "#d6acff", "#ff92df", "#a4ffff", "#ffffff"]],
+    ["one-dark", "One Dark", "#282c34", "#abb2bf", ["#3f4451", "#e06c75", "#98c379", "#e5c07b", "#61afef", "#c678dd", "#56b6c2", "#abb2bf", "#4f5666", "#e06c75", "#98c379", "#d19a66", "#61afef", "#c678dd", "#56b6c2", "#ffffff"]],
+    ["rose-pine", "Rosé Pine", "#191724", "#e0def4", ["#26233a", "#eb6f92", "#31748f", "#f6c177", "#9ccfd8", "#c4a7e7", "#ebbcba", "#e0def4", "#6e6a86", "#eb6f92", "#31748f", "#f6c177", "#9ccfd8", "#c4a7e7", "#ebbcba", "#e0def4"]],
+    ["kanagawa", "Kanagawa", "#1f1f28", "#dcd7ba", ["#090618", "#c34043", "#76946a", "#c0a36e", "#7e9cd8", "#957fb8", "#6a9589", "#c8c093", "#727169", "#e82424", "#98bb6c", "#e6c384", "#7fb4ca", "#938aa9", "#7aa89f", "#dcd7ba"]],
+    ["everforest", "Everforest", "#2d353b", "#d3c6aa", ["#475258", "#e67e80", "#a7c080", "#dbbc7f", "#7fbbb3", "#d699b6", "#83c092", "#d3c6aa", "#475258", "#e67e80", "#a7c080", "#dbbc7f", "#7fbbb3", "#d699b6", "#83c092", "#d3c6aa"]],
+    ["solarized-dark", "Solarized Dark", "#002b36", "#839496", ["#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#eee8d5", "#002b36", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"]],
+    ["solarized-light", "Solarized Light", "#fdf6e3", "#657b83", ["#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#eee8d5", "#002b36", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"]]
+  ].map(function (t) { return { id: "t:" + t[0], name: t[1], bg: t[2], fg: t[3], ansi: t[4] }; });
+  /* palette -> the CSS variables of the page (same rules as terminal_theme.lua; min contrast 3.0 like settings.theme.terminal) */
+  function derive(t) {
+    var bg = t.bg, fg = t.fg, dark = Col.lum(bg) < 0.179, bl = Col.blend;
+    function tint(x) { return bl(bg, fg, x); }
+    function accent(h) { return Col.ensure(h, bg, fg, 3.0); }
+    var red = accent(t.ansi[1]), green = accent(t.ansi[2]), yellow = accent(t.ansi[3]), blue = accent(t.ansi[4]), magenta = accent(t.ansi[5]), cyan = accent(t.ansi[6]);
+    return { dark: dark, vars: {
+      "--bg": bg, "--deep": bl(bg, "#000000", dark ? 0.25 : 0.05), "--soft": tint(0.07), "--fg": fg, "--dim": tint(0.62), "--faint": tint(0.34),
+      "--green": green, "--yellow": yellow, "--aqua": cyan, "--blue": blue, "--red": red, "--purple": magenta, "--orange": bl(red, yellow, 0.5),
+      "--on": dark ? bl(bg, "#000000", 0.45) : bl(bg, "#ffffff", 0.65)
+    } };
   }
-  $("#theme").onclick = flip;
+  var themeId = null;
+  function applyTheme(id, persist) {
+    var t = THEMES.filter(function (x) { return x.id === id; })[0], meta = $("meta[name=theme-color]");
+    Object.keys(derive(THEMES[0]).vars).forEach(function (k) { root.style.removeProperty(k); });
+    if (t) {
+      var d = derive(t); root.dataset.theme = d.dark ? "dark" : "light";
+      Object.keys(d.vars).forEach(function (k) { root.style.setProperty(k, d.vars[k]); });
+      meta.content = t.bg;
+    } else { root.dataset.theme = id === "light" ? "light" : "dark"; meta.content = id === "light" ? "#f2e5bc" : "#282828"; }
+    themeId = id;
+    if (persist) { try { localStorage.setItem("theme", id); } catch (e) {} }
+  }
+  var saved = null; try { saved = localStorage.getItem("theme"); } catch (e) {}
+  if (saved === "t:gruvbox") saved = null;
+  applyTheme(saved && (saved === "dark" || saved === "light" || THEMES.some(function (x) { return x.id === saved; })) ? saved : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"), false);
+
+  /* the picker: a small flat menu like the one in Neovim; moving previews live, Enter keeps it, Esc goes back */
+  var thm = $("#thm"), scrim = $("#thm-scrim"), thmItems = [{ id: "dark", name: "Default · gruvbox" }, { id: "light", name: "Default · gruvbox light" }].concat(THEMES), thmSel = 0, thmBack = null;
+  function swatch(t) {
+    var c = t.ansi ? [t.bg, t.ansi[1], t.ansi[2], t.ansi[3], t.ansi[4], t.ansi[5], t.ansi[6], t.fg] : (t.id === "light" ? ["#f2e5bc", "#9d0006", "#79740e", "#b57614", "#076678", "#8f3f71", "#427b58", "#3c3836"] : ["#282828", "#fb4934", "#b8bb26", "#fabd2f", "#83a598", "#d3869b", "#8ec07c", "#ebdbb2"]);
+    return '<span class="sw">' + c.map(function (x) { return '<i style="background:' + x + '"></i>'; }).join("") + "</span>";
+  }
+  function paintMenu() {
+    var html = '<h6><span>Theme</span><span>t</span></h6>', i;
+    for (i = 0; i < thmItems.length; i++) {
+      if (i === 2) html += "<p>Terminal themes: Neovim reads your terminal's palette and derives every color from it. This is how the page adapts.</p>";
+      var it = thmItems[i];
+      html += '<button data-i="' + i + '" class="' + (i === thmSel ? "s" : "") + '"><span>' + (it.id === themeId ? "● " : "  ") + it.name + "</span>" + swatch(it) + "</button>";
+    }
+    thm.innerHTML = html + "<footer>j k move · Enter keep · Esc cancel</footer>";
+    var s = thm.querySelector(".s"); if (s && s.scrollIntoView) { var r = s.getBoundingClientRect(), m = thm.getBoundingClientRect(); if (r.top < m.top + 30) thm.scrollTop -= m.top + 30 - r.top; else if (r.bottom > m.bottom - 30) thm.scrollTop += r.bottom - m.bottom + 30; }
+  }
+  function openMenu() {
+    thmBack = themeId; thmSel = Math.max(0, thmItems.map(function (x) { return x.id; }).indexOf(themeId));
+    thm.classList.add("on"); scrim.classList.add("on"); paintMenu();
+  }
+  function closeMenu(keep) {
+    thm.classList.remove("on"); scrim.classList.remove("on");
+    if (keep) { try { localStorage.setItem("theme", themeId); } catch (e) {} } else applyTheme(thmBack, false);
+  }
+  function move(d) { thmSel = (thmSel + d + thmItems.length) % thmItems.length; applyTheme(thmItems[thmSel].id, false); paintMenu(); }
+  thm.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; thmSel = +b.dataset.i; applyTheme(thmItems[thmSel].id, false); closeMenu(true); });
+  scrim.addEventListener("click", function () { closeMenu(false); });
+  $("#theme").onclick = function () { if (thm.classList.contains("on")) closeMenu(true); else openMenu(); };
   addEventListener("keydown", function (e) {
     if ((e.target.matches && e.target.matches("input,textarea")) || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === "t") flip();
+    var on = thm.classList.contains("on");
+    if (!on) { if (e.key === "t") openMenu(); return; }
+    var k = e.key;
+    if (k === "j" || k === "ArrowDown") move(1); else if (k === "k" || k === "ArrowUp") move(-1);
+    else if (k === "Enter" || k === "t") closeMenu(true); else if (k === "Escape" || k === "q") closeMenu(false); else return;
+    e.preventDefault();
   });
 
   /* copy */
@@ -559,6 +655,8 @@ footer a:hover{color:var(--fg)}
     keepVisible($("#pn1"), ".foc");
     if (S.tree) { var tr = $("#tr"), ts = tr.querySelector(".tn.s"); if (ts) { if (ts.offsetTop + 60 > tr.scrollTop + tr.clientHeight) tr.scrollTop = ts.offsetTop + 60 - tr.clientHeight; if (ts.offsetTop < tr.scrollTop) tr.scrollTop = ts.offsetTop; } }
     if (S.theme) ed.dataset.theme = S.theme; else ed.removeAttribute("data-theme");
+    var pt = S.pal && THEMES.filter(function (x) { return x.id === S.pal; })[0], pv = pt && derive(pt).vars;
+    Object.keys(derive(THEMES[0]).vars).forEach(function (k) { if (pv) ed.style.setProperty(k, pv[k]); else ed.style.removeProperty(k); });
     ov2El.innerHTML = S.ov ? OV[S.ov.kind](S.ov) : ""; ov2El.classList.toggle("on", !!S.ov);
     if (S.split) keepVisible($("#pn2"), ".foc");
     ed.classList.toggle("ins", S.mode === "INSERT"); ed.classList.toggle("vis", S.mode === "VISUAL");
@@ -751,22 +849,24 @@ footer a:hover{color:var(--fg)}
   };
 
   /* which-key menus, as the real config shows them (key ➜ description, "+" for groups) */
+  var GN = {"a": "Agent", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Service", "aT": "Agent Tests", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "h": "Harpoon", "P": "Session", "S": "Settings", "x": "Diagnostics", "n": "Nvim-tree folders"};
   var MENU = {
-    "": ["", [["a", "Agent", 1], ["C", "Comments", 1], ["f", "Find", 1], ["G", "Git", 1], ["g", "Go", 1], ["h", "Harpoon", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1], ["e", "Nvim-tree focus window"], ["H", "Find file history (session)"], ["d", "General delete without copying"], ["w", "General save"], ["q", "General close buffer / quit"], ["/", "Comment"]]],
-    f: ["Find", [["b", "Find buffers"], ["f", "Find files"], ["o", "Find oldfiles"], ["w", "Find live grep"], ["r", "Find replace in project (grug-far)"], ["m", "General format file"]]],
-    h: ["Harpoon", [["a", "Harpoon add file"], ["m", "Harpoon menu"], ["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"]]],
-    n: ["Nvim-tree", [["d", "nvim-tree: New folder(s)"], ["x", "nvim-tree: Delete folder with contents"]]],
-    g: ["Go", [["a", "struct: add json tags"], ["A", "struct: add json + omitempty"], ["D", "struct: remove json tags"], ["s", "struct: fill literal"], ["e", "if err != nil for the call"], ["T", "add test for the function"], ["r", "run"], ["b", "build"], ["v", "lint"], ["f", "format"], ["t", "go mod tidy"], ["x", "golangci-lint --fix"], ["m", "go test ./..."], ["R", "go test -race ./..."], ["c", "go test -cover ./..."], ["p", "go fix -diff"], ["i", "go fix"], ["g", "go generate ./..."], ["u", "go get -u + go mod tidy"]]],
-    C: ["Comments", [["c", "collapse long comments"], ["e", "expand comments"], ["t", "toggle comment under cursor"], ["d", "doc comment template for this function/type"], ["m", "public functions missing a doc comment (quickfix)"]]],
-    P: ["Session", [["r", "restore session (this folder)"], ["s", "select session (any project)"], ["l", "restore last session"], ["w", "save session now"], ["x", "don't save on exit"]]],
-    S: ["Settings", [["t", "toggle theme"], ["d", "default theme (gruvbox)"], ["a", "terminal theme (Alacritty)"], ["r", "re-sync terminal theme"], ["p", "theme picker"], ["i", "theme info"]]],
-    a: ["Agent", [["i", "Agent implement"], ["r", "Agent review"], ["e", "Agent explain"], ["a", "Agent ask"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["d", "Agent docs"], ["R", "Agent refactor"], ["m", "Agent model"], ["h", "Agent history"], ["c", "Agent clear"], ["x", "Agent stop"], ["D", "Agent DDD", 1], ["L", "Agent Lenses", 1], ["P", "Agent Repository", 1], ["T", "Agent Tests", 1]]],
-    aD: ["Agent DDD", [["i", "Agent ddd implement"], ["r", "Agent ddd review"], ["f", "Agent ddd fix"], ["m", "Agent ddd missing"], ["a", "Agent ddd ask"], ["d", "Agent ddd diagnose"], ["c", "Agent ddd clear"]]],
-    aL: ["Agent Lenses", [["s", "Agent lens security"], ["p", "Agent lens performance"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["a", "Agent lens api"]]],
-    aP: ["Agent Repository", [["p", "Agent repo port"], ["i", "Agent repo implement"], ["r", "Agent repo review"], ["c", "Agent repo check"]]],
-    aT: ["Agent Tests", [["w", "Agent test write"], ["m", "Agent test mock"], ["f", "Agent test fix"], ["g", "Agent test gaps"]]],
-    x: ["Diagnostics", [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list"]]],
-    G: ["Git", [["c", "Git commit"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["a", "Git amend"], ["t", "Git status"], ["b", "Git blame"], ["d", "Git diff"], ["f", "Git file history"], ["r", "Git repo history"], ["q", "Git close diff"], ["o", "Git conflict ours"], ["T", "Git conflict theirs"], ["B", "Git conflict both"], ["N", "Git conflict none"], ["n", "Git conflict next"], ["p", "Git conflict previous"], ["l", "Git conflict list"]]]
+    "a": [["a", "Agent ask"], ["c", "Agent clear"], ["C", "Agent clear file"], ["d", "Agent docs"], ["D", "Agent DDD", 1], ["e", "Agent explain"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["g", "Agent hand off"], ["h", "Agent history"], ["i", "Agent implement"], ["l", "Agent last answer"], ["L", "Agent Lenses", 1], ["m", "Agent model"], ["P", "Agent Repository", 1], ["r", "Agent review"], ["R", "Agent refactor"], ["S", "Agent Service", 1], ["T", "Agent Tests", 1], ["x", "Agent stop"]],
+    "aD": [["a", "Agent ddd ask"], ["c", "Agent ddd clear"], ["d", "Agent ddd diagnose"], ["f", "Agent ddd fix"], ["i", "Agent ddd implement"], ["m", "Agent ddd missing"], ["r", "Agent ddd review"]],
+    "aL": [["a", "Agent lens api"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["p", "Agent lens performance"], ["s", "Agent lens security"]],
+    "aP": [["c", "Agent repo check"], ["i", "Agent repo implement"], ["p", "Agent repo port"], ["r", "Agent repo review"]],
+    "aS": [["d", "Agent service deps"], ["i", "Agent service implement"], ["r", "Agent service review"]],
+    "aT": [["f", "Agent test fix"], ["g", "Agent test gaps"], ["m", "Agent test mock"], ["w", "Agent test write"]],
+    "C": [["c", "Comments collapse long comments"], ["d", "Comments doc comment template for this function/type"], ["e", "Comments expand comments"], ["m", "Comments public functions missing a doc comment (quickfix)"], ["t", "Comments toggle comment under cursor"]],
+    "f": [["b", "telescope find buffers"], ["f", "telescope find files"], ["m", "general format file"], ["o", "telescope find oldfiles"], ["r", "Find replace in project (grug-far)"], ["w", "telescope live grep"]],
+    "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["t", "Git status"], ["T", "Git conflict theirs"]],
+    "g": [["a", "Go struct: add json tags (snake_case)"], ["A", "Go struct: add json tags + omitempty"], ["b", "Go build"], ["c", "Go go test -cover ./..."], ["D", "Go struct: remove json tags"], ["e", "Go if err != nil for the call under the cursor"], ["f", "Go format"], ["g", "Go go generate ./..."], ["i", "Go go fix (apply modernizers)"], ["m", "Go go test ./..."], ["p", "Go go fix -diff (modernizers preview)"], ["r", "Go run"], ["R", "Go go test -race ./..."], ["s", "Go struct: fill literal"], ["t", "Go go mod tidy"], ["T", "Go add test for the function under the cursor"], ["u", "Go go get -u + go mod tidy"], ["v", "Go lint (golangci-lint, or go vet if missing)"], ["x", "Go golangci-lint --fix"]],
+    "h": [["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"], ["a", "Harpoon add file"], ["m", "Harpoon menu"]],
+    "P": [["l", "Session restore last session"], ["r", "Session restore session (this folder)"], ["s", "Session select session (any project)"], ["w", "Session save session now"], ["x", "Session don't save on exit"]],
+    "S": [["a", "Settings terminal theme (Alacritty)"], ["d", "Settings default theme (gruvbox)"], ["i", "Settings theme info"], ["p", "Settings theme picker"], ["r", "Settings re-sync terminal theme"], ["t", "Settings toggle theme"]],
+    "x": [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list (Trouble)"]],
+    "n": [["d", "nvim-tree: New folder(s)"], ["x", "nvim-tree: Delete folder with contents"]],
+    "": [["a", "Agent", 1], ["C", "Comments", 1], ["f", "Find", 1], ["g", "Go", 1], ["G", "Git", 1], ["h", "Harpoon", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1], ["/", "toggle comment"], ["d", "General delete without copying"], ["D", "LSP Go to type definition"], ["e", "nvimtree focus window"], ["H", "Find file history (session)"], ["q", "General close buffer / quit"], ["w", "General save"]]
   };
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -776,7 +876,7 @@ footer a:hover{color:var(--fg)}
     var p = {
       w: function (ms) { return sleep(ms).then(gone); },
       set: function (lines, file, mode) {
-        S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, showCursor: true, split: null, mc: null, panel: null, cp: null, agent: null, fl: null, blocks: true, tree: null, ov: null, cmd: null, theme: null, flash: null };
+        S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, showCursor: true, split: null, mc: null, panel: null, cp: null, agent: null, fl: null, blocks: true, tree: null, ov: null, cmd: null, theme: null, pal: null, flash: null };
         render();
       },
       cursor: function (r, cc) { S.lines.forEach(function (L) { delete L.cc; }); S.cur = r; if (cc != null) S.lines[r].cc = cc; render(); },
@@ -801,15 +901,15 @@ footer a:hover{color:var(--fg)}
       },
       /* leader sequence with the which-key popup, like the real config */
       seq: function (keys) {
-        var path = "", prom = Promise.resolve();
+        var path = "", labels = [], prom = Promise.resolve();
         keys.forEach(function (k, i) {
           prom = prom.then(function () {
             chip(k);
-            if (i === 0) { S.wk = { path: [], items: MENU[""][1], press: null }; render(); return p.w(300); }
+            if (i === 0) { S.wk = { path: [], items: MENU[""], press: null }; render(); return p.w(300); }
             if (S.wk) { S.wk.press = k; render(); }
             return p.w(220).then(function () {
               path += k; var m = MENU[path];
-              if (m && i < keys.length - 1) { S.wk = { path: m[0].split(" "), items: m[1], press: null }; render(); return p.w(250); }
+              if (m && i < keys.length - 1) { labels.push(GN[path]); S.wk = { path: labels.slice(), items: m, press: null }; render(); return p.w(250); }
               S.wk = null; render(); return p.w(80);
             });
           });
@@ -879,6 +979,7 @@ footer a:hover{color:var(--fg)}
       ov: function (o) { S.ov = o; render(); },
       cmd: function (t) { S.cmd = t; render(); },
       theme: function (t) { S.theme = t; render(); },
+      pal: function (id) { S.pal = id; render(); },
       typeInto: function (o, key, str, ms) {
         var i = 0; ms = ms || 55;
         return (function step() {
@@ -982,10 +1083,9 @@ footer a:hover{color:var(--fg)}
         p.diag(1, "error", "compiler", "declared and not used: n"); p.diag(5, "warn", "golangci-lint", "declared and not used: total"); p.blocks(false); await p.w(600);
         await p.seq(["␣", "x", "d"]);
         p.float(H.diag([["e", "declared and not used: n", "compiler"], ["w", "ineffectual assignment to n", "golangci-lint"]]), 8, false); await p.w(2600);
-        await p.key("Esc", 200); p.float(null); await p.key("]", 180); await p.key("e", 300); p.cursor(5); await p.w(350);
-        await p.seq(["␣", "x", "d"]); p.float(H.diag([["w", "declared and not used: total", "golangci-lint"]]), 8, false); await p.w(2400);
-        await p.key("Esc", 200); p.float(null); await p.w(400);
-        await p.seq(["␣", "x", "a"]); p.blocks(true); await p.w(2200); } },
+        await p.key("Esc", 200); p.float(null); await p.w(300);
+        await p.seq(["␣", "x", "a"]); p.blocks(true); await p.w(1500);
+        await p.seq(["␣", "x", "n"]); p.cursor(5); await p.w(2200); } },
     { g: "inspect", name: "Signature help", go: async function (p) {
         p.set(["func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tn, err := s.repo.FindByID(ctx, id)", "\tif err != nil {", "\t\treturn err", "\t}", "\tn.Title = title", "\t"], "note_service.go", "INSERT");
         await p.type("err = s.repo.Save(", 38); await p.w(150);
@@ -1101,7 +1201,6 @@ footer a:hover{color:var(--fg)}
         load(p, "cmd/api/main.go", 0); S.file = ""; S.lines = [{ t: "" }]; S.cur = 0; S.showCursor = false;
         var o = { kind: "dash", art: ARTS[1].join("\n"), repo: "notesapi (main)", user: "Omar", sel: 0, buttons: [["Restore Session", "rs"], ["Find File", "ff"], ["Recent Files", "fo"], ["Find Word", "fw"], ["Themes", "th"], ["Mappings", "ch"], ["Change Art", "ca"]] };
         p.ov(o); await p.w(1600);
-        await p.key("j", 300); o.sel = 1; p.r(); await p.w(400); await p.key("k", 300); o.sel = 0; p.r(); await p.w(600);
         await p.key("r", 150); await p.key("s", 400); p.open("internal/application/note_service.go", 5, 14); S.showCursor = true; p.r();
         p.note("<b>Session restored</b> · 3 buffers · cursor where you left it"); await p.w(2200); p.note(null); } },
     { g: "find", name: "Find files", go: async function (p) {
@@ -1127,7 +1226,7 @@ footer a:hover{color:var(--fg)}
         var F = ["cmd/api/main.go", "internal/application/note_service.go", "internal/transport/note_handler.go"], i;
         for (i = 0; i < 3; i++) { load(p, F[i], 2); await p.w(450); await p.seq(["␣", "h", "a"]); await p.w(200); }
         await p.seq(["␣", "h", "m"]);
-        var o = { kind: "modal", title: "Harpoon", lines: F.map(function (f, k) { return k === 1 ? '<span class="sel"> ' + esc(f) + " </span>" : " " + esc(f); }), hint: "j / k move · Enter jump · q close" }; p.ov(o); await p.w(1500);
+        var o = { kind: "modal", title: "Harpoon", lines: F.map(function (f, k) { return k === 1 ? '<span class="sel"> ' + esc(f) + " </span>" : " " + esc(f); }) }; p.ov(o); await p.w(1500);
         await p.key("Esc", 250); p.ov(null); await p.w(400);
         await p.seq(["␣", "h", "2"]); p.open(F[1], 5); await p.w(900);
         await p.seq(["␣", "h", "1"]); p.open(F[0], 3); await p.w(1300); } },
@@ -1228,6 +1327,12 @@ footer a:hover{color:var(--fg)}
         o.lines.push(["mu", "2026/10/13 09:12:01 listening on :8080"]); p.r(); await p.w(1500);
         await p.key("Esc", 250); p.ov(null); await p.w(500);
         await p.key("Alt+i", 350); p.ov(o); await p.w(1500); await p.key("Esc", 250); p.ov(null); await p.w(400); } },
+    { g: "work", name: "Terminal theme", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 14); await p.w(900);
+        await p.seq(["␣", "S", "a"]); p.pal("t:tokyo-night"); await p.w(1800);
+        var next = [["t:catppuccin-mocha", 0], ["t:nord", 0], ["t:rose-pine", 0], ["t:solarized-light", 0], ["t:dracula", 0]], i;
+        for (i = 0; i < next.length; i++) { await p.seq(["␣", "S", "r"]); p.pal(next[i][0]); p.note("<b>Terminal theme updated</b>"); await p.w(1500); p.note(null); }
+        await p.seq(["␣", "S", "d"]); p.pal(null); await p.w(1400); } },
     { g: "work", name: "Theme toggle", go: async function (p) {
         load(p, "internal/application/note_service.go", 5, 14); await p.w(900);
         var other = root.dataset.theme === "dark" ? "light" : "dark";
