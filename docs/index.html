@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>my-nvim-setup — a Neovim framework for working. Nothing else.</title>
+<meta name="description" content="A tiny, opinionated Neovim framework: ~20 ms startup, 54 pinned plugins, one-command install, and custom tooling for speed — Go completion that reads your code, a one-panel commit flow, and a token-frugal AI agent.">
+<meta name="theme-color" content="#282828">
+<meta property="og:title" content="my-nvim-setup — Neovim, for working">
+<meta property="og:description" content="~20 ms startup. One command. Opinionated on purpose.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23282828'/%3E%3Cpath d='M9 24V8l14 16V8' fill='none' stroke='%23b8bb26' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+/* ── palette: base46 gruvbox / gruvbox_light, the same colors the config ships ───────────────────── */
+:root,[data-theme=dark]{
+  --bg:#282828;--bg1:#2e2e2e;--bg2:#353535;--bg3:#3f3f3f;--line:#444;--fg:#ebdbb2;--dim:#a89984;--faint:#7c6f64;
+  --red:#fb4934;--green:#b8bb26;--yellow:#fabd2f;--blue:#83a598;--purple:#d3869b;--aqua:#8ec07c;--orange:#fe8019;
+  --on:#282828;--shadow:rgba(0,0,0,.45);
+}
+[data-theme=light]{
+  --bg:#f2e5bc;--bg1:#e9dcb3;--bg2:#e5d8af;--bg3:#d8cba2;--line:#cabd94;--fg:#3c3836;--dim:#665c54;--faint:#928374;
+  --red:#9d0006;--green:#79740e;--yellow:#b57614;--blue:#076678;--purple:#8f3f71;--aqua:#427b58;--orange:#af3a03;
+  --on:#f2e5bc;--shadow:rgba(60,56,54,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.65 ui-monospace,"JetBrains Mono","Cascadia Code","SF Mono",Menlo,Consolas,monospace;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;transition:background .2s,color .2s}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--yellow);color:var(--on)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.hero>*,.demo>*,.two>*,.grid>*,.nums>*,.stack>*{min-width:0}
+body{overflow-x:hidden}
+section{padding:88px 0 0}
+h1,h2,h3{font-weight:700;line-height:1.15;letter-spacing:-.02em}
+h2{font-size:clamp(26px,4vw,38px);margin-bottom:14px}
+h3{font-size:16px;letter-spacing:0}
+p{color:var(--dim);max-width:72ch}
+p b,li b{color:var(--fg);font-weight:600}
+code{font:inherit;background:var(--bg2);padding:.08em .4em;border-radius:5px;color:var(--fg)}
+.k{color:var(--red)} .s{color:var(--green)} .c{color:var(--faint);font-style:italic} .f{color:var(--yellow)}
+.t{color:var(--aqua)} .n{color:var(--purple)} .o{color:var(--orange)} .b{color:var(--blue)} .d{color:var(--dim)}
+.eyebrow{color:var(--aqua);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;display:block}
+
+/* ── pills: the same solid, rounded labels as the statusline and the line numbers ──────────────── */
+.pill{display:inline-flex;align-items:center;gap:.4em;background:var(--green);color:var(--on);font-weight:700;font-size:12px;
+  padding:.18em .75em;border-radius:999px;line-height:1.5;white-space:nowrap}
+.pill.aqua{background:var(--aqua)} .pill.red{background:var(--red)} .pill.yellow{background:var(--yellow)}
+.pill.blue{background:var(--blue)} .pill.purple{background:var(--purple)} .pill.orange{background:var(--orange)}
+.pill.ghost{background:var(--bg3);color:var(--dim)}
+
+/* ── statusline-style top bar ───────────────────────────────────────────────────────────────────── */
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg1) 92%,transparent);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:14px;height:46px;font-size:13px}
+.bar nav{display:flex;gap:2px;margin-left:8px;flex:1;overflow-x:auto;scrollbar-width:none}
+.bar nav a{padding:.25em .8em;border-radius:999px;color:var(--dim);white-space:nowrap;transition:.15s}
+.bar nav a:hover{background:var(--bg3);color:var(--fg)}
+.bar .right{display:flex;gap:8px;align-items:center}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 .45em;font-size:12px;color:var(--dim)}
+.toggle{padding:.2em .7em;border-radius:999px;background:var(--bg3);color:var(--dim);font-size:12px}
+.toggle:hover{color:var(--fg)}
+
+/* ── hero ───────────────────────────────────────────────────────────────────────────────────────── */
+.hero{padding-top:72px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+.hero h1{font-size:clamp(40px,7vw,76px);letter-spacing:-.045em}
+.hero h1 em{font-style:normal;color:var(--green)}
+.hero .lede{font-size:clamp(16px,2vw,19px);margin:20px 0 28px;color:var(--dim);max-width:46ch}
+.hero .lede b{color:var(--fg)}
+.cursor{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-.12em;margin-left:.05em;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.install{display:flex;align-items:stretch;min-width:0;width:100%;background:var(--bg1);border:1px solid var(--line);border-radius:12px;overflow:hidden;max-width:560px}
+.install code{flex:1;min-width:0;background:none;padding:14px 16px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;border-radius:0;font-size:13.5px}
+.install code .p{color:var(--aqua);user-select:none}
+.install button{padding:0 18px;background:var(--bg3);color:var(--dim);font-size:13px;border-left:1px solid var(--line);transition:.15s;min-width:84px}
+.install button:hover{color:var(--fg);background:var(--bg2)}
+.install button.ok{background:var(--green);color:var(--on)}
+.sub{margin-top:12px;font-size:13px;color:var(--faint)}
+.sub a{color:var(--dim);border-bottom:1px dotted var(--faint)} .sub a:hover{color:var(--fg)}
+
+/* ── the editor window mock ─────────────────────────────────────────────────────────────────────── */
+.win{background:var(--bg);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px -24px var(--shadow);overflow:hidden}
+.win .top{display:flex;align-items:center;gap:7px;padding:11px 14px;background:var(--bg1);border-bottom:1px solid var(--line);font-size:12px;color:var(--faint)}
+.win .top i{width:11px;height:11px;border-radius:50%;background:var(--bg3);display:block}
+.win .top i:nth-child(1){background:var(--red)} .win .top i:nth-child(2){background:var(--yellow)} .win .top i:nth-child(3){background:var(--green)}
+.win .top span{margin-left:8px}
+.dash{padding:30px 20px 18px;text-align:center}
+.art{font:inherit;line-height:1.1;color:var(--green);white-space:pre;font-size:15px;letter-spacing:0;min-height:11em;display:flex;justify-content:center}
+.art pre{font:inherit;text-align:left}
+.dash .title{margin:14px 0 4px;color:var(--fg);font-weight:700}
+.dash .tag{color:var(--faint);font-size:12px;margin-bottom:18px}
+.btns{display:grid;gap:6px;max-width:300px;margin:0 auto}
+.btns div,.btns button{display:flex;justify-content:space-between;align-items:center;background:var(--bg1);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--dim);text-align:left;width:100%}
+.btns button:hover{border-color:var(--green);color:var(--fg)}
+.btns .kbd{font-size:11px}
+.status{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg1);border-top:1px solid var(--line);font-size:12px}
+.status .sp{flex:1}
+.status .mid{color:var(--dim)}
+
+/* ── numbers ────────────────────────────────────────────────────────────────────────────────────── */
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:72px}
+.nums div{background:var(--bg1);padding:26px 22px}
+.nums strong{display:block;font-size:clamp(30px,4.4vw,46px);letter-spacing:-.04em;line-height:1;color:var(--green);margin-bottom:8px}
+.nums span{font-size:13px;color:var(--dim);display:block;line-height:1.45}
+
+/* ── cards ──────────────────────────────────────────────────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+.card{background:var(--bg1);border:1px solid var(--line);border-radius:14px;padding:22px;transition:.2s}
+.card:hover{border-color:var(--faint);transform:translateY(-2px)}
+.card .pill{margin-bottom:14px}
+.card h3{margin-bottom:8px}
+.card p{font-size:14px}
+
+/* ── Go demo ────────────────────────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:30px 0 14px}
+.tabs button{padding:.35em .95em;border-radius:999px;background:var(--bg2);color:var(--dim);font-size:13px;transition:.15s}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected=true]{background:var(--green);color:var(--on);font-weight:700}
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pane{background:var(--bg1);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.pane h4{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:11px 16px;border-bottom:1px solid var(--line);background:var(--bg2);display:flex;gap:8px;align-items:center}
+.pane pre{padding:16px;font:inherit;font-size:13px;line-height:1.6;overflow-x:auto;color:var(--fg);tab-size:4}
+.menu{margin:0 16px 16px;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:12.5px}
+.menu div{display:flex;justify-content:space-between;gap:16px;padding:4px 12px;color:var(--dim)}
+.menu div.sel{background:var(--blue);color:var(--on);font-weight:600}
+.menu small{color:inherit;opacity:.75}
+.note{margin-top:16px;font-size:13px;color:var(--faint)}
+.note b{color:var(--dim)}
+
+/* ── agent / which-key ──────────────────────────────────────────────────────────────────────────── */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:34px;align-items:start}
+.wk{background:var(--bg1);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.wk h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--faint);padding:11px 16px;background:var(--bg2);border-bottom:1px solid var(--line)}
+.wk ul{list-style:none;columns:2;column-gap:6px;padding:14px 16px;font-size:13px}
+.wk li{break-inside:avoid;padding:1px 0;display:flex;gap:8px;color:var(--dim)}
+.wk li b{color:var(--yellow);min-width:2.2em;font-weight:700}
+.wk li i{font-style:normal;color:var(--aqua);margin-left:auto;font-size:11px}
+.two.a{grid-template-columns:1.25fr .75fr}.two.b{grid-template-columns:1.5fr 1fr}
+.wk ul.cols3{columns:3;padding:18px 20px}
+.stack{display:grid;gap:10px}
+.float{background:var(--bg1);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:12.5px}
+.float .ttl{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;background:var(--bg2);border-bottom:1px solid var(--line);color:var(--dim);align-items:center}
+.float .body{padding:9px 12px;line-height:1.7}
+.float .row{display:flex;gap:10px;color:var(--dim)}
+.float .row .l{color:var(--green);width:1.2em}
+.float .row.off .l{color:var(--faint)}
+.float .row .a{margin-left:auto;color:var(--faint)}
+.ai{font-size:12px;color:var(--faint);padding:2px 4px}
+.ai b{color:var(--purple)}
+
+/* ── diagnostics mock ───────────────────────────────────────────────────────────────────────────── */
+.code{background:var(--bg1);border:1px solid var(--line);border-radius:14px;padding:14px 0;font-size:13px;overflow-x:auto}
+.ln{display:flex;gap:14px;padding:0 18px 0 8px;line-height:1.75;white-space:pre}
+.ln .src{min-width:0}
+.ln .num{width:2.6em;text-align:center;color:var(--faint);flex:none}
+.ln .num.e{background:var(--red);color:var(--on);font-weight:700;border-radius:999px}
+.ln .num.w{background:var(--yellow);color:var(--on);font-weight:700;border-radius:999px}
+.blk{margin:2px 18px 4px calc(8px + 2.6em + 14px);border-left:3px solid var(--red);padding:3px 12px;background:color-mix(in srgb,var(--red) 11%,transparent);border-radius:0 8px 8px 0;font-size:12.5px;white-space:normal}
+.blk.w{border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 11%,transparent)}
+.blk b{color:var(--red)} .blk.w b{color:var(--yellow)}
+
+/* ── languages / tree ───────────────────────────────────────────────────────────────────────────── */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.chips span{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:.25em .9em;font-size:13px;color:var(--dim)}
+.tree{background:var(--bg1);border:1px solid var(--line);border-radius:14px;padding:20px 22px;font-size:13px;line-height:1.8;overflow-x:auto;white-space:pre;color:var(--dim)}
+.tree b{color:var(--fg);font-weight:600} .tree i{font-style:normal;color:var(--aqua)}
+
+/* ── opinions list / table / footer ─────────────────────────────────────────────────────────────── */
+.no{list-style:none;margin-top:30px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 28px}
+.no li{padding:12px 0;border-bottom:1px solid var(--line);color:var(--dim);font-size:14px}
+.no li b{display:block;color:var(--fg);margin-bottom:2px}
+.no li b::before{content:"✕  ";color:var(--red);font-weight:700}
+.no.yes li b::before{content:"✓  ";color:var(--green)}
+table{width:100%;border-collapse:collapse;margin-top:26px;font-size:13.5px;display:block;overflow-x:auto}
+td,th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--faint);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+td:first-child{white-space:nowrap;color:var(--yellow);width:1%}
+td{color:var(--dim)}
+footer{margin-top:110px;border-top:1px solid var(--line);padding:30px 0 56px;color:var(--faint);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+footer a{color:var(--dim);border-bottom:1px dotted var(--faint)} footer a:hover{color:var(--fg)}
+
+@media(max-width:900px){
+  .hero,.demo,.two,.two.a,.two.b{grid-template-columns:1fr}
+  .wk ul.cols3{columns:2}
+  .grid{grid-template-columns:1fr 1fr}
+  .nums{grid-template-columns:1fr 1fr}
+  .no{grid-template-columns:1fr}
+  section{padding-top:68px}
+}
+@media(max-width:560px){
+  .grid{grid-template-columns:1fr}
+  .wk ul,.wk ul.cols3{columns:1}
+  .bar .right .hide{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <span class="pill aqua">NORMAL</span>
+    <nav aria-label="Sections">
+      <a href="#opinions">opinions</a><a href="#numbers">numbers</a><a href="#go">go</a><a href="#agent">agent</a>
+      <a href="#diagnostics">diagnostics</a><a href="#map">keys</a><a href="#extend">extend</a><a href="#install">install</a>
+    </nav>
+    <div class="right">
+      <button class="toggle" id="theme" title="Toggle theme (t)" aria-label="Toggle theme">gruvbox ↔ light <span class="kbd">t</span></button>
+      <a class="pill ghost hide" href="https://github.com/sazardev/my-nvim-setup">github</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ── hero ─────────────────────────────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div>
+    <span class="eyebrow">a mini-framework for Neovim</span>
+    <h1>Built to <em>work</em>.<br>Nothing else<span class="cursor"></span></h1>
+    <p class="lede">Minimal, fast and <b>opinionated on purpose</b>. Everything loads lazily, every feature is one file, and the custom tooling exists for one reason: <b>less time between you and the code</b>.</p>
+    <div class="install">
+      <code id="cmd"><span class="p">$ </span>curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash</code>
+      <button id="copy" aria-label="Copy install command">copy</button>
+    </div>
+    <p class="sub">One command. No clone, no prompts. Linux · WSL · macOS · <a href="#install">Windows</a> — an existing config is moved to <code>nvim.bak-&lt;date&gt;</code>, never deleted.</p>
+  </div>
+
+  <div class="win" aria-label="The dashboard">
+    <div class="top"><i></i><i></i><i></i><span>nvim — dashboard</span></div>
+    <div class="dash">
+      <div class="art"><pre id="art"></pre></div>
+      <div class="title">my-nvim-setup</div>
+      <div class="tag">20 ms · 54 plugins · 19 languages</div>
+      <div class="btns">
+        <div><span>Find file</span><span class="kbd">␣ ff</span></div>
+        <div><span>Recent files</span><span class="kbd">␣ fo</span></div>
+        <div><span>Agent</span><span class="kbd">␣ a</span></div>
+        <button id="art-next" aria-label="Change the art"><span>Change art</span><span class="kbd">131 braille arts</span></button>
+      </div>
+    </div>
+    <div class="status"><span class="pill">main</span><span class="mid">~/my-nvim-setup</span><span class="sp"></span><span class="pill red">E0</span><span class="pill yellow">W0</span><span class="pill blue">go</span></div>
+  </div>
+</div>
+
+<!-- ── numbers ──────────────────────────────────────────────────────────────────────────────────── -->
+<div class="nums" id="numbers">
+  <div><strong>~20ms</strong><span>to a usable editor (headless <code>--startuptime</code>)</span></div>
+  <div><strong>54</strong><span>plugins in the lockfile, dependencies and NvChad's included. 8 load at start</span></div>
+  <div><strong>1</strong><span>command to install it. ~3 min the first time, 3 seconds every time after</span></div>
+  <div><strong>0</strong><span>tokens spent by the Go helpers, the gaps map, the commit validation…</span></div>
+</div>
+
+<!-- ── opinions ─────────────────────────────────────────────────────────────────────────────────── -->
+<section id="opinions">
+  <span class="eyebrow">opinions</span>
+  <h2>It has a point of view.</h2>
+  <p>A framework earns its keep by deciding things for you. These are the decisions, and the reasons.</p>
+  <div class="grid">
+    <div class="card"><span class="pill">speed</span><h3>Lazy, or it doesn't ship</h3><p><code>defaults.lazy = true</code>. Plugins wait for an event, a filetype, a command or a key. Bytecode cache, unused built-ins off. Nothing runs that you didn't ask for.</p></div>
+    <div class="card"><span class="pill aqua">modular</span><h3>Declared, never wired</h3><p>A language is one file declaring its parsers, LSP, formatter, linter and menu. Add a file and a name — mason, treesitter, conform and lint pick it up. One file, one responsibility.</p></div>
+    <div class="card"><span class="pill yellow">frugal</span><h3>Decide before you spend</h3><p>Gates skip code that doesn't match a lens. The test action runs the test first. Static analysis is free. A model is called only when nothing local can answer.</p></div>
+    <div class="card"><span class="pill purple">keyboard</span><h3>Every action has a key</h3><p>Menus live under <code>&lt;Space&gt;</code>, one letter per context, and only exist where they apply. The cheatsheet is generated from the real keymaps, so it can't lie.</p></div>
+    <div class="card"><span class="pill orange">pinned</span><h3>Reproducible by default</h3><p>Plugins install at the commits in <code>lazy-lock.json</code>. Install on a new machine, get the same editor. Updating is a decision, not an accident.</p></div>
+    <div class="card"><span class="pill blue">light</span><h3>Small machines are first-class</h3><p>At ≤ 2 GB of RAM it turns off the resident processes (LSP, golangci-lint) by itself. <code>NVIM_LIGHT=1|0</code> forces it either way.</p></div>
+  </div>
+
+  <h3 style="margin-top:56px;font-size:20px">What it refuses to be</h3>
+  <ul class="no">
+    <li><b>A tab bar</b>buffers and harpoon do the job, and a bar costs a column and a redraw.</li>
+    <li><b>An embedded chat</b>the agent does one shot on the function under your cursor and shows a diff. No sidebar.</li>
+    <li><b>A heavy session manager</b>one session per folder and branch, autosaved. That's all.</li>
+    <li><b>A pile of plugins</b>54 locked entries, counting the ones NvChad drags in. If it can be 60 lines of Lua, it is.</li>
+    <li><b>Someone else's colors</b>it can inherit your terminal's palette live, polling the Alacritty config.</li>
+    <li><b>A wall of options</b>every knob is in one file with its default and a comment; yours go in a git-ignored <code>local.lua</code>.</li>
+  </ul>
+</section>
+
+<!-- ── Go ───────────────────────────────────────────────────────────────────────────────────────── -->
+<section id="go">
+  <span class="eyebrow">custom, for speed</span>
+  <h2>Go completion that reads your code.</h2>
+  <p>Not snippets — completion built from your own interfaces, structs, constants and <code>go.mod</code>. Treesitter, no language model, <b>0 tokens</b>, instant.</p>
+  <div class="tabs" role="tablist" id="tabs" aria-label="Go helpers"></div>
+  <div class="demo" id="demo" aria-live="polite"></div>
+  <p class="note">Plus struct tags derived from the field name, constructors, filled struct literals, sentinel errors and statement snippets. <b>Seven helpers</b> sit on one shared index (<code>utils/goindex.lua</code>); each is a module you can read in a sitting.</p>
+</section>
+
+<!-- ── agent ────────────────────────────────────────────────────────────────────────────────────── -->
+<section id="agent">
+  <span class="eyebrow">ai, without the chat</span>
+  <h2>An agent that respects your tokens.</h2>
+  <p>One shot on the function or selection under the cursor, shown as an inline diff you accept or reject with one key. Claude Code, OpenCode, Ollama, LM Studio, llama.cpp… detected and configured for you. The call is trimmed to <b>579 input tokens instead of ~46,000</b>.</p>
+  <div class="two">
+    <div class="wk">
+      <h4>&lt;leader&gt;a — agent</h4>
+      <ul>
+        <li><b>i</b> implement</li><li><b>r</b> review</li><li><b>e</b> explain</li><li><b>a</b> ask</li>
+        <li><b>f</b> fix inline</li><li><b>F</b> fix block</li><li><b>d</b> docs</li><li><b>R</b> refactor</li>
+        <li><b>g</b> hand off</li><li><b>m</b> model</li><li><b>h</b> history</li><li><b>c</b> clear</li>
+        <li><b>T</b> tests <i>group</i></li><li><b>L</b> lenses <i>group</i></li><li><b>D</b> domain <i>group</i></li><li><b>P S</b> repo · service</li>
+      </ul>
+    </div>
+    <div class="wk">
+      <h4>&lt;leader&gt;aT tests · aL lenses</h4>
+      <ul>
+        <li><b>w</b> write missing</li><li><b>m</b> mock</li>
+        <li><b>f</b> fix <i>runs it first</i></li><li><b>g</b> gaps <i>0 tokens</i></li>
+        <li><b>s</b> security</li><li><b>p</b> performance</li><li><b>c</b> concurrency</li><li><b>e</b> errors</li>
+        <li><b>a</b> api compat</li><li style="color:var(--faint)">gates skip what doesn't apply</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="two" style="margin-top:16px">
+    <div>
+      <h3 style="margin-bottom:10px">Commits, in one panel <span class="pill ghost" style="margin-left:6px">&lt;leader&gt;G</span></h3>
+      <p style="font-size:14px;margin-bottom:16px">See what goes in, write the message with live Conventional Commits validation, and know what the AI will read <b>before</b> it spends anything.</p>
+      <p style="font-size:14px"><span class="pill">GM</span> commits <b>by itself, in the background</b>: stages what changed (never secrets), one English line from the model in ~2 s, validated, committed. If anything fails it undoes what it staged.</p>
+    </div>
+    <div class="stack" aria-label="The commit panel">
+      <div class="float"><div class="ttl"><span>Staged · 2 files — goes in the commit</span><span class="d">main → origin ↑1</span></div>
+        <div class="body"><div class="row"><span class="l">●</span>M nvim/lua/commit/ai.lua<span class="a">+31 −14</span></div><div class="row"><span class="l">●</span>M scripts/test-commit.lua<span class="a">+40 −3</span></div><div class="row off"><span class="l">○</span>M README.md — not staged<span class="a">NOT included</span></div></div></div>
+      <div class="float"><div class="ttl"><span>message</span><span class="pill">✔ feat(commit) · 38/72</span></div>
+        <div class="body"><span class="s">feat(commit)</span>: draft messages faster, always in English</div></div>
+      <div class="ai"><b>✦ AI</b> claude/haiku · ⌃g to draft · reads 2 files, 3.1k chars <span class="d">→ drafted in 2.1 s · $0.0004</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── diagnostics ──────────────────────────────────────────────────────────────────────────────── -->
+<section id="diagnostics">
+  <span class="eyebrow">readable by default</span>
+  <h2>Diagnostics you can't miss, or mistake.</h2>
+  <p>One color source for the whole UI: the line number turns into a pill of the severity, the message opens right under its line, and the status bar counts the same colors. Collapse them to one line each when you want quiet.</p>
+  <div class="two a">
+    <div class="code" role="img" aria-label="Code with inline diagnostics">
+<div class="ln"><span class="num">9</span><span class="src"><span class="k">func</span> <span class="f">Get</span>(ctx context.Context, id <span class="t">string</span>) (*Note, <span class="t">error</span>) {</span></div>
+<div class="ln"><span class="num e">10</span><span class="src">    n, err := s.repo.<span class="f">FindByID</span>(ctx, id)</span></div>
+<div class="blk"><b>✖ Error</b> <span class="d">compiler · UnusedVar</span><br>declared and not used: n</div>
+<div class="ln"><span class="num">11</span><span class="src">    <span class="k">if</span> err != <span class="n">nil</span> {</span></div>
+<div class="ln"><span class="num w">12</span><span class="src">        <span class="k">return</span> <span class="n">nil</span>, err</span></div>
+<div class="blk w"><b>▲ Warn</b> <span class="d">agent · errors</span><br>wrap the error with context</div>
+<div class="ln"><span class="num">13</span><span class="src">    }</span></div>
+<div class="ln"><span class="num">14</span><span class="src">}</span></div>
+    </div>
+    <div class="stack">
+      <div class="float"><div class="ttl"><span>statusline</span></div><div class="body" style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill aqua">NORMAL</span><span class="pill">main</span><span class="pill red">E1</span><span class="pill yellow">W1</span></div></div>
+      <div class="float"><div class="ttl"><span>fix it</span></div><div class="body"><div class="row"><span class="l" style="color:var(--yellow)">f</span>inline: only this line, with the type it points to</div><div class="row"><span class="l" style="color:var(--yellow)">F</span>block: the whole function, all its diagnostics</div><div class="row"><span class="l" style="color:var(--yellow)">c</span>clear one finding · <span class="l" style="color:var(--yellow)">C</span>the file</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── languages ────────────────────────────────────────────────────────────────────────────────── -->
+<section id="languages">
+  <span class="eyebrow">19 languages</span>
+  <h2>Each language is one file.</h2>
+  <p>It declares its parsers, servers, formatters, linters and its own <code>&lt;leader&gt;</code> menu, which only exists in buffers of that filetype. Don't use one? <code>--lang go,lua</code> and nothing else gets installed.</p>
+  <div class="chips" id="langs"></div>
+</section>
+
+<!-- ── keyboard map ─────────────────────────────────────────────────────────────────────────────── -->
+<section id="map">
+  <span class="eyebrow">keyboard map</span>
+  <h2>Press <code>&lt;Space&gt;</code>. It tells you the rest.</h2>
+  <p>One letter per context under the leader; which-key shows only what applies to the buffer you're in.</p>
+  <div class="wk" style="margin-top:30px"><h4>&lt;leader&gt;</h4>
+    <ul class="cols3" id="leader"></ul>
+  </div>
+</section>
+
+<!-- ── extend ───────────────────────────────────────────────────────────────────────────────────── -->
+<section id="extend">
+  <span class="eyebrow">extend</span>
+  <h2>Add a thing, add a file.</h2>
+  <p>No wiring, no editing three registries. Each piece talks to a small contract, so you can replace one without touching its neighbors.</p>
+  <div class="two b">
+<div class="tree"><b>nvim/lua/</b>
+  <b>languages/</b>       <i>rust.lua</i>          a language: LSP, formatter, menu
+  <b>plugins/editing/</b> <i>flash.lua</i>         a plugin, lazy by default
+  <b>agent/</b>
+    actions/         <i>review.lua</i>        a one-shot action
+    lenses/          <i>security.lua</i>      a focused review
+    tests/           <i>convention.lua</i>    where tests live per language
+    backends/        <i>ollama.lua</i>        a model backend
+  <b>commit/</b>         <i>conventional.lua</i>  pure validation, git, panel
+  <b>utils/</b>          <i>goenum.lua</i>        a Go completion helper
+  <b>ui/arts/</b>        <i>fox.lua</i>           a braille dashboard art</div>
+    <div>
+      <p style="margin-bottom:18px">The principles repeat everywhere:</p>
+      <ul class="no yes" style="grid-template-columns:1fr;margin-top:0">
+        <li style="border:0;padding:6px 0"><b style="color:var(--green)">One responsibility per module.</b>Pure logic apart from what touches git, the LSP or the UI.</li>
+        <li style="border:0;padding:6px 0"><b style="color:var(--green)">Open for extension.</b>Discovered registries; new pieces don't edit old ones.</li>
+        <li style="border:0;padding:6px 0"><b style="color:var(--green)">Depend on small contracts.</b><code>build</code>/<code>parser</code> for a backend, <code>collect</code> for context.</li>
+        <li style="border:0;padding:6px 0"><b style="color:var(--green)">Every knob in one place.</b><code>core/settings.lua</code>, overridden by <code>local.lua</code>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── install ──────────────────────────────────────────────────────────────────────────────────── -->
+<section id="install">
+  <span class="eyebrow">install</span>
+  <h2>One command. All of it.</h2>
+  <p>Dependencies, Neovim ≥ 0.11 (no <code>sudo</code>), the link, git hooks, plugins at their pinned versions, LSPs, formatters, linters, treesitter parsers and the AI agent — then it tells you how long each step took. Re-running it brings everything up to date in seconds.</p>
+  <div class="install" style="margin-top:26px;max-width:none">
+    <code id="cmd2"><span class="p">$ </span>curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash</code>
+    <button id="copy2" aria-label="Copy install command">copy</button>
+  </div>
+  <table>
+    <tr><th>option</th><th>effect</th></tr>
+    <tr><td>--lang go,lua</td><td>only those languages; the rest are disabled and never installed</td></tr>
+    <tr><td>--theme catppuccin</td><td>the default theme</td></tr>
+    <tr><td>--light | --no-light</td><td>force light mode (no resident LSP) or turn it off; otherwise detected by RAM</td></tr>
+    <tr><td>--agent auto</td><td>the AI agent: the best backend found (default), a specific <code>claude/haiku</code>, or <code>none</code></td></tr>
+    <tr><td>--ask · --no-deps · --dry-run</td><td>prompt before system changes · skip system packages · print the plan only</td></tr>
+  </table>
+  <p class="sub" style="margin-top:18px">Pass options after <code>bash -s --</code>: <code>… | bash -s -- --lang go,lua --theme gruvbox</code>. Windows: <code>irm …/install.ps1 | iex</code> (written, not yet tested on real Windows). Prefer a clone? <code>git clone</code> it and run <code>./install.sh</code>.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>my-nvim-setup · built on NvChad v2.5 · Neovim ≥ 0.11</span>
+    <span><a href="https://github.com/sazardev/my-nvim-setup">source</a> · <a href="cheatsheets/README.md">docs</a> · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/CHEATSHEET.md">every key</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement, $ = function (s) { return document.querySelector(s); };
+
+  /* theme: follows the system, `t` or the button toggles, remembered */
+  var saved = null; try { saved = localStorage.getItem("theme"); } catch (e) {}
+  root.dataset.theme = saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  function flip() {
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    document.querySelector('meta[name=theme-color]').content = root.dataset.theme === "dark" ? "#282828" : "#f2e5bc";
+  }
+  $("#theme").onclick = flip;
+  addEventListener("keydown", function (e) {
+    if ((e.target.matches && e.target.matches("input,textarea")) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "t") flip();
+  });
+
+  /* copy buttons */
+  function fallback(node) {
+    var r = document.createRange(); r.selectNodeContents(node); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    try { document.execCommand("copy"); } catch (e) {}
+  }
+  function copy(text, node) {
+    if (!navigator.clipboard) { fallback(node); return Promise.resolve(); }
+    return navigator.clipboard.writeText(text).catch(function () { fallback(node); });
+  }
+  [["#copy", "#cmd"], ["#copy2", "#cmd2"]].forEach(function (p) {
+    var b = $(p[0]), c = $(p[1]);
+    b.onclick = function () {
+      copy(c.textContent.replace(/^\$ /, ""), c).then(function () {
+        b.textContent = "copied ✓"; b.classList.add("ok");
+        setTimeout(function () { b.textContent = "copy"; b.classList.remove("ok"); }, 1600);
+      });
+    };
+  });
+
+  /* dashboard art: a few of the 131 braille arts the dashboard cycles through */
+  var ARTS = [["⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⡲⠃⡰⣆⠀⠀", "⠀⠀⠀⠀⠀⠀⠀⢀⡔⢡⠮⡠⠊⣰⠂⠀⠀", "⠀⠀⠀⠀⠀⠀⢀⠎⠠⡧⠊⠀⡠⠁⠀⠀⠀", "⠀⠀⠀⠀⠀⠀⡘⠀⠀⠀⠀⡔⠃⠀⠀⠀⠀", "⠀⠀⠀⠀⠀⠀⣯⣃⣾⡧⠊⠀⠀⠀⠀⠀⠀", "⠀⠀⠀⠀⠀⠀⢀⣿⣿⣥⠀⠀⠀⣀⣤⠾⠷", "⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣶⡿⠋⠉⠀⠀", "⠀⠀⠀⠀⠈⣻⠿⣿⣿⣿⡿⠛⠃⠀⠀⠀⠀", "⠀⠀⣤⣔⠎⠇⠙⠀⢧⢸⠀⠀⠀⠀⠀⠀⠀", "⠐⠊⠁⠁⠀⠀⠀⠀⠸⢸⠀⠀⠀⠀⠀⠀⠀"], ["⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀", "⢹⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡏", "⠘⣿⣇⠐⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠊⣸⣿⠃", "⠀⢿⣿⠀⢀⣵⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣮⡀⠀⣿⡿⠀", "⠀⢸⣿⣷⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⡇⠀", "⠀⠀⣿⣿⣿⣏⠉⠛⠿⢿⣿⣿⣿⣿⡿⠿⠛⠉⣹⣿⣿⣿⠀⠀", "⠀⠀⠹⣿⣿⣿⣿⣷⣦⣼⣿⣿⣿⣿⣧⣴⣾⣿⣿⣿⣿⠏⠀⠀", "⠀⠀⠀⠈⠛⢿⣿⣍⠉⠉⠉⠉⠉⠉⠉⢉⣽⣿⡿⠛⠁⠀⠀⠀", "⠀⠀⠀⠀⠀⠀⠉⠻⢷⣄⠀⣠⣄⢀⣴⡿⠟⠉⠀⠀⠀⠀⠀⠀", "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠳⣿⣿⠟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀", "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"], ["⢀⣾⣆⠀⣴⣷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣦⠀⣰⣷⡀", "⠸⣿⣿⣿⣿⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣿⣿⣿⣿⠇", "⠀⠙⠻⢿⣟⠋⠀⠀⢀⣀⣠⣤⣤⣤⣤⣄⣀⡀⠀⠀⠙⣻⡿⠟⠋⠀", "⠀⠀⠀⠈⢿⣆⣴⣾⣿⡟⠉⢻⣿⣿⡟⠉⢻⣿⣷⣦⣰⡿⠁⠀⠀⠀", "⠀⠀⠀⠀⢨⣿⣿⣿⣿⣿⣶⣿⣿⣿⣿⣶⣿⣿⣿⣿⣿⡅⠀⠀⠀⠀", "⠀⠀⠀⠀⠘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀", "⠀⠀⠀⠀⠀⣨⡿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢿⣅⠀⠀⠀⠀⠀", "⠀⠀⠀⣠⡾⠋⢠⣾⠋⢩⡟⠛⠛⠛⠛⢻⡍⠙⣷⡄⠙⢷⣄⠀⠀⠀", "⠀⠀⠘⠋⠀⠰⠟⠁⢠⡟⠀⠀⠀⠀⠀⠀⢻⡄⠈⠻⠆⠀⠙⠃⠀⠀"], ["⠀⢀⣴⡾⠿⠿⢷⣦⡀⠀⠀⠀⠀⢀⣴⡾⠿⠿⢷⣦⡀⠀", "⠀⣾⡏⠀⢀⣀⡀⢹⣷⠀⠀⠀⠀⣾⡏⢀⣀⡀⠀⢹⣷⠀", "⠀⢿⣇⠀⠸⠿⠇⣸⣿⣤⣤⣤⣤⣿⣇⠸⠿⠇⠀⣸⡿⠀", "⠀⠈⣻⣷⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣶⣾⣟⠁⠀", "⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣄", "⣿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢿⣿", "⠙⠃⠀⣭⣙⠛⠿⢿⣿⣿⣿⣿⣿⣿⡿⠿⠛⣋⣭⠀⠘⠋", "⠀⠀⠘⠿⢿⣿⣷⣶⣬⣍⡛⢛⣩⣥⣶⣾⣿⡿⠿⠃⠀⠀", "⠀⠀⠀⠀⠀⠈⠉⠉⠛⠛⠛⠛⠛⠛⠉⠉⠁⠀⠀⠀⠀⠀"], ["⢠⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡄⠀⠀⠀⠀⠀", "⢸⣿⣦⣄⠀⠀⠀⠀⣠⣴⣿⡇⠀⠀⠀⠀⠀", "⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀", "⢸⣿⣿⠟⢿⣿⣿⡿⠻⣿⣿⡇⠀⠀⠀⠀⠀", "⢸⣿⣿⡀⣸⣿⣿⣇⢀⣿⣿⡇⠀⠀⠀⠀⠀", "⠀⠻⣿⣿⣿⣯⣽⣿⣿⣿⠟⠀⠀⠀⠀⠀⠀", "⠀⠀⠀⠉⠛⠛⠛⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀", "⠀⢀⣴⣾⣿⣿⣿⣿⣷⣦⡀⠀⠀⠀⠀⠀⠀", "⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠀⣠⣄⠀", "⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀⠀⢹⣿⡄", "⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⣿⡇", "⢹⣿⣿⣿⣿⡿⢿⣿⣿⣿⣿⡏⠀⠀⢀⣿⡇", "⠀⠻⣿⣿⣿⡇⢸⣿⣿⣿⢟⣀⣀⣤⣾⡿⠁", "⠶⣿⣿⣿⠿⠇⠸⠿⣿⣿⣿⠿⠛⠛⠁⠀⠀"]];
+  var ai = 0, art = $("#art");
+  function paint() { art.textContent = ARTS[ai].join("\n"); }
+  paint();
+  $("#art-next").onclick = function () { ai = (ai + 1) % ARTS.length; paint(); };
+
+  /* languages and leader map */
+  var LANGS = "lua go typescript html css tailwind json yaml toml markdown docker prisma astro dart rust python java kotlin yarnspinner".split(" ");
+  $("#langs").innerHTML = LANGS.map(function (l) { return "<span>" + l + "</span>"; }).join("");
+  var LEADER = [["a","Agent"],["aT","Agent Tests"],["aL","Agent Lenses"],["aD","Agent DDD"],["aP","Agent Repository"],["aS","Agent Service"],
+    ["C","Comments"],["G","Git"],["g","Go"],["d","Dart / Flutter"],["j","Java"],["k","Kotlin"],["m","Markdown"],["p","Python"],["r","Rust"],
+    ["s","CSS"],["t","TypeScript / JS"],["P","Session"],["S","Settings"],["x","Diagnostics"]];
+  $("#leader").innerHTML = LEADER.map(function (x) { return "<li><b>" + x[0] + "</b> " + x[1] + "</li>"; }).join("");
+
+  /* Go demos: what you type → the menu → what you get */
+  var D = [
+    { id: "iferr", name: "if err",
+      type: '<span class="d">// …inside Get</span>\nn, err := s.repo.<span class="f">FindByID</span>(ctx, id)\n<span class="d">⏎</span>',
+      menu: [["if err != nil", "wrap · find by id", 1], ["if err != nil", "return err", 0]],
+      out: '<span class="k">if</span> err != <span class="n">nil</span> {\n\t<span class="k">return</span> <span class="n">nil</span>, fmt.<span class="f">Errorf</span>(<span class="s">"find by id: %w"</span>, err)\n}',
+      note: "The menu opens by itself after an <code>err</code> assignment and <b>Enter</b> accepts it. Zero values come from the function's real return types; the message from what you called." },
+    { id: "impl", name: "missing methods",
+      type: '<span class="k">func</span> (s *noteService) <span class="d">▌</span>',
+      menu: [["…all missing (6)", "NoteService", 1], ["Create", "NoteService · missing", 0], ["Get", "NoteService · missing", 0], ["List", "NoteService · missing", 0]],
+      out: '<span class="f">Get</span>(ctx context.Context, id <span class="t">string</span>) (*domain.Note, <span class="t">error</span>) {\n\t<span class="k">return</span> s.repo.<span class="f">FindByID</span>(ctx, id)\n}\n\n<span class="f">Create</span>(ctx context.Context, title, content <span class="t">string</span>) (*domain.Note, <span class="t">error</span>) {\n\t<span class="d">▌</span>\n\t<span class="k">return</span> <span class="n">nil</span>, <span class="n">nil</span>\n}',
+      note: "It knows which interface a struct implements (<code>var _ I</code>, the constructor that returns it, or the name) and offers <b>only what's missing</b>. Bodies call your dependency when a method has the same shape." },
+    { id: "map", name: "mappers",
+      type: '<span class="k">func</span> <span class="d">▌</span>   <span class="c">// file defines NoteResponse</span>',
+      menu: [["func toNoteResponse", "domain.Note → NoteResponse", 1], ["func toNoteResponses", "…(list)", 0], ["func (r NoteResponse) toNote", "→ domain.Note", 0]],
+      out: '<span class="k">func</span> <span class="f">toNoteResponse</span>(n *domain.Note) NoteResponse {\n\t<span class="k">return</span> NoteResponse{\n\t\tID:     n.ID,\n\t\tTitle:  n.Title,\n\t\tStatus: <span class="t">string</span>(n.Status),\n\t\t<span class="c">// TODO: Extra (int) has no source field in Note</span>\n\t}\n}',
+      note: "Pairs <code>XResponse</code>, <code>XRequest</code>, <code>XModel</code>… with their domain struct anywhere in the module. Matching fields by name, converting defined types, <b>never inventing</b> what has no source." },
+    { id: "wire", name: "wiring",
+      type: 'noteRepository := infrastructure.<span class="f">NewNoteRepository</span>(db)\nnoteSer<span class="d">▌</span>',
+      menu: [["noteService := application.NewNoteService(…)", "application", 1]],
+      out: 'noteService := application.<span class="f">NewNoteService</span>(noteRepository)',
+      note: "In <code>main</code>, constructors from <b>any package in your module</b> with arguments resolved by type, by the interface they satisfy, or by name. goimports adds the import on save." },
+    { id: "http", name: "http handlers",
+      type: '<span class="k">func</span> (h *NoteHandler) <span class="d">▌</span>',
+      menu: [["…all handlers (4)", "NoteService", 1], ["Routes", "NoteService · 4 routes", 0], ["Get", "NoteService · GET", 0]],
+      out: '<span class="f">Get</span>(w http.ResponseWriter, r *http.Request) {\n\tid := r.<span class="f">PathValue</span>(<span class="s">"id"</span>)\n\tres, err := h.svc.<span class="f">Get</span>(r.<span class="f">Context</span>(), id)\n\t<span class="k">if</span> err != <span class="n">nil</span> {\n\t\t<span class="f">writeError</span>(w, err)\n\t\t<span class="k">return</span>\n\t}\n\t<span class="f">writeJSON</span>(w, http.StatusOK, res)\n}',
+      note: "One handler per service method, shaped for the router in your <code>go.mod</code> — net/http, chi, gin or echo. Verbs from names, ids from the path, filters from the query, the rest from a JSON body." },
+    { id: "enum", name: "enums",
+      type: '<span class="k">type</span> Status <span class="t">string</span>  <span class="c">// + its const block</span>\n<span class="k">func</span> <span class="d">▌</span>',
+      menu: [["func …enum helpers Status (3)", "enum", 1], ["func ParseStatus", "Status · enum", 0], ["func (s *Status) UnmarshalText", "Status · enum", 0]],
+      out: '<span class="k">func</span> <span class="f">ParseStatus</span>(v <span class="t">string</span>) (Status, <span class="t">error</span>) {\n\t<span class="k">switch</span> s := <span class="f">Status</span>(v); s {\n\t<span class="k">case</span> StatusPending, StatusDone:\n\t\t<span class="k">return</span> s, <span class="n">nil</span>\n\t}\n\t<span class="k">return</span> <span class="s">""</span>, fmt.<span class="f">Errorf</span>(<span class="s">"invalid status %q"</span>, v)\n}',
+      note: "<code>IsValid</code>, <code>Parse</code>, <code>UnmarshalText</code>, and for iota enums <code>String</code>/<code>MarshalText</code> — derived from the const block, only what's missing." }
+  ];
+  var tabs = $("#tabs"), demo = $("#demo");
+  function show(i) {
+    var d = D[i];
+    [].forEach.call(tabs.children, function (b, k) { b.setAttribute("aria-selected", k === i); });
+    demo.innerHTML =
+      '<div class="pane"><h4>you type</h4><pre>' + d.type + '</pre><div class="menu">' +
+      d.menu.map(function (m) { return '<div class="' + (m[2] ? "sel" : "") + '"><span>' + m[0] + '</span><small>' + m[1] + '</small></div>'; }).join("") +
+      '</div></div><div class="pane"><h4>you get <span class="pill" style="margin-left:auto">0 tokens</span></h4><pre>' + d.out + '</pre></div>' +
+      '<p class="note" style="grid-column:1/-1;margin:0">' + d.note + '</p>';
+  }
+  D.forEach(function (d, i) {
+    var b = document.createElement("button");
+    b.role = "tab"; b.textContent = d.name; b.onclick = function () { show(i); };
+    b.onkeydown = function (e) {
+      if (e.key === "ArrowRight") { show((i + 1) % D.length); tabs.children[(i + 1) % D.length].focus(); }
+      if (e.key === "ArrowLeft") { show((i + D.length - 1) % D.length); tabs.children[(i + D.length - 1) % D.length].focus(); }
+    };
+    tabs.appendChild(b);
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>

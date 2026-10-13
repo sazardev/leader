@@ -39,6 +39,8 @@ the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVI
 
 Then open `nvim`. Press `<Space>` and which-key shows you the menus.
 
+There is also a single-file landing page, `docs/index.html` (no build, no dependencies, same gruvbox look, dark/light with `t`); serve `docs/` with GitHub Pages or open it locally.
+
 | Option | Effect |
 |---|---|
 | `--ask` | prompts before installing system packages or Neovim (by default it asks nothing) |
