@@ -1,10 +1,10 @@
--- ── Resumen de coste de una llamada ──────────────────────────────────────────
+-- ── Cost summary of a call ───────────────────────────────────────────────────
 local jobs = require "agent.jobs"
 local text = require "agent.text"
 
 local M = {}
 
---- "1.4s · 1.2k tok · $0.0021" (lo que el backend no informe, no aparece)
+--- "1.4s · 1.2k tok · $0.0021" (whatever the backend does not report does not appear)
 ---@param job AgentJob
 ---@param result table
 ---@return string

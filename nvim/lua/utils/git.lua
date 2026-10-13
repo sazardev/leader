@@ -1,4 +1,4 @@
--- ── Información de git (para el dashboard) ───────────────────────────────────
+-- ── Git info (for the dashboard) ─────────────────────────────────────────────
 local M = {}
 
 ---@param args string[]

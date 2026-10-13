@@ -1,13 +1,13 @@
--- Explorador: oculta git-ignored (rápido), sin íconos.
+-- Explorer: hides git-ignored files (fast), no icons.
 local modal = require "utils.modal"
 local hl = modal.hl
 
--- Carpeta donde crear: la misma si el nodo es carpeta, o la del archivo si no lo es
+-- Folder to create in: the node itself if it is a folder, or the file's folder if not
 local function node_dir(node)
   return node.type == "directory" and node.absolute_path or vim.fs.dirname(node.absolute_path)
 end
 
--- Vista visual de la ubicación: raíz del proyecto → … → destino, con sus subcarpetas
+-- Visual view of the location: project root → … → destination, with its subfolders
 local MAX_CHILDREN = 6
 local function location_lines(dir)
   local root = vim.fn.getcwd()
@@ -54,7 +54,7 @@ local function location_lines(dir)
   return lines
 end
 
--- Cuenta lo que hay dentro de una carpeta, para avisar antes de borrarla
+-- Counts what is inside a folder, to warn before deleting it
 local function contents_summary(path)
   local files, dirs = 0, 0
   for _, t in vim.fs.dir(path, { depth = math.huge }) do
@@ -72,7 +72,7 @@ local function on_attach(bufnr)
 
   api.config.mappings.default_on_attach(bufnr)
 
-  -- <CR> sobre un archivo → abre y cierra nvim-tree
+  -- <CR> on a file → opens it and closes nvim-tree
   vim.keymap.set("n", "<CR>", function()
     local node = api.tree.get_node_under_cursor()
     api.node.open.edit()
@@ -81,7 +81,7 @@ local function on_attach(bufnr)
     end
   end, { buffer = bufnr, desc = "nvim-tree: Open file and close tree", nowait = true })
 
-  -- <leader>nd → modal con la ubicación; acepta varias rutas separadas por ";"
+  -- <leader>nd → modal with the location; accepts several paths separated by ";"
   -- e.g. "src/ui; src/core; test"
   vim.keymap.set("n", "<leader>nd", function()
     local node = api.tree.get_node_under_cursor()
@@ -105,7 +105,7 @@ local function on_attach(bufnr)
     end)
   end, { buffer = bufnr, desc = "nvim-tree: New folder(s)" })
 
-  -- <leader>nx → modal que muestra qué se borra y cuánto contiene; pide confirmación
+  -- <leader>nx → modal showing what gets deleted and how much it contains; asks for confirmation
   vim.keymap.set("n", "<leader>nx", function()
     local node = api.tree.get_node_under_cursor()
     if not node or node.type ~= "directory" then

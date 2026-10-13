@@ -1,4 +1,4 @@
--- ── Reglas de DDD que se le dan al modelo (compactas) ────────────────────────
+-- ── DDD rules given to the model (compact) ───────────────────────────────────
 local M = {}
 
 M.RULES = [[

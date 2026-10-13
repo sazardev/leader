@@ -1,7 +1,7 @@
--- ── Estado visual de un trabajo, EN el código ────────────────────────────────
--- Mientras corre: el objetivo queda resaltado (ves qué se envió) y a la derecha de su
--- primera línea gira un spinner con acción · modelo · segundos. Al terminar queda un
--- resumen unos segundos y se va solo.
+-- ── Visual state of a job, IN the code ───────────────────────────────────────
+-- While it runs: the target stays highlighted (you see what was sent) and to the right of its
+-- first line a spinner spins with action · model · seconds. When it ends a
+-- summary stays for a few seconds and goes away by itself.
 local jobs = require "agent.jobs"
 local anchor = require "agent.anchor"
 local selection = require "agent.selection"
@@ -24,7 +24,7 @@ local function stop_timer(job)
   end
 end
 
---- Dónde se pinta el estado: el código que se mira (`view`, si el resultado va a otro archivo) o el objetivo
+--- Where the state is painted: the code being viewed (`view`, if the result goes to another file) or the target
 ---@param job AgentJob
 ---@return integer buf, integer anchor_id
 local function spot(job)
@@ -53,7 +53,7 @@ function M.attach(job)
   local tick = 0
   local function draw()
     if job.state ~= "running" then
-      return -- un redibujado ya encolado no debe resucitar la marca tras clear()
+      return -- an already queued redraw must not resurrect the mark after clear()
     end
     local buf, id = spot(job)
     local first, last = anchor.range(buf, id)
@@ -64,7 +64,7 @@ function M.attach(job)
       job.view.first = first
     end
     tick = tick + 1
-    -- en una ventana estrecha el texto de la derecha taparía código: versión compacta, sin modelo
+    -- in a narrow window the text on the right would cover code: compact version, without model
     local win = vim.fn.bufwinid(buf)
     local narrow = win ~= -1 and vim.api.nvim_win_get_width(win) < 90
     local text = narrow and (" %s %s %.0fs "):format(FRAMES[tick % #FRAMES + 1], job.action.label, jobs.elapsed(job))
@@ -92,7 +92,7 @@ function M.attach(job)
   job.timer:start(100, 100, vim.schedule_wrap(draw))
 end
 
---- Reemplaza el spinner por un resumen que se apaga solo
+--- Replaces the spinner with a summary that fades by itself
 ---@param job AgentJob
 ---@param text string
 function M.summary(job, text)

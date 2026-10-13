@@ -1,4 +1,4 @@
--- ── Acciones de Rust (cargo) ─────────────────────────────────────────────────
+-- ── Rust actions (cargo) ─────────────────────────────────────────────────────
 local run = require("utils.actions").run
 
 local function cargo(sub)

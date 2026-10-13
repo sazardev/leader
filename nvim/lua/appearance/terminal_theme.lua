@@ -1,18 +1,18 @@
--- ── Tema de base46 derivado de la paleta de la terminal ──────────────────────
--- Convierte los 16 colores ANSI + fondo/primer plano en las tablas `base_16` y
--- `base_30` que espera NvChad. Reglas:
---   · el fondo de Neovim ES el fondo de la terminal (cero costuras);
---   · los grises intermedios se interpolan entre fondo y primer plano, así
---     funcionan igual en temas oscuros y claros;
---   · los acentos se empujan hacia el primer plano hasta alcanzar un contraste
---     mínimo (algunas paletas traen azules/rojos ilegibles sobre su fondo).
+-- ── base46 theme derived from the terminal palette ───────────────────────────
+-- Converts the 16 ANSI colors + background/foreground into the `base_16` and
+-- `base_30` tables NvChad expects. Rules:
+--   · Neovim's background IS the terminal's background (zero seams);
+--   · intermediate greys are interpolated between background and foreground, so
+--     they work the same on dark and light themes;
+--   · accents are pushed toward the foreground until they reach a minimum
+--     contrast (some palettes ship unreadable blues/reds on their background).
 local color = require "appearance.color"
 
 local M = {}
 
-local DARK_LUMINANCE = 0.179 -- punto en que blanco y negro contrastan igual
+local DARK_LUMINANCE = 0.179 -- point where white and black contrast equally
 
----@param palette table salida de appearance.alacritty (background, foreground, ansi[1..16])
+---@param palette table output of appearance.alacritty (background, foreground, ansi[1..16])
 ---@param min_contrast number
 ---@return table theme { base_16, base_30, type }
 function M.build(palette, min_contrast)
@@ -20,11 +20,11 @@ function M.build(palette, min_contrast)
   local dark = color.luminance(bg) < DARK_LUMINANCE
   local blend, ensure = color.blend, color.ensure_contrast
 
-  --- Color ANSI n (0-15)
+  --- ANSI color n (0-15)
   local function ansi(n)
     return palette.ansi[n + 1]
   end
-  --- Punto entre fondo (0) y primer plano (1)
+  --- Point between background (0) and foreground (1)
   local function tint(t)
     return blend(bg, fg, t)
   end
@@ -32,7 +32,7 @@ function M.build(palette, min_contrast)
     return ensure(hex, bg, fg, min_contrast)
   end
 
-  -- Extremo del primer plano: más claro en temas oscuros, más oscuro en claros
+  -- Foreground extreme: lighter on dark themes, darker on light ones
   local extreme = dark and ansi(15) or ansi(0)
   local selection = palette.selection
   if not selection or color.contrast(selection, bg) < 1.15 then
@@ -47,7 +47,7 @@ function M.build(palette, min_contrast)
     base00 = bg,
     base01 = tint(0.06),
     base02 = selection,
-    base03 = ensure(ansi(8), bg, fg, 2.2), -- comentarios
+    base03 = ensure(ansi(8), bg, fg, 2.2), -- comments
     base04 = tint(0.62),
     base05 = fg,
     base06 = blend(fg, extreme, 0.5),
@@ -67,7 +67,7 @@ function M.build(palette, min_contrast)
   local base_30 = {
     white = base_16.base06,
     darker_black = blend(bg, "#000000", dark and 0.25 or 0.05),
-    black = bg, -- fondo de nvim
+    black = bg, -- nvim background
     black2 = tint(0.04),
     one_bg = tint(0.08),
     one_bg2 = tint(0.13),
@@ -79,7 +79,7 @@ function M.build(palette, min_contrast)
     red = red,
     baby_pink = blend(red, bg, 0.25),
     pink = blend(red, magenta, 0.5),
-    line = tint(0.09), -- separadores
+    line = tint(0.09), -- separators
     green = green,
     vibrant_green = accent(ansi(10)),
     nord_blue = blue,

@@ -1,4 +1,4 @@
--- Config de LSP por proyecto (.neoconf.json)
+-- Per-project LSP config (.neoconf.json)
 return {
   "folke/neoconf.nvim",
   event = "BufReadPre",

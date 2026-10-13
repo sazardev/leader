@@ -1,6 +1,6 @@
--- ── Acciones propias de las teclas de blink.cmp ──────────────────────────────
--- blink acepta funciones en su `keymap`, pero no tienen nombre: aquí se declaran con una
--- etiqueta legible (LABELS) que usa el generador del cheatsheet (utils/cheatsheet.lua).
+-- ── Custom actions for the blink.cmp keys ──────────────────────────────────
+-- blink accepts functions in its `keymap`, but they have no name: here they are declared with a
+-- readable label (LABELS) used by the cheatsheet generator (utils/cheatsheet.lua).
 local M = {}
 
 ---@type table<function, string>
@@ -14,7 +14,7 @@ local function named(label, fn)
   return fn
 end
 
--- Con un `ErrX` a medio declarar: acepta el texto fantasma (Tab) o lo acepta + línea nueva (Enter)
+-- With a half-typed `ErrX`: accept the ghost text (Tab) or accept it + new line (Enter)
 M.goerrors_accept = named("accept Go `ErrX` ghost text", function()
   return require("utils.goerrors").accept()
 end)
@@ -23,7 +23,7 @@ M.goerrors_accept_newline = named("accept Go `ErrX` ghost text + new line", func
   return require("utils.goerrors").accept(true)
 end)
 
--- Dentro de un snippet y SIN menú abierto (con menú, Tab elige sugerencia): salta de hueco
+-- Inside a snippet and with NO menu open (with a menu, Tab picks a suggestion): jump to the next placeholder
 M.snippet_next = named("jump to next snippet placeholder (when no menu is open)", function(cmp)
   if cmp.snippet_active { direction = 1 } then
     cmp.hide()

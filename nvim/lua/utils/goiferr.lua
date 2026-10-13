@@ -1,12 +1,12 @@
--- ── Go: `if err != nil` que sabe qué devolver (sin LLM, 0 tokens) ─────────────
--- Tras una línea que asigna un error (`n, err := s.repo.FindByID(ctx, id)`), ofrece el bloque ya hecho:
+-- ── Go: `if err != nil` that knows what to return (no LLM, 0 tokens) ─────────
+-- After a line that assigns an error (`n, err := s.repo.FindByID(ctx, id)`), it offers the ready-made block:
 --   if err != nil {
 --   	return nil, fmt.Errorf("find by id: %w", err)
 --   }
--- · los valores cero salen de los RETORNOS de la función que contiene el cursor (no de un snippet fijo);
--- · el mensaje sale del nombre de lo que se llamó (FindByID → "find by id"), editable como primer hueco;
--- · en `main` (sin retorno) ofrece `log.Fatalf`; en una función que no devuelve error, no ofrece nada.
--- Se abre solo al pulsar Enter tras esa línea (lo dispara gosmart.autotrigger) y, tecleando `if`/`iferr`, también.
+-- · the zero values come from the RETURNS of the function containing the cursor (not from a fixed snippet);
+-- · the message comes from the name of what was called (FindByID → "find by id"), editable as the first placeholder;
+-- · in `main` (no return) it offers `log.Fatalf`; in a function that doesn't return error, it offers nothing.
+-- It opens by itself on pressing Enter after that line (triggered by gosmart.autotrigger) and also when typing `if`/`iferr`.
 local ix = require "utils.goindex"
 
 local M = {}
@@ -41,7 +41,7 @@ function M.words(name)
   return s:lower()
 end
 
---- Variable de error asignada por un nodo-sentencia y la llamada que la produjo
+--- Error variable assigned by a statement node and the call that produced it
 ---@param stmt TSNode
 ---@return string? var, string? call_name
 local function assigned_error(stmt)
@@ -84,7 +84,7 @@ local function assigned_error(stmt)
   return var, call_name
 end
 
---- Sentencia anterior al cursor: la última no vacía por encima, subiendo hasta su nodo de sentencia
+--- Statement before the cursor: the last non-empty one above, climbing up to its statement node
 ---@param row integer
 ---@return TSNode?
 local function previous_statement(row)
@@ -96,7 +96,7 @@ local function previous_statement(row)
       while node and not STATEMENT[node:type()] do
         node = node:parent()
         if node and (node:type() == "block" or FUNC_NODES[node:type()]) then
-          return nil -- la línea anterior no es una sentencia (`{`, `}`, una firma...)
+          return nil -- the previous line is not a statement (`{`, `}`, a signature...)
         end
       end
       return node and STATEMENT[node:type()] and node or nil
@@ -133,8 +133,8 @@ local function func_info(node, src)
   }
 end
 
---- Retornos de la función (o literal de función) que contiene la posición. Si el cuerpo aún no está cerrado (`{` sin
---- `}`) el árbol no los ve: se lee la firma de la `func` de columna 0 más cercana por encima.
+--- Returns of the function (or function literal) containing the position. If the body isn't closed yet (`{` without
+--- `}`) the tree doesn't see them: the signature of the nearest column-0 `func` above is read.
 ---@param row integer
 ---@param col integer
 ---@return GoIfErrFunc?
@@ -166,7 +166,7 @@ local function fragment(before)
   return before:match "^%s*([%w_]*)$"
 end
 
---- ¿Es posición de sentencia con un error asignado justo antes? (el menú puede abrirse solo ahí)
+--- Is it a statement position with an error assigned right before? (the menu can open by itself there)
 ---@param ctx { line: string, cursor: integer[] }
 ---@return { var: string, call: string?, fn: GoIfErrFunc, frag: string }?
 function M.context(ctx)
@@ -183,7 +183,7 @@ function M.context(ctx)
   if not var then
     return nil
   end
-  -- ya hay un `if err` justo debajo: no se ofrece otro
+  -- there is already an `if err` right below: don't offer another
   local below = vim.api.nvim_buf_get_lines(0, row, row + 3, false)
   for _, l in ipairs(below) do
     if l:match "%S" then
@@ -200,7 +200,7 @@ function M.context(ctx)
   return { var = var, call = call, fn = fn, frag = frag }
 end
 
---- Blank line recién abierta tras la asignación: sirve para abrir el menú sin teclear
+--- Blank line just opened after the assignment: used to open the menu without typing
 ---@param ctx { line: string, cursor: integer[] }
 ---@return boolean
 function M.fresh(ctx)
@@ -286,7 +286,7 @@ function M.items(ctx)
   return items
 end
 
---- ¿Está el cursor en la línea nueva tras `x, err := …`? (blink preselecciona el bloque: Enter lo acepta). Se apaga con
+--- Is the cursor on the new line after `x, err := …`? (blink preselects the block: Enter accepts it). Turn it off with
 --- `vim.g.goiferr_preselect = false`
 ---@return boolean
 function M.active()

@@ -1,11 +1,11 @@
--- Corre una prueba (comando de convention.command) y devuelve solo lo útil de su salida. Sin modelo: es el trabajo
--- previo de `fix`, para no pagar tokens por arreglar una prueba que ya pasa.
+-- Runs a test (command from convention.command) and returns only the useful part of its output. No model: it is the
+-- prior work of `fix`, so as not to pay tokens for fixing a test that already passes.
 local M = {}
 
 local TIMEOUT_MS = 90000
 local OUTPUT_MAX = 2500
 
---- Quita colores y el ruido de lo que pasa, y recorta
+--- Strips colors and the noise of what passes, and clips
 ---@param raw string
 ---@return string
 function M.clean(raw)
@@ -26,7 +26,7 @@ function M.clean(raw)
 end
 
 ---@param run AgentTestRun
----@param cb fun(ok: boolean, output: string, err: string?)  ok = las pruebas PASAN
+---@param cb fun(ok: boolean, output: string, err: string?)  ok = the tests PASS
 function M.exec(run, cb)
   if vim.fn.executable(run.cmd[1]) ~= 1 then
     return cb(false, "", ("`%s` is not installed"):format(run.cmd[1]))

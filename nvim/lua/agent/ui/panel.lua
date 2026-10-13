@@ -1,5 +1,5 @@
--- ── Panel de lectura (markdown, centrado) ────────────────────────────────────
--- Para lo que se lee con calma: el detalle de una ejecución o el informe de gasto. q/Esc cierran.
+-- ── Reading panel (markdown, centered) ───────────────────────────────────────
+-- For what is read calmly: a run's detail or the spend report. q/Esc close.
 require("agent.ui.highlights").ensure()
 
 local M = {}
@@ -10,7 +10,7 @@ function M.open(lines, title)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].filetype = "markdown"
-  vim.diagnostic.enable(false, { bufnr = buf }) -- el linter de markdown no tiene nada que opinar de un panel de solo lectura
+  vim.diagnostic.enable(false, { bufnr = buf }) -- the markdown linter has nothing to say about a read-only panel
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
 

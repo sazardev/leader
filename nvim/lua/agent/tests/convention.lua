@@ -1,15 +1,15 @@
--- ── Convenciones de pruebas por lenguaje (sin LLM, 0 tokens) ─────────────────
--- Dónde viven las pruebas de un archivo, con qué framework, y cómo se corre una. Es lo que permite pedirle al
--- modelo SOLO el código nuevo y ponerlo en el sitio correcto: el pipeline recibe el final del archivo de pruebas
--- como objetivo (agent/tests/actions/*.retarget) en vez de la función.
+-- ── Test conventions per language (no LLM, 0 tokens) ─────────────────────────
+-- Where a file's tests live, with which framework, and how to run one. It is what lets us ask the
+-- model for ONLY the new code and put it in the right place: the pipeline receives the end of the test file
+-- as the target (agent/tests/actions/*.retarget) instead of the function.
 local M = {}
 
 ---@class AgentTestInfo
----@field path string     ruta absoluta del archivo de pruebas
+---@field path string     absolute path of the test file
 ---@field exists boolean
----@field inline boolean  las pruebas viven en el mismo archivo (Rust)
+---@field inline boolean  the tests live in the same file (Rust)
 ---@field framework string
----@field style string    una línea de estilo para el prompt
+---@field style string    one style line for the prompt
 
 local ROOT_MARKERS = { ".git", "go.mod", "package.json", "pyproject.toml", "Cargo.toml", "pubspec.yaml", "pom.xml" }
 
@@ -35,7 +35,7 @@ local function project_mentions(root, file, needle)
   return text ~= nil and text:find(needle, 1, true) ~= nil
 end
 
---- ¿Es un archivo de pruebas?
+--- Is it a test file?
 ---@param path string
 ---@return boolean
 function M.is_test_file(path)
@@ -51,8 +51,8 @@ end
 
 local TS = { typescript = "ts", typescriptreact = "tsx", javascript = "js", javascriptreact = "jsx" }
 
---- Dónde van las pruebas de `path`. nil + motivo si el lenguaje no tiene convención conocida
----@param path string absoluta
+--- Where the tests of `path` go. nil + reason if the language has no known convention
+---@param path string absolute
 ---@param lang string filetype
 ---@return AgentTestInfo?, string? why
 function M.locate(path, lang)
@@ -84,7 +84,7 @@ function M.locate(path, lang)
       or "node:test / vitest-style describe/it/expect"
     info.style = "describe per function, it per behaviour; typed; no any"
   elseif lang == "python" then
-    -- una carpeta tests/ junto al código, o la del proyecto; si no hay, junto al código
+    -- a tests/ folder next to the code, or the project's; if there is none, next to the code
     local tests_dir = vim.uv.fs_stat(dir .. "/tests") and (dir .. "/tests")
       or vim.uv.fs_stat(root .. "/tests") and (root .. "/tests")
       or dir
@@ -123,10 +123,10 @@ end
 ---@field cwd string
 ---@field label string
 
---- Cómo correr UNA prueba (para arreglarla con su salida real). nil + motivo si no se sabe
+--- How to run ONE test (to fix it with its real output). nil + reason if unknown
 ---@param path string
 ---@param lang string
----@param name string? nombre de la función de prueba
+---@param name string? name of the test function
 ---@return AgentTestRun?, string? why
 function M.command(path, lang, name)
   local root = M.root(path)

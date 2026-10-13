@@ -1,6 +1,6 @@
--- ── git para el panel de commit ──────────────────────────────────────────────
--- Lecturas síncronas y baratas (status, numstat, rama) y las acciones que modifican (preparar, quitar de lo
--- preparado, commitear). Sin UI: el panel solo pinta lo que esto devuelve.
+-- ── git for the commit panel ─────────────────────────────────────────────────
+-- Cheap synchronous reads (status, numstat, branch) and the actions that modify (stage, unstage,
+-- commit). No UI: the panel only paints what this returns.
 local M = {}
 
 ---@param args string[]
@@ -20,7 +20,7 @@ local function out(args, root)
   return code == 0 and vim.trim(stdout) or ""
 end
 
---- Raíz del repo del buffer actual (o del cwd si no tiene archivo)
+--- Repo root of the current buffer (or of the cwd if it has no file)
 ---@return string?
 function M.root()
   local name = vim.api.nvim_buf_get_name(0)
@@ -63,7 +63,7 @@ function M.has_head(root)
   return code == 0
 end
 
---- adds/dels por ruta de `git diff --numstat -z` (sin detección de renombrados: una ruta, un número)
+--- adds/dels per path from `git diff --numstat -z` (no rename detection: one path, one number)
 ---@param root string
 ---@param cached boolean
 ---@return table<string, { adds: integer?, dels: integer? }>
@@ -76,7 +76,7 @@ local function numstat(root, cached)
   local stats = {}
   for rec in stdout:gmatch "[^%z]+" do
     local adds, dels, path = rec:match "^(%S+)\t(%S+)\t(.+)$"
-    if path then -- binario: "-" "-"
+    if path then -- binary: "-" "-"
       stats[path] = { adds = tonumber(adds), dels = tonumber(dels) }
     end
   end
@@ -86,13 +86,13 @@ end
 ---@class CommitEntry
 ---@field path string
 ---@field letter string         M A D R C ? U
----@field staged boolean        ¿va en el commit?
----@field partial boolean       preparado, pero con más cambios sin preparar
+---@field staged boolean        goes in the commit?
+---@field partial boolean       staged, but with more unstaged changes
 ---@field untracked boolean
 ---@field adds integer?
 ---@field dels integer?
 
---- Estado del árbol: primero lo preparado (lo que se commitea), luego lo modificado sin preparar, luego lo nuevo
+--- Tree status: first what is staged (what gets committed), then modified but unstaged, then new
 ---@param root string
 ---@return CommitEntry[]
 function M.status(root)
@@ -107,7 +107,7 @@ function M.status(root)
     if #rec >= 4 then
       local x, y, path = rec:sub(1, 1), rec:sub(2, 2), rec:sub(4)
       if x == "R" or x == "C" then
-        i = i + 1 -- el siguiente campo es la ruta original
+        i = i + 1 -- the next field is the original path
       end
       local entry = { path = path, letter = "M", staged = false, partial = false, untracked = false }
       if x == "?" then
@@ -152,7 +152,7 @@ function M.unstage(root, paths)
   return code == 0, err
 end
 
---- Diff de una fila (lo preparado, lo no preparado, o el archivo nuevo entero)
+--- Diff of one row (the staged part, the unstaged part, or the whole new file)
 ---@param root string
 ---@param entry CommitEntry
 ---@return string[]
@@ -165,7 +165,7 @@ function M.diff(root, entry)
   else
     args = { "diff", "--no-color", "--", entry.path }
   end
-  local stdout = M.run(args, root) -- --no-index sale con código 1 cuando hay diferencias: es normal
+  local stdout = M.run(args, root) -- --no-index exits with code 1 when there are differences: that is normal
   local lines = vim.split(stdout, "\n", { plain = true })
   return stdout == "" and { "(no textual changes)" } or lines
 end
@@ -177,7 +177,7 @@ function M.recent_subjects(root, n)
   return out({ "log", "-n", tostring(n), "--format=%s" }, root)
 end
 
--- Archivos que no aportan al mensaje (se listan, pero su diff no se envía)
+-- Files that add nothing to the message (they are listed, but their diff is not sent)
 local NOISE = { "lock", "%.sum$", "%.min%.", "%.snap$", "%.svg$", "%.map$", "%.lcov$", "CHEATSHEET%.md$" }
 
 ---@param path string
@@ -192,7 +192,7 @@ local function noisy(path)
 end
 
 ---@param root string
----@return string stat  una línea por archivo: `path +adds -dels`
+---@return string stat  one line per file: `path +adds -dels`
 function M.staged_numstat(root)
   local lines = {}
   for rec in (M.run({ "diff", "--cached", "--numstat", "--no-renames", "-z" }, root)):gmatch "[^%z]+" do
@@ -204,12 +204,12 @@ function M.staged_numstat(root)
   return table.concat(lines, "\n")
 end
 
---- Diff preparado COMPACTO para el modelo: sin cabeceras de git (`diff --git`, `index`, `---`/`+++`), un `## ruta`
---- por archivo, poco contexto (-U1), sin ruido (lockfiles, mapas, snapshots) y con el tope repartido entre los
---- archivos (uno enorme no deja a los demás sin diff).
+--- COMPACT staged diff for the model: no git headers (`diff --git`, `index`, `---`/`+++`), one `## path`
+--- per file, little context (-U1), no noise (lockfiles, maps, snapshots) and with the cap split among
+--- the files (one huge file does not leave the others without a diff).
 ---@param root string
----@param max integer tope de caracteres
----@return string diff, integer total_chars, boolean truncated  total = lo que ocuparía sin recortar
+---@param max integer character cap
+---@return string diff, integer total_chars, boolean truncated  total = what it would take without trimming
 function M.diff_for_ai(root, max)
   local raw = M.run({ "diff", "--cached", "-U1", "--no-color", "--no-ext-diff", "--no-renames" }, root)
   local files = {}
@@ -247,7 +247,7 @@ function M.diff_for_ai(root, max)
     total = total + f.size
     sized[#sized + 1] = f
   end
-  -- reparto: los pequeños caben enteros y lo que sobra pasa a los grandes
+  -- split: small ones fit whole and what is left over goes to the big ones
   table.sort(sized, function(a, b)
     return a.size < b.size
   end)
@@ -281,14 +281,14 @@ function M.head(root)
   return hash and { hash = hash, subject = vim.split(body, "\n", { plain = true })[1], message = body } or nil
 end
 
---- ¿HEAD ya está en algún remoto? (reescribirlo rompería el historial de otros)
+--- Is HEAD already on some remote? (rewriting it would break others' history)
 ---@param root string
 ---@return boolean
 function M.head_on_remote(root)
   return out({ "branch", "-r", "--contains", "HEAD" }, root) ~= ""
 end
 
---- Commitea lo preparado. `cb(ok, hash_o_error)`
+--- Commits what is staged. `cb(ok, hash_or_error)`
 ---@param root string
 ---@param msg string
 ---@param amend boolean

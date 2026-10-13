@@ -1,4 +1,4 @@
--- Schemas de SchemaStore (tsconfig, package.json, nest-cli, etc.)
+-- SchemaStore schemas (tsconfig, package.json, nest-cli, etc.)
 return {
   settings = {
     json = {

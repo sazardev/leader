@@ -1,16 +1,16 @@
--- ── Comentarios largos plegables ─────────────────────────────────────────────
--- Detecta con treesitter los comentarios de varias líneas (un bloque `/* */` o varias
--- líneas `//` seguidas que están solas en su línea) y los expone como folds de nvim-ufo
--- (kind "longcomment", ver plugins/editing/ufo.lua). El menú <leader>C los pliega/despliega y
--- guarda la preferencia (se mantiene al abrir otros archivos y al reiniciar).
--- Sin parser no hay comentarios que detectar: el menú avisa y no hace nada.
+-- ── Foldable long comments ───────────────────────────────────────────────────
+-- Uses treesitter to detect multi-line comments (a `/* */` block or several consecutive
+-- `//` lines that stand alone on their line) and exposes them as nvim-ufo folds
+-- (kind "longcomment", see plugins/editing/ufo.lua). The <leader>C menu folds/unfolds them and
+-- saves the preference (it persists when opening other files and across restarts).
+-- Without a parser there are no comments to detect: the menu warns and does nothing.
 local M = {}
 
---- `kind` con el que los folds de comentarios largos se registran en ufo (único: el proveedor de
---- treesitter usa el nombre del nodo, p. ej. "comment", y cerraría también los comentarios cortos)
+--- `kind` under which the long-comment folds are registered in ufo (unique: the treesitter
+--- provider uses the node name, e.g. "comment", and would also close short comments)
 M.KIND = "longcomment"
 
--- Nombres de nodo de comentario según la gramática; solo vale el que existe en el lenguaje
+-- Comment node names by grammar; only the one that exists in the language is valid
 local NODE_TYPES = { "comment", "line_comment", "block_comment", "multiline_comment", "documentation_comment" }
 
 ---@type table<string, vim.treesitter.Query|false>
@@ -32,11 +32,11 @@ local function comment_query(lang)
 end
 
 ---@class CommentRange
----@field first integer fila (0-based) donde empieza
----@field last integer fila (0-based, inclusiva) donde termina
+---@field first integer row (0-based) where it starts
+---@field last integer row (0-based, inclusive) where it ends
 
---- Comentarios de `min_lines` líneas o más, ordenados. Los comentarios al final de una
---- línea de código no cuentan; las líneas `//` seguidas se unen en uno solo.
+--- Comments of `min_lines` lines or more, sorted. Comments at the end of a
+--- code line don't count; consecutive `//` lines are merged into one.
 ---@param buf integer
 ---@return CommentRange[]
 function M.ranges(buf)
@@ -56,9 +56,9 @@ function M.ranges(buf)
     for _, node in query:iter_captures(tree:root(), buf) do
       local sr, sc, er, ec = node:range()
       if ec == 0 and er > sr then
-        er = er - 1 -- un fin en columna 0 incluye el salto de línea
+        er = er - 1 -- an end at column 0 includes the line break
       end
-      -- solo comentarios que empiezan solos en su línea
+      -- only comments that start alone on their line
       local before = vim.api.nvim_buf_get_text(buf, sr, 0, sr, sc, {})[1] or ""
       if not before:find "%S" then
         nodes[#nodes + 1] = { first = sr, last = er }
@@ -72,7 +72,7 @@ function M.ranges(buf)
   local merged = {}
   for _, n in ipairs(nodes) do
     local prev = merged[#merged]
-    -- líneas de comentario consecutivas = un solo comentario (un bloque `/* */` nunca se une)
+    -- consecutive comment lines = a single comment (a `/* */` block is never merged)
     if prev and prev.line_run and n.first == n.last and n.first == prev.last + 1 then
       prev.last = n.last
     else
@@ -89,7 +89,7 @@ function M.ranges(buf)
   return result
 end
 
---- ¿El comentario es ahora mismo un fold cerrado exactamente de su tamaño?
+--- Is the comment right now a closed fold of exactly its size?
 ---@param c CommentRange
 ---@return boolean
 local function is_closed(c)
@@ -111,11 +111,11 @@ local function open(c)
   end
 end
 
--- ── Preferencia persistente ──────────────────────────────────────────────────
--- "Comentarios plegados" es global y se guarda en stdpath("state")/comments.json (como las de
--- utils/diagblocks.lua): `<leader>Cc` la enciende, `<leader>Ce` la apaga y vale para los archivos
--- que abras después y para las próximas sesiones. `settings.comments.auto_collapse` solo da el
--- valor inicial, hasta que eliges algo.
+-- ── Persistent preference ────────────────────────────────────────────────────
+-- "Collapsed comments" is global and saved in stdpath("state")/comments.json (like the ones in
+-- utils/diagblocks.lua): `<leader>Cc` turns it on, `<leader>Ce` turns it off, and it applies to the files
+-- you open afterwards and to future sessions. `settings.comments.auto_collapse` only gives the
+-- initial value, until you choose something.
 local PREFS_PATH = vim.fn.stdpath "state" .. "/comments.json"
 
 ---@type { collapsed: boolean }?
@@ -154,14 +154,14 @@ function M.collapsed()
   return get_prefs().collapsed
 end
 
---- Kinds que ufo cierra solo la primera vez que muestra un buffer: con la preferencia encendida,
---- los archivos nuevos se abren con los comentarios largos ya plegados
+--- Kinds that ufo closes by itself the first time it shows a buffer: with the preference on,
+--- new files open with the long comments already folded
 ---@return string[]
 function M.close_kinds()
   return M.collapsed() and { M.KIND } or {}
 end
 
---- ufo lee esta lista en vivo (la de su config): se pone o quita el kind sin reiniciar nada
+--- ufo reads this list live (the one in its config): the kind is added or removed without restarting anything
 local function sync_ufo()
   local ok, config = pcall(require, "ufo.config")
   if not ok then
@@ -179,11 +179,11 @@ local function sync_ufo()
   end
 end
 
--- ── Acciones ─────────────────────────────────────────────────────────────────
+-- ── Actions ───────────────────────────────────────────────────────────────────
 
---- Pliega o despliega todos los comentarios largos del buffer de la ventana actual
+--- Fold or unfold all long comments of the current window's buffer
 ---@param collapse boolean
----@return integer cuántos comentarios largos hay
+---@return integer how many long comments there are
 local function apply_here(collapse)
   local ranges = M.ranges(vim.api.nvim_get_current_buf())
   if #ranges > 0 then
@@ -199,13 +199,13 @@ local function apply_here(collapse)
   return #ranges
 end
 
---- Pliega AL INSTANTE, de forma síncrona y antes del primer repintado, un buffer recién mostrado.
---- El proveedor de ufo es asíncrono (el archivo se vería abierto unas decenas de ms y luego
---- "saltaría"): aquí se crean los folds de los comentarios largos y se cierran en el acto; cuando
---- ufo termina, rehace todos los folds y los vuelve a cerrar por kind sin que se note.
---- Solo actúa si el buffer aún no tiene folds (si ya los tiene, ufo ya trabajó: lo alinea `apply_here`).
+--- Fold INSTANTLY, synchronously and before the first redraw, a just-shown buffer.
+--- ufo's provider is asynchronous (the file would look open for a few tens of ms and then
+--- "jump"): here the long-comment folds are created and closed on the spot; when
+--- ufo finishes, it redoes all the folds and closes them again by kind unnoticeably.
+--- It only acts if the buffer has no folds yet (if it already has them, ufo already worked: `apply_here` aligns it).
 ---@param buf integer
----@return integer cuántos comentarios largos pliega
+---@return integer how many long comments it folds
 local function fold_now(buf)
   if vim.wo.foldmethod ~= "manual" then
     return 0
@@ -220,14 +220,14 @@ local function fold_now(buf)
     vim.wo.foldenable = true
   end
   for _, c in ipairs(ranges) do
-    -- de abajo arriba no hace falta: los comentarios no se solapan entre sí
+    -- bottom-to-top isn't needed: comments don't overlap each other
     pcall(vim.cmd, ("%d,%dfold"):format(c.first + 1, c.last + 1))
     close(c)
   end
   return #ranges
 end
 
---- Aplica la preferencia a lo que ya está abierto en este tab (los archivos nuevos la toman de ufo)
+--- Apply the preference to what is already open in this tab (new files take it from ufo)
 ---@param collapse boolean
 ---@return integer
 local function apply_visible(collapse)
@@ -242,7 +242,7 @@ local function apply_visible(collapse)
   return total
 end
 
---- Pliega todos los comentarios largos y los mantiene plegados (preferencia guardada)
+--- Fold all long comments and keep them folded (saved preference)
 function M.collapse()
   set_collapsed(true)
   sync_ufo()
@@ -256,7 +256,7 @@ function M.collapse()
   )
 end
 
---- Despliega todos los comentarios largos y deja de plegarlos solos
+--- Unfold all long comments and stop folding them automatically
 function M.expand()
   set_collapsed(false)
   sync_ufo()
@@ -264,7 +264,7 @@ function M.expand()
   vim.notify("Comments expanded — they will open expanded", vim.log.levels.INFO)
 end
 
---- Pliega/despliega el comentario largo bajo el cursor (solo ahí: no cambia la preferencia)
+--- Fold/unfold the long comment under the cursor (only there: doesn't change the preference)
 function M.toggle()
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
   for _, c in ipairs(M.ranges(vim.api.nvim_get_current_buf())) do
@@ -279,8 +279,8 @@ function M.toggle()
   vim.notify("No long comment under the cursor", vim.log.levels.INFO)
 end
 
---- Registra la preferencia en ufo y la aplica a los buffers que ya existían cuando se encendió
---- (los nuevos los cierra ufo solo): al mostrarse, un buffer cuyo estado no coincide se alinea
+--- Register the preference in ufo and apply it to the buffers that already existed when it was turned on
+--- (new ones are closed by ufo itself): when shown, a buffer whose state doesn't match gets aligned
 function M.setup()
   sync_ufo()
   vim.api.nvim_create_autocmd("BufWinEnter", {
@@ -293,12 +293,12 @@ function M.setup()
       if vim.b[ev.buf].comments_collapsed == want then
         return
       end
-      -- al abrir un archivo se pliega ya, sin esperar a ufo (que es asíncrono)
+      -- when opening a file it is folded right away, without waiting for ufo (which is asynchronous)
       if want and vim.api.nvim_get_current_buf() == ev.buf and fold_now(ev.buf) > 0 then
         vim.b[ev.buf].comments_collapsed = true
         return
       end
-      -- si no (buffer ya con folds, o desplegar): se espera a que ufo los tenga
+      -- otherwise (buffer already with folds, or unfolding): wait for ufo to have them
       vim.defer_fn(function()
         if not (vim.api.nvim_buf_is_valid(ev.buf) and vim.api.nvim_get_current_buf() == ev.buf) then
           return

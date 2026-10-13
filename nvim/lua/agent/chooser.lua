@@ -1,7 +1,7 @@
--- ── Elegir backend, modelo y esfuerzo ────────────────────────────────────────
--- Una sola lista fuzzy con TODOS los modelos de todos los backends instalados
--- ("Claude haiku", "OpenCode opencode-go/qwen3.8-flash"...): elegir uno cambia también
--- de backend. Se recuerda entre sesiones (agent/state).
+-- ── Pick backend, model and effort ───────────────────────────────────────────
+-- A single fuzzy list with ALL the models of all installed backends
+-- ("Claude haiku", "OpenCode opencode-go/qwen3.8-flash"...): picking one also switches
+-- the backend. It is remembered across sessions (agent/state).
 local backends = require "agent.backends"
 local log = require "utils.log"
 local select = require "agent.ui.select"
@@ -9,13 +9,13 @@ local selection = require "agent.selection"
 
 local M = {}
 
---- Sin ningún backend disponible: en vez de un error seco, ofrece el setup (detecta Ollama, LM Studio...)
+--- With no backend available: instead of a bare error, offer the setup (detects Ollama, LM Studio...)
 function M.none()
   log.error "Agent: no backend available (`claude`, `opencode`, a local Ollama...). Opening setup"
   require("agent.setup").open()
 end
 
----@param tier "main"|"light"? qué modelo se elige (por defecto el principal)
+---@param tier "main"|"light"? which model is being picked (default: the main one)
 function M.model(tier)
   tier = tier or "main"
   local available = backends.available()
@@ -26,7 +26,7 @@ function M.model(tier)
   local current = selection.current(tier == "light" and { name = "", tier = "light" } or nil)
   local groups, pending, shown = {}, #available, false
 
-  -- opencode tarda en listar sus modelos la primera vez: avisar si se hace esperar
+  -- opencode takes a while to list its models the first time: warn if it makes you wait
   vim.defer_fn(function()
     if pending > 0 and not shown then
       log.info "Agent: listing models…"
@@ -83,7 +83,7 @@ function M.effort()
   end)
 end
 
---- Un solo punto de entrada para lo que se cambia poco: modelo principal, ligero y esfuerzo
+--- A single entry point for what rarely changes: main model, light model and effort
 function M.menu()
   local sel = selection.current()
   if not sel then

@@ -1,10 +1,10 @@
--- ── Commits (menú <leader>G): fachada ────────────────────────────────────────
--- Una sola experiencia, el panel (commit/panel.lua), con tres entradas, y un modo sin panel:
---   open()   revisar lo que se commitea, escribir el mensaje (tipo/scope asistidos) y commitear
---   ai()     igual, pidiendo ya el borrador al agente (lee solo lo preparado; el panel dice qué y con qué modelo)
---   amend()  reescribir el mensaje del último commit (avisa si ya está en el remoto)
---   auto()   sin panel y en segundo plano: prepara (si hace falta), la IA escribe UN mensaje y commitea (commit/auto.lua)
---   commit/conventional.lua  validación y sugerencias (puro) · commit/git.lua  git · commit/ai.lua  el borrador
+-- ── Commits (<leader>G menu): facade ─────────────────────────────────────────
+-- A single experience, the panel (commit/panel.lua), with three entry points, and a panel-less mode:
+--   open()   review what is being committed, write the message (assisted type/scope) and commit
+--   ai()     same, already requesting the draft from the agent (reads only what is staged; the panel says what and with which model)
+--   amend()  rewrite the message of the last commit (warns if it is already on the remote)
+--   auto()   no panel, in the background: stages (if needed), the AI writes ONE message and commits (commit/auto.lua)
+--   commit/conventional.lua  validation and suggestions (pure) · commit/git.lua  git · commit/ai.lua  the draft
 local M = {}
 
 function M.open()
@@ -25,7 +25,7 @@ function M.amend()
   if not root then
     return require("utils.log").warn "Not inside a git repository"
   end
-  -- reescribir un commit que otros ya pueden tener rompe su historial
+  -- rewriting a commit that others may already have breaks their history
   if git.head(root) and git.head_on_remote(root) then
     return vim.ui.select({ "Amend anyway (needs a force push later)", "Cancel" }, {
       prompt = "This commit is already on the remote",

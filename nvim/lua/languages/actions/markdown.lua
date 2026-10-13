@@ -1,10 +1,10 @@
--- ── Acciones de Markdown ─────────────────────────────────────────────────────
+-- ── Markdown actions ─────────────────────────────────────────────────────────
 local actions = require "utils.actions"
 local log = require "utils.log"
 local md = require "utils.markdown"
 
---- Muestra/oculta los diagnósticos (errores del linter) SOLO en este buffer: sirve
---- para leer el markdown "como libro". El linter sigue corriendo, solo se ocultan.
+--- Shows/hides the diagnostics (linter errors) ONLY in this buffer: useful
+--- for reading markdown "like a book". The linter keeps running, they are just hidden.
 local function toggle_diagnostics()
   local on = not vim.diagnostic.is_enabled { bufnr = 0 }
   vim.diagnostic.enable(on, { bufnr = 0 })

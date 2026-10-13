@@ -1,4 +1,4 @@
--- Resalta TODO / FIXME / HACK y los busca con ripgrep
+-- Highlights TODO / FIXME / HACK and searches for them with ripgrep
 return {
   "folke/todo-comments.nvim",
   event = "BufReadPost",

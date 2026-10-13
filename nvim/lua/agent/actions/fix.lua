@@ -1,7 +1,7 @@
--- Arreglar EN LÍNEA: el diagnóstico (LSP, linter o hallazgo) de la línea del cursor, y nada más.
--- El objetivo son solo las líneas del diagnóstico; el código de alrededor y los objetos a los que apunta
--- (tipo de la variable, firma de lo llamado) entran como contexto de solo lectura. La versión sobre toda la
--- función es `fix_block`.
+-- Fix INLINE: the diagnostic (LSP, linter or finding) on the cursor line, and nothing else.
+-- The target is only the diagnostic's lines; the surrounding code and the objects it points to
+-- (the variable's type, the signature of what is called) come in as read-only context. The version over the
+-- whole function is `fix_block`.
 local protocol = require "agent.protocol"
 local target_mod = require "agent.context.target"
 

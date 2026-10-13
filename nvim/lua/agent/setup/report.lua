@@ -1,5 +1,5 @@
--- ── Informe del setup (markdown) ─────────────────────────────────────────────
--- Convierte la foto de `detect` + la recomendación en texto legible. Puro: sirve igual para el panel de nvim y para la
+-- ── Setup report (markdown) ──────────────────────────────────────────────────
+-- Turns the `detect` snapshot + the recommendation into readable text. Pure: works the same for the nvim panel and for the
 -- terminal (scripts/agent-setup.sh).
 local M = {}
 
@@ -7,7 +7,7 @@ local OK, NO = "✔", "✘"
 
 ---@param snap AgentSnapshot
 ---@param rec AgentRecommendation
----@param current string?  selección actual ("ollama/qwen2.5-coder:7b")
+---@param current string?  current selection ("ollama/qwen2.5-coder:7b")
 ---@return string[]
 function M.build(snap, rec, current)
   local out = { "# Agent setup", "" }
@@ -114,7 +114,7 @@ function M.build(snap, rec, current)
   return out
 end
 
---- ¿Hay al menos un backend listo para usar? (CLI de nube, o un servidor local con modelos)
+--- Is at least one backend ready to use? (cloud CLI, or a local server with models)
 ---@param snap AgentSnapshot
 ---@return boolean
 function M.ready(snap)

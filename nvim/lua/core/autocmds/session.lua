@@ -1,14 +1,14 @@
--- ── Sesión: autoguardado periódico + registro en Herdr ───────────────────────
--- persistence.nvim solo guarda al salir; con un corte de luz nvim no llega a
--- `VimLeavePre`. Aquí se guarda en segundo plano (si algo cambió) y se avisa a
--- Herdr para que reabra este pane con la sesión (ver utils/herdr.lua).
+-- ── Session: periodic autosave + Herdr registration ──────────────────────────
+-- persistence.nvim only saves on exit; with a power cut nvim never reaches
+-- `VimLeavePre`. Here it saves in the background (if something changed) and
+-- notifies Herdr so it reopens this pane with the session (see utils/herdr.lua).
 local settings = require "core.settings"
 
 local M = {}
 
 local CHANGED = { "BufEnter", "BufWinEnter", "BufDelete", "WinClosed", "WinNew", "CursorHold" }
 
---- ¿Hay algún archivo real abierto? (igual que persistence: si no, no vale la pena guardar)
+--- Is any real file open? (same as persistence: otherwise saving is pointless)
 local function has_files()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" then
@@ -18,7 +18,7 @@ local function has_files()
   return false
 end
 
---- Guarda sin cerrar las ventanas auxiliares (a diferencia de la salida, aquí estás trabajando)
+--- Saves without closing auxiliary windows (unlike on exit, here you are working)
 local function autosave(group)
   local dirty = false
   vim.api.nvim_create_autocmd(CHANGED, {
@@ -59,7 +59,7 @@ function M.setup()
 
   vim.api.nvim_create_user_command("HerdrResume", function()
     require("utils.herdr").resume()
-  end, { desc = "Restaura la sesión de la carpeta (comando de resume de Herdr)" })
+  end, { desc = "Restore the folder's session (Herdr resume command)" })
 
   if settings.session.herdr then
     vim.api.nvim_create_autocmd("VimEnter", {

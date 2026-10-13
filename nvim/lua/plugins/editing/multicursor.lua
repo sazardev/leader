@@ -1,8 +1,8 @@
--- Varios cursores reales (estilo VS Code / Helix). Solo se carga con la primera tecla;
--- con un único cursor no corre nada (sin autocmds ni sondeos residuales).
+-- Real multiple cursors (VS Code / Helix style). Only loads on the first key;
+-- with a single cursor nothing runs (no residual autocmds or polling).
 --
--- Elegidas para no pisar nada: <C-n> es nvim-tree (NvChad), <leader>x/n/A son prefijos de
--- menús, <C-LeftMouse> es "ir a definición" y <A-hjkl> es mini.move.
+-- Chosen so as not to override anything: <C-n> is nvim-tree (NvChad), <leader>x/n/A are menu
+-- prefixes, <C-LeftMouse> is "go to definition" and <A-hjkl> is mini.move.
 local function mc()
   return require "multicursor-nvim"
 end
@@ -44,7 +44,7 @@ return {
     local m = mc()
     m.setup()
 
-    -- Capa de mapeos: solo existe mientras haya varios cursores
+    -- Mapping layer: only exists while there are multiple cursors
     m.addKeymapLayer(function(layer)
       layer({ "n", "x" }, "<Left>", m.prevCursor, { desc = "Multicursor previous cursor" })
       layer({ "n", "x" }, "<Right>", m.nextCursor, { desc = "Multicursor next cursor" })

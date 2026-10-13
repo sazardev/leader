@@ -1,6 +1,6 @@
--- ── Acciones de TypeScript / JavaScript ──────────────────────────────────────
--- Detecta el gestor de paquetes (pnpm/yarn/bun/npm) por lockfile y usa los
--- scripts de package.json cuando existen.
+-- ── TypeScript / JavaScript actions ──────────────────────────────────────────
+-- Detects the package manager (pnpm/yarn/bun/npm) by lockfile and uses the
+-- package.json scripts when they exist.
 local actions = require "utils.actions"
 local log = require "utils.log"
 local project = require "utils.project"
@@ -31,7 +31,7 @@ local function scripts(root)
   return names
 end
 
---- Corre el script de package.json si existe; si no, `fallback` (o avisa).
+--- Runs the package.json script if it exists; otherwise `fallback` (or warns).
 local function script(name, fallback)
   return function()
     local pm, root = package_manager()

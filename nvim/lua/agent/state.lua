@@ -1,6 +1,6 @@
--- ── Estado persistente del agente ────────────────────────────────────────────
--- Qué backend/modelo/esfuerzo dejaste elegido (stdpath("state")/agent.json), para
--- que sobreviva entre sesiones. Solo clave/valor; la política vive en selection.lua.
+-- ── Persistent agent state ───────────────────────────────────────────────────
+-- Which backend/model/effort you left selected (stdpath("state")/agent.json), so
+-- it survives across sessions. Key/value only; the policy lives in selection.lua.
 local M = {}
 
 local PATH = vim.fn.stdpath "state" .. "/agent.json"

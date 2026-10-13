@@ -1,4 +1,4 @@
--- Mover líneas/bloques con Alt+hjkl
+-- Move lines/blocks with Alt+hjkl
 local DIRECTIONS = { h = "left", j = "down", k = "up", l = "right" }
 
 local keys, mappings = {}, {}
@@ -10,8 +10,8 @@ end
 
 return {
   "echasnovski/mini.move",
-  -- VeryLazy además de keys: <A-h> en normal lo libera core/keymaps/cleanup.lua después de
-  -- crearse el stub de lazy, así que hay que cargar el plugin para que lo mapee
+  -- VeryLazy in addition to keys: <A-h> in normal mode is freed by core/keymaps/cleanup.lua after
+  -- lazy's stub is created, so the plugin must be loaded for it to map it
   event = "VeryLazy",
   keys = keys,
   opts = { mappings = mappings },

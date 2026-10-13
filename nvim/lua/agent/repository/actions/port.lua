@@ -1,12 +1,12 @@
--- Repository port: implementa un adaptador completo (p. ej. un repositorio SQL) contra el puerto que debe cumplir
+-- Repository port: implements a whole adapter (e.g. a SQL repository) against the port it must fulfil
 local protocol = require "agent.protocol"
 
 return {
   label = "repository port",
   desc = "repo port",
   key = "p",
-  scope = "type", -- el tipo bajo el cursor, o el de su receptor si estás dentro de uno de sus métodos
-  examples = true, -- el proveedor `contracts` añade otra implementación del proyecto como ejemplo de estilo
+  scope = "type", -- the type under the cursor, or its receiver's if you are inside one of its methods
+  examples = true, -- the `contracts` provider adds another implementation from the project as a style example
   context = { "rules", "contracts", "schema", "types", "diagnostics" },
   output = "replace",
   input = "anything special? (empty = all missing methods)",

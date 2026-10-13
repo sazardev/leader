@@ -1,14 +1,14 @@
--- ── Helpers de Markdown (modo lectura, ortografía, checkboxes, conteo) ───────
+-- ── Markdown helpers (reading mode, spelling, checkboxes, word count) ───────
 local log = require "utils.log"
 
 local M = {}
 
 local READING_WIDTH = 80
--- opciones de ventana que cambia el modo lectura (se guardan para restaurarlas)
+-- window options that reading mode changes (saved to restore them)
 local READING_OPTS =
   { "wrap", "linebreak", "number", "relativenumber", "signcolumn", "cursorline", "colorcolumn", "statuscolumn" }
 
---- Margen izquierdo (en espacios) para centrar el texto en `READING_WIDTH` columnas
+--- Left margin (in spaces) to center the text in `READING_WIDTH` columns
 ---@param win integer
 ---@return string
 local function margin(win)
@@ -23,8 +23,8 @@ local function recenter()
   end
 end
 
---- Modo lectura (toggle, solo esta ventana): texto centrado a 80 columnas con
---- ajuste de línea, sin números ni signos ni diagnósticos; al salir todo vuelve.
+--- Reading mode (toggle, this window only): text centered at 80 columns with
+--- line wrapping, no numbers, signs or diagnostics; everything is restored on exit.
 function M.reading_mode()
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_win_get_buf(win)
@@ -62,7 +62,7 @@ function M.reading_mode()
   log.info "Reading mode: on"
 end
 
---- Corrector ortográfico (es + en) en este buffer/ventana
+--- Spell checker (es + en) in this buffer/window
 function M.toggle_spell()
   local on = not vim.wo.spell
   vim.wo.spell = on
@@ -72,15 +72,15 @@ function M.toggle_spell()
   log.info("Spell check: " .. (on and "on (es, en)" or "off"))
 end
 
---- Palabras del buffer (o de la selección) y tiempo de lectura a ~200 ppm
+--- Words in the buffer (or selection) and reading time at ~200 wpm
 function M.word_count()
   local wc = vim.fn.wordcount()
   local words = wc.visual_words or wc.words
   log.info(("%d words · ~%d min read"):format(words, math.max(1, math.ceil(words / 200))))
 end
 
---- Marca/desmarca el checkbox de la línea; si no es una tarea, la convierte en una
---- (`- [ ] `), conservando viñeta (`-*+` o `1.`) e indentación.
+--- Check/uncheck the line's checkbox; if it isn't a task, turn it into one
+--- (`- [ ] `), keeping the bullet (`-*+` or `1.`) and indentation.
 function M.toggle_checkbox()
   local line = vim.api.nvim_get_current_line()
 

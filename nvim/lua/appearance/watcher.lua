@@ -1,7 +1,7 @@
--- ── Seguimiento en vivo de la config de la terminal ──────────────────────────
--- Sondea (stat) los archivos de la config de Alacritty cada `watch_ms`. Se usa
--- sondeo y no inotify porque en WSL la config vive en Windows (/mnt/c) y esos
--- cambios no generan eventos. Solo corre mientras el tema activo es el terminal.
+-- ── Live tracking of the terminal config ─────────────────────────────────────
+-- Polls (stat) the Alacritty config files every `watch_ms`. Polling is used
+-- instead of inotify because in WSL the config lives on Windows (/mnt/c) and those
+-- changes generate no events. It only runs while the active theme is the terminal one.
 local alacritty = require "appearance.alacritty"
 local settings = require "core.settings"
 
@@ -23,7 +23,7 @@ function M.stop()
   end
 end
 
---- Arranca el sondeo; `on_change` se llama (en el hilo principal) al detectar cambios
+--- Starts the polling; `on_change` is called (on the main thread) when changes are detected
 ---@param on_change fun()
 function M.start(on_change)
   local interval = settings.theme.terminal.watch_ms

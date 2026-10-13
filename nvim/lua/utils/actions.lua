@@ -1,11 +1,11 @@
--- ── Fábricas de acciones reutilizables para los menús ────────────────────────
+-- ── Reusable action factories for the menus ──────────────────────────────────
 local log = require "utils.log"
 local project = require "utils.project"
 local terminal = require "utils.terminal"
 
 local M = {}
 
---- Acción que ejecuta un comando Ex
+--- Action that runs an Ex command
 ---@param name string
 ---@return fun()
 function M.ex(name)
@@ -14,8 +14,8 @@ function M.ex(name)
   end
 end
 
---- Acción que corre `cmd` en la raíz del proyecto; avisa si falta `bin`
----@param bin string ejecutable requerido
+--- Action that runs `cmd` at the project root; warns if `bin` is missing
+---@param bin string required executable
 ---@param cmd string
 ---@param markers? string[]
 ---@return fun()
@@ -28,12 +28,12 @@ function M.run(bin, cmd, markers)
   end
 end
 
---- Formatea el buffer con conform (con fallback a LSP)
+--- Format the buffer with conform (falling back to LSP)
 function M.format()
   require("conform").format { lsp_format = "fallback" }
 end
 
---- Aplica una code action de tipo `kind` (p. ej. "source.organizeImports")
+--- Apply a code action of type `kind` (e.g. "source.organizeImports")
 ---@param kind string
 ---@return fun()
 function M.code_action(kind)

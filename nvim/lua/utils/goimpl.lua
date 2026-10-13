@@ -1,19 +1,19 @@
--- ── Go: lo que falta por implementar de una interfaz (sin LLM, 0 tokens) ─────
--- Si un struct ya "se nota" implementando una interfaz y le faltan métodos, ofrece EXACTAMENTE esos, con la firma de
--- la interfaz y un cuerpo útil, como completado de blink (lo consume utils/gosmart.lua):
---   func (s *noteService) |        → los métodos que faltan (tras escribir el receptor), y "todos los que faltan"
---   func |  (columna 0)            → lo mismo para cada struct del archivo, con el receptor ya escrito
--- Cómo sabe qué interfaz implementa un struct (la primera que encaje, por este orden):
---   1. `var _ NoteService = (*noteService)(nil)`            (la comprobación idiomática)
---   2. un constructor que la devuelve: `func NewX(...) NoteService { return &noteService{...} }`
---   3. el nombre: noteService ~ NoteService, postgresNoteRepository ~ domain.NoteRepository (paquetes locales importados)
---   4. lo que ya implementó: si sus métodos son un subconjunto de los de la interfaz
--- Cuerpo: si el struct guarda una dependencia que es una interfaz (`repo domain.NoteRepository`) y esta tiene un método
--- con la MISMA forma (tipos de parámetros y de retorno, sin importar el paquete), el cuerpo la llama:
--- `return s.repo.FindByID(ctx, id)`. Si no, deja el cursor en el cuerpo con `return` de valores cero que compila.
--- Las interfaces de OTRO paquete del módulo (`domain.NoteRepository`) se leen del disco (módulo de go.mod) y sus tipos
--- se califican (`Note` → `domain.Note`); los imports que falten los pone goimports al guardar.
--- Interfaces de la librería estándar o de dependencias no se leen: para esas, gopls ("Declare missing methods", <leader>ca).
+-- ── Go: what's left to implement of an interface (no LLM, 0 tokens) ──────────
+-- If a struct already "looks like" it implements an interface and is missing methods, it offers EXACTLY those, with the
+-- interface's signature and a useful body, as a blink completion (consumed by utils/gosmart.lua):
+--   func (s *noteService) |        → the missing methods (after typing the receiver), and "all the missing ones"
+--   func |  (column 0)             → the same for each struct in the file, with the receiver already written
+-- How it knows which interface a struct implements (the first that fits, in this order):
+--   1. `var _ NoteService = (*noteService)(nil)`            (the idiomatic check)
+--   2. a constructor that returns it: `func NewX(...) NoteService { return &noteService{...} }`
+--   3. the name: noteService ~ NoteService, postgresNoteRepository ~ domain.NoteRepository (imported local packages)
+--   4. what it already implemented: if its methods are a subset of the interface's
+-- Body: if the struct holds a dependency that is an interface (`repo domain.NoteRepository`) and it has a method
+-- with the SAME shape (parameter and return types, regardless of package), the body calls it:
+-- `return s.repo.FindByID(ctx, id)`. Otherwise it leaves the cursor in the body with a compiling zero-value `return`.
+-- Interfaces from ANOTHER package in the module (`domain.NoteRepository`) are read from disk (go.mod's module) and their types
+-- are qualified (`Note` → `domain.Note`); missing imports are added by goimports on save.
+-- Interfaces from the standard library or dependencies aren't read: for those, use gopls ("Declare missing methods", <leader>ca).
 local M = {}
 
 local KIND = vim.lsp.protocol.CompletionItemKind
@@ -27,18 +27,18 @@ local related, resolve_interface, defined_methods = ix.related, ix.resolve_inter
 local normalize, zero_value, esc, range_of = ix.normalize, ix.zero_value, ix.esc, ix.range_of
 local buffer_state, current_package = ix.buffer_state, ix.current_package
 
--- ── qué interfaz implementa un struct y qué le falta ─────────────────────────
+-- ── which interface a struct implements and what it's missing ────────────────
 
 ---@class GoImplTarget
 ---@field struct string
----@field iface string          nombre como se escribe (`NoteService`, `domain.NoteRepository`)
----@field methods GoImplMethod[] los que FALTAN
----@field alias string?         paquete de la interfaz si es de otro paquete
----@field declared table<string, boolean>? tipos declarados en el paquete de la interfaz (se califican con `alias`)
----@field recv string           nombre del receptor
+---@field iface string          name as written (`NoteService`, `domain.NoteRepository`)
+---@field methods GoImplMethod[] the MISSING ones
+---@field alias string?         interface's package if it is from another package
+---@field declared table<string, boolean>? types declared in the interface's package (qualified with `alias`)
+---@field recv string           receiver name
 ---@field ptr boolean
 
---- Interfaces candidatas del struct, en orden de confianza (sin repetir)
+--- Candidate interfaces for the struct, in order of confidence (no duplicates)
 ---@param pkg GoImplPackage
 ---@param struct string
 ---@param file_path string
@@ -66,7 +66,7 @@ local function candidates(pkg, struct, file_path)
       add(iface)
     end
   end
-  -- paquetes locales importados: `postgresNoteRepository` ~ domain.NoteRepository
+  -- imported local packages: `postgresNoteRepository` ~ domain.NoteRepository
   for alias, import_path in pairs(pkg.imports) do
     local dir = module_dir(import_path, file_path)
     if dir and dir ~= pkg.dir then
@@ -77,7 +77,7 @@ local function candidates(pkg, struct, file_path)
       end
     end
   end
-  -- lo que ya implementó: sus métodos son un subconjunto de los de la interfaz
+  -- what it already implemented: its methods are a subset of the interface's
   local mine = defined_methods(pkg, struct)
   if next(mine) then
     for iface, methods in pairs(pkg.interfaces) do
@@ -132,9 +132,9 @@ local function missing_for(pkg, struct, file_path)
   return out
 end
 
--- ── cuerpo y firma ───────────────────────────────────────────────────────────
+-- ── body and signature ───────────────────────────────────────────────────────
 
---- Firma con los tipos de la interfaz calificados si viene de otro paquete
+--- Signature with the interface's types qualified if it comes from another package
 ---@param m GoImplMethod
 ---@param target GoImplTarget
 ---@return string
@@ -154,7 +154,7 @@ local function signature(m, target)
   return sig
 end
 
---- Nombre corto de un parámetro a partir de su tipo (`context.Context` → ctx, `*domain.Note` → note, `UserID` → userID)
+--- Short parameter name derived from its type (`context.Context` → ctx, `*domain.Note` → note, `UserID` → userID)
 ---@param t string
 ---@return string?
 local function name_from_type(t)
@@ -174,7 +174,7 @@ local function name_from_type(t)
   )
 end
 
---- Nombres de los parámetros (los de la interfaz, o inventados y sin repetir cuando no los tiene)
+--- Parameter names (the interface's, or made up and de-duplicated when it has none)
 ---@param m GoImplMethod
 ---@return string[]
 local function param_names(m)
@@ -192,7 +192,7 @@ local function param_names(m)
   return names
 end
 
---- Firma con nombres en todos los parámetros (la de la interfaz si ya los tiene)
+--- Signature with names on all parameters (the interface's if it already has them)
 ---@param m GoImplMethod
 ---@param target GoImplTarget
 ---@param names string[]
@@ -239,20 +239,20 @@ local function dependencies(pkg, struct, file_path)
   return deps
 end
 
---- Un método completo: `Name(params) results {\n\tbody\n}` (con la cabecera `func (r *T) ` si `header`)
+--- A complete method: `Name(params) results {\n\tbody\n}` (with the `func (r *T) ` header if `header`)
 ---@param m GoImplMethod
 ---@param target GoImplTarget
 ---@param pkg GoImplPackage
 ---@param deps { field: string, methods: GoImplMethod[] }[]
 ---@param header boolean
----@param stop string  marcador de snippet donde queda el cursor: `$0` (uno solo) o `$N` (varios métodos de una vez)
+---@param stop string  snippet marker where the cursor ends up: `$0` (a single one) or `$N` (several methods at once)
 ---@return string snippet, string plain
 local function render(m, target, pkg, deps, header, stop)
   local names = param_names(m)
   local sig = named_signature(m, target, names)
   local recv = ("(%s %s%s)"):format(target.recv, target.ptr and "*" or "", target.struct)
 
-  -- ¿alguna dependencia tiene un método con la misma forma? (mismo nombre gana si hay varios)
+  -- does any dependency have a method with the same shape? (same name wins if there are several)
   local call
   local want = shape(m)
   for _, dep in ipairs(deps) do
@@ -275,7 +275,7 @@ local function render(m, target, pkg, deps, header, stop)
   local body_snippet, body_plain
   if call then
     local prefix = #m.results > 0 and "return " or ""
-    -- una llamada ya hecha no necesita cursor; solo con un método el cursor acaba al final
+    -- a call already made needs no cursor; only with a single method does the cursor end at the end
     body_snippet = "\t" .. prefix .. esc(call) .. (stop == "$0" and "$0" or "")
     body_plain = "\t" .. prefix .. call
   else
@@ -292,7 +292,7 @@ local function render(m, target, pkg, deps, header, stop)
   return esc(head) .. body_snippet .. "\n}", plain
 end
 
--- ── ítems de blink ───────────────────────────────────────────────────────────
+-- ── blink items ───────────────────────────────────────────────────────────────
 
 ---@param plain string
 ---@param iface string
@@ -301,12 +301,12 @@ local function documentation(plain, iface)
   return { kind = "markdown", value = ("`%s` · missing\n```go\n%s\n```"):format(iface, plain) }
 end
 
---- Ítems de los métodos que le faltan a `struct`
+--- Items for the methods `struct` is missing
 ---@param target GoImplTarget[]
 ---@param pkg GoImplPackage
 ---@param file_path string
 ---@param range table
----@param header boolean  el texto lleva `func (r *T) ` (empezando una declaración) o solo el nombre
+---@param header boolean  the text carries `func (r *T) ` (starting a declaration) or just the name
 ---@param order_from integer
 ---@return table[]
 local function items_for(targets, pkg, file_path, range, header, order_from)
@@ -330,10 +330,10 @@ local function items_for(targets, pkg, file_path, range, header, order_from)
       }
     end
     if #tg.methods > 1 then
-      -- todos de una vez: el primero ya va en la posición del cursor; los demás, con su cabecera completa
+      -- all at once: the first one already goes at the cursor position; the rest, with their full header
       local joined, joined_plain = {}, {}
       for i, m in ipairs(tg.methods) do
-        -- varios métodos: un solo `$0` no puede repetirse, así que cada cuerpo vacío lleva su propio `$N` (Tab salta)
+        -- several methods: a single `$0` can't be repeated, so each empty body gets its own `$N` (Tab jumps)
         local snip, plain = render(m, tg, pkg, deps, header or i > 1, "$" .. i)
         joined[i], joined_plain[i] = snip, plain
       end
@@ -353,7 +353,7 @@ local function items_for(targets, pkg, file_path, range, header, order_from)
   return items
 end
 
---- Posición `func (s *noteService) Ge|`: el struct del receptor, lo tecleado del nombre y cómo se escribió el receptor
+--- Position `func (s *noteService) Ge|`: the receiver's struct, what was typed of the name and how the receiver was written
 ---@param line string
 ---@param col integer
 ---@return string? struct, string? frag, integer? from, { var: string, ptr: boolean }? receiver
@@ -366,7 +366,7 @@ function M.method_position(line, col)
   return struct, frag, col - #frag, { var = var, ptr = star == "*" }
 end
 
---- Ítems al escribir el nombre de un método (tras `func (s *T) `)
+--- Items when typing a method name (after `func (s *T) `)
 ---@param ctx { line: string, cursor: integer[] }
 ---@return table[]
 function M.method_items(ctx)
@@ -380,7 +380,7 @@ function M.method_items(ctx)
   end
   local targets = missing_for(pkg, struct, path)
   for _, tg in ipairs(targets) do
-    -- el receptor se escribe como lo tecleaste (`s *noteService`): los cuerpos usan ese nombre
+    -- the receiver is written as you typed it (`s *noteService`): the bodies use that name
     tg.recv, tg.ptr = receiver.var ~= "" and receiver.var or tg.recv, receiver.ptr
   end
   local items = items_for(targets, pkg, path, range_of(ctx.cursor[1], from, ctx.cursor[2]), false, 0)
@@ -389,9 +389,9 @@ function M.method_items(ctx)
   end, items)
 end
 
---- Ítems al EMPEZAR una declaración: para cada struct del archivo al que le faltan métodos
+--- Items when STARTING a declaration: for each struct in the file that is missing methods
 ---@param range table
----@param frag string lo tecleado tras `func ` (o la palabra, en modo `any`)
+---@param frag string what was typed after `func ` (or the word, in `any` mode)
 ---@return table[]
 function M.declaration_items(range, frag)
   local pkg, path = current_package()
@@ -401,7 +401,7 @@ function M.declaration_items(range, frag)
   local targets = {}
   local _, src = buffer_state()
   for struct in pairs(pkg.structs) do
-    -- solo los structs de ESTE archivo: los del resto del paquete salen al escribir su receptor
+    -- only the structs of THIS file: the rest of the package's show up when typing their receiver
     if src:find("type%s+" .. struct .. "%s+struct") then
       vim.list_extend(targets, missing_for(pkg, struct, path))
     end
@@ -415,7 +415,7 @@ function M.declaration_items(range, frag)
   end, items)
 end
 
---- Interfaces que se le atribuyen a un struct (para `var _ I = (*T)(nil)`), en orden de confianza
+--- Interfaces attributed to a struct (for `var _ I = (*T)(nil)`), in order of confidence
 ---@param pkg GoImplPackage
 ---@param struct string
 ---@param file_path string
@@ -424,7 +424,7 @@ function M.candidates(pkg, struct, file_path)
   return candidates(pkg, struct, file_path)
 end
 
---- Para pruebas: lo que le falta a un struct, sin armar ítems
+--- For tests: what a struct is missing, without building items
 ---@param struct string
 ---@return { iface: string, missing: string[] }[]
 function M.missing(struct)

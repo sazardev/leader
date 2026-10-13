@@ -1,5 +1,5 @@
--- ── Orquestador: orden de carga de la configuración base ─────────────────────
--- Cada responsabilidad vive en su módulo; aquí solo se decide el orden.
+-- ── Orchestrator: load order of the base configuration ───────────────────────
+-- Each responsibility lives in its own module; here only the order is decided.
 local M = {}
 
 function M.setup()
@@ -8,8 +8,8 @@ function M.setup()
   require("core.clipboard").setup()
   require("core.autocmds").setup()
 
-  -- NvChad carga los keymaps con vim.schedule: se hace igual para que los
-  -- mapeos de usuario pisen a los suyos.
+  -- NvChad loads its keymaps with vim.schedule: do the same so that user
+  -- mappings override theirs.
   vim.schedule(function()
     require("core.keymaps").setup()
   end)

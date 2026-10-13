@@ -1,7 +1,7 @@
--- ── Backend: servidores compatibles con la API de OpenAI ─────────────────────────────────────────────────────────
--- LM Studio (1234), llama.cpp `llama-server` (8080), vLLM (8000), LiteLLM, OpenRouter, el modo /v1 de Ollama... Todos
--- hablan /v1/chat/completions con streaming SSE. La clave (si el servicio la pide) se lee de una variable de entorno y
--- NO viaja en los argumentos del proceso (se vería en `ps`).
+-- ── Backend: servers compatible with the OpenAI API ──────────────────────────────────────────────────────────────
+-- LM Studio (1234), llama.cpp `llama-server` (8080), vLLM (8000), LiteLLM, OpenRouter, Ollama's /v1 mode... They all
+-- speak /v1/chat/completions with SSE streaming. The key (if the service asks for one) is read from an environment variable and
+-- does NOT travel in the process arguments (it would show up in `ps`).
 local http = require "agent.backends.http"
 local settings = require("core.settings").agent.openai
 local text = require "agent.text"
@@ -13,7 +13,7 @@ local M = {
   requires_model = true,
 }
 
----@return string? url hasta /v1, sin barra final
+---@return string? url up to /v1, without trailing slash
 function M.base_url()
   local raw = settings.base_url or (vim.env.OPENAI_BASE_URL ~= "" and vim.env.OPENAI_BASE_URL) or http.saved "openai"
   if not raw then
@@ -28,7 +28,7 @@ function M.available()
   return M.base_url() ~= nil
 end
 
----@return string? clave, o nil si no hay (los servidores locales no la piden)
+---@return string? key, or nil if there is none (local servers do not ask for one)
 local function api_key()
   local name = settings.api_key_env
   local key = name and vim.env[name]

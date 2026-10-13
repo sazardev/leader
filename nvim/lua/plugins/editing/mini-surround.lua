@@ -1,4 +1,4 @@
--- Añadir/quitar/cambiar delimitadores: sa / sd / sr
+-- Add/delete/change delimiters: sa / sd / sr
 return {
   "echasnovski/mini.surround",
   keys = {

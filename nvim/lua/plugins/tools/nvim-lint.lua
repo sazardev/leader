@@ -1,4 +1,4 @@
--- Linting: linters por filetype declarados en lua/languages/.
+-- Linting: per-filetype linters declared in lua/languages/.
 return {
   "mfussenegger/nvim-lint",
   event = { "BufReadPost", "BufWritePost", "InsertLeave" },
@@ -19,8 +19,8 @@ return {
       end,
     })
 
-    -- InsertLeave: solo linters livianos (golangci-lint analiza todo el
-    -- paquete y correrlo en cada salida de insert satura CPU).
+    -- InsertLeave: only lightweight linters (golangci-lint analyzes the whole
+    -- package and running it on every insert exit saturates the CPU).
     vim.api.nvim_create_autocmd("InsertLeave", {
       group = group,
       callback = function()

@@ -1,4 +1,4 @@
--- Servidores LSP: lista en lua/languages/, overrides en lua/servers/.
+-- LSP servers: list in lua/languages/, overrides in lua/servers/.
 return {
   "neovim/nvim-lspconfig",
   dependencies = { "saghen/blink.cmp" },

@@ -1,29 +1,29 @@
--- ── DDD: fachada ─────────────────────────────────────────────────────────────
--- Una función aparte del agente normal (<leader>aD):
---   run(name)    acciones con el LLM (implement, review, missing, ask): mismo pipeline y misma experiencia, pero
---                con la sección <ddd> (capas, nomenclatura, piezas relacionadas, violaciones) y reglas de DDD
---   diagnose()   análisis estático de TODO el proyecto, sin LLM (0 tokens): violaciones, huecos y conexiones
+-- ── DDD: facade ──────────────────────────────────────────────────────────────
+-- A feature separate from the normal agent (<leader>aD):
+--   run(name)    LLM actions (implement, review, missing, ask): same pipeline and same experience, but
+--                with the <ddd> section (layers, naming, related pieces, violations) and DDD rules
+--   diagnose()   static analysis of the WHOLE project, no LLM (0 tokens): violations, gaps and connections
 --
---   index.lua      recorrido del proyecto (capa, imports, tipos) con caché       imports.lua  imports por lenguaje
---   layers.lua     qué es cada directorio y quién puede depender de quién        naming.lua   nomenclatura deducida
---   rules.lua      reglas: dependencias, frameworks, nombres, agregados, cableado
---   profile.lua    la sección <ddd> compacta para el modelo                      idioms.lua   un modismo por lenguaje
---   actions/       acciones DDD (registro propio)                                diagnose.lua informe + diagnósticos
+--   index.lua      project walk (layer, imports, types) with cache               imports.lua  imports per language
+--   layers.lua     what each directory is and who may depend on whom             naming.lua   deduced naming
+--   rules.lua      rules: dependencies, frameworks, names, aggregates, wiring
+--   profile.lua    the compact <ddd> section for the model                       idioms.lua   one idiom per language
+--   actions/       DDD actions (own registry)                                    diagnose.lua report + diagnostics
 local M = {}
 
---- Ejecuta una acción DDD sobre la función bajo el cursor (o la selección visual)
+--- Runs a DDD action on the function under the cursor (or the visual selection)
 ---@param name string "implement" | "review" | "missing" | "ask"
 ---@param opts { range: integer[]? }?
 function M.run(name, opts)
   require("agent.pipeline").run(require("agent.ddd.actions").get(name), opts)
 end
 
---- Diagnóstico estático de todo el proyecto (gratis)
+--- Static diagnosis of the whole project (free)
 function M.diagnose()
   require("agent.ddd.diagnose").run()
 end
 
---- Quita las violaciones del diagnóstico de DDD de todo el proyecto, también de lo guardado
+--- Removes the DDD diagnosis violations from the whole project, including what was saved
 function M.clear()
   require("agent.ddd.diagnose").clear()
   require("utils.log").info "Agent: DDD diagnosis cleared"

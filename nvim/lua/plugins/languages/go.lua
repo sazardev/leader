@@ -1,5 +1,5 @@
--- go.nvim: no se carga en modo ligero (residente y pesado) y no se instala si desactivas Go
--- (`languages.disabled`): su `build` descarga las herramientas de Go.
+-- go.nvim: not loaded in light mode (resident and heavy) and not installed if you disable Go
+-- (`languages.disabled`): its `build` downloads the Go tools.
 return {
   "ray-x/go.nvim",
   enabled = not vim.tbl_contains(require("core.settings").languages.disabled, "go"),
@@ -10,7 +10,7 @@ return {
   end,
   build = ':lua require("go.install").update_all_sync()',
   config = function()
-    -- GoAddTag: json:"sent_at" (snake_case); omitempty se pide aparte (<leader>gA)
+    -- GoAddTag: json:"sent_at" (snake_case); omitempty is requested separately (<leader>gA)
     require("go").setup { tag_transform = "snakecase", tag_options = false }
   end,
 }

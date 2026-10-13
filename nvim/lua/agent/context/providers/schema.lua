@@ -1,6 +1,6 @@
--- Proveedor `schema`: para un adaptador de persistencia (repositorio), la tabla REAL de su entidad (migraciones SQL o
--- schema.prisma, con los cambios posteriores) y la base de datos que se usa (dialecto, driver, estilo de parámetros).
--- Silencioso si el código no es de persistencia: un servicio o un handler no pagan nada por esto.
+-- `schema` provider: for a persistence adapter (repository), the REAL table of its entity (SQL migrations or
+-- schema.prisma, with later changes) and the database in use (dialect, driver, parameter style).
+-- Silent if the code is not persistence: a service or a handler pays nothing for this.
 local contracts = require "agent.repository.contracts"
 local imports = require "agent.ddd.imports"
 local index = require "agent.ddd.index"

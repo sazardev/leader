@@ -1,28 +1,28 @@
--- ── Agente inline: fachada pública ───────────────────────────────────────────
--- Acciones de UN disparo sobre lo que estás viendo; sin chat, sin sidebar. Cada pieza
--- vive en su carpeta, detrás de un contrato pequeño:
+-- ── Inline agent: public facade ──────────────────────────────────────────────
+-- ONE-shot actions over what you are looking at; no chat, no sidebar. Each piece
+-- lives in its own folder, behind a small contract:
 --
---   backends/   CLIs de agente (claude, opencode)         → añadir un backend = 1 archivo
---   actions/    recetas: objetivo, contexto, prompt, salida → añadir una acción = 1 archivo
---   context/    objetivo (treesitter) + proveedores con presupuesto (reglas, esquema, LSP...)
---   output/     presentadores: replace (diff en línea), findings (diagnósticos), text (ventana)
---   ui/         spinner, vista previa, ventana, selector, campo de texto
---   handoff/    entrega a un agente de Herdr
---   setup/      detección y puesta a punto de backends y modelos locales (Ollama, LM Studio...)
+--   backends/   agent CLIs (claude, opencode)             → add a backend = 1 file
+--   actions/    recipes: target, context, prompt, output   → add an action = 1 file
+--   context/    target (treesitter) + budgeted providers (rules, schema, LSP...)
+--   output/     presenters: replace (inline diff), findings (diagnostics), text (window)
+--   ui/         spinner, preview, window, picker, text field
+--   handoff/    hand off to a Herdr agent
+--   setup/      detection and setup of backends and local models (Ollama, LM Studio...)
 --
--- Esta fachada es lo único que usan los menús; el resto no se importa desde fuera.
+-- This facade is the only thing the menus use; the rest is not imported from outside.
 local M = {}
 
 require("agent.ui.highlights").setup()
 
---- Ejecuta una acción sobre el objetivo bajo el cursor (o la selección visual)
+--- Runs an action over the target under the cursor (or the visual selection)
 ---@param name string
 ---@param opts { range: integer[]? }?
 function M.run(name, opts)
   require("agent.pipeline").run(name, opts)
 end
 
----@return integer cuántos trabajos se cancelaron
+---@return integer how many jobs were cancelled
 local function cancel_running()
   local running = require("agent.jobs").running()
   for _, job in ipairs(running) do
@@ -31,14 +31,14 @@ local function cancel_running()
   return #running
 end
 
---- Cancela los trabajos en marcha
+--- Cancels the running jobs
 function M.cancel()
   local n = cancel_running()
   require("utils.log").info(n > 0 and ("Agent: %d cancelled"):format(n) or "Agent: nothing running")
 end
 
---- Cancela lo que corre y descarta las propuestas pendientes del buffer. NO toca los hallazgos: son
---- diagnósticos "por atender" y sobreviven a la sesión (se quitan con `clear`).
+--- Cancels what is running and discards the buffer's pending proposals. It does NOT touch findings: they are
+--- "pending" diagnostics and survive the session (removed with `clear`).
 function M.stop()
   local n = cancel_running()
   require("agent.output.replace").discard_all(vim.api.nvim_get_current_buf())
@@ -55,12 +55,12 @@ function M.reject()
   require("agent.output.replace").reject()
 end
 
---- Descarta hallazgos del agente (review y ddd, también de lo guardado):
----   "line" (por defecto): los de la línea o el rango `first`–`last` (cursor / selección), uno por uno
----   "file": todos los de este archivo
----   "all": todos, de todos los archivos
+--- Discards the agent's findings (review and ddd, also from what is persisted):
+---   "line" (default): those on the line or the `first`–`last` range (cursor / selection), one by one
+---   "file": all of this file's
+---   "all": all of them, in all files
 ---@param scope "line"|"file"|"all"?
----@param first integer? 1-based (por defecto, la línea del cursor)
+---@param first integer? 1-based (default: the cursor line)
 ---@param last integer?
 function M.clear(scope, first, last)
   local log = require "utils.log"
@@ -92,7 +92,7 @@ function M.clear(scope, first, last)
   log.info(("Agent: %d finding%s cleared"):format(n, n == 1 and "" or "s") .. (scope == "all" and " (all files)" or ""))
 end
 
---- Reabre la última respuesta (o la última propuesta, si se rechazó)
+--- Reopens the last response (or the last proposal, if it was rejected)
 function M.last()
   local log = require "utils.log"
   local job = require("agent.jobs").last()
@@ -108,15 +108,15 @@ function M.last()
       return log.info "Agent: the buffer no longer exists"
     end
     job.anchor = require("agent.anchor").create(job.buf, job.target.first, job.target.last)
-    job.t0 = vim.uv.hrtime() -- el tiempo mostrado es el de la llamada original, no el de ahora
+    job.t0 = vim.uv.hrtime() -- the time shown is that of the original call, not the current one
     require("agent.output.replace").done(job, job.result)
   else
     log.info "Agent: the findings are already in the buffer (<leader>xd)"
   end
 end
 
---- Pide un texto a la IA sin buffer ni objetivo (mensajes de commit...): un disparo, modelo
---- ligero por defecto. `cb(ok, texto | error)`. Devuelve el proceso, para poder cancelarlo.
+--- Asks the AI for a text with no buffer or target (commit messages...): one shot, light
+--- model by default. `cb(ok, text | error)`. Returns the process, so it can be cancelled.
 ---@param req { action: string, system: string, prompt: string, tier: "main"|"light"? }
 ---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
@@ -124,17 +124,17 @@ function M.complete(req, cb)
   return require("agent.oneshot").run(req, cb)
 end
 
---- Historial de ejecuciones: prompt, respuesta, tokens y coste de cada acción
+--- Run history: prompt, response, tokens and cost of each action
 function M.history()
   require("agent.ui.history").open()
 end
 
---- Informe de gasto agregado
+--- Aggregated spend report
 function M.report()
   require("agent.ui.history").report()
 end
 
---- Modelo principal, modelo ligero y esfuerzo, en un solo selector
+--- Main model, light model and effort, in a single picker
 function M.settings()
   require("agent.chooser").menu()
 end

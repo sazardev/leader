@@ -1,6 +1,6 @@
--- ── Auto-recarga de la config tras `git pull` ────────────────────────────────
--- El hook .githooks/post-merge crea un marcador en stdpath("data"); al entrar a
--- la UI se recarga init.lua y se borra el marcador.
+-- ── Config auto-reload after `git pull` ──────────────────────────────────────
+-- The .githooks/post-merge hook creates a marker in stdpath("data"); when the
+-- UI is entered init.lua is reloaded and the marker is deleted.
 local M = {}
 
 function M.setup()

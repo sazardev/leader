@@ -1,8 +1,8 @@
--- ── Keymaps y etiquetas extra al adjuntar un servidor LSP ────────────────────
+-- ── Extra keymaps and labels when attaching an LSP server ────────────────────
 local M = {}
 
---- Nombra el grupo <leader>r (NvChad: <leader>ra = renamer) salvo que el buffer
---- ya tenga un menú contextual con ese prefijo (p. ej. Rust).
+--- Names the <leader>r group (NvChad: <leader>ra = renamer) unless the buffer
+--- already has a contextual menu with that prefix (e.g. Rust).
 local function label_rename_group(buf)
   if (vim.b[buf].menu_contexts or {}).r then
     return
@@ -13,16 +13,16 @@ local function label_rename_group(buf)
   end
 end
 
---- Keymaps buffer-locales que se crean al adjuntar un servidor: { lhs, fn, desc }.
---- El generador del cheatsheet (utils/cheatsheet.lua) lee esta misma lista.
+--- Buffer-local keymaps created when a server attaches: { lhs, fn, desc }.
+--- The cheatsheet generator (utils/cheatsheet.lua) reads this same list.
 ---@return table[]
 function M.keymaps()
   local lsp = require "utils.lsp"
   return {
-    -- NvChad v2.5 no mapea code actions
+    -- NvChad v2.5 does not map code actions
     { "<leader>ca", vim.lsp.buf.code_action, "LSP code action" },
-    -- Navegación con mensajes claros y selector de Telescope. grr es la tecla
-    -- estándar de Neovim 0.11+ (por defecto abre quickfix)
+    -- Navigation with clear messages and a Telescope picker. grr is the
+    -- standard Neovim 0.11+ key (opens quickfix by default)
     { "gd", lsp.goto_definition, "LSP go to DEFINITION" },
     { "grr", lsp.references, "LSP see WHERE IT'S USED (list)" },
   }

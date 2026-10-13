@@ -1,6 +1,6 @@
--- ── Registro de acciones del nivel REPOSITORY ────────────────────────────────
--- Adaptadores de persistencia (repositorios SQL, en memoria...): se construyen contra un puerto, una tabla y un
--- ejemplo hermano (agent/repository/contracts). Mismo contrato y mismo pipeline que agent/actions.
+-- ── REPOSITORY level action registry ─────────────────────────────────────────
+-- Persistence adapters (SQL repositories, in-memory...): built against a port, a table and a
+-- sibling example (agent/repository/contracts). Same contract and same pipeline as agent/actions.
 local M = {}
 
 local NAMES = { "port", "implement", "review" }

@@ -1,4 +1,4 @@
--- Statusline (reemplaza la de NvChad). El tema sale de base46: ui/lualine/theme.lua
+-- Statusline (replaces NvChad's). The theme comes from base46: ui/lualine/theme.lua
 local components = require "ui.lualine.components"
 
 return {
@@ -6,7 +6,7 @@ return {
   event = "VeryLazy",
   opts = {
     options = {
-      theme = "auto", -- se resuelve en config() leyendo base46
+      theme = "auto", -- resolved in config() by reading base46
       section_separators = "",
       component_separators = "",
       globalstatus = true,
@@ -46,12 +46,12 @@ return {
     opts.options.theme = theme.build()
     require("lualine").setup(opts)
 
-    -- Re-aplica el tema cuando NvChad recarga colores (theme_toggle, <leader>S...)
+    -- Re-applies the theme when NvChad reloads colors (theme_toggle, <leader>S...)
     local function retheme()
       local ok, lualine = pcall(require, "lualine")
       if ok then
         opts.options.theme = theme.build()
-        lualine.setup(opts) -- config completa: setup parcial perdería las secciones
+        lualine.setup(opts) -- full config: a partial setup would lose the sections
       end
     end
 

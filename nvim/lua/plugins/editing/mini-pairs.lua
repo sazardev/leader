@@ -1,4 +1,4 @@
--- Auto-cierre de ()[]{} (mini.* = consistente con surround)
+-- Auto-close of ()[]{} (mini.* = consistent with surround)
 return {
   "echasnovski/mini.pairs",
   event = "InsertEnter",

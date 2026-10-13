@@ -1,9 +1,9 @@
--- ── Dashboard (nvdash de NvChad) ─────────────────────────────────────────────
--- Separado en: header (arte, ver ui/arts), info de git y botones de acción. Cada parte es
--- una función/tabla independiente; `buttons()` solo las compone.
+-- ── Dashboard (NvChad's nvdash) ──────────────────────────────────────────────
+-- Split into: header (art, see ui/arts), git info and action buttons. Each part is
+-- an independent function/table; `buttons()` only composes them.
 local M = {}
 
---- Acciones: { texto, atajo, comando }
+--- Actions: { text, shortcut, command }
 local ACTIONS = {
   { "  Find File", "ff", "Telescope find_files" },
   { "  Recent Files", "fo", "Telescope oldfiles" },
@@ -17,7 +17,7 @@ local function separator()
   return { txt = " ", hl = "NvDashFooter", no_gap = true, rep = true }
 end
 
---- Repo (rama) y usuario de git, si el cwd está en un repositorio
+--- Repo (branch) and git user, if the cwd is inside a repository
 ---@return table[]
 local function git_info()
   local info = require("utils.git").info()
@@ -36,7 +36,7 @@ end
 ---@return table[]
 local function action_buttons()
   local actions = vim.list_slice(ACTIONS)
-  -- solo si esta carpeta tiene una sesión guardada (ver utils/session.lua)
+  -- only if this folder has a saved session (see utils/session.lua)
   if require("utils.session").exists() then
     table.insert(actions, 1, { "  Restore Session", "rs", "lua require('utils.session').restore()" })
   end
@@ -54,7 +54,7 @@ function M.buttons()
   return buttons
 end
 
---- Tabla `nvdash` para chadrc
+--- `nvdash` table for chadrc
 ---@return table
 function M.config()
   return {
@@ -64,10 +64,10 @@ function M.config()
   }
 end
 
---- Tabla `cheatsheet` para chadrc (botón Mappings → NvCheatsheet).
---- NvCheatsheet lista TODOS los keymaps con desc y agrupa por su primera palabra, así que
---- aquí se excluyen los grupos de teclas nativas de Neovim. Los grupos propios salen de la
---- convención de `desc` ("Harpoon add file", "Go run"...: ver utils/cheatsheet.lua).
+--- `cheatsheet` table for chadrc (Mappings button → NvCheatsheet).
+--- NvCheatsheet lists ALL keymaps with a desc and groups them by their first word, so
+--- the native Neovim key groups are excluded here. Our own groups come from the
+--- `desc` convention ("Harpoon add file", "Go run"...: see utils/cheatsheet.lua).
 ---@return table
 function M.cheatsheet()
   return {
@@ -78,7 +78,7 @@ function M.cheatsheet()
       "autopairs",
       "Nvim",
       "Opens",
-      -- nativos de Neovim 0.11+
+      -- native to Neovim 0.11+
       ":help",
       "Add",
       "Jump",

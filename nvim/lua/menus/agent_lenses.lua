@@ -1,5 +1,5 @@
--- ── Contexto Agent Lenses (global): <leader>aL ───────────────────────────────
--- Revisiones con un solo foco; las lentes salen del registro (agent/lenses/actions).
+-- ── Agent Lenses context (global): <leader>aL ────────────────────────────────
+-- Reviews with a single focus; the lenses come from the registry (agent/lenses/actions).
 local maps = {}
 for _, action in ipairs(require("agent.lenses.actions").list()) do
   maps[#maps + 1] = {

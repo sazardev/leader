@@ -1,7 +1,7 @@
--- ── Historial de ejecuciones (telescope) ─────────────────────────────────────
--- Una fila por acción: cuándo, resultado, acción, modelo, objetivo, tokens y coste. La vista previa
--- enseña TODO: tu instrucción, la respuesta, el prompt de sistema y el mensaje exacto enviado.
---   <CR> detalle en grande · <C-y> copia TODO · <C-p> copia solo el prompt · <C-s> informe de gasto
+-- ── Run history (telescope) ──────────────────────────────────────────────────
+-- One row per action: when, outcome, action, model, target, tokens and cost. The preview
+-- shows EVERYTHING: your instruction, the response, the system prompt and the exact message sent.
+--   <CR> full detail · <C-y> copies EVERYTHING · <C-p> copies only the prompt · <C-s> spend report
 local clipboard = require "agent.ui.clipboard"
 local detail = require "agent.runs.detail"
 local fmt = require "agent.runs.format"
@@ -76,7 +76,7 @@ function M.open()
         end,
       },
       sorter = conf.generic_sorter {},
-      -- la lista necesita ancho (fecha, coste, objetivo): la vista previa, la mitad
+      -- the list needs width (date, cost, target): the preview gets half
       layout_config = { width = 0.96, height = 0.88, horizontal = { preview_width = 0.5, preview_cutoff = 0 } },
       previewer = previewers.new_buffer_previewer {
         title = "Run",

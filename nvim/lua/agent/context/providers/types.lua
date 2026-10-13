@@ -1,12 +1,12 @@
--- Definiciones de los TIPOS que usa el objetivo: es lo que evita que el modelo adivine los campos de
--- `Note` o los métodos de `Repo`. Independiente del lenguaje (queries `textobjects` de treesitter):
---   1. nombres de tipo del objetivo: nodos `*type_identifier*` y, donde no hay (Python, JS, Lua), los
---      identificadores en PascalCase;
---   2. si el tipo está en el MISMO archivo, se lee al instante con treesitter; si no, se pregunta al
---      LSP por su definición y se extrae del archivo de destino (solo del proyecto, no de dependencias);
---   3. los tipos de los campos de lo encontrado (`Tags []Tag`) se siguen un nivel, dentro del archivo;
---   4. si el objetivo es un método (Python/TS/Java...), la clase que lo contiene, sin el propio método.
--- Tope de tipos y de líneas por tipo: es contexto, no el repositorio.
+-- Definitions of the TYPES the target uses: it is what stops the model from guessing the fields of
+-- `Note` or the methods of `Repo`. Language-independent (treesitter `textobjects` queries):
+--   1. type names in the target: `*type_identifier*` nodes and, where there are none (Python, JS, Lua), the
+--      PascalCase identifiers;
+--   2. if the type is in the SAME file, it is read instantly with treesitter; otherwise the
+--      LSP is asked for its definition and it is extracted from the destination file (project only, not dependencies);
+--   3. the types of the fields of what was found (`Tags []Tag`) are followed one level, within the file;
+--   4. if the target is a method (Python/TS/Java...), the class that contains it, without the method itself.
+-- Cap on types and on lines per type: it is context, not the repository.
 local settings = require("core.settings").agent.context
 local scopes = require "agent.context.scopes"
 
@@ -40,7 +40,7 @@ local function clip(lines, limit)
   return out
 end
 
---- Mejor declaración de un nombre: una definición de tipo antes que un `impl`
+--- Best declaration for a name: a type definition before an `impl`
 ---@param decls AgentTypeDecl[]
 ---@param name string
 ---@return AgentTypeDecl?
@@ -84,8 +84,8 @@ end
 
 local M = {}
 
---- Identificadores a los que apuntan los diagnósticos del LSP dentro del objetivo (máx. 4): de ahí se pide el tipo
---- de cada uno. Los hallazgos del agente cubren la línea entera (nada concreto que resolver): no cuentan.
+--- Identifiers the LSP diagnostics point at inside the target (max. 4): the type of each one is requested from there.
+--- Agent findings cover the whole line (nothing concrete to resolve): they do not count.
 ---@param target AgentTarget
 ---@return { name: string, row: integer, col: integer }[]
 function M.diagnostic_identifiers(target)
@@ -122,8 +122,8 @@ return vim.tbl_extend("error", M, {
 
     local decls = scopes.type_declarations(target.buf)
     local entries, included = {}, {}
-    -- fix: los objetos a los que apunta un diagnóstico (el tipo de una variable que no se nombra en el código)
-    -- se resuelven con `typeDefinition` y pueden pasarse del tope de tipos
+    -- fix: the objects a diagnostic points at (the type of a variable that is not named in the code)
+    -- are resolved with `typeDefinition` and may exceed the type cap
     local typedefs = (ctx and ctx.action and ctx.action.fixes) and M.diagnostic_identifiers(target) or {}
     local extra = math.min(#typedefs, 2)
     local function overlaps_target(first, last)
@@ -143,7 +143,7 @@ return vim.tbl_extend("error", M, {
     local function push_local(decl)
       if decl.name and not overlaps_target(decl.first, decl.last) then
         local lines = vim.api.nvim_buf_get_lines(target.buf, decl.first - 1, decl.last, false)
-        -- los valores de un tipo tipo-enum (Pending, Confirmed...) viven en un `const (...)` aparte
+        -- the values of an enum-like type (Pending, Confirmed...) live in a separate `const (...)`
         for _, c in ipairs(scopes.constants_of(target.buf, nil, decl.name)) do
           if c.last - c.first < 15 and not overlaps_target(c.first, c.last) then
             lines = vim.list_extend(
@@ -156,7 +156,7 @@ return vim.tbl_extend("error", M, {
       end
     end
 
-    -- 4. la clase que contiene al objetivo (métodos en Python/TS/Java/Rust)
+    -- 4. the class containing the target (methods in Python/TS/Java/Rust)
     local enclosing = scopes.enclosing(target.buf, target.first - 1, "class")
     if enclosing and not (enclosing.first >= target.first and enclosing.last <= target.last) then
       local enclosing_decl
@@ -174,9 +174,9 @@ return vim.tbl_extend("error", M, {
         and enclosing_decl.kind:find("impl", 1, true)
         and by_name(decls, enclosing_decl.name)
       if struct and not struct.kind:find("impl", 1, true) then
-        push_local(struct) -- Rust: `impl Note` → la definición de `struct Note`
+        push_local(struct) -- Rust: `impl Note` → the definition of `struct Note`
       elseif enclosing_decl then
-        -- la clase entera menos el propio método (que ya va como objetivo)
+        -- the whole class minus the method itself (which already goes as the target)
         local before = vim.api.nvim_buf_get_lines(target.buf, enclosing.first - 1, target.first - 1, false)
         local after = vim.api.nvim_buf_get_lines(target.buf, target.last, enclosing.last, false)
         local lines = vim.list_extend(before, { "…" })
@@ -188,7 +188,7 @@ return vim.tbl_extend("error", M, {
       end
     end
 
-    -- 1-2. tipos usados por el objetivo
+    -- 1-2. types used by the target
     local pending_lsp = {}
     local seen_names = {}
     for _, n in ipairs(scopes.type_names(node, target.buf, target.first, target.last)) do
@@ -201,7 +201,7 @@ return vim.tbl_extend("error", M, {
       end
     end
 
-    -- 3. tipos de los campos de lo ya encontrado (mismo archivo, un nivel)
+    -- 3. types of the fields of what was already found (same file, one level)
     for _, entry in ipairs(vim.list_slice(entries, 1, #entries)) do
       for word in table.concat(entry.lines, "\n"):gmatch "[%a_][%w_]*" do
         local decl = pascal_case(word) and by_name(decls, word)
@@ -222,8 +222,8 @@ return vim.tbl_extend("error", M, {
       done(table.concat(blocks, "\n\n"))
     end
 
-    -- 2b. tipos de otros archivos: LSP (definición) + treesitter sobre el archivo de destino.
-    -- Las peticiones de `typedefs` (typeDefinition) van primero: son lo que el diagnóstico señala.
+    -- 2b. types from other files: LSP (definition) + treesitter on the destination file.
+    -- The `typedefs` requests (typeDefinition) go first: they are what the diagnostic points at.
     local requests = {}
     local method_ok = function(method)
       return #vim.lsp.get_clients { bufnr = target.buf, method = method } > 0
@@ -276,7 +276,7 @@ return vim.tbl_extend("error", M, {
           for _, location in ipairs(list) do
             local path, row = location_of(location)
             if path == self_path and n.method == "textDocument/typeDefinition" then
-              -- la variable es de un tipo de ESTE archivo: ya está leído (el definition no lo pide: lo nombra el código)
+              -- the variable is of a type from THIS file: it is already read (definition does not ask for it: the code names it)
               local best
               for _, d in ipairs(decls) do
                 if d.first - 1 <= row and row <= d.last - 1 and d.name and not d.kind:find("impl", 1, true) then

@@ -1,9 +1,9 @@
--- ── Tema de lualine derivado de base46 (NvChad) ──────────────────────────────
--- Cambia con theme_toggle (gruvbox <-> gruvbox_light).
+-- ── lualine theme derived from base46 (NvChad) ───────────────────────────────
+-- Changes with theme_toggle (gruvbox <-> gruvbox_light).
 local M = {}
 
 ---@param mode_color string
----@param p table paleta ya resuelta
+---@param p table already resolved palette
 local function section(mode_color, p)
   return {
     a = { bg = mode_color, fg = p.mode_fg, gui = "bold" },
@@ -12,7 +12,7 @@ local function section(mode_color, p)
   }
 end
 
----@return table tema para lualine
+---@return table theme for lualine
 function M.build()
   local ok, base46 = pcall(require, "base46")
   if not ok then

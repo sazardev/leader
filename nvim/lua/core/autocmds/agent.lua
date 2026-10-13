@@ -1,6 +1,6 @@
--- ── Hallazgos del agente que sobreviven a la sesión ──────────────────────────
--- Al abrir un archivo se le devuelven sus hallazgos guardados (agent/persist.lua); al guardarlo, se
--- actualizan sus posiciones. Casi gratis: sin archivo de hallazgos no hace nada.
+-- ── Agent findings that survive the session ──────────────────────────────────
+-- When a file is opened its saved findings are restored (agent/persist.lua); when it is saved, their
+-- positions are updated. Nearly free: without a findings file it does nothing.
 local M = {}
 
 function M.setup()
@@ -20,7 +20,7 @@ function M.setup()
     end,
   })
 
-  -- :AgentClear [file|all]; con rango (`:'<,'>AgentClear`) o sin argumento, la línea / selección
+  -- :AgentClear [file|all]; with a range (`:'<,'>AgentClear`) or no argument, the line / selection
   vim.api.nvim_create_user_command("AgentClear", function(o)
     local scope = o.args ~= "" and o.args or "line"
     if scope ~= "line" and scope ~= "file" and scope ~= "all" then
@@ -34,7 +34,7 @@ function M.setup()
     complete = function()
       return { "file", "all" }
     end,
-    desc = "Descarta hallazgos del agente: línea (por defecto), file o all",
+    desc = "Discard agent findings: line (default), file or all",
   })
 end
 

@@ -1,6 +1,6 @@
--- ── La sección <ddd> que va al modelo ────────────────────────────────────────
--- Solo lo que importa para ESTE objetivo: su capa y de quién puede depender, cómo se nombra aquí, qué piezas
--- rodean a las entidades que toca, qué viola ya el archivo y el modismo del lenguaje. Todo sale del análisis local.
+-- ── The <ddd> section sent to the model ──────────────────────────────────────
+-- Only what matters for THIS target: its layer and what it may depend on, how things are named here, which pieces
+-- surround the entities it touches, what the file already violates and the language idiom. All from local analysis.
 local idioms = require "agent.ddd.idioms"
 local layers = require "agent.ddd.layers"
 local naming_mod = require "agent.ddd.naming"
@@ -40,10 +40,10 @@ local function aggregate_line(a)
 end
 
 ---@param index DddIndex
----@param rel string  ruta del archivo del objetivo, relativa a la raíz
+---@param rel string  path of the target's file, relative to the root
 ---@param naming DddNaming
 ---@param related DddAggregate[]
----@param violations DddViolation[]  las del archivo del objetivo
+---@param violations DddViolation[]  those of the target's file
 ---@return string
 function M.build(index, rel, naming, related, violations)
   local lines = {}

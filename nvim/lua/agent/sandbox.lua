@@ -1,7 +1,7 @@
--- ── Directorio de trabajo neutro ─────────────────────────────────────────────
--- Los CLIs corren aquí y no en tu proyecto: así no cargan AGENTS.md/CLAUDE.md ni
--- indexan el repo (tokens y latencia), y no pueden tocar tus archivos. Todo el
--- contexto que ven lo decide agent/context, no el CLI.
+-- ── Neutral working directory ────────────────────────────────────────────────
+-- The CLIs run here and not in your project: that way they do not load AGENTS.md/CLAUDE.md nor
+-- index the repo (tokens and latency), and they cannot touch your files. All the
+-- context they see is decided by agent/context, not by the CLI.
 local M = {}
 
 ---@type string?

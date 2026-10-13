@@ -3,7 +3,7 @@ return {
   title = "api",
   tier = "light",
   context = { "rules", "changes", "types" },
-  -- sin cambios sin commitear en el objetivo no hay contra qué comparar: no se llama al modelo
+  -- with no uncommitted changes in the target there is nothing to compare against: the model is not called
   check = function(target)
     if not require("agent.context.providers.changes").diff(target) then
       return "no uncommitted changes in the target: nothing to compare (0 tokens)"

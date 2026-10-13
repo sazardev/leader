@@ -1,4 +1,4 @@
--- ── Keymaps: orden importa (primero NvChad, luego limpieza, luego los nuestros) ─
+-- ── Keymaps: order matters (NvChad first, then cleanup, then ours) ───────────
 local M = {}
 
 function M.setup()

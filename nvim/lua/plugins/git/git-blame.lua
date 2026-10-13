@@ -1,4 +1,4 @@
--- Blame inline: desactivado por defecto, se alterna con <leader>Gb (sin overhead en BufRead)
+-- Inline blame: disabled by default, toggled with <leader>Gb (no overhead on BufRead)
 return {
   "f-person/git-blame.nvim",
   cmd = "GitBlameToggle",

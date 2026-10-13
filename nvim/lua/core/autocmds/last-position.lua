@@ -1,6 +1,6 @@
--- ── Volver a la última posición al reabrir un archivo ────────────────────────
--- Usa la marca `"` (la guarda shada al cerrar el buffer). Se ignoran los commits y
--- los buffers que no son de archivo, y se comprueba que la línea aún exista.
+-- ── Return to the last position when reopening a file ────────────────────────
+-- Uses the `"` mark (shada stores it when the buffer closes). Commits and
+-- non-file buffers are ignored, and it checks that the line still exists.
 local M = {}
 
 local SKIP_FT = { "gitcommit", "gitrebase" }

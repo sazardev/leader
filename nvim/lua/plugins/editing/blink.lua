@@ -1,19 +1,19 @@
--- Autocompletar: nativo, sin íconos, ultra rápido.
+-- Autocompletion: native, no icons, ultra fast.
 local keys = require "utils.blinkkeys"
 
 return {
   "saghen/blink.cmp",
-  version = "1.*", -- v2 (main) requiere blink.lib compilado con Rust
+  version = "1.*", -- v2 (main) requires blink.lib compiled with Rust
   event = "InsertEnter",
   dependencies = { "rafamadriz/friendly-snippets" },
   opts = {
-    -- Tab elige la opción de la lista, Enter la inserta (sin flechas)
+    -- Tab picks the option from the list, Enter inserts it (no arrows)
     keymap = {
       preset = "enter",
-      -- goerrors: con un `ErrX` a medio declarar, Tab acepta el texto fantasma y Enter lo acepta + línea nueva
-      -- Con el menú abierto Tab/S-Tab ELIGEN sugerencia (Enter la inserta). Sin menú, dentro de un
-      -- snippet (p. ej. `gorm.Open(dialector, opts)`) saltan de hueco. Para quedarte con lo que
-      -- tecleaste y seguir: Esc (cierra el menú sin salir del snippet) y luego Tab.
+      -- goerrors: with a half-declared `ErrX`, Tab accepts the ghost text and Enter accepts it + newline
+      -- With the menu open Tab/S-Tab PICK a suggestion (Enter inserts it). Without a menu, inside a
+      -- snippet (e.g. `gorm.Open(dialector, opts)`) they jump between placeholders. To keep what
+      -- you typed and move on: Esc (closes the menu without leaving the snippet) and then Tab.
       ["<Tab>"] = {
         keys.goerrors_accept,
         "select_next",
@@ -30,21 +30,21 @@ return {
         keys.snippet_prev,
         "fallback",
       },
-      -- Esc con el menú abierto SOLO lo cierra (y deshace la sugerencia que estuviera insertada);
-      -- sigues en insert y en tu snippet. Sin menú, Esc sale de insert como siempre.
+      -- Esc with the menu open ONLY closes it (and undoes the suggestion that was inserted);
+      -- you stay in insert and in your snippet. Without a menu, Esc leaves insert as usual.
       ["<Esc>"] = { "cancel", "fallback" },
       ["<Up>"] = false,
       ["<Down>"] = false,
     },
     appearance = {
-      -- sin íconos de kind (plano, minimalista)
+      -- no kind icons (flat, minimalist)
       use_nvim_cmp_as_default = false,
       kind_icons = {},
     },
     sources = {
       default = { "lsp", "path", "snippets", "buffer" },
-      -- lazydev solo existe en archivos Lua (completa require() y módulos de plugins)
-      -- gotags solo en Go: tags de struct derivados del nombre del campo (utils/gotags.lua)
+      -- lazydev only exists in Lua files (completes require() and plugin modules)
+      -- gotags only in Go: struct tags derived from the field name (utils/gotags.lua)
       per_filetype = {
         lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
         go = { "gotags", "gosmart", "lsp", "path", "snippets", "buffer" },
@@ -52,11 +52,11 @@ return {
       providers = {
         lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         gotags = { name = "GoTags", module = "utils.gotags", score_offset = 100 },
-        -- constructor / struct{} según el contexto, y filtra snippets que no aplican (utils/gosmart.lua)
+        -- constructor / struct{} depending on context, and filters out snippets that do not apply (utils/gosmart.lua)
         gosmart = { name = "GoSmart", module = "utils.gosmart", score_offset = 90 },
-        -- flutter.json de friendly-snippets usa el language id "flutter", que no
-        -- es un filetype real de Neovim (siempre es "dart"): se pide explícito.
-        -- al empezar una declaración en Go: sin palabras sueltas del buffer ni el func/type genérico del LSP
+        -- friendly-snippets' flutter.json uses the language id "flutter", which is not
+        -- a real Neovim filetype (it is always "dart"): requested explicitly.
+        -- when starting a declaration in Go: no stray buffer words nor the generic func/type from the LSP
         buffer = {
           transform_items = function(ctx, items)
             return require("utils.gosmart").quiet_buffer(ctx, items)
@@ -78,13 +78,13 @@ return {
       },
     },
     completion = {
-      -- sin menú mientras hay un `ErrX` con texto fantasma (utils/goerrors.lua)
+      -- no menu while there is an `ErrX` with ghost text (utils/goerrors.lua)
       menu = {
         auto_show = function()
           return not require("utils.goerrors").active()
         end,
       },
-      -- sin preselección, salvo dentro de un struct tag de Go y en la línea nueva tras `x, err := …` (Enter acepta la sugerencia)
+      -- no preselection, except inside a Go struct tag and on the new line after `x, err := …` (Enter accepts the suggestion)
       list = {
         selection = {
           preselect = function()
@@ -94,7 +94,7 @@ return {
       },
       documentation = {
         auto_show = true,
-        auto_show_delay_ms = 0, -- sin espera al seleccionar (por defecto 500 ms)
+        auto_show_delay_ms = 0, -- no wait on select (default is 500 ms)
         window = { border = "single" },
       },
     },

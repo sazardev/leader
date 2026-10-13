@@ -1,13 +1,13 @@
--- ── Ámbitos de código con treesitter ─────────────────────────────────────────
--- Usa las queries `textobjects` (@function.outer, @class.outer) de
--- nvim-treesitter-textobjects: la misma definición de "función/clase" que ya usas con
--- `af`/`ac`, para todos los lenguajes que tengan parser. Sin query, no hay ámbito
--- (el llamador cae a un párrafo de líneas).
+-- ── Code scopes with treesitter ──────────────────────────────────────────────
+-- Uses the `textobjects` queries (@function.outer, @class.outer) from
+-- nvim-treesitter-textobjects: the same "function/class" definition you already use with
+-- `af`/`ac`, for every language that has a parser. Without a query, there is no scope
+-- (the caller falls back to a paragraph of lines).
 local M = {}
 
 local loaded = false
 
---- Las queries viven en un plugin con carga perezosa: se carga la primera vez que hace falta
+--- The queries live in a lazy-loaded plugin: it is loaded the first time it is needed
 local function ensure_plugin()
   if loaded then
     return
@@ -37,7 +37,7 @@ function M.parse(buf)
   return root, lang, qok and query or nil
 end
 
---- Filas (0-based, inclusivas) que ocupa un nodo
+--- Rows (0-based, inclusive) a node occupies
 ---@param node TSNode
 ---@return integer, integer
 local function rows(node)
@@ -48,8 +48,8 @@ local function rows(node)
   return sr, er
 end
 
--- Nodos que son DEFINICIONES de tipo aunque la query `class.outer` de ese lenguaje no las capture
--- (p. ej. interface y enum en Java).
+-- Nodes that are type DEFINITIONS even if that language's `class.outer` query does not capture them
+-- (e.g. interface and enum in Java).
 local TYPE_NODE = {
   "struct",
   "class",
@@ -74,13 +74,13 @@ local function type_like(node_type)
   return false
 end
 
---- Nombre declarado por un nodo: su campo `name` (en el propio nodo o un poco más abajo: Go lo pone en
---- `type_spec`, TypeScript bajo `export_statement`) o, en un `impl` de Rust, su campo `type`
+--- Name declared by a node: its `name` field (on the node itself or a bit lower: Go puts it in
+--- `type_spec`, TypeScript under `export_statement`) or, in a Rust `impl`, its `type` field
 ---@param node TSNode
----@param src integer|string buffer o texto
+---@param src integer|string buffer or text
 ---@return string?
 local function declared_name(node, src)
-  -- un `impl` se llama como el tipo que implementa; su `name` más cercano sería el de un método suyo
+  -- an `impl` is named after the type it implements; its nearest `name` would be that of one of its methods
   if node:type():find("impl", 1, true) then
     local ty = node:field("type")[1]
     if ty then
@@ -118,7 +118,7 @@ local function name_of(node, buf)
   return declared_name(node, buf)
 end
 
---- Sube el inicio para incluir los comentarios contiguos de encima (la doc es la especificación)
+--- Moves the start up to include the contiguous comments above (the doc is the specification)
 ---@param buf integer
 ---@param root TSNode
 ---@param first integer 1-based
@@ -146,7 +146,7 @@ end
 ---@field last integer 1-based inclusive
 ---@field name string?
 
---- El ámbito más interno ("function" | "class") que contiene la fila
+--- The innermost scope ("function" | "class") containing the row
 ---@param buf integer
 ---@param row integer 0-based
 ---@param scope string
@@ -178,13 +178,13 @@ end
 
 ---@class AgentTypeDecl
 ---@field name string?
----@field kind string  tipo del nodo ("type_declaration", "class_declaration", "impl_item"...)
+---@field kind string  node type ("type_declaration", "class_declaration", "impl_item"...)
 ---@field first integer 1-based
----@field last integer 1-based, inclusivo
+---@field last integer 1-based, inclusive
 
---- Definiciones de tipo (struct, clase, interfaz, enum, trait, alias...) de un buffer o de un texto
----@param src integer|string buffer, o el texto de un archivo
----@param lang string? obligatorio con texto
+--- Type definitions (struct, class, interface, enum, trait, alias...) of a buffer or a text
+---@param src integer|string buffer, or a file's text
+---@param lang string? required with text
 ---@return AgentTypeDecl[]
 function M.type_declarations(src, lang)
   local root, query
@@ -206,7 +206,7 @@ function M.type_declarations(src, lang)
 
   local list, seen = {}, {}
   local function add(node)
-    -- `class.outer` también captura cosas que NO son definiciones (en Go, los literales `&Order{...}`)
+    -- `class.outer` also captures things that are NOT definitions (in Go, `&Order{...}` literals)
     local t = node:type()
     if not (type_like(t) or t:find("impl", 1, true)) then
       return
@@ -227,7 +227,7 @@ function M.type_declarations(src, lang)
       end
     end
   end
-  -- lo que la query no captura: hijos del archivo (y un nivel más, por `export ...`) con pinta de tipo
+  -- what the query does not capture: file children (and one level deeper, for `export ...`) that look like a type
   for child in root:iter_children() do
     if type_like(child:type()) then
       add(child)
@@ -245,7 +245,7 @@ function M.type_declarations(src, lang)
   return list
 end
 
---- Nombres de tipo que usa un nodo (`*type_identifier*` y, donde no los hay, identificadores en PascalCase)
+--- Type names a node uses (`*type_identifier*` and, where there are none, PascalCase identifiers)
 ---@param name string
 ---@return boolean
 function M.pascal_case(name)
@@ -292,8 +292,8 @@ local function is_access(t)
   return false
 end
 
---- El identificador del OBJETO de un acceso (`x.Titl` -> x; `a.b.c` -> b), si el nodo es la parte derecha de uno:
---- un diagnóstico sobre el miembro (`no field Titl`) se explica con el tipo del objeto, no con el del miembro.
+--- The identifier of the OBJECT of an access (`x.Titl` -> x; `a.b.c` -> b), if the node is the right-hand part of one:
+--- a diagnostic on the member (`no field Titl`) is explained with the object's type, not the member's.
 ---@param n TSNode
 ---@param src integer
 ---@return { name: string, row: integer, col: integer }?
@@ -316,8 +316,8 @@ local function operand_of(n, src)
   return nil
 end
 
---- Identificadores dentro de un rango (0-based; `ecol` exclusivo), y el objeto de cada acceso (`x.Titl` -> también x).
---- Con rango vacío, el que hay en ese punto. Sirve para preguntar al LSP por los objetos a los que apunta un diagnóstico.
+--- Identifiers within a range (0-based; `ecol` exclusive), and the object of each access (`x.Titl` -> also x).
+--- With an empty range, the one at that point. Used to ask the LSP about the objects a diagnostic points at.
 ---@param buf integer
 ---@param srow integer
 ---@param scol integer
@@ -346,7 +346,7 @@ function M.identifiers_in(buf, srow, scol, erow, ecol)
       return
     end
     if n:type():find "identifier" and n:named_child_count() == 0 then
-      -- primero el objeto (es lo que explica el diagnóstico), luego el propio identificador
+      -- the object first (it is what explains the diagnostic), then the identifier itself
       local operand = operand_of(n, buf)
       if operand then
         add(operand)
@@ -364,10 +364,10 @@ function M.identifiers_in(buf, srow, scol, erow, ecol)
   return out
 end
 
---- Bloques de constantes de primer nivel que mencionan el tipo (el "enum" de Go: `const ( Pending Status = ... )`)
----@param src integer|string buffer o texto
----@param lang string? obligatorio con texto
----@param name string nombre del tipo
+--- Top-level constant blocks that mention the type (Go's "enum": `const ( Pending Status = ... )`)
+---@param src integer|string buffer or text
+---@param lang string? required with text
+---@param name string type name
 ---@return { first: integer, last: integer }[]
 function M.constants_of(src, lang, name)
   local root
@@ -396,11 +396,11 @@ end
 ---@class AgentFunction
 ---@field name string?
 ---@field first integer 1-based
----@field last integer 1-based, inclusivo
+---@field last integer 1-based, inclusive
 
---- Funciones y métodos de un buffer o de un texto (con su nombre y rango)
----@param src integer|string buffer, o el texto de un archivo
----@param lang string? obligatorio con texto
+--- Functions and methods of a buffer or a text (with their name and range)
+---@param src integer|string buffer, or a file's text
+---@param lang string? required with text
 ---@return AgentFunction[]
 function M.functions(src, lang)
   local root, query
@@ -432,7 +432,7 @@ function M.functions(src, lang)
   return list
 end
 
---- Todas las declaraciones (funciones y clases) del archivo, en orden
+--- All the declarations (functions and classes) of the file, in order
 ---@param buf integer
 ---@return { row: integer, last: integer, kind: "function"|"class" }[]
 function M.declarations(buf)

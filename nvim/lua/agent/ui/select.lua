@@ -1,6 +1,6 @@
--- ── Selector con fuzzy (telescope) ───────────────────────────────────────────
--- Items: { label = "texto", current = bool?, ... }. Marca con ● el actual y abre
--- el cursor sobre él. Sin telescope cae a vim.ui.select.
+-- ── Fuzzy picker (telescope) ─────────────────────────────────────────────────
+-- Items: { label = "text", current = bool?, ... }. Marks the current one with ● and opens
+-- the cursor on it. Without telescope it falls back to vim.ui.select.
 local M = {}
 
 ---@param items table[]

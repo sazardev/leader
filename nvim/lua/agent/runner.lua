@@ -1,7 +1,7 @@
--- ── Ejecución de un trabajo ──────────────────────────────────────────────────
--- Lanza el proceso del backend, le pasa el texto en streaming al presentador y
--- cierra el trabajo (éxito, fallo, tiempo agotado o cancelación). No sabe nada de
--- Claude ni de OpenCode: solo del contrato de agent/backends.
+-- ── Running a job ────────────────────────────────────────────────────────────
+-- Launches the backend process, streams the text to the presenter and
+-- closes the job (success, failure, timeout or cancellation). It knows nothing about
+-- Claude or OpenCode: only the agent/backends contract.
 local anchor = require "agent.anchor"
 local backends = require "agent.backends"
 local jobs = require "agent.jobs"
@@ -26,7 +26,7 @@ local function fail(job, err)
   else
     anchor.delete(job.buf, job.anchor)
   end
-  log.error(("Agent %s: %s"):format(job.action.label, text.clip(err or "error desconocido", 400)))
+  log.error(("Agent %s: %s"):format(job.action.label, text.clip(err or "unknown error", 400)))
 end
 
 ---@param job AgentJob
@@ -50,13 +50,13 @@ end
 ---@param out vim.SystemCompleted
 local function on_exit(job, parser, out)
   if job.state ~= "running" then
-    return -- cancelado
+    return -- cancelled
   end
   status.clear(job)
 
   local result = parser.finish(out.code, out.stderr or "")
-  -- vim.system mata el proceso con SIGTERM al vencer el plazo: según la plataforma llega como
-  -- código 124, 143 (128+15) o señal 15; si nadie canceló (el estado sigue "running"), es el plazo
+  -- vim.system kills the process with SIGTERM when the deadline expires: depending on the platform it arrives as
+  -- code 124, 143 (128+15) or signal 15; if nobody cancelled (the state is still "running"), it is the deadline
   local killed = out.code == 124 or out.code == 143 or out.signal == 15
   if killed and not result.ok then
     result = { ok = false, err = ("timed out (%gs)"):format(settings.timeout_ms / 1000) }
@@ -67,7 +67,7 @@ local function on_exit(job, parser, out)
 
   job.state, job.result = "done", result
   jobs.finish(job)
-  runs.record(job, "done") -- antes del presentador: sus eventos (aceptada, rechazada...) cuelgan de este registro
+  runs.record(job, "done") -- before the presenter: its events (accepted, rejected...) hang off this record
   local ok, summary = pcall(job.presenter.done, job, result)
   if not ok then
     anchor.delete(job.buf, job.anchor)

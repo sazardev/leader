@@ -1,6 +1,6 @@
--- Arreglar el BLOQUE: todos los diagnósticos de la función (o de la selección) a la vez, con el cambio
--- mínimo que deja el bloque coherente (una misma causa puede tocar varias líneas). El nivel de una sola
--- línea es `fix`.
+-- Fix the BLOCK: all diagnostics of the function (or selection) at once, with the minimal change
+-- that keeps the block coherent (a single cause can touch several lines). The single-line level
+-- is `fix`.
 local protocol = require "agent.protocol"
 local target_mod = require "agent.context.target"
 

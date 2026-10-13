@@ -1,6 +1,6 @@
--- Resolver conflictos de merge (ours/theirs/both/none) sin editar los marcadores.
--- Los atajos viven en el menú <leader>G (menus/git.lua): los por defecto (`co`, `cb`...)
--- pisarían los operadores `c` de nvim.
+-- Resolve merge conflicts (ours/theirs/both/none) without editing the markers.
+-- The shortcuts live in the <leader>G menu (menus/git.lua): the default ones (`co`, `cb`...)
+-- would override nvim's `c` operators.
 return {
   "akinsho/git-conflict.nvim",
   version = "*",

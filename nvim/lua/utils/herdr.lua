@@ -1,7 +1,7 @@
--- ── Herdr: nvim se registra como "agente" para que el pane se reabra tras un reinicio ──
--- Herdr restaura panes de agentes con el comando que ellos reportan. Aquí nvim
--- reporta `nvim +HerdrResume` (restaura la sesión de la carpeta) y lo libera al
--- salir, de modo que un `:q` normal no lo reabre. Solo actúa dentro de Herdr.
+-- ── Herdr: nvim registers as an "agent" so the pane reopens after a restart ──
+-- Herdr restores agent panes with the command they report. Here nvim reports
+-- `nvim +HerdrResume` (restores the folder's session) and releases it on exit,
+-- so a normal `:q` doesn't reopen it. It only acts inside Herdr.
 local M = {}
 
 local SOURCE = "nvim"
@@ -12,26 +12,26 @@ local function inside_herdr()
   return vim.env.HERDR_ENV == "1" and (vim.env.HERDR_PANE_ID or "") ~= "" and (vim.env.HERDR_BIN_PATH or "") ~= ""
 end
 
---- `--seq` debe crecer entre reportes y entre ejecuciones de nvim
+--- `--seq` must grow between reports and between nvim runs
 local function next_seq()
   seq = seq + 1
   return tostring(os.time() * 1000 + seq)
 end
 
----@param args string[] argumentos tras `pane`
+---@param args string[] arguments after `pane`
 ---@return string[]
 local function command(args)
   return vim.list_extend({ vim.env.HERDR_BIN_PATH, "pane" }, args)
 end
 
---- Registra este nvim en el pane (async, los fallos se ignoran). No pisa a un
---- agente real (Claude, Codex...) que ya ocupe el pane: nvim puede abrirse desde él.
+--- Register this nvim in the pane (async, failures are ignored). It doesn't override a
+--- real agent (Claude, Codex...) already occupying the pane: nvim may be opened from it.
 function M.attach()
   if not inside_herdr() or #vim.api.nvim_list_uis() == 0 then
     return
   end
   vim.system(command { "get", vim.env.HERDR_PANE_ID }, { text = true }, function(got)
-    -- el callback corre en un contexto "fast": vim.env y compañía hay que llamarlos agendados
+    -- the callback runs in a "fast" context: vim.env and friends must be called scheduled
     vim.schedule(function()
       local ok, info = pcall(vim.json.decode, got.stdout or "")
       local pane = ok and type(info) == "table" and info.result and info.result.pane
@@ -47,7 +47,7 @@ function M.attach()
   end)
 end
 
---- Libera el pane (síncrono y corto: nvim está saliendo)
+--- Release the pane (synchronous and short: nvim is exiting)
 function M.release()
   if not inside_herdr() or #vim.api.nvim_list_uis() == 0 then
     return
@@ -59,8 +59,8 @@ function M.release()
   end)
 end
 
---- `nvim +HerdrResume`: restaura la sesión de la carpeta cuando nvim ya arrancó
---- (si no, el dashboard se abre encima de la sesión restaurada)
+--- `nvim +HerdrResume`: restores the folder's session once nvim has started
+--- (otherwise the dashboard opens on top of the restored session)
 function M.resume()
   local function restore()
     local session = require "utils.session"

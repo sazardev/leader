@@ -1,20 +1,20 @@
--- ── Helpers de proyecto / sistema de archivos ────────────────────────────────
+-- ── Project / filesystem helpers ─────────────────────────────────────────────
 local M = {}
 
---- Directorio del archivo del buffer actual
+--- Directory of the current buffer's file
 ---@return string
 function M.file_dir()
   return vim.fn.expand "%:p:h"
 end
 
---- Raíz del proyecto según marcadores (o el directorio del archivo)
+--- Project root according to markers (or the file's directory)
 ---@param markers string[]
 ---@return string
 function M.root(markers)
   return vim.fs.root(0, markers) or M.file_dir()
 end
 
---- ¿Existe `name` dentro de `dir`?
+--- Does `name` exist inside `dir`?
 ---@param dir string
 ---@param name string
 ---@return boolean
@@ -22,7 +22,7 @@ function M.has(dir, name)
   return vim.uv.fs_stat(dir .. "/" .. name) ~= nil
 end
 
---- Lee un archivo completo; nil si no existe
+--- Read a whole file; nil if it does not exist
 ---@param path string
 ---@return string?
 function M.read(path)

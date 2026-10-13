@@ -1,4 +1,4 @@
--- Service implement: un caso de uso / método de servicio que orquesta el dominio y llama a sus puertos
+-- Service implement: a use case / service method that orchestrates the domain and calls its ports
 local principles = require "agent.ddd.principles"
 local protocol = require "agent.protocol"
 

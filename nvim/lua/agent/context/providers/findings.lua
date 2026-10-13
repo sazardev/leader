@@ -1,6 +1,6 @@
--- Hallazgos del agente que siguen "por atender" dentro del objetivo: los de `review`, `ddd review` y del
--- diagnóstico de DDD. Es lo que lee `fix` para saber QUÉ arreglar. (`diagnostics` no los incluye a propósito:
--- un review nuevo no debe partir de lo que dijo el anterior.)
+-- Agent findings still "to attend" inside the target: those from `review`, `ddd review` and the
+-- DDD diagnosis. It is what `fix` reads to know WHAT to fix. (`diagnostics` does not include them on purpose:
+-- a new review must not start from what the previous one said.)
 local persist = require "agent.persist"
 
 local SEVERITY = { "ERROR", "WARN", "INFO", "HINT" }

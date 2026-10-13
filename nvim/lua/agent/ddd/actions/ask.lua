@@ -1,4 +1,4 @@
--- DDD ask: una pregunta de arquitectura sobre lo que ves, con las capas y piezas reales del proyecto
+-- DDD ask: an architecture question about what you see, with the project's real layers and pieces
 local principles = require "agent.ddd.principles"
 
 return {

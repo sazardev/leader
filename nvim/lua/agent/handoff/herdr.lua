@@ -1,7 +1,7 @@
--- ── Entrega a un agente que ya corre en un pane de Herdr ─────────────────────
--- Para cuando la tarea es más grande que una acción de un disparo: se manda
--- `archivo:rango` + tu instrucción al agente que elijas (Claude Code, etc.) y el trabajo
--- sigue allí. Usa la CLI de Herdr (`herdr agent list|prompt`); solo dentro de Herdr.
+-- ── Hand off to an agent already running in a Herdr pane ─────────────────────
+-- For when the task is bigger than a one-shot action: `file:range` + your instruction
+-- is sent to the agent you pick (Claude Code, etc.) and the work continues there.
+-- Uses the Herdr CLI (`herdr agent list|prompt`); only inside Herdr.
 local M = {}
 
 ---@return boolean
@@ -19,7 +19,7 @@ local function herdr(args, cb)
   end)
 end
 
---- Agentes disponibles, los de esta carpeta primero (y sin el pane de nvim)
+--- Available agents, the ones in this folder first (and without nvim's pane)
 ---@param cb fun(agents: table[])
 function M.agents(cb)
   herdr({ "agent", "list" }, function(out)

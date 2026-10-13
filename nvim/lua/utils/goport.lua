@@ -1,10 +1,10 @@
--- ── Go: la interfaz que ya implementa un struct, y su comprobación `var _` (sin LLM, 0 tokens) ─
--- Es el camino inverso de goimpl (que completa los métodos de un struct desde su interfaz):
---   type NoteService interface { | }   → ofrece los métodos exportados de `noteService` que la interfaz aún no tiene,
---                                        con su firma, y "todos" a la vez
---   var _ |  (columna 0)               → `var _ NoteService = (*noteService)(nil)` para los structs del archivo cuya
---                                        interfaz se reconoce (constructor o nombre) y aún no la tienen. Esa línea es
---                                        lo que hace que el compilador avise si falta un método, y que goimpl la reconozca.
+-- ── Go: the interface a struct already implements, and its `var _` check (no LLM, 0 tokens) ─
+-- It is the reverse path of goimpl (which fills in a struct's methods from its interface):
+--   type NoteService interface { | }   → offers the exported methods of `noteService` that the interface doesn't have yet,
+--                                        with their signature, and "all" at once
+--   var _ |  (column 0)               → `var _ NoteService = (*noteService)(nil)` for the file's structs whose
+--                                        interface is recognised (constructor or name) and don't have it yet. That line is
+--                                        what makes the compiler warn if a method is missing, and what lets goimpl recognise it.
 local ix = require "utils.goindex"
 
 local M = {}
@@ -12,7 +12,7 @@ local M = {}
 local KIND = vim.lsp.protocol.CompletionItemKind
 local FORMAT = vim.lsp.protocol.InsertTextFormat
 
---- Nombre de la interfaz que contiene la posición, si es un `type X interface { … }`
+--- Name of the interface containing the position, if it is a `type X interface { … }`
 ---@param row integer
 ---@param col integer
 ---@return string?
@@ -31,7 +31,7 @@ local function enclosing_interface(row, col)
   end
 end
 
---- Métodos exportados de `struct` (de todo el paquete)
+--- Exported methods of `struct` (across the whole package)
 ---@param pkg GoImplPackage
 ---@param struct string
 ---@return GoImplMethod[]
@@ -46,7 +46,7 @@ local function exported_methods(pkg, struct)
   return out
 end
 
---- Ítems dentro de `type X interface { | }`: lo que implementa el struct relacionado y la interfaz aún no declara
+--- Items inside `type X interface { | }`: what the related struct implements and the interface doesn't declare yet
 ---@param ctx { line: string, cursor: integer[] }
 ---@return table[]
 function M.interface_items(ctx)
@@ -115,7 +115,7 @@ function M.interface_items(ctx)
   end, items)
 end
 
---- Ítems al empezar una declaración: la comprobación `var _ I = (*T)(nil)` de los structs del archivo que no la tienen
+--- Items when starting a declaration: the `var _ I = (*T)(nil)` check for the file's structs that lack it
 ---@param range table
 ---@param frag string
 ---@return table[]

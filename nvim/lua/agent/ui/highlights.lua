@@ -1,9 +1,9 @@
--- ── Grupos de highlight del agente ───────────────────────────────────────────
--- Los colores se DERIVAN de la paleta del tema activo (fondo, texto y acentos reales de
--- Normal/Added/Removed/Diagnostic*) en vez de enlazar a Diff*/Comment, cuyo significado
--- varía mucho entre temas: así el diff, el spinner y la pista son legibles en los ~100
--- temas de base46, claros u oscuros, y en el tema heredado de la terminal.
--- Se recalculan cuando base46 recarga un tema (`User NvThemeReload`) o cambia el colorscheme.
+-- ── Agent highlight groups ───────────────────────────────────────────────────
+-- Colors are DERIVED from the active theme's palette (the real background, text and accents of
+-- Normal/Added/Removed/Diagnostic*) instead of linking to Diff*/Comment, whose meaning
+-- varies a lot between themes: so the diff, the spinner and the hint are readable in the ~100
+-- base46 themes, light or dark, and in the theme inherited from the terminal.
+-- They are recomputed when base46 reloads a theme (`User NvThemeReload`) or the colorscheme changes.
 local color = require "appearance.color"
 
 local M = {}
@@ -20,7 +20,7 @@ local function hex(n)
   return n and ("#%06x"):format(n) or nil
 end
 
---- Primer color de primer plano definido entre los grupos candidatos
+--- First foreground color defined among the candidate groups
 ---@param names string[]
 ---@param fallback string
 ---@return string
@@ -34,7 +34,7 @@ local function accent(names, fallback)
   return fallback
 end
 
---- Matiz (0-360) de un color; 0 si es gris
+--- Hue (0-360) of a color; 0 if it is gray
 ---@param hexcolor string
 ---@return number
 local function hue(hexcolor)
@@ -56,8 +56,8 @@ local function hue(hexcolor)
   return h * 60
 end
 
---- El acento si su matiz está dentro de [lo, hi] (con vuelta en 360); si no, el canónico.
---- Evita que "añadido" y "borrado" se parezcan en temas cuyos acentos no son verde/rojo.
+--- The accent if its hue is within [lo, hi] (wrapping at 360); otherwise the canonical one.
+--- Keeps "added" and "deleted" from looking alike in themes whose accents are not green/red.
 ---@param candidate string
 ---@param lo number
 ---@param hi number
@@ -69,12 +69,12 @@ local function with_hue(candidate, lo, hi, canonical)
   return inside and candidate or canonical
 end
 
---- Fondo teñido con `tint`, lo bastante fuerte como para verse sobre `bg` pero sin que
---- el texto `fg` baje de 4.5:1
+--- Background tinted with `tint`, strong enough to be seen over `bg` but without
+--- the `fg` text dropping below 4.5:1
 ---@param bg string
 ---@param tint string
 ---@param fg string
----@param visible number contraste mínimo del fondo teñido contra `bg`
+---@param visible number minimum contrast of the tinted background against `bg`
 ---@return string
 local function tinted(bg, tint, fg, visible)
   local best = color.blend(bg, tint, 0.14)
@@ -115,15 +115,15 @@ local function derive()
   local comment = accent({ "Comment" }, color.blend(fg, bg, 0.5))
 
   return {
-    -- el código que se envió, mientras corre: un velo apenas más marcado que el fondo
+    -- the code that was sent, while it runs: a veil barely stronger than the background
     AgentTarget = { bg = tinted(bg, fg, fg, 1.05) },
     AgentStatus = { fg = color.ensure_contrast(blue, status_bg, fg, 4.5), bg = status_bg, bold = true },
     AgentDone = { fg = color.ensure_contrast(green, done_bg, fg, 4.5), bg = done_bg },
-    -- lleva las teclas de aceptar/rechazar: debe leerse, no esconderse como un comentario
+    -- it carries the accept/reject keys: it must be readable, not hidden like a comment
     AgentHint = { fg = color.ensure_contrast(comment, bg, fg, 4.5), italic = true },
     AgentDiffAdd = { fg = fg, bg = add_bg },
     AgentDiffDelete = { bg = del_bg },
-    -- bloque de instrucción en línea: un velo azulado propio, con la barra de acento a la izquierda
+    -- inline instruction block: its own bluish veil, with the accent bar on the left
     AgentInput = { fg = fg, bg = input_bg },
     AgentInputBar = { fg = color.ensure_contrast(blue, input_bg, fg, 3.0), bg = input_bg },
     AgentInputTitle = { fg = color.ensure_contrast(blue, input_bg, fg, 4.5), bg = input_bg, bold = true },
@@ -152,9 +152,9 @@ end
 
 local ready = false
 
---- Define los grupos y se engancha a los cambios de tema. Idempotente: cada punto de entrada de la UI del
---- agente (pipeline, prompt en línea, paneles, ventana de respuesta) lo llama, porque no todos pasan por la
---- fachada `agent`: el menú DDD va directo a `agent.ddd` y sin esto sus bloques salían en blanco plano.
+--- Defines the groups and hooks into theme changes. Idempotent: every agent UI entry point
+--- (pipeline, inline prompt, panels, answer window) calls it, because not all of them go through the
+--- `agent` facade: the DDD menu goes straight to `agent.ddd` and without this its blocks came out flat white.
 function M.ensure()
   if ready then
     return
@@ -166,6 +166,6 @@ function M.ensure()
   vim.api.nvim_create_autocmd("User", { group = group, pattern = "NvThemeReload", callback = M.apply })
 end
 
-M.setup = M.ensure -- nombre anterior (lo usa la fachada)
+M.setup = M.ensure -- previous name (used by the facade)
 
 return M

@@ -1,4 +1,4 @@
--- ── Autocmds: un módulo por responsabilidad ──────────────────────────────────
+-- ── Autocmds: one module per responsibility ──────────────────────────────────
 local M = {}
 
 local MODULES = { "reload", "treesitter", "ui", "appearance", "navigation", "last-position", "autoread", "session", "gitcommit", "agent", "diagnostics" }

@@ -1,14 +1,14 @@
--- ── Recargar archivos cambiados fuera de nvim ────────────────────────────────
--- `autoread` solo actúa cuando se llama a :checktime; nvim no lo hace al volver el
--- foco en una terminal. Así lo que cambian git, formatters o otro editor se recarga
--- solo (los buffers con cambios sin guardar nunca se pisan: nvim pregunta).
+-- ── Reload files changed outside nvim ────────────────────────────────────────
+-- `autoread` only acts when :checktime is called; nvim does not do it when focus
+-- returns in a terminal. This way whatever git, formatters or another editor change
+-- is reloaded automatically (buffers with unsaved changes are never overwritten: nvim asks).
 local M = {}
 
 function M.setup()
   vim.api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
     group = vim.api.nvim_create_augroup("AutoRead", { clear = true }),
     callback = function()
-      -- en la línea de comandos checktime daría error
+      -- in the command-line window checktime would error
       if vim.o.autoread and vim.fn.getcmdwintype() == "" then
         vim.cmd.checktime()
       end

@@ -1,5 +1,5 @@
--- ── Contexto Agent Repository (global): <leader>aP ───────────────────────────
--- Nivel de persistencia de la arquitectura hexagonal: adaptadores contra un puerto, una tabla y un ejemplo hermano.
+-- ── Agent Repository context (global): <leader>aP ────────────────────────────
+-- Persistence level of the hexagonal architecture: adapters against a port, a table and a sibling example.
 local function repository()
   return require "agent.repository"
 end

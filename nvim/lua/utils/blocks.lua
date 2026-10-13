@@ -1,20 +1,20 @@
--- ── Navegación por bloques (PageUp/PageDown, Home/End) ──────────────────────
--- Salta de declaración en declaración (funciones, métodos, clases, structs/interfaces
--- en Go...) usando las queries `textobjects` de treesitter: la misma definición que
--- `af`/`ac`. Las funciones anónimas dentro de otra función (closures, callbacks) no
--- cuentan como parada, para no frenar a mitad de un cuerpo. Sin parser/query (nvim-tree,
--- texto plano...) cae al comportamiento nativo de la tecla.
+-- ── Block navigation (PageUp/PageDown, Home/End) ─────────────────────────────
+-- Jumps from declaration to declaration (functions, methods, classes, structs/interfaces
+-- in Go...) using treesitter's `textobjects` queries: the same definition as
+-- `af`/`ac`. Anonymous functions inside another function (closures, callbacks) don't
+-- count as a stop, so it doesn't halt in the middle of a body. Without parser/query
+-- (nvim-tree, plain text...) it falls back to the key's native behaviour.
 local scopes = require "agent.context.scopes"
 
 local M = {}
 
 ---@class Block
----@field first integer fila (0-based) donde empieza
----@field last integer fila (0-based) donde termina
+---@field first integer row (0-based) where it starts
+---@field last integer row (0-based) where it ends
 ---@field node TSNode
 ---@field kind "function"|"class"
 
---- Bloques del buffer, ordenados por inicio y sin repetir
+--- Buffer blocks, sorted by start and without duplicates
 ---@param buf integer
 ---@return Block[]?
 local function get_blocks(buf)
@@ -48,7 +48,7 @@ local function get_blocks(buf)
       end
     end
     local row, _, last, last_col = item.node:range()
-    -- un fin en columna 0 incluye el salto de línea: el bloque acaba en la fila anterior
+    -- an end at column 0 includes the line break: the block ends on the previous row
     if last_col == 0 and last > row then
       last = last - 1
     end
@@ -63,7 +63,7 @@ local function get_blocks(buf)
   return blocks
 end
 
---- Bloques del buffer (null si no hay parser ni query); los usa utils/docgen.lua
+--- Buffer blocks (nil if there is no parser or query); used by utils/docgen.lua
 M.list = get_blocks
 
 ---@param row integer 0-based
@@ -73,7 +73,7 @@ local function go_to(row)
   vim.cmd "normal! ^zz"
 end
 
---- Mueve el cursor `count` bloques; `forward` = true baja, false sube
+--- Move the cursor `count` blocks; `forward` = true goes down, false goes up
 ---@param forward boolean
 function M.jump(forward)
   local count = vim.v.count1
@@ -93,21 +93,21 @@ function M.jump(forward)
     local after = vim.tbl_filter(function(r)
       return r > cur
     end, rows)
-    -- sin más bloques abajo: al final del archivo
+    -- no more blocks below: go to the end of the file
     target = after[math.min(count, #after)] or vim.api.nvim_buf_line_count(0) - 1
   else
     local before = vim.tbl_filter(function(r)
       return r < cur
     end, rows)
-    -- sin más bloques arriba: al inicio del archivo
+    -- no more blocks above: go to the start of the file
     target = before[#before - math.min(count, #before) + 1] or 0
   end
 
   go_to(target)
 end
 
---- Home / End: al inicio / fin del bloque que contiene el cursor. Si ya estás en ese
---- borde, sube al bloque que lo envuelve (método → clase); sin bloque, inicio/fin del archivo.
+--- Home / End: to the start / end of the block containing the cursor. If you are already at that
+--- edge, go up to the enclosing block (method → class); with no block, start/end of the file.
 ---@param to_start boolean
 function M.edge(to_start)
   local blocks = get_blocks(vim.api.nvim_get_current_buf())
@@ -116,7 +116,7 @@ function M.edge(to_start)
   end
 
   local cur = vim.api.nvim_win_get_cursor(0)[1] - 1
-  local target -- el más interno gana: se recorre en orden de inicio y se queda con el último
+  local target -- the innermost wins: iterate in start order and keep the last one
   for _, b in ipairs(blocks) do
     if b.first <= cur and cur <= b.last then
       if to_start and b.first < cur then

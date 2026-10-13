@@ -1,13 +1,13 @@
--- Proveedor `contracts`: si el objetivo es (o está dentro de) un adaptador, le da el PUERTO que debe cumplir, qué
--- métodos de ese puerto ya existen y cuáles faltan, y —si la acción es de implementar— otra implementación del
--- proyecto como ejemplo de estilo (constructor, errores, mapeo). Silencioso si el código no es un adaptador.
+-- `contracts` provider: if the target is (or is inside) an adapter, it gives it the PORT it must fulfil, which
+-- of that port's methods already exist and which are missing, and, if the action is an implement one, another implementation
+-- from the project as a style example (constructor, errors, mapping). Silent if the code is not an adapter.
 local contracts = require "agent.repository.contracts"
 local discovery = require "agent.discovery"
 local names = require "agent.repository.contracts.names"
 local index = require "agent.ddd.index"
 
 ---@param path string
----@return string  ruta relativa al proyecto
+---@return string  path relative to the project
 local function rel(path, root)
   return path:sub(1, #root + 1) == root .. "/" and path:sub(#root + 2) or path
 end
@@ -24,7 +24,7 @@ return {
     end
     local explicit = contracts.explicit_ports(target, T)
     if #explicit == 0 and not names.looks_like_implementation(T) then
-      return done(nil) -- no parece un adaptador: no se paga ni una búsqueda
+      return done(nil) -- does not look like an adapter: not even one search is paid for
     end
     local root = index.root(target.buf)
 
@@ -55,8 +55,8 @@ return {
           or ""
       )
 
-      -- los tipos que el puerto nombra (la entidad que persiste y lo que devuelve) y que NO aparecen en el objetivo:
-      -- sin ellos el modelo adivina los campos
+      -- the types the port names (the entity it persists and what it returns) that do NOT appear in the target:
+      -- without them the model guesses the fields
       local wanted, seen = {}, { [T] = true, [port.name] = true }
       local entity = names.entity_of(T)
       if entity then
@@ -73,7 +73,7 @@ return {
         if not (ctx and ctx.action and ctx.action.examples) then
           return done(table.concat(lines, "\n"))
         end
-        -- ejemplo de estilo de otra implementación del proyecto
+        -- style example from another implementation in the project
         contracts.sibling(root, target, T, ext, #missing > 0 and missing or port.methods, function(sibling)
           if sibling then
             if sibling.ctor_lines then

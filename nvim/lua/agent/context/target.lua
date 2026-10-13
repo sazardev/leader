@@ -1,7 +1,7 @@
--- ── Objetivo: el código exacto sobre el que trabaja la acción ────────────────
--- Prioridad: selección visual > ámbito de treesitter bajo el cursor (función, o
--- clase si no hay función) > párrafo alrededor del cursor (sirve para una firma a
--- medias: "implementa la función bajo este nombre").
+-- ── Target: the exact code the action works on ───────────────────────────────
+-- Priority: visual selection > treesitter scope under the cursor (function, or
+-- class if there is no function) > paragraph around the cursor (works for a half-written
+-- signature: "implement the function under this name").
 local settings = require("core.settings").agent.context
 local scopes = require "agent.context.scopes"
 
@@ -14,7 +14,7 @@ local M = {}
 ---@field kind string  "selection" | "function" | "class" | "file" | "lines" | "diagnostic"
 ---@field name string?
 ---@field first integer 1-based
----@field last integer 1-based, inclusivo
+---@field last integer 1-based, inclusive
 ---@field lines string[]
 
 ---@param buf integer
@@ -37,7 +37,7 @@ local function make(buf, kind, first, last, name)
   }
 end
 
---- Rango (1-based) de la selección visual activa; sale del modo visual. nil si no hay
+--- (1-based) range of the active visual selection; leaves visual mode. nil if there is none
 ---@return integer[]?
 function M.visual_range()
   if not vim.fn.mode():match "^[vV\22]" then
@@ -48,7 +48,7 @@ function M.visual_range()
   return { math.min(a, b), math.max(a, b) }
 end
 
---- Líneas contiguas no vacías alrededor de la fila, acotadas por `window`
+--- Contiguous non-blank lines around the row, bounded by `window`
 ---@param buf integer
 ---@param row integer 0-based
 ---@return integer, integer
@@ -67,8 +67,8 @@ local function paragraph(buf, row)
   return first + 1, last + 1
 end
 
---- Líneas (1-based) que cubren los diagnósticos de la línea del cursor (LSP, linters y hallazgos del agente).
---- Si abarcan demasiado (un bloque entero), solo los que empiezan en esa línea.
+--- Lines (1-based) covered by the diagnostics of the cursor line (LSP, linters and agent findings).
+--- If they span too much (a whole block), only those starting on that line.
 ---@param buf integer
 ---@param line integer 1-based
 ---@return integer?, integer?
@@ -92,7 +92,7 @@ function M.diagnostic_range(buf, line)
   return first, last
 end
 
---- ¿Hay algún diagnóstico (LSP o del agente) dentro del objetivo?
+--- Is there any diagnostic (LSP or agent) inside the target?
 ---@param target AgentTarget
 ---@return boolean
 function M.has_diagnostics(target)
@@ -106,8 +106,8 @@ function M.has_diagnostics(target)
 end
 
 ---@param buf integer
----@param scope string "function" | "class" | "file" | "lines" | "diagnostic" (las líneas del diagnóstico bajo el cursor)
----@param range integer[]? selección visual (1-based)
+---@param scope string "function" | "class" | "file" | "lines" | "diagnostic" (the lines of the diagnostic under the cursor)
+---@param range integer[]? visual selection (1-based)
 ---@return AgentTarget?, string? error
 function M.resolve(buf, scope, range)
   local target
@@ -125,7 +125,7 @@ function M.resolve(buf, scope, range)
     local row = vim.api.nvim_win_get_cursor(0)[1] - 1
     local found, kind
     if scope == "type" then
-      -- el tipo bajo el cursor; si el cursor está en un método de Go (que vive fuera del tipo), el de su receptor
+      -- the type under the cursor; if the cursor is in a Go method (which lives outside the type), its receiver's
       found, kind = scopes.enclosing(buf, row, "class"), "class"
       if not found then
         local fn = scopes.enclosing(buf, row, "function")
@@ -166,7 +166,7 @@ function M.resolve(buf, scope, range)
   return target
 end
 
---- Texto corto para mostrar: `function ParseConfig (12-40)`
+--- Short text to display: `function ParseConfig (12-40)`
 ---@param target AgentTarget
 ---@return string
 function M.describe(target)

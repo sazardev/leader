@@ -1,11 +1,11 @@
--- ── Go: helpers de un enum, a partir de su bloque `const` (sin LLM, 0 tokens) ─
--- Un enum de Go es `type Status string` (o int) + un `const ( StatusPending Status = "pending" ... )`. Para cada uno
--- declarado en el archivo, al empezar una declaración (`func ` en columna 0) ofrece lo que aún no tiene:
---   func (s Status) IsValid() bool            switch sobre las constantes
---   func ParseStatus(v string) (Status, error)  valida y devuelve, con un error legible
---   func (s *Status) UnmarshalText(...)        JSON/YAML/flags validan al leer (usa ParseStatus)
---   func (s Status) String() / MarshalText()   solo en enums numéricos (iota): nombre en minúsculas
--- y un ítem "…enum helpers" con todos a la vez. Lo ya escrito no se vuelve a ofrecer.
+-- ── Go: helpers for an enum, from its `const` block (no LLM, 0 tokens) ─
+-- A Go enum is `type Status string` (or int) + a `const ( StatusPending Status = "pending" ... )`. For each one
+-- declared in the file, when starting a declaration (`func ` at column 0) it offers what it doesn't have yet:
+--   func (s Status) IsValid() bool            switch over the constants
+--   func ParseStatus(v string) (Status, error)  validates and returns, with a readable error
+--   func (s *Status) UnmarshalText(...)        JSON/YAML/flags validate on read (uses ParseStatus)
+--   func (s Status) String() / MarshalText()   only on numeric enums (iota): lowercase name
+-- and an "…enum helpers" item with all of them at once. What's already written isn't offered again.
 local ix = require "utils.goindex"
 
 local M = {}
@@ -23,7 +23,7 @@ local function enum_kind(t)
   end
 end
 
---- `StatusPending` → "pending", `InProgress` → "in_progress" (sin el prefijo del tipo)
+--- `StatusPending` → "pending", `InProgress` → "in_progress" (without the type prefix)
 ---@param const string
 ---@param type_name string
 ---@return string
@@ -40,7 +40,7 @@ end
 ---@field kind "string"|"int"
 ---@field consts { name: string, lit: string? }[]
 
---- Enums declarados en `src` (texto del buffer) y con constantes en el paquete
+--- Enums declared in `src` (buffer text) and with constants in the package
 ---@param pkg GoImplPackage
 ---@param src string
 ---@return GoEnum[]
@@ -77,7 +77,7 @@ local function names_list(e)
   )
 end
 
---- Cuerpos de los helpers de un enum, por nombre de ítem
+--- Bodies of an enum's helpers, by item name
 ---@param e GoEnum
 ---@param recv string
 ---@return { key: string, label: string, text: string }[]
@@ -162,9 +162,9 @@ local function helpers(e, recv)
   return list
 end
 
---- Ítems al EMPEZAR una declaración, para los enums del archivo
+--- Items when STARTING a declaration, for the file's enums
 ---@param range table
----@param frag string lo tecleado tras `func ` (o la palabra, en modo `any`)
+---@param frag string what was typed after `func ` (or the word, in `any` mode)
 ---@return table[]
 function M.declaration_items(range, frag)
   local pkg = ix.current_package()
@@ -220,9 +220,9 @@ function M.declaration_items(range, frag)
   end, items)
 end
 
---- Para pruebas
+--- For tests
 ---@param type_name string
----@return string[] claves de lo que falta
+---@return string[] keys of what is missing
 function M.missing(type_name)
   local pkg = ix.current_package()
   if not pkg then

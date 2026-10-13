@@ -1,6 +1,6 @@
--- Lo que hace falta saber del archivo de pruebas SIN mandarlo entero: su cabecera (package/imports), los nombres de
--- lo que ya prueba (para no repetir casos), las pruebas que ya mencionan lo que se prueba (para añadir solo lo que
--- falta) o, si no hay ninguna, UNA de ejemplo (estilo y helpers). Tope pequeño: es el contexto más caro de las pruebas.
+-- What needs to be known about the test file WITHOUT sending it whole: its header (package/imports), the names of
+-- what it already tests (to avoid repeating cases), the tests that already mention what is under test (to add only what is
+-- missing) or, if there are none, ONE example (style and helpers). Small cap: it is the most expensive context of the tests.
 local scopes = require "agent.context.scopes"
 
 local HEADER_MAX = 25
@@ -25,7 +25,7 @@ end
 
 return {
   cap = 2600,
-  ---@param target AgentTarget el objeto bajo prueba (con `tests`)
+  ---@param target AgentTarget the object under test (with `tests`)
   ---@param done fun(text: string?)
   collect = function(target, done)
     local info = target.tests
@@ -40,7 +40,7 @@ return {
     local fns = scopes.functions(text, target.lang)
     local out = {}
 
-    -- cabecera: lo anterior a la primera función
+    -- header: what precedes the first function
     local head_end = math.min(fns[1] and fns[1].first - 1 or #lines, HEADER_MAX)
     local header = vim.tbl_filter(function(l)
       return l:match "%S"
@@ -49,7 +49,7 @@ return {
       out[#out + 1] = table.concat(header, "\n")
     end
 
-    -- lo que ya prueba
+    -- what it already tests
     local names, picked, example = {}, {}, nil
     for _, f in ipairs(fns) do
       if f.name then

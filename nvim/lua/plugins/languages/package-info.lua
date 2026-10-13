@@ -1,4 +1,4 @@
--- Versiones de paquetes npm dentro de package.json
+-- npm package versions inside package.json
 return {
   "vuki656/package-info.nvim",
   ft = "json",

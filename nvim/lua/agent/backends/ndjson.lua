@@ -1,9 +1,9 @@
--- ── Lector de JSON por líneas (NDJSON) ───────────────────────────────────────
--- Los CLIs emiten un objeto JSON por línea, pero los chunks de stdout llegan cortados
--- por donde sea. Junta lo incompleto y entrega solo líneas enteras ya decodificadas.
+-- ── JSON lines reader (NDJSON) ───────────────────────────────────────────────
+-- CLIs emit one JSON object per line, but stdout chunks arrive cut at arbitrary
+-- points. It buffers the incomplete part and delivers only whole, already-decoded lines.
 local M = {}
 
----@param handler fun(obj: table): string? devuelve texto nuevo (si el evento lo trae)
+---@param handler fun(obj: table): string? returns new text (if the event carries it)
 ---@return fun(chunk: string): string?
 function M.new(handler)
   local pending = ""

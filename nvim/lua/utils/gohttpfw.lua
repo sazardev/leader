@@ -1,8 +1,8 @@
--- ── Frameworks HTTP de Go: lo que cambia de uno a otro (sin LLM, 0 tokens) ───
--- gohttp genera handlers y rutas; aquí vive TODO lo que depende del router: cómo se detecta por go.mod, la firma del
--- handler, de dónde salen el contexto, el parámetro de ruta, la query y el cuerpo, y cómo se responde o falla. Añadir un
--- framework = una entrada en FRAMEWORKS (y su nombre en `detect`); gohttp no cambia.
--- Cada entrada: sig, ctx, path(name), query(key), query_setup?, decode(var), bad(err), fail(err), ok(status, value), empty().
+-- ── Go HTTP frameworks: what changes from one to another (no LLM, 0 tokens) ───
+-- gohttp generates handlers and routes; ALL router-dependent things live here: how it is detected via go.mod, the
+-- handler signature, where the context, path parameter, query and body come from, and how it responds or fails. Adding a
+-- framework = one entry in FRAMEWORKS (and its name in `detect`); gohttp doesn't change.
+-- Each entry: sig, ctx, path(name), query(key), query_setup?, decode(var), bad(err), fail(err), ok(status, value), empty().
 local M = {}
 
 ---@param path string
@@ -27,7 +27,7 @@ function M.detect(path)
   return (tonumber(minor) or 0) >= 22 and "nethttp" or nil
 end
 
--- ── lo que cambia por framework ──────────────────────────────────────────────
+-- ── what changes per framework ───────────────────────────────────────────────
 
 ---@class GoHttpFw
 ---@field sig string
@@ -35,7 +35,7 @@ end
 ---@field path fun(name: string): string
 ---@field query_setup string?
 ---@field query fun(key: string): string
----@field decode fun(var: string): string  condición `err := ...; err != nil` completa
+---@field decode fun(var: string): string  full `err := ...; err != nil` condition
 ---@field bad fun(err: string): string[]
 ---@field fail fun(err: string): string[]
 ---@field ok fun(status: string, value: string): string[]

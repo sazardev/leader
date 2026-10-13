@@ -1,6 +1,6 @@
--- ── Imports de un archivo, por lenguaje (puro, sin treesitter) ───────────────
--- Devuelve `{ line, spec }` por cada import. Es regex sobre el texto: más rápido que parsear cientos de
--- archivos y suficiente para saber a qué capa o librería apunta cada uno.
+-- ── Imports of a file, per language (pure, no treesitter) ────────────────────
+-- Returns `{ line, spec }` for each import. It is regex over the text: faster than parsing hundreds of
+-- files and enough to know which layer or library each one points to.
 local M = {}
 
 ---@param lines string[]
@@ -93,7 +93,7 @@ local BY_EXT = {
 BY_EXT.tsx, BY_EXT.js, BY_EXT.jsx, BY_EXT.mjs, BY_EXT.cjs = BY_EXT.ts, BY_EXT.ts, BY_EXT.ts, BY_EXT.ts, BY_EXT.ts
 BY_EXT.kt, BY_EXT.scala = BY_EXT.java, BY_EXT.java
 
---- ¿Es una extensión que sabemos leer?
+--- Is it an extension we know how to read?
 ---@param ext string
 ---@return boolean
 function M.supports(ext)
@@ -101,15 +101,15 @@ function M.supports(ext)
 end
 
 ---@param lines string[]
----@param ext string sin punto ("go", "ts"...)
+---@param ext string without the dot ("go", "ts"...)
 ---@return { line: integer, spec: string }[]
 function M.extract(lines, ext)
   local fn = BY_EXT[ext]
   return fn and fn(lines) or {}
 end
 
--- Librerías y frameworks que NO deben aparecer en dominio/aplicación: acoplan la lógica al transporte,
--- a la base de datos o al framework. Se comparan como subcadena del import.
+-- Libraries and frameworks that must NOT appear in domain/application: they couple the logic to the transport,
+-- the database or the framework. They are compared as a substring of the import.
 M.FRAMEWORKS = {
   go = {
     "database/sql",
@@ -176,8 +176,8 @@ M.FRAMEWORKS.tsx, M.FRAMEWORKS.js, M.FRAMEWORKS.jsx, M.FRAMEWORKS.mjs, M.FRAMEWO
   M.FRAMEWORKS.ts, M.FRAMEWORKS.ts, M.FRAMEWORKS.ts, M.FRAMEWORKS.ts, M.FRAMEWORKS.ts
 M.FRAMEWORKS.kt, M.FRAMEWORKS.scala = M.FRAMEWORKS.java, M.FRAMEWORKS.java
 
---- ¿`fw` aparece en `spec` como un nombre completo (entre separadores) y no como parte de otro? `express` es el
---- framework en "express" o "x/express/y", pero no en "./expressions".
+--- Does `fw` appear in `spec` as a whole name (between separators) and not as part of another? `express` is the
+--- framework in "express" or "x/express/y", but not in "./expressions".
 ---@param spec string
 ---@param fw string
 ---@return boolean
@@ -199,7 +199,7 @@ local function matches(spec, fw)
   end
 end
 
---- La librería de framework a la que apunta un import, si es una
+--- The framework library an import points to, if it is one
 ---@param spec string
 ---@param ext string
 ---@return string?

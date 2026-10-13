@@ -1,10 +1,10 @@
--- ── Nombres: del adaptador al puerto, de la entidad a la tabla (puro) ────────
---   candidates("PostgresOrderRepository") → { "OrderRepository" }      el puerto que implementa
---   entity_of("PostgresOrderRepository")  → "Order"                      lo que persiste
+-- ── Names: from adapter to port, from entity to table (pure) ─────────────────
+--   candidates("PostgresOrderRepository") → { "OrderRepository" }      the port it implements
+--   entity_of("PostgresOrderRepository")  → "Order"                      what it persists
 --   tables("OrderItem")                   → { "order_items", "order_item" }
 local M = {}
 
--- Palabras de un adaptador: no forman parte del nombre del puerto
+-- Words of an adapter: they are not part of the port's name
 M.ADAPTERS = {
   "postgres",
   "postgresql",
@@ -39,7 +39,7 @@ M.ADAPTERS = {
   "smtp",
 } -- stylua: ignore
 
--- Roles que, solos, no identifican un puerto concreto
+-- Roles that, alone, do not identify a specific port
 local GENERIC = {
   repository = true,
   repo = true,
@@ -60,14 +60,14 @@ local REPO_WORDS = { repository = true, repo = true, store = true, dao = true, g
 local SUFFIXES = { impl = true, implementation = true, adapter = true }
 
 ---@param name string
----@return string[] palabras (la primera en mayúscula inicial) de un nombre PascalCase/camelCase
+---@return string[] words (the first capitalised) of a PascalCase/camelCase name
 local function split(name)
   name = name:sub(1, 1):upper() .. name:sub(2)
   local out = {}
   for w in name:gsub("(%l)(%u)", "%1 %2"):gsub("(%u)(%u%l)", "%1 %2"):gmatch "%S+" do
     out[#out + 1] = w
   end
-  -- "InMemory" es un solo adaptador, no "In" + "Memory"
+  -- "InMemory" is a single adapter, not "In" + "Memory"
   for i = #out - 1, 1, -1 do
     if out[i] == "In" and out[i + 1] == "Memory" then
       out[i] = "InMemory"
@@ -83,7 +83,7 @@ local function join(ws)
   return table.concat(ws)
 end
 
---- Nombres con los que podría llamarse el puerto que implementa `name`, del más específico al menos
+--- Names the port that `name` implements could have, from the most specific to the least
 ---@param name string
 ---@return string[]
 function M.candidates(name)
@@ -99,7 +99,7 @@ function M.candidates(name)
     if not (#rest == 1 and GENERIC[rest[1]:lower()]) and candidate ~= original then
       out[#out + 1] = candidate
     end
-    -- solo se sigue quitando palabras mientras lo quitado sea un adaptador o el primer nombre propio
+    -- words keep being stripped only while what is stripped is an adapter or the first proper name
     if i >= 2 then
       break
     end
@@ -113,7 +113,7 @@ function M.candidates(name)
   return out
 end
 
---- ¿El nombre parece un adaptador o implementación (candidato a implementar un puerto)?
+--- Does the name look like an adapter or implementation (a candidate to implement a port)?
 ---@param name string
 ---@return boolean
 function M.looks_like_implementation(name)
@@ -132,7 +132,7 @@ function M.looks_like_implementation(name)
   return #M.candidates(name) > 0 and last ~= nil and REPO_WORDS[last] == true
 end
 
---- La entidad que persiste un repositorio: sin adaptador delante ni rol de repositorio detrás
+--- The entity a repository persists: without the adapter in front or the repository role behind
 ---@param name string
 ---@return string?
 function M.entity_of(name)
@@ -164,7 +164,7 @@ function M.snake(pascal)
   return (pascal:gsub("(%l)(%u)", "%1_%2"):gsub("(%u)(%u%l)", "%1_%2"):lower())
 end
 
---- Nombres de tabla probables de una entidad: plural primero ("order" es palabra reservada de SQL)
+--- Likely table names of an entity: plural first ("order" is a reserved SQL word)
 ---@param entity string
 ---@return string[]
 function M.tables(entity)

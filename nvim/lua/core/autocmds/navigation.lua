@@ -1,4 +1,4 @@
--- ── Historial de archivos visitados en la sesión (<leader>H) ─────────────────
+-- ── History of files visited in the session (<leader>H) ──────────────────────
 local M = {}
 
 function M.setup()

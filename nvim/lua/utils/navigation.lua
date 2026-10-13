@@ -1,8 +1,8 @@
--- ── Volver atrás tras saltar (gd / grr / Ctrl+click) + historial de archivos ──
--- 1) Pila "peek": cada salto guarda de dónde vino; <Esc> en el destino vuelve (solo
---    mientras no hayas editado ahí ni te hayas ido a otro buffer; varios saltos
---    encadenados se deshacen de uno en uno).
--- 2) Historial de la sesión: últimos archivos visitados (<leader>H los lista).
+-- ── Go back after jumping (gd / grr / Ctrl+click) + file history ──────────────
+-- 1) "Peek" stack: each jump records where it came from; <Esc> at the destination goes back (only
+--    as long as you haven't edited there or moved to another buffer; several chained
+--    jumps are undone one at a time).
+-- 2) Session history: last visited files (<leader>H lists them).
 local log = require "utils.log"
 
 local M = {}
@@ -12,23 +12,23 @@ local MAX_HISTORY = 10
 
 ---@class nav.Origin
 ---@field buf integer
----@field pos integer[] {línea, columna}
+---@field pos integer[] {line, column}
 
 ---@type { origin: nav.Origin, buf: integer, tick: integer }[]
 local stack = {}
 
---- Punto actual; llamar ANTES de saltar.
+--- Current point; call BEFORE jumping.
 ---@return nav.Origin
 function M.origin()
   return { buf = vim.api.nvim_get_current_buf(), pos = vim.api.nvim_win_get_cursor(0) }
 end
 
---- Registrar que se saltó desde `origin` hasta donde está el cursor ahora.
+--- Record that a jump was made from `origin` to where the cursor is now.
 ---@param origin nav.Origin
 function M.landed(origin)
   local buf = vim.api.nvim_get_current_buf()
   if buf == origin.buf and vim.api.nvim_win_get_cursor(0)[1] == origin.pos[1] then
-    return -- no se movió
+    return -- didn't move
   end
   table.insert(stack, { origin = origin, buf = buf, tick = vim.b[buf].changedtick })
   if #stack > MAX_STACK then
@@ -36,8 +36,8 @@ function M.landed(origin)
   end
 end
 
---- Volver al punto previo al último salto. false si no aplica (para que <Esc>
---- haga lo de siempre).
+--- Go back to the point before the last jump. false if not applicable (so <Esc>
+--- does its usual thing).
 ---@return boolean
 function M.back()
   local top = stack[#stack]
@@ -47,7 +47,7 @@ function M.back()
 
   local buf = vim.api.nvim_get_current_buf()
   if top.buf ~= buf or vim.b[buf].changedtick ~= top.tick or not vim.api.nvim_buf_is_valid(top.origin.buf) then
-    stack = {} -- te moviste a otro sitio o editaste: ya no es un "vistazo"
+    stack = {} -- you moved elsewhere or edited: it's no longer a "peek"
     return false
   end
 
@@ -58,9 +58,9 @@ function M.back()
   return true
 end
 
--- ── Historial de archivos ────────────────────────────────────────────────────
+-- ── File history ─────────────────────────────────────────────────────────────
 
----@type { path: string, lnum: integer }[] más reciente primero
+---@type { path: string, lnum: integer }[] most recent first
 local history = {}
 
 local function is_file(buf)
@@ -74,7 +74,7 @@ local function is_file(buf)
   return path
 end
 
---- Marca `buf` como el archivo más reciente.
+--- Mark `buf` as the most recent file.
 ---@param buf integer
 function M.track(buf)
   local path = is_file(buf)
@@ -93,12 +93,12 @@ function M.track(buf)
     end
   end
   table.insert(history, 1, { path = path, lnum = lnum })
-  if #history > MAX_HISTORY + 1 then -- +1: el archivo actual no se muestra
+  if #history > MAX_HISTORY + 1 then -- +1: the current file isn't shown
     table.remove(history)
   end
 end
 
---- Guarda la línea donde se dejó `buf` (se llama al salir de él).
+--- Save the line where `buf` was left (called when leaving it).
 ---@param buf integer
 function M.save_position(buf)
   local path = is_file(buf)
@@ -113,7 +113,7 @@ function M.save_position(buf)
   end
 end
 
---- Lista (con vista previa) de los últimos archivos visitados, sin el actual.
+--- List (with preview) of the last visited files, excluding the current one.
 function M.history_picker()
   local current = vim.api.nvim_buf_get_name(0)
   local items = vim.tbl_filter(function(entry)

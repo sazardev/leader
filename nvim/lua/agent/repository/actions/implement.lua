@@ -1,4 +1,4 @@
--- Repository implement: UN método de un adaptador de persistencia, con el puerto, el esquema y un ejemplo hermano
+-- Repository implement: ONE method of a persistence adapter, with the port, the schema and a sibling example
 local protocol = require "agent.protocol"
 
 return {

@@ -1,4 +1,4 @@
--- ── Notificaciones uniformes ─────────────────────────────────────────────────
+-- ── Uniform notifications ───────────────────────────────────────────────────
 local M = {}
 
 ---@param msg string

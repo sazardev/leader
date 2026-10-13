@@ -1,12 +1,12 @@
--- ── Recomendación (pura): qué modelo local usar para cada nivel ──────────────
--- Sin I/O: recibe la foto de `detect` y devuelve una propuesta. Reglas simples y a la vista:
---   · Con los modelos que YA tienes: el de código más grande para el principal, el más pequeño para el ligero.
---   · Sin ninguno: se SUGIERE bajar un par según tu VRAM (o RAM, si no hay GPU); nunca se descarga sin pedírtelo.
---   · Claude/OpenCode siguen siendo el principal si están: los modelos locales cubren el nivel ligero (docs, explain),
---     donde un modelo pequeño basta y el coste es 0. Sin ningún CLI de nube, el local pasa a ser también el principal.
+-- ── Recommendation (pure): which local model to use for each tier ────────────
+-- No I/O: takes the `detect` snapshot and returns a proposal. Simple, visible rules:
+--   · With the models you ALREADY have: the largest code model for main, the smallest for light.
+--   · With none: it SUGGESTS pulling a couple according to your VRAM (or RAM, if there is no GPU); nothing is ever downloaded without asking you.
+--   · Claude/OpenCode remain the main one if present: local models cover the light tier (docs, explain),
+--     where a small model is enough and the cost is 0. With no cloud CLI, the local one becomes the main one too.
 local M = {}
 
---- Escalones por memoria disponible (GB): modelos de código de la familia qwen2.5-coder (muy buenos para su tamaño)
+--- Steps by available memory (GB): code models of the qwen2.5-coder family (very good for their size)
 M.TIERS = {
   { min = 22, main = "qwen2.5-coder:32b", light = "qwen2.5-coder:7b" },
   { min = 10, main = "qwen2.5-coder:14b", light = "qwen2.5-coder:3b" },
@@ -14,7 +14,7 @@ M.TIERS = {
   { min = 0, main = "qwen2.5-coder:3b", light = "qwen2.5-coder:1.5b" },
 }
 
---- Memoria útil para modelos: VRAM si hay GPU; en CPU, la mitad de la RAM y con tope (más grande sería inusablemente lento)
+--- Usable memory for models: VRAM if there is a GPU; on CPU, half of the RAM, capped (anything larger would be unusably slow)
 ---@param snap AgentSnapshot
 ---@return number
 function M.budget_gb(snap)
@@ -36,7 +36,7 @@ function M.tier(snap)
   return M.TIERS[#M.TIERS]
 end
 
---- Tamaño en miles de millones de parámetros a partir del nombre ("qwen2.5-coder:7b" → 7) o de `params` ("7.6B")
+--- Size in billions of parameters from the name ("qwen2.5-coder:7b" → 7) or from `params` ("7.6B")
 ---@param m { name: string, params: string? }
 ---@return number
 local function billions(m)
@@ -61,7 +61,7 @@ local function installed(snap)
       end
     end
   end
-  -- modelos de código primero; dentro, de mayor a menor
+  -- code models first; within those, largest to smallest
   table.sort(list, function(a, b)
     if a.coder ~= b.coder then
       return a.coder
@@ -75,7 +75,7 @@ local function installed(snap)
 end
 
 ---@class AgentRecommendation
----@field main { backend: string, model: string }?   solo si no hay CLI de nube
+---@field main { backend: string, model: string }?   only if there is no cloud CLI
 ---@field light { backend: string, model: string }?
 ---@field pulls { model: string, why: string }[]
 ---@field notes string[]
@@ -93,7 +93,7 @@ function M.pick(snap)
 
   local have = installed(snap)
   if #have > 0 then
-    -- el ligero: el modelo de código más pequeño que no sea el mismo que el principal (si solo hay uno, ese)
+    -- the light one: the smallest code model that is not the same as the main one (if there is only one, that one)
     local main = have[1]
     local light = main
     for i = #have, 1, -1 do

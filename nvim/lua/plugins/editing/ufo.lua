@@ -1,8 +1,8 @@
--- Folding semántico (treesitter + indent, sin LSP extra) + comentarios largos plegables
--- (lua/utils/comments.lua, menú <leader>C).
+-- Semantic folding (treesitter + indent, no extra LSP) + foldable long comments
+-- (lua/utils/comments.lua, <leader>C menu).
 
---- Envuelve un proveedor interno de ufo y le suma los folds de comentarios largos.
---- Si el proveedor pide fallback (sin parser), la excepción se propaga tal cual.
+--- Wraps an internal ufo provider and adds the folds of long comments to it.
+--- If the provider asks for fallback (no parser), the exception propagates as is.
 ---@param name "treesitter"|"indent"
 local function with_comments(name)
   return function(bufnr)
@@ -17,7 +17,7 @@ local function with_comments(name)
         taken[r.startLine .. ":" .. r.endLine] = true
       end
       for _, c in ipairs(require("utils.comments").ranges(bufnr)) do
-        -- el proveedor ya pliega ese bloque: no se duplica el fold
+        -- the provider already folds that block: the fold is not duplicated
         if not taken[c.first .. ":" .. c.last] then
           ranges[#ranges + 1] = { startLine = c.first, endLine = c.last, kind = require("utils.comments").KIND }
         end
@@ -27,8 +27,8 @@ local function with_comments(name)
   end
 end
 
---- Texto de un fold cerrado: su primera línea + "󰁂 N". Si esa línea es solo la apertura
---- de un comentario (`/**`, `/*`), se le añade la primera línea con contenido.
+--- Text of a closed fold: its first line + "󰁂 N". If that line is only the opening
+--- of a comment (`/**`, `/*`), the first line with content is appended.
 local function fold_text(virt_text, lnum, end_lnum, width, truncate)
   local text = table.concat(vim.tbl_map(function(chunk)
     return chunk[1]
@@ -73,7 +73,7 @@ return {
     vim.o.foldlevel = 99
     vim.o.foldlevelstart = 99
     vim.o.foldenable = true
-    -- con la preferencia de <leader>Cc encendida, los archivos nuevos abren los comentarios largos plegados
+    -- with the <leader>Cc preference on, new files open with long comments folded
     opts.close_fold_kinds_for_ft = { default = require("utils.comments").close_kinds() }
     require("ufo").setup(opts)
     require("utils.comments").setup()

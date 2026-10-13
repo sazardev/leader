@@ -1,9 +1,9 @@
 -- ── Backend: OpenCode (`opencode run`) ───────────────────────────────────────
--- opencode no tiene --system-prompt: la acción viaja como un agente efímero definido
--- en OPENCODE_CONFIG_CONTENT (prompt = la acción, todas las herramientas apagadas).
--- Con `settings.agent.opencode.agent` usas un agente tuyo y las instrucciones van en
--- el mensaje; con `attach` se reutiliza un `opencode serve` (sin pagar el arranque).
--- Corre en el directorio neutro (agent/sandbox) para no cargar el AGENTS.md del repo.
+-- opencode has no --system-prompt: the action travels as an ephemeral agent defined
+-- in OPENCODE_CONFIG_CONTENT (prompt = the action, all tools turned off).
+-- With `settings.agent.opencode.agent` you use your own agent and the instructions go in
+-- the message; with `attach` an `opencode serve` is reused (without paying the startup).
+-- Runs in the neutral directory (agent/sandbox) so the repo's AGENTS.md is not loaded.
 local settings = require("core.settings").agent.opencode
 local ndjson = require "agent.backends.ndjson"
 local sandbox = require "agent.sandbox"
@@ -15,7 +15,7 @@ local M = {
   default_model = settings.model,
 }
 
--- Herramientas de opencode: todas fuera. Es una acción de texto, no un agente que edita.
+-- opencode tools: all off. It is a text action, not an agent that edits.
 local TOOLS = {
   bash = false,
   edit = false,
@@ -73,15 +73,15 @@ function M.build(req)
   local prompt, env = req.prompt, nil
 
   if own_agent or settings.attach then
-    -- sin config en línea: el agente ya existe; las instrucciones van en el mensaje
+    -- no inline config: the agent already exists; the instructions go in the message
     prompt = ("<instructions>\n%s\n</instructions>\n\n%s"):format(req.system, req.prompt)
-    agent = own_agent or "plan" -- `plan` no edita: red de seguridad si no hay agente propio
+    agent = own_agent or "plan" -- `plan` does not edit: safety net if there is no own agent
   else
     env = {
       OPENCODE_CONFIG_CONTENT = vim.json.encode {
         agent = {
           [agent] = {
-            description = "Agente inline de nvim (" .. req.action .. ")",
+            description = "Inline nvim agent (" .. req.action .. ")",
             mode = "primary",
             prompt = req.system,
             tools = TOOLS,
@@ -129,7 +129,7 @@ function M.parser()
         order[#order + 1] = key
       end
       parts[key] = part.text
-      -- el texto de una parte puede llegar entero o creciendo: solo se emite lo nuevo
+      -- a part's text may arrive whole or growing: only the new part is emitted
       if before and part.text:sub(1, #before) == before then
         return part.text:sub(#before + 1)
       end
@@ -153,8 +153,8 @@ function M.parser()
       if err then
         return { ok = false, err = err }
       end
-      -- opencode, si no encuentra el agente, avisa y sigue con el de por defecto (que SÍ tiene
-      -- herramientas): esa respuesta no es la acción que se pidió, se trata como fallo
+      -- if opencode cannot find the agent, it warns and carries on with the default one (which DOES have
+      -- tools): that response is not the requested action, so it is treated as a failure
       local missing = stderr:match 'agent "([^"]+)" not found'
       if missing then
         return {

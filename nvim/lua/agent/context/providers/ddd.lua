@@ -1,6 +1,6 @@
--- Proveedor `ddd`: la capa del objetivo, cómo se nombra el proyecto, las piezas que rodean a sus entidades
--- (puerto, implementación, cableado, casos de uso) y lo que ya viola el archivo. Todo sale del análisis estático
--- local de agent/ddd; el primer uso recorre el proyecto (después, caché por mtime).
+-- `ddd` provider: the target's layer, how the project names things, the pieces around its entities
+-- (port, implementation, wiring, use cases) and what the file already violates. All of it comes from the local
+-- static analysis in agent/ddd; the first use walks the project (afterwards, cached by mtime).
 local settings = require("core.settings").agent.ddd
 
 local ROOT_MARKERS = {

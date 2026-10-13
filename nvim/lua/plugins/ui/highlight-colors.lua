@@ -1,4 +1,4 @@
--- Preview de colores (hex, rgb, clases Tailwind) inline
+-- Inline color preview (hex, rgb, Tailwind classes)
 return {
   "brenoprata10/nvim-highlight-colors",
   event = { "BufReadPost", "BufNewFile" },

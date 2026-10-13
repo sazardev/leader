@@ -1,4 +1,4 @@
--- Salto rápido con s/S (no sobrescribe r/R)
+-- Quick jump with s/S (does not overwrite r/R)
 return {
   "folke/flash.nvim",
   event = "VeryLazy",

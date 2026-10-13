@@ -1,15 +1,15 @@
--- ── Navegación LSP con mensajes claros ───────────────────────────────────────
--- vim.lsp.buf.definition() & co. lanzan un error con "Press ENTER" cuando el
--- buffer no tiene servidor (markdown, yaml...), el servidor aún arranca o no
--- soporta el método. Aquí se explica en una línea qué pasa en cada caso.
+-- ── LSP navigation with clear messages ────────────────────────────────────────
+-- vim.lsp.buf.definition() & co. throw an error with "Press ENTER" when the
+-- buffer has no server (markdown, yaml...), the server is still starting or doesn't
+-- support the method. Here each case is explained in one line.
 local log = require "utils.log"
 local nav = require "utils.navigation"
 
 local M = {}
 
---- ¿Algún cliente del buffer soporta `method`? Si no, avisa por qué y devuelve false.
+--- Does any client of the buffer support `method`? If not, warns why and returns false.
 ---@param method string
----@param what string acción, para el mensaje ("ir a definición"...)
+---@param what string action, for the message ("go to definition"...)
 ---@return boolean
 local function supported(method, what)
   local buf = vim.api.nvim_get_current_buf()
@@ -42,9 +42,9 @@ local function supported(method, what)
   return false
 end
 
---- Opciones comunes de los pickers: sin íconos, siempre lista (aunque haya 1 resultado).
---- Disposición vertical: resultados a todo el ancho (no recorta las líneas) y
---- vista previa debajo.
+--- Common picker options: no icons, always a list (even with 1 result).
+--- Vertical layout: results at full width (doesn't truncate lines) and
+--- preview below.
 local PICKER = {
   disable_devicons = true,
   jump_type = "never",
@@ -54,7 +54,7 @@ local PICKER = {
   layout_config = { preview_height = 0.5, preview_cutoff = 1, mirror = false },
 }
 
---- Opciones de picker que registran el salto de Enter para poder volver con <Esc>.
+--- Picker options that record the Enter jump so you can go back with <Esc>.
 ---@param origin nav.Origin
 local function with_back(origin)
   return vim.tbl_extend("force", PICKER, {
@@ -69,8 +69,8 @@ local function with_back(origin)
   })
 end
 
---- Ir a la definición del símbolo bajo el cursor. Un solo destino: salta y <Esc>
---- vuelve; varios: quickfix (como el comportamiento por defecto).
+--- Go to the definition of the symbol under the cursor. A single target: jumps and <Esc>
+--- goes back; several: quickfix (like the default behaviour).
 function M.goto_definition()
   if not supported("textDocument/definition", "go to definition") then
     return
@@ -93,12 +93,12 @@ function M.goto_definition()
   }
 end
 
---- Pregunta al servidor primero: si no hay resultados lo explica en una línea (el
---- mensaje genérico de Telescope no dice por qué está vacío ni qué tecla usar);
---- si hay, abre el picker.
+--- Ask the server first: if there are no results it explains in one line (Telescope's
+--- generic message doesn't say why it's empty or which key to use);
+--- if there are, it opens the picker.
 ---@param method string
----@param extra? table campos extra de los params (p. ej. context)
----@param empty_hint string mensaje cuando no hay resultados (%s = símbolo)
+---@param extra? table extra params fields (e.g. context)
+---@param empty_hint string message when there are no results (%s = symbol)
 ---@param open fun()
 local function lookup(method, extra, empty_hint, open)
   local client = vim.lsp.get_clients({ bufnr = 0, method = method })[1]
@@ -121,8 +121,8 @@ local function lookup(method, extra, empty_hint, open)
   end)
 end
 
---- Dónde se usa el símbolo bajo el cursor: lista filtrable con vista previa;
---- Enter salta, <C-q> la manda a quickfix. No incluye la declaración.
+--- Where the symbol under the cursor is used: filterable list with preview;
+--- Enter jumps, <C-q> sends it to quickfix. Doesn't include the declaration.
 function M.references()
   if not supported("textDocument/references", "find references") then
     return
@@ -138,8 +138,8 @@ function M.references()
   )
 end
 
---- Ctrl+click: mueve el cursor al punto clicado y salta a la definición.
---- En ventanas que no son de código (nvim-tree, dashboard...) solo mueve el cursor.
+--- Ctrl+click: moves the cursor to the clicked point and jumps to the definition.
+--- In non-code windows (nvim-tree, dashboard...) it only moves the cursor.
 function M.goto_definition_at_mouse()
   local pos = vim.fn.getmousepos()
   if pos.winid == 0 or pos.line == 0 then

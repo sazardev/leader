@@ -1,10 +1,10 @@
--- ── Parser TOML mínimo ───────────────────────────────────────────────────────
--- Cubre lo que usan las configs de terminal: [tablas], [tabla.anidada], claves
--- con puntos, strings ("..." y '...'), arrays de strings (multilínea) y tablas
--- inline de strings ({ a = "x" }). Ignora [[arrays de tablas]], números y bools.
+-- ── Minimal TOML parser ──────────────────────────────────────────────────────
+-- Covers what terminal configs use: [tables], [nested.table], dotted
+-- keys, strings ("..." and '...'), arrays of strings (multiline) and inline
+-- tables of strings ({ a = "x" }). Ignores [[arrays of tables]], numbers and bools.
 local M = {}
 
---- Quita comentarios `#` que no estén dentro de un string
+--- Strips `#` comments that are not inside a string
 ---@param line string
 ---@return string
 local function strip_comment(line)
@@ -24,7 +24,7 @@ local function strip_comment(line)
   return line
 end
 
----@param path string "a.b.c" (admite comillas)
+---@param path string "a.b.c" (quotes allowed)
 ---@return string[]
 local function split_path(path)
   local parts = {}
@@ -81,14 +81,14 @@ function M.parse(text)
     line = vim.trim(strip_comment(line))
 
     if pending_key then
-      -- array/inline-table multilínea: acumula hasta cerrar
+      -- multiline array/inline table: accumulate until it closes
       pending_buf = pending_buf .. " " .. line
       if line:find("]", 1, true) or line:find("}", 1, true) then
         set_path(result, pending_key, parse_value(pending_buf))
         pending_key, pending_buf = nil, nil
       end
     elseif line:match "^%[%[" then
-      section = { "\0skip" } -- [[array de tablas]]: se ignora su contenido
+      section = { "\0skip" } -- [[array of tables]]: its content is ignored
     elseif line:match "^%[.*%]$" then
       section = split_path(line:match "^%[(.*)%]$")
     elseif line ~= "" and section[1] ~= "\0skip" then

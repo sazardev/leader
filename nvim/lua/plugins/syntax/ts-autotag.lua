@@ -1,4 +1,4 @@
--- Auto-cierre y renombrado de tags JSX/HTML
+-- Auto-close and rename of JSX/HTML tags
 return {
   "windwp/nvim-ts-autotag",
   event = { "BufReadPre", "BufNewFile" },

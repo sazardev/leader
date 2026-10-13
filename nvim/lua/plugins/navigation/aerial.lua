@@ -1,4 +1,4 @@
--- Outline de símbolos (treesitter + LSP), sin íconos
+-- Symbol outline (treesitter + LSP), no icons
 local KINDS = {
   "File",
   "Module",
@@ -42,7 +42,7 @@ return {
   opts = {
     backends = { "treesitter", "lsp", "markdown" },
     layout = { min_width = 30, max_width = 50 },
-    show_guides = false, -- sin líneas verticales
+    show_guides = false, -- no vertical lines
     guide_style = "stub",
     close_behavior = "auto",
     kinds = empty_kinds(),

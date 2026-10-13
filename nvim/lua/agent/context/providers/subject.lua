@@ -1,14 +1,14 @@
--- El código BAJO PRUEBA, cuando el resultado va a otro archivo (pruebas, dobles): el objetivo es el final del
--- archivo de destino, así que lo que hay que probar viaja aparte. Sin LLM ni LSP: solo el texto del objetivo original.
+-- The code UNDER TEST, when the result goes to another file (tests, doubles): the target is the end of the
+-- destination file, so what must be tested travels separately. No LLM or LSP: only the original target's text.
 local scopes = require "agent.context.scopes"
 local text = require "agent.text"
 
 local HEADER_MAX = 20
 
---- Cabecera del archivo del código (package/imports/use...): un archivo de pruebas nuevo tiene que declarar el MISMO
---- paquete y saber de dónde importar lo que prueba
+--- Header of the code's file (package/imports/use...): a new test file has to declare the SAME
+--- package and know where to import what it tests from
 ---@param buf integer
----@param first integer primera línea del objetivo
+---@param first integer first line of the target
 ---@return string?
 local function header(buf, first)
   local decls = scopes.declarations(buf)
@@ -21,7 +21,7 @@ end
 
 return {
   cap = 3500,
-  ---@param target AgentTarget el objeto bajo prueba
+  ---@param target AgentTarget the object under test
   ---@param done fun(text: string?)
   collect = function(target, done)
     if not target.tests then

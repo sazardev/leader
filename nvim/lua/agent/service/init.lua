@@ -1,10 +1,10 @@
--- ── Nivel SERVICE: servicios de aplicación / casos de uso (<leader>aS) ───────
--- Orquestan el dominio y llaman a puertos; el contexto propio del nivel es `ports`.
---   run(name)   implement | review: acciones con el LLM (mismo pipeline y experiencia)
---   deps()      ¿existen, se llaman bien y están cableadas sus dependencias? Análisis local, 0 tokens
+-- ── SERVICE level: application services / use cases (<leader>aS) ─────────────
+-- They orchestrate the domain and call ports; the level's own context is `ports`.
+--   run(name)   implement | review: LLM actions (same pipeline and experience)
+--   deps()      do its dependencies exist, are they called correctly and are they wired? Local analysis, 0 tokens
 --
---   ports.lua   interfaces que recibe el servicio, con sus firmas       actions/   acciones del nivel (registro propio)
---   deps.lua    el diagnóstico local
+--   ports.lua   interfaces the service receives, with their signatures   actions/   the level's actions (own registry)
+--   deps.lua    the local diagnosis
 local M = {}
 
 ---@param name string "implement" | "review"

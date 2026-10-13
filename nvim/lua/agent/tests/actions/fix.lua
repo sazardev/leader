@@ -1,4 +1,4 @@
--- Arreglar una prueba que falla: corre la prueba (sin modelo) y solo si falla manda su salida real. Si pasa, 0 tokens.
+-- Fix a failing test: runs the test (no model) and only if it fails sends its real output. If it passes, 0 tokens.
 local convention = require "agent.tests.convention"
 local protocol = require "agent.protocol"
 local run = require "agent.tests.run"

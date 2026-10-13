@@ -1,10 +1,10 @@
--- Los cambios SIN commitear del objetivo (git diff contra HEAD, solo los trozos que tocan sus líneas): lo que necesita
--- la lente `api` para juzgar qué rompe a quien lo usa. Sin cambios, la acción ni llega a pedir nada (0 tokens).
+-- The UNCOMMITTED changes of the target (git diff against HEAD, only the hunks touching its lines): what the `api`
+-- lens needs to judge what breaks for whoever uses it. With no changes, the action never even asks for anything (0 tokens).
 local text = require "agent.text"
 
 local M = {}
 
---- Diff (sin cabeceras) de las líneas del objetivo contra HEAD; nil si no hay cambios ahí
+--- Diff (without headers) of the target's lines against HEAD; nil if there are no changes there
 ---@param target AgentTarget
 ---@return string?
 function M.diff(target)

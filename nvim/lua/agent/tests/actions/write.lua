@@ -1,4 +1,4 @@
--- Escribir pruebas: para la función bajo el cursor (o la selección), SOLO lo que falta, añadido al archivo de pruebas.
+-- Write tests: for the function under the cursor (or the selection), ONLY what is missing, appended to the test file.
 local protocol = require "agent.protocol"
 local dest = require "agent.tests.target"
 
@@ -7,7 +7,7 @@ return {
   desc = "test write",
   key = "w",
   scope = "function",
-  -- subject = lo que se prueba; testfile = cabecera, nombres y un ejemplo del archivo de pruebas (no entero)
+  -- subject = what is being tested; testfile = header, names and an example from the test file (not all of it)
   context = { "rules", "testing", "subject", "types", "callees", "testfile" },
   output = "replace",
   reveal = true,

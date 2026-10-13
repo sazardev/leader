@@ -1,6 +1,6 @@
--- Firmas de lo que el objetivo LLAMA, pedidas al LSP (hover). Es el contexto que más
--- evita alucinaciones: el modelo ve la firma real de cada función en vez de adivinarla.
--- Asíncrono con tope de espera: lo que el LSP no responda a tiempo se omite.
+-- Signatures of what the target CALLS, requested from the LSP (hover). It is the context that most
+-- prevents hallucinations: the model sees each function's real signature instead of guessing it.
+-- Asynchronous with a wait cap: whatever the LSP does not answer in time is omitted.
 local settings = require("core.settings").agent.context
 local scopes = require "agent.context.scopes"
 
@@ -12,7 +12,7 @@ local function is_identifier(node)
   return node:type():find "identifier" ~= nil
 end
 
---- El identificador que nombra lo llamado (`pkg.Fn(...)` -> Fn, `fn(...)` -> fn)
+--- The identifier naming the callee (`pkg.Fn(...)` -> Fn, `fn(...)` -> fn)
 ---@param fn TSNode
 ---@return TSNode?
 local function callee_identifier(fn)
@@ -65,7 +65,7 @@ local function collect_callees(target)
   return found
 end
 
---- La firma de un hover: el primer bloque de código, o las dos primeras líneas
+--- The signature from a hover: the first code block, or the first two lines
 ---@param contents any
 ---@return string?
 local function signature(contents)

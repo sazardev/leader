@@ -1,12 +1,12 @@
--- ── Destino de las pruebas ───────────────────────────────────────────────────
--- Las acciones de pruebas no reemplazan la función: AÑADEN al final del archivo de pruebas. El objetivo que ve el
--- pipeline es la ÚLTIMA LÍNEA de ese archivo (o su única línea vacía si es nuevo): así se envía una línea en vez de
--- todo el archivo y el modelo solo devuelve lo nuevo (`merge` lo une). El código bajo prueba pasa a ser el `subject`.
+-- ── Test destination ─────────────────────────────────────────────────────────
+-- The test actions do not replace the function: they APPEND to the end of the test file. The target the
+-- pipeline sees is the LAST LINE of that file (or its single empty line if it is new): so one line is sent instead of
+-- the whole file and the model returns only what is new (`merge` joins it). The code under test becomes the `subject`.
 local convention = require "agent.tests.convention"
 
 local M = {}
 
----@param subject AgentTarget el código bajo prueba
+---@param subject AgentTarget the code under test
 ---@return AgentTarget?, string? why
 function M.retarget(subject)
   local abs = vim.api.nvim_buf_get_name(subject.buf)
@@ -23,9 +23,9 @@ function M.retarget(subject)
   if not info.exists and vim.bo[buf].filetype == "" then
     vim.bo[buf].filetype = subject.lang
   end
-  -- el directorio de un archivo nuevo (test/, tests/...) se crea al guardar, no antes: rechazar no deja carpetas
+  -- the directory of a new file (test/, tests/...) is created on save, not before: rejecting leaves no folders behind
   if not info.exists then
-    -- un archivo vacío da un error de sintaxis del LSP que taparía la propuesta: sin diagnósticos hasta guardar
+    -- an empty file gives an LSP syntax error that would cover the proposal: no diagnostics until saved
     vim.diagnostic.enable(false, { bufnr = buf })
     vim.api.nvim_create_autocmd("BufWritePost", {
       buffer = buf,
@@ -56,7 +56,7 @@ function M.retarget(subject)
   }
 end
 
---- El modelo devuelve solo el código NUEVO: va detrás de la última línea (o es el archivo entero si estaba vacío)
+--- The model returns only the NEW code: it goes after the last line (or is the whole file if it was empty)
 ---@param code string[]
 ---@param target AgentTarget
 ---@return string[]
@@ -72,7 +72,7 @@ function M.merge(code, target)
   return vim.list_extend(out, code)
 end
 
---- Motivo para no seguir si el objetivo es un archivo de pruebas o no merece pruebas (antes de gastar nada)
+--- Reason to stop if the target is a test file or does not deserve tests (before spending anything)
 ---@param subject AgentTarget
 ---@return string?
 function M.check(subject)

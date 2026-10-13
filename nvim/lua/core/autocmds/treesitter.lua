@@ -1,6 +1,6 @@
--- ── Arranque del highlighter de treesitter ───────────────────────────────────
--- La rama "main" de nvim-treesitter ya no lo inicia sola: sin esto ningún
--- capture (@function, @operator...) se resalta aunque el parser esté instalado.
+-- ── Treesitter highlighter startup ───────────────────────────────────────────
+-- The "main" branch of nvim-treesitter no longer starts it on its own: without this no
+-- capture (@function, @operator...) is highlighted even if the parser is installed.
 local M = {}
 
 function M.setup()

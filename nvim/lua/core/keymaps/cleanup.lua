@@ -1,7 +1,7 @@
--- ── Quitar keymaps de NvChad que no usamos ───────────────────────────────────
--- Se borran (no <Nop>): un mapeo que además es prefijo de otros obliga a
--- which-key a esperar `timeoutlen` y a ejecutarlo/cerrar el popup. <leader>h
--- (terminal horizontal) chocaba con Harpoon <leader>h1..4; <leader>w con wk/wK.
+-- ── Remove NvChad keymaps we do not use ──────────────────────────────────────
+-- They are deleted (not <Nop>): a mapping that is also a prefix of others forces
+-- which-key to wait for `timeoutlen` and then run it / close the popup. <leader>h
+-- (horizontal terminal) clashed with Harpoon <leader>h1..4; <leader>w with wk/wK.
 local M = {}
 
 local REMOVED = {
@@ -28,10 +28,10 @@ local REMOVED = {
   "<leader>qs",
   "<leader>qS",
   "<leader>qd",
-  "<leader>gt", -- telescope git_status: ahora <leader>Gt (menú Git contextual)
+  "<leader>gt", -- telescope git_status: now <leader>Gt (contextual Git menu)
 }
 
--- <A-h> (terminal horizontal de NvChad) pisaba a mini.move (Alt+hjkl mueve líneas/bloques)
+-- <A-h> (NvChad horizontal terminal) overrode mini.move (Alt+hjkl moves lines/blocks)
 local REMOVED_MODES = {
   { { "n", "t" }, "<A-h>" },
 }

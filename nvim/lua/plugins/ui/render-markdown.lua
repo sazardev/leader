@@ -1,4 +1,4 @@
--- Renderizado enriquecido de Markdown
+-- Rich Markdown rendering
 return {
   "MeanderingProgrammer/render-markdown.nvim",
   ft = "markdown",

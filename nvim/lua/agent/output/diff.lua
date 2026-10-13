@@ -1,13 +1,13 @@
--- ── Diferencias por líneas (puro) ────────────────────────────────────────────
+-- ── Line diffs (pure) ────────────────────────────────────────────────────────
 local M = {}
 
 ---@class AgentHunk
----@field a_start integer  primera línea vieja afectada (o tras cuál se inserta si a_count == 0)
+---@field a_start integer  first old line affected (or the one after which it is inserted if a_count == 0)
 ---@field a_count integer
 ---@field b_start integer
 ---@field b_count integer
 
---- Un bloque vacío es "", no una línea en blanco (que sería una línea fantasma en el diff)
+--- An empty block is "", not a blank line (which would be a phantom line in the diff)
 ---@param lines string[]
 ---@return string
 local function join(lines)

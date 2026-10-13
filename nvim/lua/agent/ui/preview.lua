@@ -1,7 +1,7 @@
--- ── Vista previa de un reemplazo, en línea ───────────────────────────────────
--- Lo borrado se tiñe de rojo en su sitio; lo añadido aparece en verde justo debajo,
--- como líneas virtuales (no existen en el buffer hasta que aceptes). Solo se pintan
--- los tramos que cambian, no todo el bloque.
+-- ── Inline preview of a replacement ──────────────────────────────────────────
+-- What is deleted is tinted red in place; what is added appears in green right below,
+-- as virtual lines (they do not exist in the buffer until you accept). Only the
+-- hunks that change are painted, not the whole block.
 local diff = require "agent.output.diff"
 
 require("agent.ui.highlights").ensure()
@@ -10,7 +10,7 @@ local M = {}
 
 local NS = vim.api.nvim_create_namespace "agent.preview"
 
---- Las líneas virtuales no expanden tabs: se hace a mano, y se rellena hasta el borde
+--- Virtual lines do not expand tabs: it is done by hand, and padded up to the edge
 ---@param buf integer
 ---@param line string
 ---@param width integer
@@ -22,12 +22,12 @@ local function virtual_line(buf, line, width)
 end
 
 ---@param buf integer
----@param first integer 1-based, inicio del bloque viejo
+---@param first integer 1-based, start of the old block
 ---@param old string[]
 ---@param new string[]
----@param hint string|fun(hunks: integer): string texto a la derecha de la primera línea
----@return integer[] ids  extmarks creados (para limpiar)
----@return integer hunks  cuántos tramos cambian
+---@param hint string|fun(hunks: integer): string text to the right of the first line
+---@return integer[] ids  extmarks created (to clean up)
+---@return integer hunks  how many hunks change
 function M.render(buf, first, old, new, hint)
   local ids = {}
   local width = vim.o.columns
@@ -39,7 +39,7 @@ function M.render(buf, first, old, new, hint)
   end
 
   for _, h in ipairs(hunks) do
-    -- fila (0-based) de la línea vieja `i` (1-based dentro del bloque)
+    -- row (0-based) of old line `i` (1-based within the block)
     local function row_of(i)
       return first - 2 + i
     end
@@ -64,7 +64,7 @@ function M.render(buf, first, old, new, hint)
   end
 
   local label = type(hint) == "function" and hint(#hunks) or hint
-  -- la pista va en su propia línea virtual encima: a la derecha taparía código
+  -- the hint goes on its own virtual line above: on the right it would cover code
   mark(first - 1, { virt_lines = { { { " " .. label, "AgentHint" } } }, virt_lines_above = true })
   return ids, #hunks
 end

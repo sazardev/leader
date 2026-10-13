@@ -1,4 +1,4 @@
--- Ilumina todas las ocurrencias de la palabra bajo el cursor
+-- Highlights all occurrences of the word under the cursor
 return {
   "RRethy/vim-illuminate",
   event = { "CursorHold", "CursorHoldI" },

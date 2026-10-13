@@ -1,15 +1,15 @@
--- ── Contexto Git: solo en archivos que viven dentro de un repositorio ────────
+-- ── Git context: only in files that live inside a repository ─────────────────
 local ex = require("utils.actions").ex
 
 return {
 	name = "Git",
 	prefix = "G",
-	where = "archivos dentro de un repo git",
+	where = "files inside a git repo",
 	detect = function(buf)
 		return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" and vim.fs.root(buf, ".git") ~= nil
 	end,
 	maps = {
-		-- commits convencionales: UN panel (commit/panel.lua) con tres entradas, y `M` sin panel (commit/auto.lua)
+		-- conventional commits: ONE panel (commit/panel.lua) with three entry points, and `M` without a panel (commit/auto.lua)
 		{
 			"c",
 			"commit",
@@ -44,7 +44,7 @@ return {
 		{ "f", "file history", ex("DiffviewFileHistory %") },
 		{ "r", "repo history", ex("DiffviewFileHistory") },
 		{ "q", "close diff", ex("DiffviewClose") },
-		-- conflictos de merge (git-conflict.nvim)
+		-- merge conflicts (git-conflict.nvim)
 		{ "o", "conflict ours", ex("GitConflictChooseOurs") },
 		{ "T", "conflict theirs", ex("GitConflictChooseTheirs") },
 		{ "B", "conflict both", ex("GitConflictChooseBoth") },

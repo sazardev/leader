@@ -1,8 +1,8 @@
--- ── Ventana de respuesta, junto al código ────────────────────────────────────
--- Una sola ventana flotante tipo tooltip, anclada bajo (o sobre) el código sobre el que
--- preguntaste; crece mientras llega el texto en streaming. Markdown (con
--- render-markdown si está). Se cierra sola al seguir editando; `<leader>al` la reabre
--- y entra en ella (q/<Esc> cierran).
+-- ── Answer window, next to the code ──────────────────────────────────────────
+-- A single tooltip-style floating window, anchored below (or above) the code you
+-- asked about; it grows as streaming text arrives. Markdown (with
+-- render-markdown if present). It closes itself when you keep editing; `<leader>al` reopens it
+-- and enters it (q/<Esc> close).
 local anchor = require "agent.anchor"
 
 require("agent.ui.highlights").ensure()
@@ -16,7 +16,7 @@ local MAX_HEIGHT = 20
 ---@field buf integer?
 ---@field win integer?
 ---@field job_id integer?
----@field from integer  buffer de código
+---@field from integer  code buffer
 ---@field first integer  1-based
 ---@field last integer  1-based
 ---@field title string
@@ -45,7 +45,7 @@ local function wrapped_height(lines, width)
   return math.min(math.max(h, 3), MAX_HEIGHT)
 end
 
---- Dónde va: debajo de la última línea si cabe, si no encima de la primera
+--- Where it goes: below the last line if it fits, otherwise above the first
 ---@param width integer
 ---@param height integer
 ---@return table
@@ -67,7 +67,7 @@ local function placement(width, height)
   }
 end
 
---- Ancho = la línea más larga (con tope), alto = líneas ya envueltas a ese ancho
+--- Width = the longest line (capped), height = lines already wrapped to that width
 ---@param lines string[]
 ---@return integer width, integer height
 local function fit(lines)
@@ -111,7 +111,7 @@ local function new_buffer()
   end
 end
 
---- Muestra (o actualiza) el texto de un trabajo
+--- Shows (or updates) a job's text
 ---@param job AgentJob
 ---@param body string
 ---@param title string
@@ -143,7 +143,7 @@ function M.show(job, body, title)
   pcall(vim.api.nvim_win_set_cursor, state.win, { #lines, 0 })
 end
 
---- Cierra la ventana cuando sigues trabajando en el código (como un tooltip)
+--- Closes the window when you keep working on the code (like a tooltip)
 ---@param job AgentJob
 function M.autoclose(job)
   vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter" }, {
@@ -157,7 +157,7 @@ function M.autoclose(job)
   })
 end
 
---- Quita la ventana si pertenece a este trabajo (fallo / cancelación)
+--- Removes the window if it belongs to this job (failure / cancellation)
 ---@param job AgentJob
 function M.discard(job)
   if state.job_id == job.id then
@@ -165,7 +165,7 @@ function M.discard(job)
   end
 end
 
---- Reabre la última respuesta y entra en ella
+--- Reopens the last answer and enters it
 ---@return boolean
 function M.reopen()
   if is_open() then

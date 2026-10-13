@@ -1,4 +1,4 @@
--- DDD missing: lo que falta alrededor del objetivo para una porción de DDD completa, incluidas las conexiones
+-- DDD missing: what is missing around the target for a complete DDD slice, including the connections
 local principles = require "agent.ddd.principles"
 
 return {

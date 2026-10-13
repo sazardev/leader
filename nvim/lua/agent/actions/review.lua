@@ -1,4 +1,4 @@
--- Revisar: hallazgos reales como diagnósticos en la línea exacta
+-- Review: real findings as diagnostics on the exact line
 local protocol = require "agent.protocol"
 
 return {

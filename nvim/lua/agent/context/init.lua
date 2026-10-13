@@ -1,8 +1,8 @@
--- ── Contexto extra, dentro de un presupuesto ─────────────────────────────────
--- Cada acción declara qué proveedores quiere (`context = { "rules", "outline"... }`).
--- Un proveedor es `{ cap, collect(target, done) }` y puede ser asíncrono. Aquí se
--- lanzan en paralelo y, al terminar el último, se ensamblan EN EL ORDEN declarado
--- hasta agotar `settings.agent.context.max_chars`. El objetivo no cuenta: va aparte.
+-- ── Extra context, within a budget ───────────────────────────────────────────
+-- Each action declares which providers it wants (`context = { "rules", "outline"... }`).
+-- A provider is `{ cap, collect(target, done) }` and may be asynchronous. Here they are
+-- launched in parallel and, when the last one finishes, assembled IN THE DECLARED ORDER
+-- until `settings.agent.context.max_chars` runs out. The target does not count: it goes apart.
 local settings = require("core.settings").agent.context
 local text = require "agent.text"
 
@@ -51,7 +51,7 @@ function M.build(action, target, done)
         assemble()
       end
     end
-    -- un proveedor roto no debe tumbar la acción: simplemente no aporta
+    -- a broken provider must not take the action down: it just contributes nothing
     if not pcall(p.collect, target, settle, { names = names, action = action }) then
       settle(nil)
     end

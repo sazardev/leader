@@ -1,7 +1,7 @@
--- Telescope: respeta .gitignore en búsquedas, sin íconos en resultados.
+-- Telescope: respects .gitignore in searches, no icons in results.
 local no_icons = require("utils.telescope").no_icons
 
--- Directorios que nunca queremos en find_files
+-- Directories we never want in find_files
 local EXCLUDED = { ".git", "node_modules", ".next", "dist", "build", "vendor", "target", ".cache", ".nuxt", "coverage" }
 
 local function find_command()
@@ -26,9 +26,9 @@ return {
       path_display = { "truncate" },
       prompt_prefix = "> ",
       selection_caret = "  ",
-      -- El preview se oculta solo si la ventana es angosta (preview_cutoff, por defecto
-      -- 120 columnas / 40 líneas): se deja siempre visible y, si no cabe al lado
-      -- (menos de flip_columns), pasa ABAJO del listado en vez de desaparecer.
+      -- The preview is hidden when the window is narrow (preview_cutoff, default
+      -- 120 columns / 40 lines): it is kept always visible and, if it does not fit alongside
+      -- (fewer than flip_columns), it goes BELOW the list instead of disappearing.
       layout_strategy = "flex",
       layout_config = {
         width = 0.9,

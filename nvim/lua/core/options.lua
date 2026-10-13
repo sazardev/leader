@@ -1,5 +1,5 @@
--- ── Opciones de Neovim ───────────────────────────────────────────────────────
--- Los valores viven en core/settings.lua (`options`); aquí solo se aplican.
+-- ── Neovim options ───────────────────────────────────────────────────────────
+-- The values live in core/settings.lua (`options`); here they are only applied.
 local settings = require "core.settings"
 
 local M = {}
@@ -13,9 +13,9 @@ function M.setup()
 
   vim.diagnostic.config(settings.diagnostics)
 
-  vim.opt.shortmess:append "c" -- silencia mensajes de completado
+  vim.opt.shortmess:append "c" -- silences completion messages
 
-  -- Flotantes limpios (sin bordes chillones)
+  -- Clean floats (no loud borders)
   vim.o.winhighlight = "NormalFloat:Normal,FloatBorder:Comment,FloatTitle:Comment"
 end
 

@@ -1,12 +1,12 @@
--- ── Keymaps generales (no dependen de lenguaje ni de plugins) ────────────────
+-- ── General keymaps (independent of language and plugins) ────────────────────
 local M = {}
 
--- <leader>q: cierra el buffer actual; si ya no queda ninguno de archivo, sale de nvim
--- (`confirm qa` pregunta si hay cambios sin guardar).
+-- <leader>q: closes the current buffer; if no file buffer is left, quits nvim
+-- (`confirm qa` asks if there are unsaved changes).
 local function close_or_quit()
   local cur = vim.api.nvim_get_current_buf()
 
-  -- ventanas especiales (nvim-tree, help, quickfix...): solo cierra la ventana
+  -- special windows (nvim-tree, help, quickfix...): only close the window
   if vim.bo[cur].buftype ~= "" and vim.bo[cur].filetype ~= "nvdash" then
     if #vim.api.nvim_tabpage_list_wins(0) > 1 and pcall(vim.cmd, "close") then
       return
@@ -18,13 +18,13 @@ local function close_or_quit()
     return b.listed == 1 and vim.bo[b.bufnr].buftype == ""
   end, vim.fn.getbufinfo { buflisted = 1 })
 
-  -- dashboard o último archivo: no hay nada más que cerrar
+  -- dashboard or last file: nothing else to close
   if vim.bo[cur].filetype == "nvdash" or #files <= 1 then
     return vim.cmd "confirm qa"
   end
 
-  -- tabufline de NvChad está desactivado (vim.t.bufs no existe): se cambia a otro
-  -- archivo listado y se borra el actual sin tocar las ventanas.
+  -- NvChad's tabufline is disabled (vim.t.bufs does not exist): switch to another
+  -- listed file and delete the current one without touching the windows.
   local alt = vim.fn.bufnr "#"
   if alt == cur or alt < 1 or vim.fn.buflisted(alt) == 0 or vim.bo[alt].buftype ~= "" then
     alt = nil
@@ -36,13 +36,13 @@ local function close_or_quit()
     end
   end
 
-  -- con cambios sin guardar, `confirm bdelete` pregunta primero y no se mueve nada antes
+  -- with unsaved changes, `confirm bdelete` asks first and nothing is moved beforehand
   if alt and not vim.bo[cur].modified then
     for _, win in ipairs(vim.fn.win_findbuf(cur)) do
       vim.api.nvim_win_set_buf(win, alt)
     end
   end
-  -- sin `!`: pregunta si hay cambios sin guardar
+  -- without `!`: asks if there are unsaved changes
   local ok, err = pcall(vim.cmd, "confirm bdelete " .. cur)
   if not ok and not err:find "Keyboard interrupt" then
     vim.notify(err, vim.log.levels.WARN)
@@ -53,7 +53,7 @@ function M.setup()
   local map = vim.keymap.set
 
   map("n", ";", ":", { desc = "General command mode (; instead of :)" })
-  -- jk = Esc, pero con el menú de autocompletado abierto solo lo cierra (como Esc en blink)
+  -- jk = Esc, but with the completion menu open it only closes it (like Esc in blink)
   map("i", "jk", function()
     local ok, cmp = pcall(require, "blink.cmp")
     if not (ok and cmp.cancel()) then
@@ -63,12 +63,12 @@ function M.setup()
   map("n", "<leader>w", "<cmd>w<CR>", { desc = "General save" })
   map("n", "<leader>q", close_or_quit, { desc = "General close buffer / quit" })
 
-  -- <leader>d: borrar SIN copiar (registro "_"): el portapapeles queda intacto.
-  -- Visual: <leader>d | Normal: <leader>dd (línea), <leader>dw (palabra), etc.
+  -- <leader>d: delete WITHOUT copying ("_" register): the clipboard stays intact.
+  -- Visual: <leader>d | Normal: <leader>dd (line), <leader>dw (word), etc.
   map({ "n", "v" }, "<leader>d", '"_d', { desc = "General delete without copying" })
 
-  -- Diagnósticos (<leader>x): popup de la línea, bloques en línea de todo el buffer y recorrido
-  -- uno por uno (utils/diagblocks.lua); el panel de abajo es Trouble (<leader>xx)
+  -- Diagnostics (<leader>x): line popup, inline blocks for the whole buffer and walking
+  -- through them one by one (utils/diagblocks.lua); the bottom panel is Trouble (<leader>xx)
   local diag = require "utils.diagblocks"
   map("n", "<leader>xd", diag.popup, { desc = "Diagnostics line popup (press again to enter)" })
   map("n", "<leader>xa", diag.toggle, { desc = "Diagnostics blocks inline (toggle)" })
@@ -80,9 +80,9 @@ function M.setup()
     diag.step(-1)
   end, { desc = "Diagnostics previous block" })
 
-  -- <Esc>: primero cierra el popup de diagnóstico si está abierto; luego, tras
-  -- gd / grr / Ctrl+click vuelve a donde estabas (si no editaste ahí);
-  -- si no aplica, hace lo de NvChad (quitar el resaltado de búsqueda)
+  -- <Esc>: first closes the diagnostic popup if open; then, after
+  -- gd / grr / Ctrl+click goes back to where you were (if you did not edit there);
+  -- if neither applies, does the NvChad thing (clear search highlight)
   map("n", "<Esc>", function()
     if diag.close_popup() then
       return
@@ -95,7 +95,7 @@ function M.setup()
     require("utils.navigation").history_picker()
   end, { desc = "Find file history (session)" })
 
-  -- CTRL+click → ir a definición (LSP); <Esc> o <C-o> vuelve atrás, <C-i> adelante
+  -- CTRL+click → go to definition (LSP); <Esc> or <C-o> goes back, <C-i> forward
   map(
     "n",
     "<C-LeftMouse>",

@@ -1,4 +1,4 @@
--- ── Acciones de Python ───────────────────────────────────────────────────────
+-- ── Python actions ───────────────────────────────────────────────────────────
 local actions = require "utils.actions"
 local log = require "utils.log"
 local project = require "utils.project"
@@ -6,7 +6,7 @@ local terminal = require "utils.terminal"
 
 local MARKERS = { "pyproject.toml", "pytest.ini", "setup.cfg", ".git" }
 
---- `uv` solo si está instalado y el proyecto tiene pyproject.toml
+--- `uv` only if installed and the project has pyproject.toml
 local function use_uv()
   return vim.fn.executable "uv" == 1 and vim.fs.root(0, { "pyproject.toml" }) ~= nil
 end

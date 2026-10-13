@@ -1,4 +1,4 @@
--- Entregar: manda archivo:rango + tu instrucción a un agente que ya corre en Herdr
+-- Hand off: sends file:range + your instruction to an agent already running in Herdr
 local log = require "utils.log"
 
 ---@param target AgentTarget
@@ -22,7 +22,7 @@ local function message(target, instruction)
     lines[#lines + 1] = "Diagnostics:"
     vim.list_extend(lines, diags)
   end
-  -- el agente lee el archivo del disco: si hay cambios sin guardar, se le manda el código actual
+  -- the agent reads the file from disk: if there are unsaved changes, the current code is sent
   if vim.bo[target.buf].modified then
     lines[#lines + 1] = "The file has unsaved changes; this is the current code of the range:"
     lines[#lines + 1] = "```" .. target.lang
@@ -36,7 +36,7 @@ return {
   label = "handoff",
   desc = "hand off",
   key = "g",
-  enabled = function() -- solo tiene sentido dentro de Herdr: fuera, ni aparece en el menú
+  enabled = function() -- only makes sense inside Herdr: outside it, it does not even show up in the menu
     return vim.env.HERDR_ENV == "1"
   end,
   scope = "function",

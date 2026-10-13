@@ -1,6 +1,6 @@
--- ── Ajustes del buffer de commit ─────────────────────────────────────────────
--- Para `git commit` (COMMIT_EDITMSG) y para el panel de commit (commit/panel.lua):
--- ortografía y guías en las columnas de Conventional Commits (asunto ≤ 72, cuerpo ≤ 72).
+-- ── Commit buffer settings ───────────────────────────────────────────────────
+-- For `git commit` (COMMIT_EDITMSG) and for the commit panel (commit/panel.lua):
+-- spelling and guides at the Conventional Commits columns (subject ≤ 72, body ≤ 72).
 local M = {}
 
 function M.setup()

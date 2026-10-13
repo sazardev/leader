@@ -1,23 +1,23 @@
--- ── Diagnósticos como bloques en línea ───────────────────────────────────────
--- Muestra los diagnósticos del buffer como bloques bajo su línea (líneas virtuales: empujan el
--- código, no tapan nada), con la barra de acento de la severidad igual que el bloque del agente.
--- Aparece solo en cada buffer con diagnósticos (settings.diagnostic_blocks.auto); <leader>xa lo apaga
--- en ese buffer. En modo insertar se oculta (salvo `diagnostics.update_in_insert = true`). Dos modos: "expanded" (todos desplegados) y "compact" (cada uno una línea; solo el de la línea
--- del cursor se despliega, así que avanzar con ]/[ recorre uno por uno). Se actualiza solo al
--- cambiar los diagnósticos, el cursor o el tema.
--- También agrupa el popup de la línea (<leader>xd) para que Trouble y el atajo compartan código.
+-- ── Diagnostics as inline blocks ─────────────────────────────────────────────
+-- Shows the buffer's diagnostics as blocks under their line (virtual lines: they push the
+-- code down, covering nothing), with the severity accent bar just like the agent's block.
+-- It appears by itself in every buffer with diagnostics (settings.diagnostic_blocks.auto); <leader>xa turns it off
+-- in that buffer. In insert mode it is hidden (unless `diagnostics.update_in_insert = true`). Two modes: "expanded" (all unfolded) and "compact" (one line each; only the one on the
+-- cursor's line unfolds, so stepping with ]/[ walks through them one by one). It updates by itself when
+-- the diagnostics, the cursor or the theme change.
+-- It also groups the line popup (<leader>xd) so Trouble and the shortcut share code.
 local color = require "appearance.color"
 
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "diagblocks"
--- severidad más alta por línea (0-based) de cada buffer: la lee `M.statuscolumn` al pintar el número
+-- highest severity per line (0-based) of each buffer: read by `M.statuscolumn` when painting the number
 ---@type table<integer, table<integer, integer>>
 local worst_by_buf = {}
 local SEV = vim.diagnostic.severity
 
--- severidad → icono, etiqueta y nombre del grupo; el color sale de ui/diagcolors.lua (el mismo
--- de la barra de estado)
+-- severity → icon, label and group name; the color comes from ui/diagcolors.lua (the same
+-- as the status bar's)
 local KINDS = {
   [SEV.ERROR] = { icon = "✖", label = "Error", name = "Error" },
   [SEV.WARN] = { icon = "▲", label = "Warning", name = "Warn" },
@@ -32,11 +32,11 @@ local function settings()
   return require("core.settings").diagnostic_blocks
 end
 
----@type table<integer, "expanded"|"compact"> buffers con la vista activa
+---@type table<integer, "expanded"|"compact"> buffers with the view active
 local active = {}
 
--- Preferencias (global, persisten entre sesiones en stdpath("state")/diagblocks.json); los valores
--- de settings.diagnostic_blocks solo valen hasta que eliges algo con <leader>xa / <leader>xc
+-- Preferences (global, persisted across sessions in stdpath("state")/diagblocks.json); the values
+-- of settings.diagnostic_blocks only apply until you choose something with <leader>xa / <leader>xc
 ---@class DiagBlocksPrefs
 ---@field enabled boolean
 ---@field mode "expanded"|"compact"
@@ -73,15 +73,15 @@ local function save_prefs()
 end
 local popup_win ---@type integer?
 
--- ── Popup de la línea (<leader>xd) ───────────────────────────────────────────
+-- ── Line popup (<leader>xd) ───────────────────────────────────────────────────
 
---- Popup con los diagnósticos de la línea; llamarlo otra vez entra al popup (copiar, scroll)
+--- Popup with the line's diagnostics; calling it again enters the popup (copy, scroll)
 function M.popup()
   local _, win = vim.diagnostic.open_float { border = "single", source = true }
   popup_win = win
 end
 
---- Cierra el popup si está abierto
+--- Close the popup if it is open
 ---@return boolean closed
 function M.close_popup()
   if popup_win and vim.api.nvim_win_is_valid(popup_win) then
@@ -92,7 +92,7 @@ function M.close_popup()
   return false
 end
 
--- ── Colores (derivados de la paleta del tema) ────────────────────────────────
+-- ── Colors (derived from the theme palette) ───────────────────────────────────
 
 local function get(name)
   return vim.api.nvim_get_hl(0, { name = name, link = false })
@@ -114,18 +114,18 @@ local function apply_highlights()
     local block_bg = color.blend(bg, accent, 0.10)
     local muted = color.ensure_contrast(color.blend(fg, block_bg, 0.45), block_bg, fg, 4.5)
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name, { fg = fg, bg = block_bg })
-    -- barra y etiqueta: el acento EXACTO de la barra de estado (la etiqueta es la misma píldora)
+    -- bar and label: the EXACT accent of the status bar (the label is the same pill)
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Bar", { fg = accent, bg = block_bg })
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Title", pill)
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Meta", { fg = muted, bg = block_bg, italic = true })
-    -- número de línea: la misma píldora sólida de la barra de estado
+    -- line number: the same solid pill as the status bar
     vim.api.nvim_set_hl(0, "DiagNumber" .. kind.name, pill)
   end
 end
 
 -- ── Render ───────────────────────────────────────────────────────────────────
 
---- Parte `text` en filas de hasta `width` columnas (por palabras; las palabras largas se cortan)
+--- Split `text` into rows of up to `width` columns (by words; long words are cut)
 ---@param text string
 ---@param width integer
 ---@return string[]
@@ -176,13 +176,13 @@ local function text_width(win)
   return vim.api.nvim_win_get_width(win) - vim.fn.getwininfo(win)[1].textoff
 end
 
---- Una fila del bloque: sangría (hueco del código) + barra + contenido relleno hasta el borde
+--- One row of the block: indent (code gap) + bar + content padded to the edge
 ---@param indent integer
----@param width integer ancho útil de la ventana
----@param bar string grupo de la barra
----@param base string grupo del fondo
----@param segments table[] { texto, grupo }
----@param right? table { texto, grupo } alineado a la derecha
+---@param width integer usable window width
+---@param bar string bar group
+---@param base string background group
+---@param segments table[] { text, group }
+---@param right? table { text, group } right-aligned
 local function row(indent, width, bar, base, segments, right)
   local chunks = { { (" "):rep(indent) } }
   chunks[#chunks + 1] = { "▎ ", bar }
@@ -274,8 +274,8 @@ local function render(buf, win, mode)
   end
 end
 
---- Guarda la severidad más alta de cada línea con diagnósticos y repinta la columna del número
---- (el git va aparte: una barra fina en la signcolumn)
+--- Store the highest severity of each line with diagnostics and repaint the number column
+--- (git is separate: a thin bar in the signcolumn)
 ---@param buf integer
 local function numbers(buf)
   local worst = {}
@@ -293,8 +293,8 @@ local function numbers(buf)
   end
 end
 
---- Signo de la línea en UNA sola celda (el de mayor prioridad, de cualquier plugin; el git es la barra
---- `┃`). Con `signcolumn=yes` cada signo ocupa dos celdas (el texto + un hueco), de ahí el espacio de más.
+--- Line sign in a SINGLE cell (the highest-priority one, from any plugin; git is the `┃`
+--- bar). With `signcolumn=yes` each sign takes two cells (the text + a gap), hence the extra space.
 ---@param buf integer
 ---@param lnum integer 1-based
 ---@return string
@@ -316,12 +316,12 @@ local function sign_cell(buf, lnum)
   return ("%%#%s#%s"):format(best.sign_hl_group or "LineNr", char == "" and " " or char:gsub("%%", "%%%%"))
 end
 
---- Columna del número ('statuscolumn'): la píldora de la severidad se ajusta a los dígitos, con un
---- espacio a cada lado, así el número queda centrado; el hueco que sobra para alinear a la derecha
---- y el espacio hasta el código van sin fondo. Las líneas sin diagnóstico usan LineNr/CursorLineNr.
+--- Number column ('statuscolumn'): the severity pill fits the digits, with one
+--- space on each side, so the number ends up centered; the leftover gap for right-alignment
+--- and the space up to the code have no background. Lines without diagnostics use LineNr/CursorLineNr.
 ---@return string
 function M.statuscolumn()
-  -- al evaluarse, la ventana "actual" es la que se está pintando; `actual_curwin` es la que tiene el foco
+  -- when evaluated, the "current" window is the one being painted; `actual_curwin` is the one with focus
   local win = vim.api.nvim_get_current_win()
   local wo = vim.wo[win]
   if not (wo.number or wo.relativenumber) then
@@ -330,9 +330,9 @@ function M.statuscolumn()
   local lnum, virt = vim.v.lnum, vim.v.virtnum
   local buf = vim.api.nvim_win_get_buf(win)
   local width = #tostring(vim.api.nvim_buf_line_count(buf))
-  -- con `signcolumn=no` el signo se dibuja aquí (una celda); con otro valor ya lo pone `%s`
+  -- with `signcolumn=no` the sign is drawn here (one cell); with any other value `%s` already puts it
   local own = wo.signcolumn == "no"
-  -- línea partida por `wrap` o relleno virtual: solo el hueco, para no repetir el número
+  -- line split by `wrap` or virtual filler: just the gap, so the number isn't repeated
   if virt ~= 0 then
     return "%#LineNr#" .. (" "):rep(width + 2 + (own and 1 or 0))
   end
@@ -348,7 +348,7 @@ function M.statuscolumn()
   return ("%s%%#%s#%s %s  "):format(gutter, current and "CursorLineNr" or "LineNr", pad, text)
 end
 
---- ¿Se está escribiendo en este buffer sin que `update_in_insert` pida diagnósticos en vivo?
+--- Is typing happening in this buffer without `update_in_insert` asking for live diagnostics?
 ---@param buf integer
 ---@return boolean
 local function typing(buf)
@@ -362,8 +362,8 @@ local function redraw(buf)
     return
   end
   require("ui.diagcolors").sync()
-  -- en modo insertar nada cambia ni empuja el código: los bloques se ocultan y el número se queda
-  -- como estaba; al salir (InsertLeave) se pinta todo con los diagnósticos ya asentados
+  -- in insert mode nothing changes or pushes the code: the blocks are hidden and the number stays
+  -- as it was; on leaving (InsertLeave) everything is painted with the diagnostics already settled
   if typing(buf) then
     vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
     return
@@ -380,7 +380,7 @@ local function redraw(buf)
   end
 end
 
--- ── API ──────────────────────────────────────────────────────────────────────
+-- ── API ───────────────────────────────────────────────────────────────────────
 
 local group
 
@@ -419,7 +419,7 @@ local function ensure_autocmds()
       schedule(buf)
     end,
   })
-  -- al empezar a escribir los bloques se ocultan; al salir se repintan con lo último del LSP
+  -- when typing starts the blocks are hidden; on leaving they are repainted with the LSP's latest
   vim.api.nvim_create_autocmd({ "InsertEnter", "InsertLeave" }, {
     group = group,
     callback = function(ev)
@@ -428,7 +428,7 @@ local function ensure_autocmds()
       end
     end,
   })
-  -- un buffer oculto no se pinta: al volver a mostrarse se repinta
+  -- a hidden buffer isn't painted: it is repainted when shown again
   vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
     group = group,
     callback = function(ev)
@@ -437,7 +437,7 @@ local function ensure_autocmds()
       end
     end,
   })
-  -- en compact el bloque abierto sigue al cursor: solo se repinta al cambiar de línea
+  -- in compact the open block follows the cursor: it is only repainted when the line changes
   local last = {}
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = group,
@@ -468,8 +468,8 @@ local function ensure_autocmds()
       worst_by_buf[ev.buf] = nil
     end,
   })
-  -- vim.schedule: al cambiar de tema, base46 termina de definir los `Diagnostic*` justo después del
-  -- evento; si se leyeran antes, el acento sería el del tema anterior y no coincidiría con la barra
+  -- vim.schedule: when switching themes, base46 finishes defining the `Diagnostic*` groups right after the
+  -- event; if they were read earlier, the accent would be the previous theme's and wouldn't match the bar
   local function reapply()
     vim.schedule(function()
       apply_highlights()
@@ -482,7 +482,7 @@ local function ensure_autocmds()
   vim.api.nvim_create_autocmd("User", { group = group, pattern = "NvThemeReload", callback = reapply })
 end
 
---- Aplica las preferencias a todos los buffers cargados (vista y modo)
+--- Apply the preferences to all loaded buffers (view and mode)
 local function apply_all()
   ensure_autocmds()
   apply_highlights()
@@ -504,7 +504,7 @@ local function has_diagnostics(buf)
   return false
 end
 
---- Muestra/oculta los bloques (queda guardado para la próxima sesión; apagados, solo se tiñe el número de línea)
+--- Show/hide the blocks (saved for the next session; when off, only the line number is tinted)
 function M.toggle()
   local buf = vim.api.nvim_get_current_buf()
   if not active[buf] and not has_diagnostics(buf) then
@@ -515,7 +515,7 @@ function M.toggle()
   apply_all()
 end
 
---- Alterna entre todos desplegados y uno por uno (enciende la vista; queda guardado)
+--- Toggle between all unfolded and one by one (turns the view on; saved)
 function M.toggle_compact()
   if not has_diagnostics(vim.api.nvim_get_current_buf()) then
     return
@@ -526,8 +526,8 @@ function M.toggle_compact()
   apply_all()
 end
 
---- Salta al diagnóstico siguiente/anterior; con la vista apagada la enciende solo en este buffer,
---- en compact y sin tocar tus preferencias
+--- Jump to the next/previous diagnostic; with the view off it turns it on only in this buffer,
+--- in compact and without touching your preferences
 ---@param step 1|-1
 function M.step(step)
   local buf = vim.api.nvim_get_current_buf()
@@ -543,7 +543,7 @@ function M.step(step)
   redraw(buf)
 end
 
---- Carga las preferencias guardadas y registra los autocmds
+--- Load the saved preferences and register the autocmds
 function M.setup()
   load_prefs()
   apply_all()

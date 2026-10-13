@@ -1,6 +1,6 @@
--- ── Métricas de gasto (markdown) ─────────────────────────────────────────────
--- Agrega las ejecuciones del historial para responder: ¿cuánto gasto?, ¿en qué acciones y modelos?,
--- ¿cuánto de eso acabó en cambios que sí apliqué?, ¿dónde se va el prompt? Puro: recibe la lista.
+-- ── Spend metrics (markdown) ─────────────────────────────────────────────────
+-- Aggregates the history runs to answer: how much do I spend?, on which actions and models?,
+-- how much of it ended up in changes I actually applied?, where does the prompt go? Pure: takes the list.
 local fmt = require "agent.runs.format"
 
 local M = {}
@@ -24,7 +24,7 @@ end
 
 ---@param runs table[]
 ---@param key fun(run: table): string
----@return table[] groups ordenados por gasto
+---@return table[] groups sorted by spend
 local function group(runs, key)
   local by, order = {}, {}
   for _, r in ipairs(runs) do
@@ -66,7 +66,7 @@ local function avg_time(t)
   return t.runs > 0 and fmt.seconds(t.ms / t.runs) or "—"
 end
 
---- Resumen de totales para el título del selector
+--- Totals summary for the picker title
 ---@param runs table[]
 ---@return string
 function M.headline(runs)
@@ -84,7 +84,7 @@ function M.build(runs, now)
     return vim.list_extend(lines, { "_No runs recorded yet._" })
   end
 
-  -- ── periodos ──
+  -- ── periods ──
   local today = os.date("%Y-%m-%d", now)
   vim.list_extend(
     lines,
@@ -111,7 +111,7 @@ function M.build(runs, now)
     )
   end
 
-  -- ── por acción ──
+  -- ── by action ──
   vim.list_extend(lines, {
     "",
     "## By action",
@@ -143,7 +143,7 @@ function M.build(runs, now)
     )
   end
 
-  -- ── por modelo ──
+  -- ── by model ──
   vim.list_extend(
     lines,
     { "", "## By model", "", "| Model | Runs | Spend | Avg | Avg time |", "|---|---|---|---|---|" }
@@ -152,7 +152,7 @@ function M.build(runs, now)
     lines[#lines + 1] = ("| %s | %d | %s | %s | %s |"):format(g.key, g.runs, fmt.money(g.cost), avg(g), avg_time(g))
   end
 
-  -- ── por día ──
+  -- ── by day ──
   vim.list_extend(lines, { "", "## Last 14 days", "", "| Day | Runs | Spend |", "|---|---|---|" })
   local days = group(
     where(runs, function(r)
@@ -169,7 +169,7 @@ function M.build(runs, now)
     lines[#lines + 1] = ("| %s | %d | %s |"):format(d.key, d.runs, fmt.money(d.cost))
   end
 
-  -- ── a dónde va el dinero ──
+  -- ── where the money goes ──
   local replace = where(runs, function(r)
     return r.output == "replace" and r.status == "done"
   end)
@@ -208,7 +208,7 @@ function M.build(runs, now)
     all.cache_read == 0 and " (caching is off by default: one-shot prompts never hit it)" or ""
   )
 
-  -- ── anatomía del prompt ──
+  -- ── anatomy of the prompt ──
   local n, system, message, target, context, per = 0, 0, 0, 0, 0, {}
   for _, r in ipairs(runs) do
     if r.chars then
@@ -246,7 +246,7 @@ function M.build(runs, now)
     })
   end
 
-  -- ── las más caras ──
+  -- ── the most expensive ──
   local costly = vim.list_slice(vim.deepcopy(runs), 1, #runs)
   table.sort(costly, function(a, b)
     return ((a.usage or {}).cost or 0) > ((b.usage or {}).cost or 0)

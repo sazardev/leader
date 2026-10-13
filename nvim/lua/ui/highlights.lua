@@ -1,9 +1,9 @@
--- ── Overrides de highlights (base46) ─────────────────────────────────────────
--- Los colores se refieren a la paleta del tema (base0C, orange...).
+-- ── Highlight overrides (base46) ─────────────────────────────────────────────
+-- Colors refer to the theme palette (base0C, orange...).
 local M = {}
 
--- Funciones: el tema usaba base0D (azul apagado) para nombres/llamadas.
--- Se cambia al aqua vivo (base0C, ya usado en @constructor) + bold.
+-- Functions: the theme used base0D (muted blue) for names/calls.
+-- Changed to vivid aqua (base0C, already used in @constructor) + bold.
 local FUNCTION_GROUPS = {
   "Function",
   "@function",
@@ -13,7 +13,7 @@ local FUNCTION_GROUPS = {
   "@function.method.call",
 }
 
--- Operadores: el tema los pintaba con el mismo azul que las funciones.
+-- Operators: the theme painted them with the same blue as functions.
 local OPERATOR_GROUPS = { "Operator", "@operator" }
 
 ---@return table

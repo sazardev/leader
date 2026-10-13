@@ -1,7 +1,7 @@
--- Dónde van las pruebas y con qué framework (agent/tests/convention.lua). Corto a propósito: 2-3 líneas.
+-- Where the tests go and with which framework (agent/tests/convention.lua). Short on purpose: 2-3 lines.
 return {
   cap = 500,
-  ---@param target AgentTarget el objeto bajo prueba (con `tests`, que puso la acción)
+  ---@param target AgentTarget the object under test (with `tests`, set by the action)
   ---@param done fun(text: string?)
   collect = function(target, done)
     local info = target.tests

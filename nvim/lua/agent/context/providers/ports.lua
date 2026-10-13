@@ -1,5 +1,5 @@
--- Proveedor `ports`: para un servicio de aplicación, los puertos (interfaces) que recibe, con sus firmas reales, y —al
--- implementar— otro servicio del proyecto como ejemplo de estilo. Silencioso si el código no es un servicio.
+-- `ports` provider: for an application service, the ports (interfaces) it receives, with their real signatures, and, when
+-- implementing, another service from the project as a style example. Silent if the code is not a service.
 local contracts = require "agent.repository.contracts"
 local discovery = require "agent.discovery"
 local index = require "agent.ddd.index"

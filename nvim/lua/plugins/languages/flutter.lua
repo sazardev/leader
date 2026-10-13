@@ -1,7 +1,7 @@
--- flutter-tools.nvim (Dart Language Server + herramientas Flutter).
+-- flutter-tools.nvim (Dart Language Server + Flutter tools).
 -- Docs: https://github.com/nvim-flutter/flutter-tools.nvim
 
---- Capabilities: las de blink.cmp si está disponible
+--- Capabilities: blink.cmp's if available
 local function capabilities()
   local has_blink, blink = pcall(require, "blink.cmp")
   return vim.tbl_deep_extend(
@@ -11,7 +11,7 @@ local function capabilities()
   )
 end
 
---- Colores de tipo: soporte nativo de Neovim 0.12+ (lsp.color de flutter-tools está deprecado)
+--- Type colors: native Neovim 0.12+ support (flutter-tools' lsp.color is deprecated)
 local function enable_document_colors()
   vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("FlutterDocumentColor", { clear = true }),
@@ -43,15 +43,15 @@ return {
 
       decorations = {
         statusline = {
-          app_version = true, -- versión de la app en statusline
-          device = true, -- dispositivo activo
+          app_version = true, -- app version in the statusline
+          device = true, -- active device
         },
       },
 
-      -- Guías visuales para widgets anidados
+      -- Visual guides for nested widgets
       widget_guides = { enabled = true },
 
-      -- Muestra `// ClassName` al final del paréntesis de cierre
+      -- Shows `// ClassName` at the end of the closing parenthesis
       closing_tags = {
         highlight = "Comment",
         prefix = " // ",
@@ -64,7 +64,7 @@ return {
         open_cmd = "tabedit",
       },
 
-      flutter_path = nil, -- auto-detect desde PATH
+      flutter_path = nil, -- auto-detect from PATH
       flutter_lookup_cmd = nil,
 
       lsp = {

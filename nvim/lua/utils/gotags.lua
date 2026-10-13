@@ -1,12 +1,12 @@
--- ── Struct tags de Go: fuente de blink.cmp ───────────────────────────────────
--- Sobre un campo (`Kind Kind `) deriva el valor del tag del NOMBRE del campo:
+-- ── Go struct tags: blink.cmp source ──────────────────────────────────────────
+-- On a field (`Kind Kind `) it derives the tag value from the field's NAME:
 --   `            → json:"kind", json:"kind,omitempty", yaml:"kind", db:"kind"...
 --   json:        → "kind"  "kind,omitempty"  "kind$0"
 --   json:"       → kind  kind,omitempty  camelCase  -
---   json:"kind,  → omitempty  omitzero  string   (según la clave)
---   gorm:"       → variantes según el campo y su TIPO (`primaryKey;type:text`, `not null`...)
---   gorm:"x;     → opciones sueltas separadas por `;` (index, size:255, column:...)
--- El cursor queda dentro de las comillas para teclear `,` (o Tab para salir).
+--   json:"kind,  → omitempty  omitzero  string   (depending on the key)
+--   gorm:"       → variants depending on the field and its TYPE (`primaryKey;type:text`, `not null`...)
+--   gorm:"x;     → standalone options separated by `;` (index, size:255, column:...)
+-- The cursor stays inside the quotes so you can type `,` (or Tab to leave).
 local M = {}
 
 local KEYS = { "json", "gorm", "yaml", "db", "mapstructure", "form", "toml", "xml" }
@@ -19,8 +19,8 @@ local OPTIONS = {
 }
 local DEFAULT_OPTIONS = { "omitempty" }
 
--- gorm separa sus opciones con `;` (no con `,`) y algunas llevan valor (`size:255`).
--- { texto insertado (con ${n:default}), } — el label es el texto con los defaults
+-- gorm separates its options with `;` (not `,`) and some carry a value (`size:255`).
+-- { inserted text (with ${n:default}), } — the label is the text with the defaults
 local GORM_OPTIONS = {
   "not null",
   "index",
@@ -28,7 +28,7 @@ local GORM_OPTIONS = {
   "unique",
   "type:${1:text}",
   "size:${1:255}",
-  "column:${1:%s}", -- %s = nombre del campo en snake_case
+  "column:${1:%s}", -- %s = field name in snake_case
   "default:${1:value}",
   "primaryKey",
   "autoIncrement",
@@ -52,7 +52,7 @@ local GORM_OPTIONS = {
   "-",
 }
 
--- Primer token de una línea que NO es un campo (descarta raw strings sueltos)
+-- First token of a line that is NOT a field (discards stray raw strings)
 local NOT_A_FIELD = {}
 for _, kw in ipairs { "var", "const", "type", "func", "return", "case", "go", "defer", "if", "else", "for", "switch", "select", "import", "package" } do
   NOT_A_FIELD[kw] = true
@@ -80,8 +80,8 @@ function M.camel(name)
   return table.concat(out)
 end
 
---- ¿El cursor está dentro de un struct? Solo veta cuando treesitter ve algo
---- que claramente no lo es (p. ej. un raw string de una query SQL).
+--- Is the cursor inside a struct? It only vetoes when treesitter sees something
+--- that clearly isn't one (e.g. a raw string of an SQL query).
 ---@param row integer 1-indexed
 ---@param col integer 0-indexed
 ---@return boolean
@@ -104,12 +104,12 @@ end
 
 ---@class GoTagContext
 ---@field mode "key"|"value"|"option"
----@field field string nombre del campo
----@field key? string clave del tag (json, yaml...)
----@field tag string texto del tag hasta el cursor
----@field bare? boolean `json:` sin comillas todavía
----@field type string tipo Go del campo
----@field value string valor del tag abierto hasta el cursor (solo gorm)
+---@field field string field name
+---@field key? string tag key (json, yaml...)
+---@field tag string tag text up to the cursor
+---@field bare? boolean `json:` without quotes yet
+---@field type string Go type of the field
+---@field value string value of the open tag up to the cursor (gorm only)
 ---@field row integer
 ---@field col integer
 
@@ -132,7 +132,7 @@ function M.context(line, row, col)
   local ctx
   local open_key, open_value = tag:match '([%w_]+):"([^"]*)$'
   if open_key == "gorm" then
-    -- gorm: opciones separadas por `;` que pueden llevar espacios, `:` y `,`
+    -- gorm: options separated by `;` that can contain spaces, `:` and `,`
     ctx = { mode = open_value:find(";", 1, true) and "option" or "value", key = "gorm", value = open_value }
   else
     local key = tag:match '([%w_]+):"[^"]*,[%w_,]*$'
@@ -160,7 +160,7 @@ function M.context(line, row, col)
 end
 
 -- ── gorm ─────────────────────────────────────────────────────────────────────
----@param typ string tipo Go del campo (`string`, `*time.Time`, `[]byte`...)
+---@param typ string Go type of the field (`string`, `*time.Time`, `[]byte`...)
 ---@return "string"|"int"|"float"|"bool"|"time"|"deleted"|"bytes"|"other"
 local function kind_of(typ)
   local t = typ:gsub("^%*", "")
@@ -182,7 +182,7 @@ local function kind_of(typ)
   return "other"
 end
 
---- Valores completos del tag `gorm:"…"` más probables para el campo (según nombre y tipo)
+--- Most likely full `gorm:"…"` tag values for the field (by name and type)
 ---@param field string
 ---@param typ string
 ---@return string[]
@@ -240,7 +240,7 @@ function M.gorm_variants(field, typ)
     add "type:blob"
     add "type:bytea"
   else
-    -- relación o tipo propio (p. ej. `Author User`)
+    -- relation or custom type (e.g. `Author User`)
     add("foreignKey:" .. field .. "ID")
     add "embedded"
     add("many2many:" .. M.snake(field))
@@ -275,7 +275,7 @@ local function gorm_items(ctx, after)
   end
 
   if ctx.mode == "value" then
-    -- primer fragmento: valores completos; el cursor ya está tras `gorm:"` (o `gorm:`)
+    -- first fragment: full values; the cursor is already after `gorm:"` (or `gorm:`)
     local closed = after:sub(1, 1) == '"'
     for _, v in ipairs(M.gorm_variants(ctx.field, ctx.type or "")) do
       local text = ctx.bare and ('"%s"'):format(v) or (closed and v or v .. '"')
@@ -292,7 +292,7 @@ local function gorm_items(ctx, after)
     return items
   end
 
-  -- mode == "option": tras un `;`, opciones sueltas que aún no están en el tag
+  -- mode == "option": after a `;`, standalone options not yet in the tag
   local used = {}
   local fragments = vim.split(ctx.value, ";", { plain = true })
   for i = 1, #fragments - 1 do
@@ -332,7 +332,7 @@ local function item(label, text, order, extra)
   }, extra or {})
 end
 
--- snake_case y camelCase del campo (sin repetir si coinciden: Kind → kind)
+-- snake_case and camelCase of the field (without duplicates if they match: Kind → kind)
 ---@param field string
 ---@return string[]
 local function names(field)
@@ -341,7 +341,7 @@ local function names(field)
 end
 
 ---@param ctx GoTagContext
----@param after string texto tras el cursor
+---@param after string text after the cursor
 ---@return table[]
 function M.items(ctx, after)
   if ctx.key == "gorm" and ctx.mode ~= "key" then
@@ -354,7 +354,7 @@ function M.items(ctx, after)
     for k in ctx.tag:gmatch '([%w_]+):"' do
       used[k] = true
     end
-    -- el backtick de cierre normalmente ya existe (mini.pairs); si no, se agrega
+    -- the closing backtick usually already exists (mini.pairs); if not, it is added
     local close = after:find("`", 1, true) and "" or "`"
     local function add(key, value, snippet_value)
       local label = ('%s:"%s"'):format(key, value)
@@ -363,7 +363,7 @@ function M.items(ctx, after)
     local snake, camel = unpack(names(ctx.field))
     for _, key in ipairs(KEYS) do
       if key == "gorm" then
-        -- variantes según el nombre y el tipo del campo (ver M.gorm_variants)
+        -- variants by the field's name and type (see M.gorm_variants)
         if not used.gorm then
           for _, v in ipairs(M.gorm_variants(ctx.field, ctx.type)) do
             add("gorm", v, snippet_escape(v))
@@ -408,7 +408,7 @@ function M.items(ctx, after)
   local function add(value)
     local text = value
     if ctx.bare then
-      text = ('"%s$1"$0'):format(value) -- Tab sale de las comillas
+      text = ('"%s$1"$0'):format(value) -- Tab leaves the quotes
     elseif not closed then
       text = value .. '$1"$0'
     end
@@ -457,8 +457,8 @@ function Source:get_completions(ctx, callback)
   }
 end
 
---- Para `completion.list.selection.preselect`: dentro de un tag el primer
---- ítem queda elegido y Enter lo acepta sin pasar por Tab.
+--- For `completion.list.selection.preselect`: inside a tag the first
+--- item is selected and Enter accepts it without going through Tab.
 ---@return boolean
 function M.active()
   if vim.bo.filetype ~= "go" then

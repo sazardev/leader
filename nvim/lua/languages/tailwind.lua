@@ -1,4 +1,4 @@
--- Transversal: no tiene filetype propio, solo el servidor y su alcance.
+-- Cross-cutting: it has no filetype of its own, only the server and its scope.
 return {
   lsp = { "tailwindcss" },
   mason = { full = { "tailwindcss-language-server" } },

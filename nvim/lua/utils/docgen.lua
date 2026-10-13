@@ -1,18 +1,18 @@
--- ── Comentarios de documentación estándar ────────────────────────────────────
--- Plantilla de doc idiomática del lenguaje para la función/tipo bajo el cursor, armada con
--- treesitter (nombre, parámetros, retorno): sin IA, instantánea y siempre del mismo formato.
--- Para redactar el contenido usa la acción `docs` del agente (<leader>ad).
+-- ── Standard documentation comments ──────────────────────────────────────────
+-- Idiomatic doc template for the language for the function/type under the cursor, built with
+-- treesitter (name, parameters, return): no AI, instant and always the same format.
+-- To write the content use the agent's `docs` action (<leader>ad).
 --
--- Lenguajes: go (godoc), lua (LuaCATS), typescript/javascript (JSDoc), python (docstring Google),
--- rust (rustdoc). Para añadir uno: una entrada en LANGS (`placement` + `build`) y, si sus
--- declaraciones "públicas" no son "todas", una regla en PUBLIC.
+-- Languages: go (godoc), lua (LuaCATS), typescript/javascript (JSDoc), python (Google docstring),
+-- rust (rustdoc). To add one: an entry in LANGS (`placement` + `build`) and, if its
+-- "public" declarations aren't "all", a rule in PUBLIC.
 local blocks = require "utils.blocks"
 local log = require "utils.log"
 local scopes = require "agent.context.scopes"
 
 local M = {}
 
--- funciones anónimas: un `return` dentro de una no cuenta para la función exterior
+-- anonymous functions: a `return` inside one doesn't count for the outer function
 local FUNCTION_NODES = {
   function_declaration = true,
   function_definition = true,
@@ -49,7 +49,7 @@ local function returns_value(node)
   return found
 end
 
---- `export function f` y `@deco def f` se capturan envueltos: la declaración real va dentro
+--- `export function f` and `@deco def f` are captured wrapped: the real declaration is inside
 ---@param node TSNode
 ---@return TSNode
 local function decl_of(node)
@@ -62,7 +62,7 @@ end
 local function name_of(node, buf)
   local field = node:field("name")[1]
   if not field then
-    -- Go: `type_declaration` guarda el nombre en su `type_spec`
+    -- Go: `type_declaration` keeps the name in its `type_spec`
     for child in node:iter_children() do
       field = child:field("name")[1]
       if field then
@@ -75,7 +75,7 @@ end
 
 local SKIP_PARAMS = { self = true, cls = true, this = true, _ = true }
 
---- Nombres de los parámetros, en orden
+--- Parameter names, in order
 ---@param node TSNode
 ---@param buf integer
 ---@return string[]
@@ -98,7 +98,7 @@ local function param_names(node, buf)
         fields = param:field "pattern"
       end
       if #fields > 0 then
-        vim.tbl_map(add, fields) -- Go: `a, b int` trae varios nombres
+        vim.tbl_map(add, fields) -- Go: `a, b int` carries several names
       elseif param:type() == "identifier" then
         add(param)
       else
@@ -122,8 +122,8 @@ end
 ---@field node TSNode
 ---@field indent string
 
---- Cada lenguaje: dónde va el comentario y las líneas que se insertan.
---- `cursor` = { línea relativa (1-based), columna } donde queda el cursor para escribir.
+--- Each language: where the comment goes and the lines that get inserted.
+--- `cursor` = { relative line (1-based), column } where the cursor lands to start writing.
 ---@type table<string, { placement: "above"|"inside", build: fun(i: DocInfo): string[], cursor: integer[] }>
 local LANGS = {
   go = {
@@ -168,7 +168,7 @@ local LANGS = {
   python = {
     placement = "inside",
     build = function(i)
-      -- el cursor queda tras las comillas de apertura para escribir el resumen
+      -- the cursor lands after the opening quotes to write the summary
       local lines = { '"""', "" }
       if #i.params > 0 then
         lines[#lines + 1] = "Args:"
@@ -211,7 +211,7 @@ LANGS.tsx = LANGS.typescript
 LANGS.typescriptreact = LANGS.typescript
 LANGS.javascriptreact = LANGS.typescript
 
---- ¿Cuenta como API pública? Sin regla para el lenguaje, todo cuenta.
+--- Does it count as public API? Without a rule for the language, everything counts.
 ---@type table<string, fun(node: TSNode, name: string, buf: integer): boolean>
 local PUBLIC = {
   go = function(_, name)
@@ -221,7 +221,7 @@ local PUBLIC = {
     return not name:match "^_"
   end,
   lua = function(node, name)
-    -- `local function` y variables locales son internas: solo M.x / M:x y globales
+    -- `local function` and local variables are internal: only M.x / M:x and globals
     return name:find "[.:]" ~= nil or node:parent() == nil or node:parent():type() ~= "chunk"
   end,
   rust = function(node)
@@ -244,7 +244,7 @@ PUBLIC.tsx = PUBLIC.typescript
 local ATTACHED = { export_statement = true, decorated_definition = true }
 local BEFORE = { attribute_item = true, decorator = true }
 
---- Nodo desde el que empieza visualmente la declaración (con `export`, decoradores, atributos)
+--- Node where the declaration visually starts (with `export`, decorators, attributes)
 ---@param node TSNode
 ---@return TSNode
 local function anchor_node(node)
@@ -262,7 +262,7 @@ end
 
 ---@param buf integer
 ---@param root TSNode
----@param row integer 0-based; fila de la declaración
+---@param row integer 0-based; declaration row
 ---@return boolean
 local function comment_above(buf, root, row)
   if row == 0 then
@@ -277,7 +277,7 @@ local function comment_above(buf, root, row)
   return node ~= nil and node:type():find "comment" ~= nil
 end
 
---- ¿La declaración ya tiene documentación? (Python: docstring como primera sentencia)
+--- Does the declaration already have documentation? (Python: docstring as first statement)
 ---@param buf integer
 ---@param root TSNode
 ---@param lang string
@@ -293,7 +293,7 @@ local function documented(buf, root, lang, node)
   return comment_above(buf, root, (anchor_node(node):range()))
 end
 
---- Inserta la plantilla de documentación en la función/tipo bajo el cursor
+--- Insert the documentation template at the function/type under the cursor
 function M.skeleton()
   local buf = vim.api.nvim_get_current_buf()
   local list = blocks.list(buf)
@@ -308,7 +308,7 @@ function M.skeleton()
 
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
   local block
-  for _, b in ipairs(list) do -- ordenados por inicio: el último que contiene el cursor es el más interno
+  for _, b in ipairs(list) do -- sorted by start: the last one containing the cursor is the innermost
     if b.first <= row and row <= b.last then
       block = b
     end
@@ -357,7 +357,7 @@ function M.skeleton()
   vim.cmd "startinsert!"
 end
 
---- Declaraciones públicas sin comentario de documentación → quickfix
+--- Public declarations without a doc comment → quickfix
 function M.missing()
   local buf = vim.api.nvim_get_current_buf()
   local list = blocks.list(buf)

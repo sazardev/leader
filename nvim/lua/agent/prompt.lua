@@ -1,6 +1,6 @@
--- ── Ensamblado del prompt ────────────────────────────────────────────────────
--- system = el rol y las reglas de la acción (no cambia entre llamadas: se cachea).
--- prompt = <file> + secciones de contexto + <target> + <task>, con etiquetas cortas.
+-- ── Prompt assembly ──────────────────────────────────────────────────────────
+-- system = the action's role and rules (does not change between calls: it is cached).
+-- prompt = <file> + context sections + <target> + <task>, with short tags.
 local settings = require("core.settings").agent
 
 local M = {}
@@ -30,7 +30,7 @@ end
 ---@param action table
 ---@param target AgentTarget
 ---@param sections { name: string, text: string }[]
----@param input string? lo que el usuario escribió (pregunta, instrucción)
+---@param input string? what the user typed (question, instruction)
 ---@return string system, string prompt
 function M.build(action, target, sections, input)
   local env = { target = target, input = input, language = settings.language }
@@ -42,7 +42,7 @@ function M.build(action, target, sections, input)
   parts[#parts + 1] = target_block(target, action.numbered)
   local task = action.task(env)
   if input and action.input_optional then
-    -- instrucción opcional: lo que el usuario escribió manda sobre el comportamiento por defecto
+    -- optional instruction: what the user typed takes priority over the default behaviour
     task = task
       .. "\n\nAdditional instruction from the user (it takes priority over the default behaviour above):\n"
       .. input

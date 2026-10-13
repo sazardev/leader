@@ -1,11 +1,11 @@
--- ── Setup de backends y modelos locales ──────────────────────────────────────
--- Un punto de entrada para dejar el agente listo en una máquina nueva (o cuando cambia algo): detecta CLIs, Ollama (CPU/CUDA),
--- servidores OpenAI-compatibles y modelos; recomienda; y, SOLO si lo pides, arranca Ollama, descarga modelos y fija la
--- selección. Desde nvim: <leader>am → Setup. Desde la terminal: scripts/agent-setup.sh.
---   detect.lua      foto de la máquina (paralela, sin tocar nada)
---   recommend.lua   qué modelo para cada nivel (pura)
---   actions.lua     lo que modifica: arrancar, descargar, recordar, aplicar
---   report.lua      texto (markdown) del estado
+-- ── Backend and local model setup ────────────────────────────────────────────
+-- A single entry point to get the agent ready on a new machine (or when something changes): detects CLIs, Ollama (CPU/CUDA),
+-- OpenAI-compatible servers and models; recommends; and, ONLY if you ask, starts Ollama, downloads models and sets the
+-- selection. From nvim: <leader>am → Setup. From the terminal: scripts/agent-setup.sh.
+--   detect.lua      snapshot of the machine (parallel, touches nothing)
+--   recommend.lua   which model for each tier (pure)
+--   actions.lua     what modifies things: start, download, remember, apply
+--   report.lua      text (markdown) of the state
 local actions = require "agent.setup.actions"
 local backends = require "agent.backends"
 local detect = require "agent.setup.detect"
@@ -32,7 +32,7 @@ local function current_label()
     )
 end
 
---- Foto + recomendación + informe; recuerda de paso los servidores encontrados
+--- Snapshot + recommendation + report; also remembers the servers found along the way
 ---@param cb fun(snap: AgentSnapshot, rec: AgentRecommendation, lines: string[])
 function M.scan(cb)
   detect.run(function(snap)
@@ -43,7 +43,7 @@ function M.scan(cb)
 end
 
 ---@param snap AgentSnapshot
----@return string url donde debe vivir Ollama (el del backend)
+---@return string url where Ollama should live (the backend's)
 local function ollama_url(snap)
   return snap.ollama_servers[1] and snap.ollama_servers[1].url or backends.get("ollama").host()
 end
@@ -55,7 +55,7 @@ function M.pull(url, model, done)
   log.info(("Agent: pulling %s…"):format(model))
   local last = -10
   actions.pull(url, model, function(_, pct)
-    if pct and pct >= last + 10 then -- un aviso cada 10 %: sin inundar de notificaciones
+    if pct and pct >= last + 10 then -- one notice every 10 %: without flooding notifications
       last = pct
       log.info(("Agent: %s %d%%"):format(model, pct))
     end
@@ -75,7 +75,7 @@ local function apply(rec)
   )
 end
 
---- Menú interactivo (<leader>am → Setup): estado + acciones posibles, todo con el teclado
+--- Interactive menu (<leader>am → Setup): state + possible actions, all from the keyboard
 function M.open()
   log.info "Agent: scanning backends…"
   M.scan(function(snap, rec, lines)
@@ -130,14 +130,14 @@ end
 
 -- ── Terminal: scripts/agent-setup.sh ─────────────────────────────────────────
 
---- Ejecuta una orden del script y termina nvim con el código de salida. Banderas explícitas = consentimiento para
---- arrancar / descargar (nunca se hace nada que no se haya pedido).
----   (sin banderas) / --check   informe; exit 0 si hay al menos un backend listo, 1 si no
----   --start                    arranca `ollama serve` si no responde
----   --pull MODELO              descarga un modelo en el servidor de Ollama
----   --use BACKEND/MODELO[:light]  fija backend y modelo (main, o light con el sufijo `@light`)
----   --auto                     aplica la recomendación (modelos ya instalados)
----   --json                     la foto en JSON (para otras herramientas)
+--- Runs a script command and quits nvim with the exit code. Explicit flags = consent to
+--- start / download (nothing is ever done that was not asked for).
+---   (no flags) / --check       report; exit 0 if at least one backend is ready, 1 if not
+---   --start                    starts `ollama serve` if it does not respond
+---   --pull MODEL               downloads a model on the Ollama server
+---   --use BACKEND/MODEL[:light]  sets backend and model (main, or light with the `@light` suffix)
+---   --auto                     applies the recommendation (already installed models)
+---   --json                     the snapshot as JSON (for other tools)
 ---@param args string[]
 function M.cli(args)
   local function say(s)
@@ -171,7 +171,7 @@ function M.cli(args)
     i = i + 1
   end
 
-  -- 1) --use no necesita red: se valida y se aplica
+  -- 1) --use needs no network: it is validated and applied
   for _, spec in ipairs(want.uses) do
     local tier = "main"
     local base = spec:gsub("@light$", function()

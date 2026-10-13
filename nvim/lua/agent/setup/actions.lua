@@ -1,7 +1,7 @@
--- ── Acciones del setup: arrancar, descargar, guardar, aplicar ────────────────
--- Lo único que MODIFICA algo. Cada función es explícita (el que llama ya pidió confirmación o pasó el flag): arrancar
--- `ollama serve`, descargar un modelo por la API de Ollama (sirve igual para un servidor remoto), recordar los servidores
--- encontrados y fijar backend/modelo por nivel.
+-- ── Setup actions: start, download, save, apply ──────────────────────────────
+-- The only thing that MODIFIES anything. Each function is explicit (the caller already asked for confirmation or passed the flag): start
+-- `ollama serve`, download a model through the Ollama API (works the same for a remote server), remember the servers
+-- found and set backend/model per tier.
 local backends = require "agent.backends"
 local http = require "agent.backends.http"
 local ndjson = require "agent.backends.ndjson"
@@ -19,8 +19,8 @@ local function ping(url, cb)
   end)
 end
 
---- Arranca `ollama serve` en segundo plano (sobrevive a nvim) y espera a que responda
----@param url string  dónde debe responder (el host del backend)
+--- Starts `ollama serve` in the background (survives nvim) and waits for it to respond
+---@param url string  where it must respond (the backend's host)
 ---@param cb fun(ok: boolean, err: string?)
 ---@param timeout_s integer?
 function M.start_ollama(url, cb, timeout_s)
@@ -54,7 +54,7 @@ function M.start_ollama(url, cb, timeout_s)
   end)
 end
 
---- Descarga un modelo con /api/pull (streaming) y avisa del progreso
+--- Downloads a model with /api/pull (streaming) and reports progress
 ---@param url string
 ---@param model string
 ---@param on_progress fun(status: string, pct: integer?)
@@ -97,9 +97,9 @@ local function ollama_pinned()
   return require("core.settings").agent.ollama.host ~= nil or (vim.env.OLLAMA_HOST or "") ~= ""
 end
 
---- Recuerda los servidores encontrados (el backend los usa si no hay nada configurado ni en el entorno)
+--- Remembers the servers found (the backend uses them if nothing is configured or in the environment)
 ---@param snap AgentSnapshot
----@return string[] qué se guardó
+---@return string[] what was saved
 function M.remember(snap)
   local saved = {}
   local o = snap.ollama_servers[1]
@@ -115,7 +115,7 @@ function M.remember(snap)
   return saved
 end
 
---- Fija backend y modelo por nivel; devuelve lo aplicado para mostrarlo
+--- Sets backend and model per tier; returns what was applied so it can be shown
 ---@param rec AgentRecommendation
 ---@return string[]
 function M.apply(rec)
@@ -131,7 +131,7 @@ function M.apply(rec)
   return applied
 end
 
---- "backend/modelo" → backend, modelo (el modelo puede llevar "/" y ":")
+--- "backend/model" → backend, model (the model may contain "/" and ":")
 ---@param spec string
 ---@return string? backend, string? model
 function M.parse_spec(spec)

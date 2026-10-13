@@ -1,4 +1,4 @@
--- Popup de keymaps. Los menús por lenguaje/git son buffer-locales (lua/menus/).
+-- Keymaps popup. The per-language/git menus are buffer-local (lua/menus/).
 return {
   "folke/which-key.nvim",
   config = function()
@@ -13,7 +13,7 @@ return {
         { "<leader>h", group = "Harpoon" },
         { "<leader>n", group = "Nvim-tree folders" },
 
-        -- Prefijos de NvChad que no queremos ver en el popup
+        -- NvChad prefixes we do not want to see in the popup
         { "<leader>v", hidden = true },
         { "<leader>wK", hidden = true },
         { "<leader>wk", hidden = true },
@@ -21,7 +21,7 @@ return {
         { "<leader>o", hidden = true },
         { "<leader>b", hidden = true },
 
-        -- Keymaps deshabilitados dentro de grupos visibles
+        -- Disabled keymaps inside visible groups
         { "<leader>fa", hidden = true },
         { "<leader>fz", hidden = true },
         { "<leader>fh", hidden = true },

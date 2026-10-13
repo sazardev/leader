@@ -1,4 +1,4 @@
--- Formateo: formatters por filetype declarados en lua/languages/.
+-- Formatting: per-filetype formatters declared in lua/languages/.
 local save = require("core.settings").format_on_save
 
 return {

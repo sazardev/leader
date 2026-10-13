@@ -1,4 +1,4 @@
--- ── Diagnósticos: bloques en línea automáticos (utils/diagblocks.lua) ────────
+-- ── Diagnostics: automatic inline blocks (utils/diagblocks.lua) ──────────────
 local M = {}
 
 function M.setup()

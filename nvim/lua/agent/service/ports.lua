@@ -1,7 +1,7 @@
--- ── Puertos de los que depende un servicio ───────────────────────────────────
--- Un servicio de aplicación (caso de uso) solo puede llamar a los métodos que sus puertos declaran. Esto encuentra las
--- interfaces que el servicio recibe (campos, parámetros del constructor, parámetros del método) y las lee con sus firmas
--- reales, en cualquier lenguaje (rg + treesitter): así llama a `orders.ByID(ctx, id)`, no a un método que se inventó.
+-- ── Ports a service depends on ───────────────────────────────────────────────
+-- An application service (use case) can only call the methods its ports declare. This finds the
+-- interfaces the service receives (fields, constructor parameters, method parameters) and reads them with their real
+-- signatures, in any language (rg + treesitter): so it calls `orders.ByID(ctx, id)`, not a method it made up.
 local contracts = require "agent.repository.contracts"
 local discovery = require "agent.discovery"
 local layers = require "agent.ddd.layers"
@@ -32,7 +32,7 @@ local IGNORED = {
   Some = true,
 }
 
---- ¿Parece un servicio de aplicación? (por su nombre o por vivir en la capa de aplicación)
+--- Does it look like an application service? (by its name or by living in the application layer)
 ---@param T string
 ---@param path string
 ---@return boolean
@@ -46,7 +46,7 @@ function M.looks_like_service(T, path)
   return layers.of(path) == "application"
 end
 
---- ¿La declaración es una interfaz/puerto?
+--- Is the declaration an interface/port?
 ---@param lines string[]
 ---@return boolean
 local function is_interface(lines)
@@ -58,7 +58,7 @@ local function is_interface(lines)
     or head:find "%(.*abc" ~= nil
 end
 
---- Nombres de tipo candidatos a ser puertos: los de la declaración del servicio y los del objetivo
+--- Type names that are port candidates: those of the service declaration and of the target
 ---@param target AgentTarget
 ---@param T string
 ---@return string[]
@@ -78,7 +78,7 @@ local function candidates(target, T)
     end
   end
   add(table.concat(target.lines, "\n"))
-  -- constructor de Go: sus parámetros dicen qué se inyecta
+  -- Go constructor: its parameters say what is injected
   local text = table.concat(vim.api.nvim_buf_get_lines(target.buf, 0, -1, false), "\n")
   for params in text:gmatch "func%s+New[%w_]*%s*(%b())" do
     add(params)
@@ -93,7 +93,7 @@ end
 ---@field lines string[]
 ---@field methods string[]
 
---- Los puertos (interfaces del proyecto) que usa el servicio `T`, con sus firmas
+--- The ports (project interfaces) the `T` service uses, with their signatures
 ---@param root string
 ---@param target AgentTarget
 ---@param T string
@@ -122,7 +122,7 @@ function M.dependencies(root, target, T, ext, cb)
   end
 end
 
---- Nombre del campo/parámetro con el que el servicio guarda un puerto (`orders` para `orders order.OrderRepository`)
+--- Name of the field/parameter the service stores a port in (`orders` for `orders order.OrderRepository`)
 ---@param decl_text string
 ---@param port string
 ---@return string?

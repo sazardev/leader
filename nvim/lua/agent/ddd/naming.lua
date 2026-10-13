@@ -1,7 +1,7 @@
--- ── Nomenclatura que ya usa el proyecto ──────────────────────────────────────
--- En vez de imponer una convención, la DEDUCE de los archivos que existen (estilo de mayúsculas y
--- rol en el nombre: order_repository.go, order.entity.ts, OrderRepository.java) y se la da al modelo
--- y a las sugerencias de archivos faltantes.
+-- ── Naming the project already uses ──────────────────────────────────────────
+-- Instead of imposing a convention, it DEDUCES it from the files that exist (case style and
+-- role in the name: order_repository.go, order.entity.ts, OrderRepository.java) and gives it to the model
+-- and to the missing-file suggestions.
 local M = {}
 
 M.ROLES = {
@@ -34,7 +34,7 @@ for _, r in ipairs(M.ROLES) do
 end
 
 ---@param stem string
----@return string[] palabras en minúscula
+---@return string[] lowercase words
 local function words(stem)
   local spaced = stem:gsub("(%l)(%u)", "%1_%2")
   local out = {}
@@ -56,7 +56,7 @@ local function style_of(stem)
   elseif stem:find "^%u" and stem:find "%l" then
     return "pascal"
   end
-  return nil -- una sola palabra en minúsculas: no dice nada del estilo
+  return nil -- a single lowercase word: says nothing about the style
 end
 
 local LABEL = { snake = "snake_case", kebab = "kebab-case", dotted = "dotted (order.entity.ts)", pascal = "PascalCase" }
@@ -67,7 +67,7 @@ local LABEL = { snake = "snake_case", kebab = "kebab-case", dotted = "dotted (or
 ---@field roles { name: string, count: integer }[]
 ---@field example string?
 
---- Estilo dominante y roles más usados en los archivos con capa
+--- Dominant style and most used roles in the files with a layer
 ---@param index DddIndex
 ---@return DddNaming
 function M.profile(index)
@@ -116,7 +116,7 @@ local function snake(pascal)
   return (pascal:gsub("(%l)(%u)", "%1_%2"):lower())
 end
 
---- Nombre de archivo para (entidad, rol) con el estilo del proyecto: order_repository.go, order.repository.ts...
+--- File name for (entity, role) in the project's style: order_repository.go, order.repository.ts...
 ---@param naming DddNaming
 ---@param ext string
 ---@param entity string "Order"

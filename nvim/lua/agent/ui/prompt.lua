@@ -1,6 +1,6 @@
--- ── Campo de texto para acciones con instrucción ─────────────────────────────
--- Es el bloque en línea de ui/inline, encima del código objetivo, con la acción y el modelo
--- en la cabecera y el historial de esa acción en ↑/↓.
+-- ── Text field for actions with an instruction ───────────────────────────────
+-- It is the inline block of ui/inline, above the target code, with the action and the model
+-- in the header and that action's history on ↑/↓.
 local recall = require "agent.recall"
 local inline = require "agent.ui.inline"
 
@@ -9,13 +9,13 @@ local M = {}
 ---@param action table
 ---@param target AgentTarget
 ---@param model_label string
----@param on_submit fun(text: string) con "" si el campo era opcional y se envió vacío
+---@param on_submit fun(text: string) with "" if the field was optional and was submitted empty
 function M.ask(action, target, model_label, on_submit)
   inline.open({
     win = vim.api.nvim_get_current_win(),
     row = target.first,
     title = action.label,
-    meta = action.handler and "Herdr agent" or model_label, -- entregar a Herdr no usa modelo
+    meta = action.handler and "Herdr agent" or model_label, -- handing off to Herdr uses no model
     placeholder = action.input_optional and (action.input .. " (⏎ to skip)") or action.input,
     optional = action.input_optional,
     history = recall.list(action.name),

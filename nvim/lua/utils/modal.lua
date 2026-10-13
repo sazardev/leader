@@ -1,15 +1,15 @@
--- ── Modales flotantes ────────────────────────────────────────────────────────
--- Mismo estilo que la terminal flotante (borde "single", centrado, con título).
--- Colores: grupos del tema (base46), así que cambian con el tema activo.
+-- ── Floating modals ─────────────────────────────────────────────────────────
+-- Same style as the floating terminal ("single" border, centered, with title).
+-- Colors: theme groups (base46), so they change with the active theme.
 --
--- Cada línea es un string, o una lista de segmentos { text, hl } para pintar
--- partes distintas de la misma línea (p. ej. carpeta en un color, marca en otro).
+-- Each line is a string, or a list of { text, hl } segments to paint
+-- different parts of the same line (e.g. folder in one color, mark in another).
 --
--- M.input   → texto + campo editable (Enter confirma, Esc cancela)
--- M.confirm → texto + [y] / [n] (solo y confirma, cualquier otra tecla cancela)
+-- M.input   → text + editable field (Enter confirms, Esc cancels)
+-- M.confirm → text + [y] / [n] (only y confirms, any other key cancels)
 local M = {}
 
--- Grupos del modal → grupos del tema (ver base46/integrations/nvimtree.lua)
+-- Modal groups → theme groups (see base46/integrations/nvimtree.lua)
 local GROUPS = {
   NvModalFolder = { link = "NvimTreeFolderName" },
   NvModalFile = { link = "Normal" },
@@ -112,11 +112,11 @@ function M.input(lines, opts, on_submit)
   local last = #lines
 
   vim.api.nvim_win_set_cursor(win, { last, #prompt })
-  vim.b[buf].completion = false -- blink no debe sugerir nada en un campo de texto libre
+  vim.b[buf].completion = false -- blink must not suggest anything in a free-text field
   vim.cmd "startinsert!"
 
-  -- Al cerrar hay que salir de insert: `startinsert!` dejaría el modo insert activo en la ventana
-  -- de código a la que se vuelve, y lo siguiente que teclees se escribiría en tu archivo.
+  -- On close we must leave insert: `startinsert!` would leave insert mode active in the code
+  -- window we return to, and whatever you type next would be written into your file.
   local function leave()
     close()
     vim.cmd "stopinsert"

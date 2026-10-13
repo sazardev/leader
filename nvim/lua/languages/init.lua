@@ -1,25 +1,25 @@
--- ── Registro de lenguajes ────────────────────────────────────────────────────
--- Un lenguaje = un archivo en lua/languages/<nombre>.lua que DECLARA (no
--- ejecuta) lo que necesita. Este módulo agrega esas declaraciones y las expone
--- a cada consumidor (treesitter, mason, lsp, conform, nvim-lint, menús), de modo
--- que añadir un lenguaje nunca obliga a editar otro archivo (open/closed).
+-- ── Language registry ────────────────────────────────────────────────────────
+-- A language = a file in lua/languages/<name>.lua that DECLARES (does not
+-- execute) what it needs. This module aggregates those declarations and exposes them
+-- to each consumer (treesitter, mason, lsp, conform, nvim-lint, menus), so
+-- that adding a language never forces editing another file (open/closed).
 --
--- Contrato de un lenguaje (todos los campos son opcionales):
---   filetypes   string[]            filetypes que cubre (para menús y plugins)
---   treesitter  string[]            parsers de nvim-treesitter
---   lsp         string[]            servidores (lua/servers/<n>.lua = overrides)
---   mason       { always?, full? }  paquetes; `always` también en modo ligero
+-- Contract of a language (all fields are optional):
+--   filetypes   string[]            filetypes it covers (for menus and plugins)
+--   treesitter  string[]            nvim-treesitter parsers
+--   lsp         string[]            servers (lua/servers/<n>.lua = overrides)
+--   mason       { always?, full? }  packages; `always` also in light mode
 --   formatters  table<ft, string[]> conform
 --   linters     table<ft, string[]> nvim-lint
---   linters_light table<ft, string[]> sustituye a `linters` en modo ligero
---   setup_lint  fun(lint)           registra linters personalizados
---   menu        { name, prefix, maps = {{key, desc, fn}...} }  menú del leader
+--   linters_light table<ft, string[]> replaces `linters` in light mode
+--   setup_lint  fun(lint)           registers custom linters
+--   menu        { name, prefix, maps = {{key, desc, fn}...} }  leader menu
 local settings = require "core.settings"
 local light = require("core.light").enabled
 
 local M = {}
 
--- Orden de carga. Para añadir un lenguaje: crea su archivo y agrégalo aquí.
+-- Load order. To add a language: create its file and add it here.
 local NAMES = {
   "lua",
   "go",
@@ -94,7 +94,7 @@ function M.treesitter()
   return collect "treesitter"
 end
 
---- Servidores LSP a habilitar (ninguno en modo ligero)
+--- LSP servers to enable (none in light mode)
 ---@return string[]
 function M.lsp_servers()
   if light then
@@ -103,7 +103,7 @@ function M.lsp_servers()
   return collect "lsp"
 end
 
---- Paquetes de Mason (solo `always` en modo ligero)
+--- Mason packages (only `always` in light mode)
 ---@return string[]
 function M.mason()
   local out = {}
@@ -117,8 +117,8 @@ function M.mason()
   return unique(out)
 end
 
---- Une los mapas ft -> herramientas de todos los lenguajes
----@param fields string[] campos en orden de precedencia creciente
+--- Merges the ft -> tools maps of all languages
+---@param fields string[] fields in increasing order of precedence
 ---@return table<string, string[]>
 local function merge_by_filetype(fields)
   local out = {}
@@ -137,14 +137,14 @@ function M.formatters()
   return merge_by_filetype { "formatters" }
 end
 
---- En modo ligero `linters_light` sustituye a `linters` solo en los ft que define
+--- In light mode `linters_light` replaces `linters` only for the fts it defines
 ---@return table<string, string[]>
 function M.linters()
   return merge_by_filetype(light and { "linters", "linters_light" } or { "linters" })
 end
 
---- Registra los linters personalizados de cada lenguaje
----@param lint table módulo nvim-lint
+--- Registers the custom linters of each language
+---@param lint table nvim-lint module
 function M.setup_lint(lint)
   for _, lang in ipairs(all()) do
     if lang.setup_lint then
@@ -153,7 +153,7 @@ function M.setup_lint(lint)
   end
 end
 
---- Contextos de menú (un menú por lenguaje que lo declare)
+--- Menu contexts (one menu per language that declares it)
 ---@return table[]
 function M.menus()
   local out = {}

@@ -1,8 +1,8 @@
--- ── Contratos: el puerto que un tipo implementa, lo que le falta y un ejemplo hermano ────────────────
--- Para implementar un repositorio (o cualquier adaptador) el modelo necesita TRES cosas que no están en el
--- archivo que ves: la interfaz que debe cumplir, qué métodos de esa interfaz ya existen y cuáles faltan, y cómo
--- se escribió otro adaptador del mismo tipo en este proyecto. Todo se busca solo, en cualquier lenguaje, con
--- ripgrep (nombres) y treesitter (declaraciones); nada depende de que las carpetas se llamen de una forma.
+-- ── Contracts: the port a type implements, what it lacks and a sibling example ───────────────────────
+-- To implement a repository (or any adapter) the model needs THREE things that are not in the
+-- file you see: the interface it must fulfil, which methods of that interface already exist and which are missing, and how
+-- another adapter of the same kind was written in this project. Everything is found automatically, in any language, with
+-- ripgrep (names) and treesitter (declarations); nothing depends on the folders being named a certain way.
 local discovery = require "agent.discovery"
 local names = require "agent.repository.contracts.names"
 local scopes = require "agent.context.scopes"
@@ -16,19 +16,19 @@ function M.subject(target)
   if target.kind == "class" and target.name then
     return target.name, ext
   end
-  -- método de Go: el receptor es el tipo
+  -- Go method: the receiver is the type
   for _, l in ipairs(target.lines) do
     local receiver = l:match "^func%s*%(%s*[%w_]*%s*%*?%s*([%w_]+)"
     if receiver then
       return receiver, ext
     end
   end
-  -- método de una clase (Python, TypeScript, Java, Rust `impl`...)
+  -- method of a class (Python, TypeScript, Java, Rust `impl`...)
   local enclosing = scopes.enclosing(target.buf, target.first - 1, "class")
   return enclosing and enclosing.name or nil, ext
 end
 
---- Puertos declarados a las claras (`implements X`, `class T(X)`, `impl X for T`, `var _ X = (*T)(nil)`)
+--- Ports declared explicitly (`implements X`, `class T(X)`, `impl X for T`, `var _ X = (*T)(nil)`)
 ---@param target AgentTarget
 ---@param T string
 ---@return string[]
@@ -89,8 +89,8 @@ function M.port_methods(lines, ext)
   return out
 end
 
---- Métodos que `T` ya implementa. Go: funciones con ese receptor en el paquete (los métodos viven fuera del tipo);
---- el resto: los que están declarados dentro de la clase/impl.
+--- Methods that `T` already implements. Go: functions with that receiver in the package (methods live outside the type);
+--- the rest: those declared inside the class/impl.
 ---@param target AgentTarget
 ---@param T string
 ---@param ext string
@@ -140,7 +140,7 @@ end
 ---@field methods string[]
 ---@field ext string
 
---- Declaración completa del puerto en `path`, a partir de la línea donde ripgrep lo encontró
+--- Full declaration of the port in `path`, starting at the line where ripgrep found it
 ---@param hit { path: string, line: integer }
 ---@return AgentPort?
 local function read_port(hit, name)
@@ -163,7 +163,7 @@ local function read_port(hit, name)
   return { name = name, path = hit.path, line = first, lines = decl, methods = M.port_methods(decl, ext), ext = ext }
 end
 
---- Encuentra el puerto que implementa `T`: primero los declarados a las claras, luego los que sugiere su nombre
+--- Finds the port that `T` implements: first the explicitly declared ones, then those its name suggests
 ---@param root string
 ---@param target AgentTarget
 ---@param T string
@@ -186,7 +186,7 @@ function M.find_port(root, target, T, cb)
     alternation
   )
   discovery.search(root, regex, nil, function(hits)
-    for _, c in ipairs(candidates) do -- respeta el orden: lo explícito y lo específico primero
+    for _, c in ipairs(candidates) do -- keeps the order: explicit and specific first
       for _, h in ipairs(hits) do
         if h.text:find("%f[%w_]I?" .. c .. "%f[^%w_]") then
           return cb(read_port(h, c))
@@ -204,14 +204,14 @@ end
 ---@field method string?
 ---@field ctor_lines string[]?
 
---- Otra implementación del mismo tipo de adaptador (otro repositorio) y, de ella, un método y el constructor
+--- Another implementation of the same kind of adapter (another repository) and, from it, a method and the constructor
 ---@param root string
 ---@param target AgentTarget
 ---@param T string
 ---@param ext string
----@param wanted string[] nombres de método que interesan (los que faltan), en orden
+---@param wanted string[] method names of interest (the missing ones), in order
 ---@param cb fun(sibling: AgentSibling?)
----@param role_words string? alternancia de roles ("(Service|UseCase)"); por defecto, los de repositorio
+---@param role_words string? role alternation ("(Service|UseCase)"); by default, the repository ones
 function M.sibling(root, target, T, ext, wanted, cb, role_words)
   local roles = role_words or "(Repository|Repo|Store|Dao|Gateway|Storage)"
   local regex = ("(type\\s+\\w*%s\\w*\\s+struct|class\\s+\\w*%s\\w*|struct\\s+\\w*%s\\w*)"):format(roles, roles, roles)

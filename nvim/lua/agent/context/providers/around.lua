@@ -1,6 +1,6 @@
--- Código de ALREDEDOR de un objetivo pequeño (fix inline): lo que hay antes y después dentro de su función,
--- para ver las variables en ámbito y el contrato de retorno sin mandar la función entera como objetivo.
--- Solo lectura: el modelo no lo repite. Si el objetivo ya es la función (o el archivo), no aporta nada.
+-- Code AROUND a small target (inline fix): what comes before and after inside its function,
+-- to see the variables in scope and the return contract without sending the whole function as the target.
+-- Read-only: the model does not repeat it. If the target is already the function (or the file), it contributes nothing.
 local settings = require("core.settings").agent.context
 local scopes = require "agent.context.scopes"
 

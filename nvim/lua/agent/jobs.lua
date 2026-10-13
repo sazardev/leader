@@ -1,6 +1,6 @@
--- ── Registro de trabajos ─────────────────────────────────────────────────────
--- Estado puro de los trabajos (sin UI ni procesos): quién corre, dónde, y el último
--- resultado. Varios pueden correr a la vez, incluso en el mismo buffer si no se pisan.
+-- ── Job registry ─────────────────────────────────────────────────────────────
+-- Pure job state (no UI or processes): what is running, where, and the last
+-- result. Several can run at once, even in the same buffer if they do not overlap.
 local M = {}
 
 ---@class AgentJob
@@ -57,7 +57,7 @@ function M.last()
   return last
 end
 
---- ¿Hay un trabajo que modifica código solapado con este rango?
+--- Is there a job modifying code that overlaps this range?
 ---@param buf integer
 ---@param first integer
 ---@param last_line integer
@@ -80,7 +80,7 @@ function M.elapsed(job)
   return (vim.uv.hrtime() - job.t0) / 1e9
 end
 
---- Texto para la statusline ("" si no hay nada en marcha)
+--- Text for the statusline ("" if nothing is running)
 ---@return string
 function M.statusline()
   local list = M.running()

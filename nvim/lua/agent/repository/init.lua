@@ -1,10 +1,10 @@
--- ── Nivel REPOSITORY: adaptadores de persistencia (<leader>aP) ───────────────
--- Se construyen contra un puerto, una tabla y un ejemplo hermano; el descubrimiento vive en contracts/.
---   run(name)   port | implement | review: acciones con el LLM (mismo pipeline y experiencia que el agente normal)
---   check()     ¿cumple el adaptador su puerto y su tabla? Análisis local, 0 tokens
+-- ── REPOSITORY level: persistence adapters (<leader>aP) ──────────────────────
+-- They are built against a port, a table and a sibling example; discovery lives in contracts/.
+--   run(name)   port | implement | review: LLM actions (same pipeline and experience as the normal agent)
+--   check()     does the adapter fulfil its port and its table? Local analysis, 0 tokens
 --
---   contracts/   puerto, métodos que faltan, ejemplo hermano, esquema (SQL/Prisma) y dialecto
---   actions/     acciones del nivel (registro propio)         check.lua   el diagnóstico local
+--   contracts/   port, missing methods, sibling example, schema (SQL/Prisma) and dialect
+--   actions/     level actions (own registry)                 check.lua   the local diagnosis
 local M = {}
 
 ---@param name string "port" | "implement" | "review"

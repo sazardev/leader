@@ -1,4 +1,4 @@
--- Doble de prueba: un fake escrito a mano para la interfaz/clase bajo el cursor, añadido al archivo de pruebas.
+-- Test double: a hand-written fake for the interface/class under the cursor, appended to the test file.
 local protocol = require "agent.protocol"
 local dest = require "agent.tests.target"
 
@@ -7,7 +7,7 @@ return {
   desc = "test mock",
   key = "m",
   scope = "type",
-  tier = "light", -- es mecánico (firmas → fake): modelo ligero
+  tier = "light", -- mechanical (signatures → fake): light model
   context = { "rules", "testing", "subject", "types", "testfile" },
   output = "replace",
   reveal = true,

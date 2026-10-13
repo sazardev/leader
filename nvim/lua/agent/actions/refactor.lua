@@ -1,4 +1,4 @@
--- Refactorizar: aplica EXACTAMENTE la instrucción que escribes, sin cambiar el comportamiento
+-- Refactor: applies EXACTLY the instruction you type, without changing behaviour
 local protocol = require "agent.protocol"
 
 return {

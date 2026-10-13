@@ -1,7 +1,7 @@
--- ── Petición de un disparo sin objetivo ──────────────────────────────────────
--- Lo que necesitan los usos que no editan un buffer (mensaje de commit...): mismo backend y
--- modelo que las acciones (selection), pero sin trabajo, presentador ni anclas; el llamador
--- recibe el texto. Se usa desde la fachada: `require("agent").complete`.
+-- ── One-shot request with no target ──────────────────────────────────────────
+-- What the uses that do not edit a buffer need (commit message...): same backend and
+-- model as the actions (selection), but with no job, presenter or anchors; the caller
+-- receives the text. Used from the facade: `require("agent").complete`.
 local backends = require "agent.backends"
 local selection = require "agent.selection"
 local settings = require("core.settings").agent
@@ -13,7 +13,7 @@ local M = {}
 ---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
 function M.run(req, cb)
-  -- `name` permite reasignar el tier desde settings.agent.tiers (p. ej. tiers = { commit = "main" })
+  -- `name` lets the tier be reassigned from settings.agent.tiers (e.g. tiers = { commit = "main" })
   local sel = selection.current { name = req.action, tier = req.tier or "light" }
   if not sel then
     cb(false, "no agent backend found (install claude or opencode)")

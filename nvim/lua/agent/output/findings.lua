@@ -1,4 +1,4 @@
--- Presentador "findings": cada hallazgo es un diagnóstico en su línea (namespace propio)
+-- "findings" presenter: each finding is a diagnostic on its line (own namespace)
 local anchor = require "agent.anchor"
 local persist = require "agent.persist"
 local protocol = require "agent.protocol"
@@ -9,7 +9,7 @@ local M = {}
 local NS = vim.api.nvim_create_namespace "agent.findings"
 
 vim.diagnostic.config({
-  virtual_text = false, -- se ve en los bloques en línea (utils/diagblocks.lua)
+  virtual_text = false, -- shown in the inline blocks (utils/diagblocks.lua)
   underline = true,
   signs = false,
   severity_sort = true,
@@ -20,7 +20,7 @@ function M.namespace()
   return NS
 end
 
---- Quita los hallazgos del agente (de un buffer, o de todos), también de lo guardado
+--- Removes the agent's findings (from one buffer, or all of them), also from what is persisted
 ---@param buf integer?
 function M.clear(buf)
   vim.diagnostic.reset(NS, buf)
@@ -34,11 +34,11 @@ function M.clear(buf)
   end
 end
 
---- Quita los hallazgos que caen en un rango (el código se acaba de reescribir: ya no aplican)
+--- Removes the findings that fall inside a range (the code was just rewritten: they no longer apply)
 ---@param buf integer
 ---@param first integer 1-based
 ---@param last integer 1-based
----@return integer removed cuántos quitó
+---@return integer removed how many were removed
 function M.resolve(buf, first, last)
   local all = vim.diagnostic.get(buf, { namespace = NS })
   local kept = vim.tbl_filter(function(d)
@@ -55,7 +55,7 @@ end
 function M.done(job, result)
   local items = protocol.parse_findings(result.text)
   if #items == 0 and not protocol.is_ok(result.text) then
-    -- formato inesperado: mejor enseñar la respuesta cruda que perderla
+    -- unexpected format: better to show the raw response than to lose it
     return require("agent.output.text").done(job, result)
   end
 
@@ -66,14 +66,14 @@ function M.done(job, result)
     return nil
   end
 
-  -- un review nuevo reemplaza al anterior SOLO en ese rango y SOLO el de su mismo origen: una lente (seguridad,
-  -- rendimiento...) no borra lo que dijo otra
+  -- a new review replaces the previous one ONLY in that range and ONLY from the same source: a lens (security,
+  -- performance...) does not delete what another one said
   local source = job.action.source or "agent"
   local kept = vim.tbl_filter(function(d)
     return d.lnum + 1 < first or d.lnum + 1 > last or (d.source or "agent") ~= source
   end, vim.diagnostic.get(job.buf, { namespace = NS }))
 
-  local shift = first - job.target.first -- por si se editó encima mientras corría
+  local shift = first - job.target.first -- in case it was edited above while running
   for _, f in ipairs(items) do
     local line = math.min(math.max(f.line + shift, first), last)
     local content = vim.api.nvim_buf_get_lines(job.buf, line - 1, line, false)[1] or ""
@@ -88,7 +88,7 @@ function M.done(job, result)
     }
   end
   vim.diagnostic.set(NS, job.buf, kept)
-  persist.sync(job.buf, "findings") -- por atender: sobrevive a la sesión
+  persist.sync(job.buf, "findings") -- pending: survives the session
   runs.event(job, "findings", #items)
 
   if #items == 0 then

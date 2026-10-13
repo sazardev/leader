@@ -1,23 +1,23 @@
--- ── Generador del cheatsheet (CHEATSHEET.md) ─────────────────────────────────
--- Lee los keymaps REALES (nvim_get_keymap + los menús del leader + los de LSP) y
--- escribe un único markdown. Nada se mantiene a mano: lo ejecuta
--- scripts/gen-cheatsheet.sh (y el hook pre-commit).
+-- ── Cheatsheet generator (CHEATSHEET.md) ──────────────────────────────────────
+-- Reads the REAL keymaps (nvim_get_keymap + the leader menus + the LSP ones) and
+-- writes a single markdown file. Nothing is maintained by hand: it is run by
+-- scripts/gen-cheatsheet.sh (and the pre-commit hook).
 --
--- Convención de `desc`: la primera palabra es la sección ("Harpoon add file");
--- NvCheatsheet (botón Mappings del dashboard) agrupa igual y descarta los desc
--- de una sola palabra. Aquí se avisa de esos casos en `M.warnings`.
+-- `desc` convention: the first word is the section ("Harpoon add file");
+-- NvCheatsheet (the dashboard's Mappings button) groups the same way and discards
+-- single-word descs. Those cases are reported here in `M.warnings`.
 local M = {}
 
----@type string[] keymaps sin desc útil (no salen en el cheatsheet)
+---@type string[] keymaps without a useful desc (they don't appear in the cheatsheet)
 M.warnings = {}
 
 local MODES = { "n", "x", "o", "i", "t" }
 
--- Secciones que NvChad nombra raro (primera palabra de su desc)
+-- Sections that NvChad names oddly (first word of its desc)
 local HEADING_ALIAS = { Switch = "Window", Toggle = "Comment", Nvimtree = "Nvim-tree" }
 
---- Keymaps que Neovim trae de fábrica ("mode\0lhs\0desc"), medidos con `nvim --clean`:
---- así no hay que listar a mano las teclas nativas de cada versión.
+--- Keymaps that Neovim ships with ("mode\0lhs\0desc"), measured with `nvim --clean`:
+--- so the native keys of each version don't have to be listed by hand.
 ---@return table<string, boolean>
 local function native_baseline()
   local script = [[
@@ -60,7 +60,7 @@ local function cell(s)
   return (s:gsub("|", "\\|"))
 end
 
---- Keymaps globales agrupados por sección: { [seccion] = { {lhs, modes, text}... } }
+--- Global keymaps grouped by section: { [section] = { {lhs, modes, text}... } }
 ---@return table<string, table[]>
 local function collect_global()
   local sections, index = {}, {}
@@ -104,7 +104,7 @@ local function section_table(lines, entries)
   table.sort(entries, function(a, b)
     return a.lhs < b.lhs
   end)
-  table.insert(lines, "| Tecla | Modo | Acción |")
+  table.insert(lines, "| Key | Mode | Action |")
   table.insert(lines, "|---|---|---|")
   for _, e in ipairs(entries) do
     table.insert(lines, ("| `%s` | %s | %s |"):format(e.lhs, table.concat(e.modes, ","), cell(e.text)))
@@ -136,12 +136,12 @@ local function render_menus(lines)
     return a.name < b.name
   end)
 
-  table.insert(lines, "## Menús del leader")
+  table.insert(lines, "## Leader menus")
   table.insert(lines, "")
-  table.insert(lines, "Cada menú tiene su letra bajo `<leader>` y solo existe donde aplica: al pulsar `<leader>`")
-  table.insert(lines, "which-key muestra únicamente lo del buffer actual.")
+  table.insert(lines, "Each menu has its own letter under `<leader>` and only exists where it applies: when pressing `<leader>`")
+  table.insert(lines, "which-key only shows what belongs to the current buffer.")
   table.insert(lines, "")
-  table.insert(lines, "| Letra | Menú | Dónde existe |")
+  table.insert(lines, "| Letter | Menu | Where it exists |")
   table.insert(lines, "|---|---|---|")
   for _, ctx in ipairs(contexts) do
     table.insert(lines, ("| `<leader>%s` | %s | %s |"):format(ctx.prefix, ctx.name, where(ctx)))
@@ -151,9 +151,9 @@ local function render_menus(lines)
   for _, ctx in ipairs(contexts) do
     table.insert(lines, ("### %s — `<leader>%s`"):format(ctx.name, ctx.prefix))
     table.insert(lines, "")
-    table.insert(lines, "_Dónde: " .. where(ctx) .. "_")
+    table.insert(lines, "_Where: " .. where(ctx) .. "_")
     table.insert(lines, "")
-    table.insert(lines, "| Tecla | Acción |")
+    table.insert(lines, "| Key | Action |")
     table.insert(lines, "|---|---|")
     for _, m in ipairs(ctx.maps) do
       table.insert(lines, ("| `<leader>%s%s` | %s |"):format(ctx.prefix, m[1], cell(m[2])))
@@ -164,11 +164,11 @@ end
 
 ---@param lines string[]
 local function render_lsp(lines)
-  table.insert(lines, "## LSP (al adjuntar un servidor)")
+  table.insert(lines, "## LSP (when a server attaches)")
   table.insert(lines, "")
-  table.insert(lines, "Keymaps buffer-locales de `servers/on_attach.lua`.")
+  table.insert(lines, "Buffer-local keymaps from `servers/on_attach.lua`.")
   table.insert(lines, "")
-  table.insert(lines, "| Tecla | Acción |")
+  table.insert(lines, "| Key | Action |")
   table.insert(lines, "|---|---|")
   for _, m in ipairs(require("servers.on_attach").keymaps()) do
     table.insert(lines, ("| `%s` | %s |"):format(pretty_lhs(m[1]), cell((m[3]:gsub("^LSP ", "")))))
@@ -176,13 +176,13 @@ local function render_lsp(lines)
   table.insert(lines, "")
 end
 
---- Teclas del buffer de nvim-tree (defaults + las de plugins/navigation/nvim-tree.lua),
---- leídas abriendo el árbol de verdad.
+--- nvim-tree buffer keys (defaults + those from plugins/navigation/nvim-tree.lua),
+--- read by actually opening the tree.
 ---@param lines string[]
 local function render_tree(lines)
   local ok, api = pcall(require, "nvim-tree.api")
   if not ok then
-    return table.insert(M.warnings, "nvim-tree no disponible: sección omitida")
+    return table.insert(M.warnings, "nvim-tree not available: section skipped")
   end
   api.tree.open { focus = true }
   local maps = {}
@@ -197,16 +197,16 @@ local function render_tree(lines)
   end
   pcall(api.tree.close)
   if #maps == 0 then
-    return table.insert(M.warnings, "nvim-tree sin keymaps: sección omitida")
+    return table.insert(M.warnings, "nvim-tree has no keymaps: section skipped")
   end
   table.sort(maps, function(a, b)
     return a[1] < b[1]
   end)
-  table.insert(lines, "## nvim-tree (dentro del árbol)")
+  table.insert(lines, "## nvim-tree (inside the tree)")
   table.insert(lines, "")
-  table.insert(lines, "`Ctrl+n` lo abre/cierra y `<leader>e` lo enfoca (ver Atajos globales). `g?` dentro del árbol lista estas mismas teclas.")
+  table.insert(lines, "`Ctrl+n` opens/closes it and `<leader>e` focuses it (see Global shortcuts). `g?` inside the tree lists these same keys.")
   table.insert(lines, "")
-  table.insert(lines, "| Tecla | Acción |")
+  table.insert(lines, "| Key | Action |")
   table.insert(lines, "|---|---|")
   for _, m in ipairs(maps) do
     table.insert(lines, ("| `%s` | %s |"):format(m[1], cell(m[2])))
@@ -214,7 +214,7 @@ local function render_tree(lines)
   table.insert(lines, "")
 end
 
--- Vocabulario de comandos de blink.cmp (nombres fijos de la librería)
+-- blink.cmp command vocabulary (fixed names from the library)
 local BLINK_CMDS = {
   select_next = "next item",
   select_prev = "previous item",
@@ -233,7 +233,7 @@ local BLINK_CMDS = {
   hide_signature = "hide signature help",
 }
 
---- Autocompletado: preset + overrides de plugins/editing/blink.lua (modo insert)
+--- Autocompletion: preset + overrides from plugins/editing/blink.lua (insert mode)
 ---@param lines string[]
 local function render_blink(lines)
   local ok, err = pcall(function()
@@ -266,11 +266,11 @@ local function render_blink(lines)
       return a[1] < b[1]
     end)
 
-    table.insert(lines, "## Autocompletado (blink.cmp, modo insert)")
+    table.insert(lines, "## Autocompletion (blink.cmp, insert mode)")
     table.insert(lines, "")
-    table.insert(lines, "Preset `" .. (opts.keymap.preset or "default") .. "` más los overrides de `plugins/editing/blink.lua`. `→` = se prueba en orden hasta que uno aplica.")
+    table.insert(lines, "Preset `" .. (opts.keymap.preset or "default") .. "` plus the overrides from `plugins/editing/blink.lua`. `→` = tried in order until one applies.")
     table.insert(lines, "")
-    table.insert(lines, "| Tecla | Acción |")
+    table.insert(lines, "| Key | Action |")
     table.insert(lines, "|---|---|")
     for _, r in ipairs(rows) do
       table.insert(lines, ("| `%s` | %s |"):format(r[1], cell(r[2])))
@@ -278,7 +278,7 @@ local function render_blink(lines)
     table.insert(lines, "")
   end)
   if not ok then
-    table.insert(M.warnings, "blink.cmp: sección omitida (" .. tostring(err) .. ")")
+    table.insert(M.warnings, "blink.cmp: section skipped (" .. tostring(err) .. ")")
   end
 end
 
@@ -291,11 +291,11 @@ function M.render()
   local lines = {
     "# Cheatsheet",
     "",
-    "<!-- GENERADO por scripts/gen-cheatsheet.sh — NO editar a mano. -->",
+    "<!-- GENERATED by scripts/gen-cheatsheet.sh — DO NOT edit by hand. -->",
     "",
-    "> Generado desde los keymaps reales de la config (`nvim_get_keymap`, `menus/`, `servers/on_attach.lua`).",
-    "> Se regenera solo en cada commit (`.githooks/pre-commit`). `<leader>` = `Space`.",
-    "> Esta es la ÚNICA fuente de teclas. Lo que no se deriva del código (qué hace cada cosa, flujos, herramientas): [`docs/cheatsheets/`](docs/cheatsheets/README.md).",
+    "> Generated from the config's real keymaps (`nvim_get_keymap`, `menus/`, `servers/on_attach.lua`).",
+    "> Regenerated automatically on every commit (`.githooks/pre-commit`). `<leader>` = `Space`.",
+    "> This is the ONLY source of keys. What can't be derived from code (what each thing does, workflows, tools): [`docs/cheatsheets/`](docs/cheatsheets/README.md).",
     "",
   }
 
@@ -304,9 +304,9 @@ function M.render()
   render_blink(lines)
   render_tree(lines)
 
-  table.insert(lines, "## Atajos globales")
+  table.insert(lines, "## Global shortcuts")
   table.insert(lines, "")
-  table.insert(lines, "Secciones = primera palabra del `desc` (igual que el botón **Mappings** del dashboard).")
+  table.insert(lines, "Sections = first word of the `desc` (same as the dashboard's **Mappings** button).")
   table.insert(lines, "")
   for _, name in ipairs(names) do
     table.insert(lines, "### " .. name)
@@ -314,19 +314,19 @@ function M.render()
     section_table(lines, sections[name])
   end
 
-  table.insert(lines, "## Nativos de Neovim 0.11 (no son de esta config)")
+  table.insert(lines, "## Native Neovim 0.11 (not from this config)")
   table.insert(lines, "")
-  table.insert(lines, "| Tecla | Acción |")
+  table.insert(lines, "| Key | Action |")
   table.insert(lines, "|---|---|")
   for _, r in ipairs {
-    { "grn", "renombrar símbolo" },
+    { "grn", "rename symbol" },
     { "gra", "code action" },
-    { "gri", "ir a la implementación" },
-    { "grt", "ir a la definición del tipo" },
-    { "gO", "símbolos del documento" },
-    { "K", "hover (documentación)" },
-    { "gx", "abrir la URL o ruta bajo el cursor" },
-    { "gc / gcc", "comentar (operador / línea)" },
+    { "gri", "go to implementation" },
+    { "grt", "go to type definition" },
+    { "gO", "document symbols" },
+    { "K", "hover (documentation)" },
+    { "gx", "open the URL or path under the cursor" },
+    { "gc / gcc", "comment (operator / line)" },
   } do
     table.insert(lines, ("| `%s` | %s |"):format(r[1], r[2]))
   end
@@ -335,9 +335,9 @@ function M.render()
   return table.concat(lines, "\n")
 end
 
---- Espera a que los keymaps de arranque existan (NvChad los carga con vim.schedule) y
---- dispara VeryLazy, que en headless no llega solo (no hay UIEnter): así los plugins que
---- mapean al cargar (mini.move...) quedan igual que en una sesión real.
+--- Wait for the startup keymaps to exist (NvChad loads them with vim.schedule) and
+--- fire VeryLazy, which doesn't arrive on its own in headless (there's no UIEnter): that way the plugins that
+--- map on load (mini.move...) end up the same as in a real session.
 ---@return boolean
 function M.wait_ready()
   local ready = vim.wait(10000, function()
@@ -348,7 +348,7 @@ function M.wait_ready()
   return ready
 end
 
---- Escribe el cheatsheet; con `check` solo compara y devuelve false si difiere
+--- Write the cheatsheet; with `check` it only compares and returns false if it differs
 ---@param path string
 ---@param check? boolean
 ---@return boolean

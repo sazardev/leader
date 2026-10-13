@@ -1,4 +1,4 @@
--- DDD implement: completa el código en la capa que le toca, con los nombres y modismos del proyecto
+-- DDD implement: completes the code in the layer it belongs to, with the project's names and idioms
 local principles = require "agent.ddd.principles"
 local protocol = require "agent.protocol"
 

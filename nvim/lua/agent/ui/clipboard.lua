@@ -1,12 +1,12 @@
--- ── Copiar al portapapeles ───────────────────────────────────────────────────
--- Un solo lugar para todas las acciones de "copiar": registro del sistema (+) y el sin nombre ("),
--- con el aviso del tamaño copiado.
+-- ── Copy to clipboard ────────────────────────────────────────────────────────
+-- A single place for all "copy" actions: the system register (+) and the unnamed one ("),
+-- with a notice of the size copied.
 local log = require "utils.log"
 
 local M = {}
 
 ---@param text string
----@param what string qué se copió ("run", "prompt"...)
+---@param what string what was copied ("run", "prompt"...)
 function M.copy(text, what)
   vim.fn.setreg("+", text)
   vim.fn.setreg('"', text)

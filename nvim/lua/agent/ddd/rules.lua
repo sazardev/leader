@@ -1,8 +1,8 @@
--- ── Reglas de DDD sobre el índice (puro, sin LLM: cuesta 0 tokens) ───────────
---   violations(index)         dependencias que apuntan hacia fuera, frameworks en dominio/aplicación, archivos mal nombrados
---   aggregates(index)         por entidad: su puerto de repositorio, su implementación, sus casos de uso y lo que falta
---   wire(index, aggs, cb)     ¿cada implementación se usa en algún otro archivo? (ripgrep, asíncrono)
---   next_steps(index, naming) lo que falta, en una lista accionable
+-- ── DDD rules over the index (pure, no LLM: costs 0 tokens) ──────────────────
+--   violations(index)         dependencies pointing outward, frameworks in domain/application, badly named files
+--   aggregates(index)         per entity: its repository port, its implementation, its use cases and what is missing
+--   wire(index, aggs, cb)     is each implementation used in some other file? (ripgrep, async)
+--   next_steps(index, naming) what is missing, as an actionable list
 local layers = require "agent.ddd.layers"
 local naming_mod = require "agent.ddd.naming"
 
@@ -17,7 +17,7 @@ local M = {}
 
 local SEV = vim.diagnostic.severity
 
--- Lenguajes donde el archivo se llama como su clase (la regla de nombres no aplica)
+-- Languages where the file is named after its class (the naming rule does not apply)
 local FILE_IS_TYPE = { java = true, kt = true, cs = true, scala = true, php = true }
 local ROLE_SUFFIX =
   { "Repository", "Service", "Handler", "Controller", "UseCase", "Dto", "DTO", "Command", "Query", "Factory", "Mapper" }
@@ -139,9 +139,9 @@ end
 ---@field port { name: string, file: string, line: integer }?
 ---@field impl { name: string, file: string, line: integer }?
 ---@field usecases string[]
----@field wired boolean?  nil = sin comprobar
+---@field wired boolean?  nil = not checked
 
---- Entidades del dominio (tipos con identidad) y las piezas que las rodean
+--- Domain entities (types with identity) and the pieces that surround them
 ---@param index DddIndex
 ---@return DddAggregate[]
 function M.aggregates(index)
@@ -185,7 +185,7 @@ function M.aggregates(index)
   return out
 end
 
---- Marca `wired` en cada agregado con implementación: ¿el nombre aparece en algún otro archivo que no sea test?
+--- Sets `wired` on each aggregate with an implementation: does the name appear in some other non-test file?
 ---@param index DddIndex
 ---@param aggs DddAggregate[]
 ---@param cb fun()
@@ -244,7 +244,7 @@ end
 ---@field text string
 ---@field severity integer
 
---- Lo que falta, como lista accionable, con nombres de archivo según la convención del proyecto
+--- What is missing, as an actionable list, with file names following the project's convention
 ---@param index DddIndex
 ---@param aggs DddAggregate[]
 ---@param naming DddNaming

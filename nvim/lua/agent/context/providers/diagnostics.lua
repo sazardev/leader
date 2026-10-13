@@ -1,4 +1,4 @@
--- Diagnósticos del LSP/linters dentro del objetivo (no los que generó el propio agente)
+-- LSP/linter diagnostics inside the target (not the ones the agent itself generated)
 local SEVERITY = { "ERROR", "WARN", "INFO", "HINT" }
 
 return {
@@ -12,7 +12,7 @@ return {
       local line = d.lnum + 1
       if d.namespace ~= agent_ns and line >= target.first and line <= target.last then
         local msg = (d.message or ""):gsub("%s*\n%s*", " ")
-        -- el objetivo no va numerado: sin el texto de la línea, "L16" no se puede ubicar
+        -- the target is not numbered: without the line's text, "L16" cannot be located
         local code = vim.trim(vim.api.nvim_buf_get_lines(target.buf, d.lnum, d.lnum + 1, false)[1] or "")
         lines[#lines + 1] = ("L%d %s: %s%s | %s"):format(
           line,

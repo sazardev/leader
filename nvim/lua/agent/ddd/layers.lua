@@ -1,9 +1,9 @@
--- ── Capas de DDD: qué es cada directorio y quién puede depender de quién ─────
+-- ── DDD layers: what each directory is and who may depend on whom ────────────
 local settings = require("core.settings").agent.ddd
 
 local M = {}
 
---- La regla de dependencia: cada capa solo puede apuntar hacia dentro
+--- The dependency rule: each layer can only point inward
 M.ALLOWED = {
   domain = { domain = true },
   application = { domain = true, application = true },
@@ -16,7 +16,7 @@ M.ORDER = { "domain", "application", "infrastructure", "interface" }
 ---@type table<string, string>?
 local lookup
 
----@return table<string, string> segmento → capa
+---@return table<string, string> segment → layer
 local function segments()
   if not lookup then
     lookup = {}
@@ -29,7 +29,7 @@ local function segments()
   return lookup
 end
 
---- La capa de una ruta o de un import: el PRIMER segmento (de izquierda a derecha) que sea un nombre de capa
+--- The layer of a path or an import: the FIRST segment (left to right) that is a layer name
 ---@param path string
 ---@return string?
 function M.of(path)
@@ -43,8 +43,8 @@ function M.of(path)
   return nil
 end
 
---- ¿El archivo es una raíz de composición (main, cmd/, container...), que puede cablear todas las capas?
----@param rel string ruta relativa a la raíz del proyecto
+--- Is the file a composition root (main, cmd/, container...), which may wire all layers?
+---@param rel string path relative to the project root
 ---@return boolean
 function M.is_composition_root(rel)
   local lower = rel:lower()
@@ -60,7 +60,7 @@ function M.is_composition_root(rel)
   return false
 end
 
---- Directorios y archivos que no cuentan para las reglas
+--- Directories and files that do not count for the rules
 ---@param rel string
 ---@return boolean
 function M.is_test(rel)
@@ -76,7 +76,7 @@ function M.is_test(rel)
     or lower:find "/test_" ~= nil
 end
 
---- Reinicia la caché de nombres (cambió settings.agent.ddd.layers)
+--- Resets the names cache (settings.agent.ddd.layers changed)
 function M.reset()
   lookup = nil
 end

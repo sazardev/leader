@@ -1,7 +1,7 @@
--- ── Acciones de Go ───────────────────────────────────────────────────────────
--- run/build corren sobre el DIRECTORIO del archivo (un paquete Go es por
--- carpeta): "." si cuelga de un go.mod, o el archivo suelto si no hay módulo.
--- vet/fix/test corren "./..." desde la raíz del módulo.
+-- ── Go actions ───────────────────────────────────────────────────────────────
+-- run/build run on the file's DIRECTORY (a Go package is per
+-- folder): "." if it hangs under a go.mod, or the single file if there is no module.
+-- vet/fix/test run "./..." from the module root.
 local actions = require "utils.actions"
 local log = require "utils.log"
 local project = require "utils.project"
@@ -28,7 +28,7 @@ local function in_root(cmd)
   end
 end
 
--- Comandos de go.nvim (no se carga en modo ligero)
+-- go.nvim commands (not loaded in light mode)
 local function go_cmd(cmd)
   return function()
     if vim.fn.exists(":" .. cmd:match "^%S+") ~= 2 then
@@ -70,7 +70,7 @@ return {
   { "m", "go test ./...", in_root "go test ./..." },
   { "R", "go test -race ./...", in_root "go test -race ./..." },
   { "c", "go test -cover ./...", in_root "go test -cover ./..." },
-  -- go fix (modernizers del toolchain: any, rangeint, minmax, slices*, etc.)
+  -- go fix (toolchain modernizers: any, rangeint, minmax, slices*, etc.)
   { "p", "go fix -diff (modernizers preview)", in_root "go fix -diff ./..." },
   { "i", "go fix (apply modernizers)", in_root "go fix ./..." },
   { "g", "go generate ./...", in_root "go generate ./..." },

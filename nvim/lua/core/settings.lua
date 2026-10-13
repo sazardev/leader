@@ -1,73 +1,73 @@
--- ── Ajustes del usuario (única fuente de verdad configurable) ────────────────
--- Todo lo "ajustable" vive aquí con su valor por defecto. Para cambiarlo sin
--- tocar el repo, crea `lua/local.lua` (ignorado por git) devolviendo una tabla
--- parcial, o define `vim.g.nvim_settings` antes de cargar la config:
+-- ── User settings (single configurable source of truth) ──────────────────────
+-- Everything "adjustable" lives here with its default value. To change it without
+-- touching the repo, create `lua/local.lua` (git-ignored) returning a partial
+-- table, or define `vim.g.nvim_settings` before loading the config:
 --
 --   -- lua/local.lua
 --   return { theme = { name = "catppuccin" }, languages = { disabled = { "astro" } } }
 local defaults = {
   theme = {
-    -- Tema por defecto (el que vuelve al elegir "default" en <leader>S)
+    -- Default theme (the one restored when picking "default" in <leader>S)
     name = "gruvbox",
     toggle = { "gruvbox", "gruvbox_light" },
 
-    -- Tema heredado de la terminal (Alacritty): ver lua/appearance/
+    -- Theme inherited from the terminal (Alacritty): see lua/appearance/
     terminal = {
       enabled = true,
-      config = nil, -- ruta a alacritty.toml; nil = autodetección (Linux, Windows, WSL)
-      min_contrast = 3.0, -- contraste mínimo de los colores de acento contra el fondo
-      watch_ms = 1000, -- sondeo de la config de Alacritty para seguirla en vivo (0 = apagado)
+      config = nil, -- path to alacritty.toml; nil = autodetect (Linux, Windows, WSL)
+      min_contrast = 3.0, -- minimum contrast of the accent colors against the background
+      watch_ms = 1000, -- polling of the Alacritty config to follow it live (0 = off)
     },
   },
 
-  -- Dashboard: arte ASCII inicial (ver lua/ui/arts/): un nombre del catálogo.
-  -- El que se elige desde el dashboard ("Change Art") tiene prioridad.
+  -- Dashboard: initial ASCII art (see lua/ui/arts/): a name from the catalog.
+  -- The one picked from the dashboard ("Change Art") takes priority.
   dashboard = {
     art = "hornet",
   },
 
-  -- Modo ligero (equipos de poca RAM): sin LSP residente ni go.nvim.
-  -- `force`: true/false fuerza el modo; nil = autodetección por RAM.
-  -- La variable de entorno NVIM_LIGHT=1|0 tiene prioridad sobre esto.
+  -- Light mode (low-RAM machines): no resident LSP nor go.nvim.
+  -- `force`: true/false forces the mode; nil = autodetect by RAM.
+  -- The NVIM_LIGHT=1|0 environment variable takes priority over this.
   light = {
     force = nil,
     ram_threshold_gb = 2,
   },
 
-  -- Lenguajes (ver lua/languages/): desactiva por nombre los que no uses.
+  -- Languages (see lua/languages/): disable by name the ones you do not use.
   languages = {
     disabled = {},
   },
 
-  -- Sesiones (persistence.nvim guarda al salir; ver core/autocmds/session.lua)
+  -- Sessions (persistence.nvim saves on exit; see core/autocmds/session.lua)
   session = {
-    autosave_ms = 60000, -- guarda en segundo plano si algo cambió, para sobrevivir a un corte de luz (0 = solo al salir)
-    herdr = false, -- dentro de Herdr, registra nvim como "agente" para reabrir el pane tras reiniciar el servidor. Apagado: Herdr 0.9.x ignora el resume y nvim estorba en el panel Agents (requiere Herdr >= 0.10.0)
+    autosave_ms = 60000, -- saves in the background if something changed, to survive a power cut (0 = only on exit)
+    herdr = false, -- inside Herdr, registers nvim as an "agent" to reopen the pane after the server restarts. Off: Herdr 0.9.x ignores resume and nvim gets in the way in the Agents panel (requires Herdr >= 0.10.0)
   },
 
-  -- Agente inline (lua/agent/): acciones de UN disparo sobre lo que estás viendo (implementar,
-  -- revisar, explicar...) vía `claude -p` u `opencode run`. Menú <leader>a. Sin chat ni sidebar.
+  -- Inline agent (lua/agent/): ONE-SHOT actions over what you are looking at (implement,
+  -- review, explain...) via `claude -p` or `opencode run`. Menu <leader>a. No chat or sidebar.
   agent = {
-    backend = "auto", -- "auto" | "claude" | "opencode". Lo elegido con <leader>am (backend + modelo) se recuerda y gana
-    order = { "claude", "opencode", "ollama", "openai" }, -- orden de la autodetección con "auto" (los de `custom` van al final)
-    -- Backend de las acciones LIGERAS (docs, explain...). nil = el mismo que el principal. Con "ollama" (o "openai") esas
-    -- acciones corren en un modelo LOCAL y gratis mientras implement/fix siguen en Claude: se elige con <leader>am.
+    backend = "auto", -- "auto" | "claude" | "opencode". What you pick with <leader>am (backend + model) is remembered and wins
+    order = { "claude", "opencode", "ollama", "openai" }, -- autodetection order with "auto" (those in `custom` go last)
+    -- Backend for LIGHT actions (docs, explain...). nil = same as the main one. With "ollama" (or "openai") those
+    -- actions run on a LOCAL, free model while implement/fix stay on Claude: pick it with <leader>am.
     light_backend = nil,
-    language = "English", -- idioma de explicaciones, respuestas y hallazgos del agente (el código no se traduce)
-    rules = nil, -- texto extra (convenciones) para TODO prompt; por proyecto: `.agent.md` en la raíz
+    language = "English", -- language of the agent's explanations, answers and findings (code is not translated)
+    rules = nil, -- extra text (conventions) for EVERY prompt; per project: `.agent.md` at the root
     timeout_ms = 120000,
-    -- Qué acciones corren en el modelo LIGERO (barato y rápido) en vez del principal. Cada acción trae
-    -- el suyo por defecto (docs y explain: ligero); aquí lo cambias: { review = "light", docs = "main" }
+    -- Which actions run on the LIGHT model (cheap and fast) instead of the main one. Each action ships
+    -- with its own default (docs and explain: light); change it here: { review = "light", docs = "main" }
     tiers = {},
-    -- Historial de ejecuciones (<leader>ah): prompt, respuesta, tokens y coste de cada acción, en
-    -- stdpath("state")/agent-history.jsonl. `store_text = false` guarda solo métricas (sin tu código).
+    -- Run history (<leader>ah): prompt, response, tokens and cost of each action, in
+    -- stdpath("state")/agent-history.jsonl. `store_text = false` stores only metrics (no code of yours).
     history = {
       enabled = true,
       store_text = true,
-      max_entries = 1000, -- al pasar de ~1.5x se compacta a las más recientes
+      max_entries = 1000, -- past ~1.5x it is compacted down to the most recent ones
     },
-    -- DDD (<leader>aD): análisis estático local (gratis) + acciones del agente que siguen tus capas y tu nomenclatura.
-    -- Las capas se reconocen por NOMBRE DE DIRECTORIO (primer segmento de la ruta que coincida).
+    -- DDD (<leader>aD): local static analysis (free) + agent actions that follow your layers and naming.
+    -- Layers are recognized by DIRECTORY NAME (first path segment that matches).
     ddd = {
       layers = {
         domain = { "domain", "entities", "entity", "model", "models" },
@@ -110,7 +110,7 @@ local defaults = {
           "transport",
         },
       },
-      composition_roots = { "main", "cmd", "bootstrap", "container", "di", "wire", "server" }, -- pueden cablear todo
+      composition_roots = { "main", "cmd", "bootstrap", "container", "di", "wire", "server" }, -- may wire everything
       ignore = {
         ".git",
         "node_modules",
@@ -127,61 +127,61 @@ local defaults = {
         ".cache",
       },
       max_files = 1500,
-      max_context_chars = 1800, -- tope de la sección <ddd> que va al modelo
+      max_context_chars = 1800, -- cap of the <ddd> section sent to the model
     },
     context = {
-      max_chars = 8000, -- tope del contexto EXTRA (reglas, esquema, firmas, diagnósticos); el objetivo va aparte
-      max_target_lines = 400, -- un objetivo mayor se rechaza (recortarlo rompería el reemplazo)
-      window = 40, -- líneas máx. si no hay función/clase: párrafo alrededor del cursor
-      callees = 6, -- máx. de símbolos llamados cuya firma se pide al LSP
-      diagnostic_lines = 12, -- fix inline: líneas máx. que cubre el diagnóstico bajo el cursor (si abarca más, solo lo que empieza ahí)
-      around = 25, -- fix inline: líneas de código de alrededor (antes y después) que se enseñan como contexto
-      types = 4, -- máx. de definiciones de tipo (struct/clase/interfaz...) que usa el objetivo
-      type_lines = 30, -- líneas máx. por definición de tipo
-      hover_timeout_ms = 700, -- espera máx. al LSP; lo que no llegó a tiempo se omite
+      max_chars = 8000, -- cap of the EXTRA context (rules, schema, signatures, diagnostics); the target is separate
+      max_target_lines = 400, -- a larger target is rejected (trimming it would break the replacement)
+      window = 40, -- max lines if there is no function/class: paragraph around the cursor
+      callees = 6, -- max called symbols whose signature is requested from the LSP
+      diagnostic_lines = 12, -- inline fix: max lines the diagnostic under the cursor covers (if it spans more, only what starts there)
+      around = 25, -- inline fix: lines of surrounding code (before and after) shown as context
+      types = 4, -- max type definitions (struct/class/interface...) the target uses
+      type_lines = 30, -- max lines per type definition
+      hover_timeout_ms = 700, -- max wait for the LSP; whatever did not arrive in time is omitted
     },
-    apply = { format = false }, -- al aceptar un reemplazo, formatea ese rango con conform
-    keys = { accept = "<CR>", reject = "<Esc>" }, -- solo mientras hay una propuesta visible en el buffer
+    apply = { format = false }, -- when accepting a replacement, formats that range with conform
+    keys = { accept = "<CR>", reject = "<Esc>" }, -- only while a proposal is visible in the buffer
     claude = {
       models = { "haiku", "sonnet", "opus" },
-      model = "sonnet", -- modelo principal (implementar, arreglar, refactorizar, revisar, preguntar)
-      light_model = "haiku", -- modelo ligero (acciones de tier "light": docs, explain)
-      -- Caché de prompts del CLI: APAGADA. Cada llamada lleva un mensaje distinto, así que la caché nunca
-      -- acierta y solo cobra la ESCRITURA (hasta 2x el precio de entrada). Medido: -40% de coste por llamada.
+      model = "sonnet", -- main model (implement, fix, refactor, review, ask)
+      light_model = "haiku", -- light model (actions of tier "light": docs, explain)
+      -- CLI prompt cache: OFF. Every call carries a different message, so the cache never
+      -- hits and only the WRITE is charged (up to 2x the input price). Measured: -40% cost per call.
       prompt_cache = false,
-      max_cost_usd = 0.25, -- tope por llamada (`--max-budget-usd`): corta una respuesta desbocada; nil = sin tope
+      max_cost_usd = 0.25, -- cap per call (`--max-budget-usd`): cuts off a runaway response; nil = no cap
     },
     opencode = {
-      models = nil, -- nil = lo que devuelve `opencode models` (se pide una vez por sesión)
-      model = nil, -- p. ej. "opencode-go/qwen3.8-flash"
-      light_model = nil, -- modelo ligero; nil = el principal (los ids de opencode dependen de tu proveedor)
-      agent = nil, -- agente propio de opencode (por defecto, uno sin herramientas generado al vuelo)
-      attach = nil, -- "http://localhost:4096" (`opencode serve`): evita pagar el arranque en cada acción
+      models = nil, -- nil = what `opencode models` returns (requested once per session)
+      model = nil, -- e.g. "opencode-go/qwen3.8-flash"
+      light_model = nil, -- light model; nil = the main one (opencode ids depend on your provider)
+      agent = nil, -- opencode's own agent (by default, a tool-less one generated on the fly)
+      attach = nil, -- "http://localhost:4096" (`opencode serve`): avoids paying the startup on every action
     },
-    -- Modelos LOCALES con Ollama (CPU o GPU/CUDA: la usa solo si hay). Se conecta solo: <leader>am → Setup detecta el servidor
-    -- (OLLAMA_HOST, localhost, el host de Windows desde WSL), puede arrancarlo y bajar un modelo adecuado a tu VRAM.
+    -- LOCAL models with Ollama (CPU or GPU/CUDA: it uses the GPU only if present). Connects by itself: <leader>am → Setup detects the server
+    -- (OLLAMA_HOST, localhost, the Windows host from WSL), can start it and pull a model suited to your VRAM.
     ollama = {
-      host = nil, -- "http://127.0.0.1:11434"; nil = autodetección
-      model = nil, -- p. ej. "qwen2.5-coder:7b"; nil = el que elija el setup
-      light_model = nil, -- modelo pequeño para las acciones ligeras; nil = el principal
-      models = nil, -- nil = lo que devuelve /api/tags
-      num_ctx = nil, -- nil = se calcula por petición (prompt + margen); un entero lo fija. Ollama TRUNCA en silencio lo que no cabe
-      max_ctx = 32768, -- tope del cálculo automático (la memoria de contexto crece con él)
-      keep_alive = "30m", -- mantiene el modelo cargado entre acciones: lo que más acelera un modelo local
-      temperature = 0.1, -- respuestas más deterministas (formato de bloque de código / hallazgos)
-      think = nil, -- true/false fuerza el modo de razonamiento en modelos que lo soportan; nil = el del modelo
+      host = nil, -- "http://127.0.0.1:11434"; nil = autodetect
+      model = nil, -- e.g. "qwen2.5-coder:7b"; nil = the one the setup picks
+      light_model = nil, -- small model for light actions; nil = the main one
+      models = nil, -- nil = what /api/tags returns
+      num_ctx = nil, -- nil = computed per request (prompt + margin); an integer fixes it. Ollama silently TRUNCATES whatever does not fit
+      max_ctx = 32768, -- cap of the automatic computation (context memory grows with it)
+      keep_alive = "30m", -- keeps the model loaded between actions: what speeds up a local model the most
+      temperature = 0.1, -- more deterministic answers (code block / findings format)
+      think = nil, -- true/false forces reasoning mode on models that support it; nil = the model's own
     },
-    -- Cualquier servidor compatible con la API de OpenAI: LM Studio (1234), llama.cpp (8080), vLLM (8000), LiteLLM, OpenRouter...
+    -- Any OpenAI-API-compatible server: LM Studio (1234), llama.cpp (8080), vLLM (8000), LiteLLM, OpenRouter...
     openai = {
-      base_url = nil, -- "http://127.0.0.1:1234/v1"; nil = autodetección de los puertos habituales (o OPENAI_BASE_URL)
-      api_key_env = "OPENAI_API_KEY", -- variable de entorno con la clave (los servidores locales no la piden)
+      base_url = nil, -- "http://127.0.0.1:1234/v1"; nil = autodetect the usual ports (or OPENAI_BASE_URL)
+      api_key_env = "OPENAI_API_KEY", -- environment variable holding the key (local servers do not ask for it)
       model = nil,
       light_model = nil,
-      models = nil, -- nil = lo que devuelve /v1/models
+      models = nil, -- nil = what /v1/models returns
       temperature = 0.1,
     },
-    -- Otros agentes por línea de comandos (Hermes Agent, Gemini CLI, Codex, Aider...): una entrada declarativa por CLI. Ver
-    -- docs/cheatsheets/agent.md → "Backends". Ejemplo (REVISA las banderas de tu versión):
+    -- Other command-line agents (Hermes Agent, Gemini CLI, Codex, Aider...): one declarative entry per CLI. See
+    -- docs/cheatsheets/agent.md → "Backends". Example (CHECK the flags of your version):
     --   custom = { hermes = { cmd = { "hermes", "chat", "-q", "{prompt}" }, system_in_prompt = true, models = { "default" } } }
     custom = {},
   },
@@ -191,36 +191,36 @@ local defaults = {
     timeout_ms = 2000,
   },
 
-  -- Clipboard por OSC 52 (WSL/SSH sin servidor gráfico): "auto" | true | false
+  -- Clipboard via OSC 52 (WSL/SSH without a graphical server): "auto" | true | false
   clipboard = {
     osc52 = "auto",
   },
 
-  -- Terminal integrada (toggleterm): la usan los menús por lenguaje y lazydocker.
-  -- position: "right" (panel lateral) | "bottom" | "float". Con menos de
-  -- `narrow_columns` columnas el panel lateral pasa abajo (no aplasta el código).
+  -- Integrated terminal (toggleterm): used by the per-language menus and lazydocker.
+  -- position: "right" (side panel) | "bottom" | "float". With fewer than
+  -- `narrow_columns` columns the side panel moves to the bottom (it does not squash the code).
   terminal = {
     position = "right",
-    width = 0.38, -- fracción de las columnas (panel lateral)
+    width = 0.38, -- fraction of the columns (side panel)
     min_width = 50,
-    height = 0.35, -- fracción de las líneas (panel inferior)
+    height = 0.35, -- fraction of the lines (bottom panel)
     min_height = 8,
     narrow_columns = 120,
-    float_scale = 0.85, -- fracción de la pantalla en modo float
+    float_scale = 0.85, -- fraction of the screen in float mode
   },
 
-  -- Linters que NO corren en InsertLeave (analizan todo el paquete: pesados)
-  -- Comentarios largos (menú <leader>C, lua/utils/comments.lua): se pliegan con nvim-ufo
+  -- Linters that do NOT run on InsertLeave (analyze the whole package: heavy)
+  -- Long comments (menu <leader>C, lua/utils/comments.lua): folded with nvim-ufo
   comments = {
-    min_lines = 4, -- un comentario (bloque o líneas seguidas) con menos líneas no se pliega
-    auto_collapse = false, -- valor INICIAL de "comentarios plegados"; lo que eliges con <leader>Cc / <leader>Ce se guarda y manda
+    min_lines = 4, -- a comment (block or consecutive lines) with fewer lines is not folded
+    auto_collapse = false, -- INITIAL value of "comments folded"; what you pick with <leader>Cc / <leader>Ce is saved and wins
   },
 
-  -- Git (lua/commit/, menú <leader>G): commits con Conventional Commits
+  -- Git (lua/commit/, menu <leader>G): commits with Conventional Commits
   git = {
     commit = {
-      -- { tipo, descripción }. El hook .githooks/commit-msg valida los mismos tipos: si cambias
-      -- la lista aquí, cámbiala también allí.
+      -- { type, description }. The .githooks/commit-msg hook validates the same types: if you change
+      -- the list here, change it there too.
       types = {
         { "feat", "new feature" },
         { "fix", "bug fix" },
@@ -234,11 +234,11 @@ local defaults = {
         { "chore", "maintenance, tooling" },
         { "revert", "revert a previous commit" },
       },
-      subject_max = 72, -- largo máximo de la primera línea ("tipo(scope): asunto")
-      history = 300, -- commits recientes que se leen para sugerir scopes
-      diff_max_chars = 6000, -- tope del diff compacto que se envía a la IA (repartido entre los archivos); menos = más rápido y barato
-      -- <leader>GM (commit automático): si no hay nada preparado, prepara TODO lo modificado salvo lo que case con estos
-      -- patrones de Lua (secretos y llaves: eso lo preparas tú a mano). Lo que ya preparaste nunca se filtra.
+      subject_max = 72, -- max length of the first line ("type(scope): subject")
+      history = 300, -- recent commits read to suggest scopes
+      diff_max_chars = 6000, -- cap of the compact diff sent to the AI (split across files); less = faster and cheaper
+      -- <leader>GM (automatic commit): if nothing is staged, stages EVERYTHING modified except what matches these
+      -- Lua patterns (secrets and keys: you stage those by hand). Whatever you already staged is never filtered.
       sensitive = { "^%.env", "%.env%.", "%.pem$", "%.key$", "%.p12$", "%.pfx$", "id_rsa", "id_ed25519", "credentials", "secrets?%.", "%.kdbx$" },
     },
   },
@@ -247,23 +247,23 @@ local defaults = {
     skip_insert_leave = { "go" },
   },
 
-  -- vim.diagnostic.config(...): cómo se muestran los errores del LSP/linters
+  -- vim.diagnostic.config(...): how LSP/linter errors are shown
   diagnostics = {
-    severity_sort = true, -- el error se ve antes que el aviso en la misma línea
-    update_in_insert = false, -- sin errores a medias mientras escribes: en modo insertar los bloques se ocultan y vuelven al salir
-    virtual_text = false, -- el texto a la derecha se corta: lo reemplazan los bloques en línea (abajo)
-    signs = false, -- sin iconos junto al número: lo dice el fondo del número (diagnostic_blocks.number)
+    severity_sort = true, -- the error shows before the warning on the same line
+    update_in_insert = false, -- no half-typed errors while you write: in insert mode the blocks are hidden and return on leaving
+    virtual_text = false, -- the text on the right gets cut off: the inline blocks (below) replace it
+    signs = false, -- no icons next to the number: the number's background says it (diagnostic_blocks.number)
   },
 
-  -- Bloques de diagnóstico bajo su línea (utils/diagblocks.lua). `auto` y `mode` son el valor INICIAL: lo que
-  -- eliges con <leader>xa / <leader>xc se guarda en stdpath("state")/diagblocks.json y manda sobre ellos
+  -- Diagnostic blocks under their line (utils/diagblocks.lua). `auto` and `mode` are the INITIAL value: what
+  -- you pick with <leader>xa / <leader>xc is saved in stdpath("state")/diagblocks.json and overrides them
   diagnostic_blocks = {
-    auto = true, -- aparecen solos en cada buffer que tenga diagnósticos
-    mode = "expanded", -- "expanded" todos abiertos | "compact" una línea cada uno (se abre el del cursor)
-    number = true, -- el número de línea se pinta con la píldora de la severidad (centrada en los dígitos), igual que la barra de estado (el git es la barra de la signcolumn)
+    auto = true, -- appear on their own in every buffer that has diagnostics
+    mode = "expanded", -- "expanded" all open | "compact" one line each (the one under the cursor opens)
+    number = true, -- the line number is painted with the severity pill (centered on the digits), like the statusline (git is the signcolumn bar)
   },
 
-  -- vim.o.<clave> = valor
+  -- vim.o.<key> = value
   options = {
     cmdheight = 0,
     showmode = false,
@@ -281,29 +281,29 @@ local defaults = {
     ttimeoutlen = 50,
     splitright = true,
     splitbelow = true,
-    ignorecase = true, -- buscar sin distinguir mayúsculas...
-    smartcase = true, -- ...salvo que el patrón lleve alguna
-    inccommand = "split", -- vista previa en vivo de :s/…/…/
-    autoread = true, -- recarga lo que cambia fuera de nvim (git, formatters); ver autocmds/autoread.lua
+    ignorecase = true, -- search ignoring case...
+    smartcase = true, -- ...unless the pattern contains an uppercase letter
+    inccommand = "split", -- live preview of :s/…/…/
+    autoread = true, -- reloads what changes outside nvim (git, formatters); see autocmds/autoread.lua
     scrolloff = 5,
     sidescrolloff = 8,
     cursorline = true,
     cursorlineopt = "number",
-    signcolumn = "no", -- los signos (la barra del git) los dibuja el statuscolumn en UNA celda; "yes" les da dos
-    -- signos + número; el número lo pinta utils/diagblocks.lua (píldora centrada de la severidad)
+    signcolumn = "no", -- signs (the git bar) are drawn by the statuscolumn in ONE cell; "yes" gives them two
+    -- signs + number; the number is painted by utils/diagblocks.lua (centered severity pill)
     statuscolumn = "%s%{%v:lua.require'utils.diagblocks'.statuscolumn()%}",
-    jumpoptions = "view", -- <C-o>/<C-i> restauran también la vista (scroll), no solo el cursor
-    undofile = true, -- el undo sobrevive a cerrar nvim (y a un corte de luz)
-    exrc = true, -- carga .nvim.lua por proyecto (protegido por :trust)
-    -- Qué guarda una sesión (persistence.nvim); sin `terminal`/`blank`: no se restauran
+    jumpoptions = "view", -- <C-o>/<C-i> also restore the view (scroll), not just the cursor
+    undofile = true, -- undo survives closing nvim (and a power cut)
+    exrc = true, -- loads .nvim.lua per project (guarded by :trust)
+    -- What a session saves (persistence.nvim); without `terminal`/`blank`: they are not restored
     sessionoptions = "buffers,curdir,tabpages,winsize,help,globals,skiprtp,folds",
   },
 }
 
 local overrides = {}
 
--- NVIM_NO_LOCAL=1 ignora lua/local.lua (lo usa scripts/gen-cheatsheet.sh para que
--- el cheatsheet generado no dependa de la máquina)
+-- NVIM_NO_LOCAL=1 ignores lua/local.lua (used by scripts/gen-cheatsheet.sh so that
+-- the generated cheatsheet does not depend on the machine)
 local ok, localcfg = pcall(require, "local")
 if ok and type(localcfg) == "table" and not vim.env.NVIM_NO_LOCAL then
   overrides = localcfg

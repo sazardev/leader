@@ -1,4 +1,4 @@
--- DDD review: violaciones de las reglas de DDD y de SOLID, como diagnósticos en su línea
+-- DDD review: violations of the DDD and SOLID rules, as diagnostics on their line
 local principles = require "agent.ddd.principles"
 local protocol = require "agent.protocol"
 
@@ -6,7 +6,7 @@ return {
   label = "ddd review",
   desc = "ddd review",
   key = "r",
-  source = "ddd", -- los hallazgos se distinguen de los de `review` en el origen del diagnóstico
+  source = "ddd", -- the findings are told apart from those of `review` by the diagnostic source
   scope = "function",
   context = { "rules", "ddd", "diagnostics", "contracts", "schema", "types" },
   output = "findings",

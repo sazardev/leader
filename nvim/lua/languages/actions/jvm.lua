@@ -1,4 +1,4 @@
--- ── Acciones JVM (Java / Kotlin): Gradle o Maven ─────────────────────────────
+-- ── JVM actions (Java / Kotlin): Gradle or Maven ─────────────────────────────
 local log = require "utils.log"
 local project = require "utils.project"
 local terminal = require "utils.terminal"
@@ -12,7 +12,7 @@ local function maven_run(root)
   return pom:find("spring-boot", 1, true) and "spring-boot:run" or "compile exec:java"
 end
 
---- Acción que corre el goal de Gradle o Maven según el proyecto
+--- Action that runs the Gradle or Maven goal depending on the project
 ---@param goal { gradle: string, maven: string|fun(root: string): string }
 local function build_tool(goal)
   return function()

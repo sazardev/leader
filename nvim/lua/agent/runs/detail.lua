@@ -1,6 +1,6 @@
--- ── Una ejecución, completa y legible (markdown) ─────────────────────────────
--- Es lo que muestra el previsualizador del historial: qué se pidió, con qué contexto, qué se
--- envió al modelo, qué devolvió y cuánto costó.
+-- ── A run, complete and readable (markdown) ──────────────────────────────────
+-- It is what the history previewer shows: what was asked, with what context, what was
+-- sent to the model, what it returned and how much it cost.
 local fmt = require "agent.runs.format"
 
 local M = {}
@@ -16,7 +16,7 @@ local function block(lines, title, body)
     lines[#lines + 1] = "_not stored (`settings.agent.history.store_text = false`) or empty_"
     return
   end
-  -- una valla más larga que cualquiera dentro del texto evita que el contenido la cierre
+  -- a fence longer than any inside the text keeps the content from closing it
   local fence = "```"
   while body:find(fence, 1, true) do
     fence = fence .. "`"
@@ -54,7 +54,7 @@ function M.build(run)
     end
     rows[#rows + 1] = { "events", table.concat(timeline, " → ") }
   end
-  -- en un bloque de texto: se lee igual en bruto (previsualizador) que renderizado (panel)
+  -- in a text block: it reads the same raw (previewer) as rendered (panel)
   local lines =
     { ("# %s · %s  %s %s"):format(run.action, fmt.model(run), fmt.icon(run), fmt.outcome(run)), "", "```text" }
   for _, r in ipairs(rows) do
@@ -84,7 +84,7 @@ function M.build(run)
   return lines
 end
 
---- TODO lo de la ejecución como un solo texto (para copiar o pegar donde haga falta)
+--- EVERYTHING about the run as a single text (to copy or paste wherever needed)
 ---@param run table
 ---@return string
 function M.text(run)

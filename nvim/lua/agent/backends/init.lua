@@ -1,21 +1,21 @@
--- ── Registro de backends ─────────────────────────────────────────────────────
--- Un backend = un CLI de agente que sabe (a) construir su comando y (b) interpretar
--- su salida. Contrato (todos los campos obligatorios salvo los marcados):
+-- ── Backend registry ─────────────────────────────────────────────────────────
+-- A backend = an agent CLI that knows (a) how to build its command and (b) how to parse
+-- its output. Contract (all fields required unless marked):
 --
 --   name, label     string
---   default_model   string?                     modelo si nada más lo define
---   efforts         string[]?                   niveles de esfuerzo que entiende
---   available()     boolean                     ¿el CLI está instalado?
---   models(cb)      cb({ {id, label?}... })     modelos elegibles (puede ser async)
---   build(req)      { cmd, stdin?, env?, cwd }  petición -> proceso a lanzar
---   parser()        { feed(chunk) -> string?,   texto nuevo (streaming), si lo hay
+--   default_model   string?                     model if nothing else defines one
+--   efforts         string[]?                   effort levels it understands
+--   available()     boolean                     is the CLI installed?
+--   models(cb)      cb({ {id, label?}... })     selectable models (may be async)
+--   build(req)      { cmd, stdin?, env?, cwd }  request -> process to launch
+--   parser()        { feed(chunk) -> string?,   new text (streaming), if any
 --                     finish(code, stderr) -> AgentResult }
 --
 --   AgentRequest: { system, prompt, model, effort?, action }
 --   AgentResult:  { ok, text?, err?, usage? = { cost?, tokens_in?, tokens_out?, ms? } }
 --
--- Añadir un backend: crea `agent/backends/<nombre>.lua` y agrégalo a NAMES (o
--- regístralo en runtime con `register`). Nada más cambia.
+-- Adding a backend: create `agent/backends/<name>.lua` and add it to NAMES (or
+-- register it at runtime with `register`). Nothing else changes.
 local M = {}
 
 local NAMES = { "claude", "opencode", "ollama", "openai" }
@@ -23,7 +23,7 @@ local NAMES = { "claude", "opencode", "ollama", "openai" }
 ---@type table<string, table>
 local registry = {}
 
---- Registra, una sola vez, los backends declarados en `settings.agent.custom` (Hermes Agent, Gemini CLI...)
+--- Registers, once, the backends declared in `settings.agent.custom` (Hermes Agent, Gemini CLI...)
 local custom_loaded = false
 local function load_custom()
   if custom_loaded then
@@ -56,7 +56,7 @@ function M.get(name)
   return registry[name]
 end
 
---- Registra un backend en caliente (extensiones, pruebas)
+--- Registers a backend on the fly (extensions, tests)
 ---@param name string
 ---@param impl table
 function M.register(name, impl)
@@ -90,7 +90,7 @@ end
 function M.first_available(order)
   load_custom()
   local tried = {}
-  for _, list in ipairs { order or {}, NAMES } do -- primero el orden pedido; luego el resto (los `custom` incluidos)
+  for _, list in ipairs { order or {}, NAMES } do -- requested order first; then the rest (`custom` ones included)
     for _, name in ipairs(list) do
       if not tried[name] then
         tried[name] = true

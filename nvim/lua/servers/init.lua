@@ -1,17 +1,17 @@
--- ── Cargador de servidores LSP ───────────────────────────────────────────────
--- La lista de servidores sale de lua/languages/ (campo `lsp`). Los overrides de
--- cada servidor viven en lua/servers/<nombre>.lua y se aplican con
--- vim.lsp.config() (mayor precedencia que lsp/*.lua del runtimepath, donde
--- ganarían los archivos de nvim-lspconfig).
+-- ── LSP server loader ────────────────────────────────────────────────────────
+-- The server list comes from lua/languages/ (`lsp` field). Each server's overrides
+-- live in lua/servers/<name>.lua and are applied with
+-- vim.lsp.config() (higher precedence than lsp/*.lua in the runtimepath, where
+-- nvim-lspconfig's files would win).
 local M = {}
 
---- Capabilities de NvChad + blink.cmp para todos los clientes
+--- NvChad + blink.cmp capabilities for all clients
 local function configure_defaults()
-  -- NvChad define vim.lsp.config("*") con capabilities y on_init (apaga
-  -- semantic tokens) y habilita lua_ls. Tomamos sus capabilities como base y
-  -- forzamos encima las de blink, preservando on_init.
+  -- NvChad defines vim.lsp.config("*") with capabilities and on_init (turns off
+  -- semantic tokens) and enables lua_ls. We take its capabilities as a base and
+  -- force blink's on top, preserving on_init.
   require("nvchad.configs.lspconfig").defaults()
-  vim.diagnostic.config(require("core.settings").diagnostics) -- NvChad vuelve a activar virtual_text
+  vim.diagnostic.config(require("core.settings").diagnostics) -- NvChad re-enables virtual_text
 
   local base = vim.lsp.config["*"] or {}
   vim.lsp.config("*", {
@@ -24,7 +24,7 @@ local function configure_defaults()
   })
 end
 
---- Overrides del servidor (lua/servers/<name>.lua), si existen
+--- Server overrides (lua/servers/<name>.lua), if they exist
 ---@param name string
 ---@return table?
 local function overrides(name)
@@ -41,7 +41,7 @@ end
 function M.setup()
   local names = require("languages").lsp_servers()
   if #names == 0 then
-    return -- modo ligero: ningún LSP residente
+    return -- light mode: no resident LSP
   end
 
   configure_defaults()

@@ -1,10 +1,10 @@
--- ── Menús contextuales del leader ────────────────────────────────────────────
--- Cada contexto (lenguaje o git) vive bajo su propia letra de <leader> y SOLO
--- existe en los buffers donde aplica (keymaps + grupo de which-key
--- buffer-locales). El popup de <leader> muestra únicamente lo relevante.
+-- ── Contextual leader menus ──────────────────────────────────────────────────
+-- Each context (language or git) lives under its own <leader> letter and ONLY
+-- exists in the buffers where it applies (buffer-local keymaps + which-key
+-- group). The <leader> popup shows only what is relevant.
 --
--- Un contexto es: { name, prefix, maps = { {key, desc, fn, modes?}... },
---                   filetypes? = {...}, detect? = fun(buf): boolean }
+-- A context is: { name, prefix, maps = { {key, desc, fn, modes?}... },
+--                 filetypes? = {...}, detect? = fun(buf): boolean }
 local M = {}
 
 ---@return table[]
@@ -23,9 +23,9 @@ function M.contexts()
   return list
 end
 
---- `desc` con el que se registra una acción. Empieza por la primera palabra del
---- nombre del menú ("Go run", "Git status"): NvCheatsheet (botón Mappings del
---- dashboard) agrupa por la primera palabra del desc, y exige al menos dos.
+--- `desc` an action is registered with. It starts with the first word of the
+--- menu name ("Go run", "Git status"): NvCheatsheet (the dashboard's Mappings button)
+--- groups by the first word of the desc, and requires at least two.
 ---@param ctx table
 ---@param text string
 ---@return string
@@ -46,18 +46,18 @@ local function bind(buf, ctx)
   for _, m in ipairs(ctx.maps) do
     vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { buffer = buf, desc = M.desc(ctx, m[2]) })
   end
-  -- nombre del grupo en which-key, solo para este buffer
+  -- group name in which-key, only for this buffer
   local ok, wk = pcall(require, "which-key")
   if ok then
     wk.add { { "<leader>" .. ctx.prefix, group = ctx.name, buffer = buf } }
   end
 end
 
---- Contexto global: se registra una sola vez, sin buffer
+--- Global context: registered only once, without a buffer
 ---@param ctx table
 local function bind_global(ctx)
   for _, m in ipairs(ctx.maps) do
-    -- 4º elemento opcional: modos del mapeo (por defecto solo normal)
+    -- optional 4th element: mapping modes (normal only by default)
     vim.keymap.set(m[4] or "n", "<leader>" .. ctx.prefix .. m[1], m[3], { desc = M.desc(ctx, m[2]) })
   end
   local ok, wk = pcall(require, "which-key")
@@ -104,7 +104,7 @@ function M.setup()
     end,
   })
 
-  -- los keymaps se cargan con vim.schedule: los eventos del buffer inicial ya pasaron
+  -- keymaps are loaded with vim.schedule: the initial buffer's events have already passed
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(buf) then
       attach(buf)

@@ -1,8 +1,8 @@
--- ── Índice de código Go compartido (treesitter sobre texto, sin LSP ni LLM) ──
--- Lo que necesitan las ayudas de Go de esta config (goimpl, goiferr, gomap, gowire, goenum, goport, gohttp):
--- leer un archivo (interfaces, structs, métodos, funciones, constantes, imports), un paquete (todos sus
--- archivos, con el buffer sin guardar en lugar del de disco) y el módulo (rutas de go.mod → directorios).
--- Todo en caché por fecha de modificación: pedir lo mismo dos veces no vuelve a parsear.
+-- ── Shared Go code index (treesitter over text, no LSP or LLM) ───────────────
+-- What this config's Go helpers need (goimpl, goiferr, gomap, gowire, goenum, goport, gohttp):
+-- read a file (interfaces, structs, methods, functions, constants, imports), a package (all its
+-- files, with the unsaved buffer in place of the one on disk) and the module (go.mod paths → directories).
+-- Everything is cached by modification time: asking for the same thing twice doesn't parse again.
 local M = {}
 
 local BUILTIN = {}
@@ -64,26 +64,26 @@ for _, kw in ipairs {
   KEYWORDS[kw] = true
 end
 
--- ── lectura de un archivo (treesitter sobre texto) ───────────────────────────
+-- ── reading a file (treesitter over text) ─────────────────────────────────────
 
 ---@class GoImplMethod
 ---@field name string
----@field sig string        `(ctx context.Context, id string) (*Note, error)` tal como está en la interfaz
----@field refs { pos: integer, name: string }[] tipos sin calificar dentro de `sig` (se califican al usar la interfaz desde otro paquete)
+---@field sig string        `(ctx context.Context, id string) (*Note, error)` exactly as in the interface
+---@field refs { pos: integer, name: string }[] unqualified types inside `sig` (qualified when the interface is used from another package)
 ---@field params { name: string?, type: string }[]
 ---@field results string[]
----@field named boolean     todos los parámetros tienen nombre
+---@field named boolean     all parameters have names
 
 ---@class GoImplFile
 ---@field pkg string?
----@field imports table<string, string> alias → ruta de import
+---@field imports table<string, string> alias → import path
 ---@field interfaces table<string, GoImplMethod[]>
 ---@field structs table<string, { name: string, type: string }[]>
----@field types table<string, string> tipos definidos que no son struct ni interfaz (`Kind` → `string`)
+---@field types table<string, string> defined types that are neither struct nor interface (`Kind` → `string`)
 ---@field methods { recv: string, name: string, ptr: boolean, var: string? }[]
 ---@field ctors { result: string, builds: table<string, boolean> }[]
 ---@field asserts { iface: string, typ: string }[]
----@field funcs GoImplMethod[]  funciones de primer nivel (con firma)
+---@field funcs GoImplMethod[]  top-level functions (with signature)
 ---@field consts { name: string, type: string?, lit: string?, iota: integer }[]
 
 ---@param n TSNode
@@ -92,7 +92,7 @@ local function text(n, src)
   return vim.treesitter.get_node_text(n, src)
 end
 
---- Tipos locales sin calificar dentro de `n` (posición en bytes relativa al inicio de `n`)
+--- Unqualified local types inside `n` (byte position relative to the start of `n`)
 ---@param n TSNode
 ---@param src string
 ---@return { pos: integer, name: string }[]
@@ -116,7 +116,7 @@ local function local_type_refs(n, src)
   return refs
 end
 
---- parameter_list → lista plana { name?, type } (un elemento por nombre) y si todos tienen nombre
+--- parameter_list → flat list { name?, type } (one element per name) and whether all have names
 ---@param list TSNode?
 ---@param src string
 ---@return { name: string?, type: string }[], boolean
@@ -147,7 +147,7 @@ local function flat_params(list, src)
   return out, named
 end
 
---- Firma de un método (de una interfaz o declarado): texto tal cual, tipos locales sin calificar, parámetros y retornos
+--- Signature of a method (of an interface or declared): text as-is, unqualified local types, parameters and returns
 ---@param whole TSNode method_elem | method_declaration
 ---@param name TSNode
 ---@param params TSNode
@@ -162,7 +162,7 @@ local function method_data(whole, name, params, result, src)
   local _, _, whole_byte = whole:range(true)
   local refs = {}
   for _, r in ipairs(local_type_refs(whole, src)) do
-    local pos = r.pos + whole_byte - first_byte -- posición dentro de `sig` (los nombres de parámetros no cuentan)
+    local pos = r.pos + whole_byte - first_byte -- position inside `sig` (parameter names don't count)
     if pos >= 0 and pos < #sig then
       refs[#refs + 1] = { pos = pos, name = r.name }
     end
@@ -300,7 +300,7 @@ local function scan(src)
         info.ctors[#info.ctors + 1] = { result = text(result, src), builds = builds }
       end
     elseif t == "const_declaration" then
-      -- un bloque con iota repite tipo y expresión en los especificadores sin valor
+      -- a block with iota repeats the type and expression in the specs without a value
       local last_type, index = nil, 0
       for spec in node:iter_children() do
         if spec:type() == "const_spec" then
@@ -327,7 +327,7 @@ local function scan(src)
   return info
 end
 
--- ── índice de un paquete (archivos del directorio, en caché por fecha) ───────
+-- ── index of a package (the directory's files, cached by date) ───────────────
 
 local cache = {}
 
@@ -365,7 +365,7 @@ end
 ---@field consts { name: string, type: string?, lit: string?, iota: integer }[]
 ---@field imports table<string, string>
 
---- Paquete de un directorio. `live` = { path, text } sustituye a su archivo en disco (el buffer sin guardar)
+--- Package of a directory. `live` = { path, text } replaces its file on disk (the unsaved buffer)
 ---@param dir string
 ---@param live { path: string, text: string }?
 ---@return GoImplPackage
@@ -422,9 +422,9 @@ local function package_at(dir, live)
   return pkg
 end
 
---- Directorio de un import que pertenece al módulo (`notesapi/internal/domain` → <raíz>/internal/domain)
+--- Directory of an import that belongs to the module (`notesapi/internal/domain` → <root>/internal/domain)
 ---@param import_path string
----@param from string archivo desde el que se importa
+---@param from string file from which it is imported
 ---@return string?
 local function module_dir(import_path, from)
   local gomod = vim.fs.find("go.mod", { path = vim.fs.dirname(from), upward = true })[1]
@@ -445,19 +445,19 @@ local function module_dir(import_path, from)
   end
 end
 
--- ── el módulo entero (para buscar constructores, structs e interfaces por nombre) ──
+-- ── the whole module (to look up constructors, structs and interfaces by name) ──
 
 local SKIP_DIRS = { vendor = true, node_modules = true, testdata = true, [".git"] = true }
 local MODULE_FILES_MAX = 800
-local MODULE_TTL = 5 -- segundos entre listados del árbol (el contenido de cada archivo se revisa por fecha)
+local MODULE_TTL = 5 -- seconds between tree listings (each file's content is checked by date)
 local module_cache = {}
 
 ---@class GoImplModule
 ---@field root string
 ---@field module string
----@field packages GoImplPackage[]  con `import_path`
+---@field packages GoImplPackage[]  with `import_path`
 
---- Raíz y nombre del módulo de go.mod que contiene `from`
+--- Root and name of the go.mod module that contains `from`
 ---@param from string
 ---@return string? root, string? module
 local function module_of(from)
@@ -470,7 +470,7 @@ local function module_of(from)
   return module and vim.fs.dirname(gomod) or nil, module
 end
 
---- Todos los paquetes del módulo de `from` (sin pruebas, vendor ni testdata), con su ruta de import
+--- All the packages of `from`'s module (excluding tests, vendor and testdata), with their import path
 ---@param from string
 ---@return GoImplModule?
 local function module_packages(from)
@@ -512,8 +512,8 @@ local function module_packages(from)
   return value
 end
 
---- Directorio del paquete que se escribe como `alias.` en un archivo: por su import o, si ese archivo no lo importa
---- (la interfaz se declaró en otro archivo con otros imports), por el nombre del paquete entre los del módulo
+--- Directory of the package written as `alias.` in a file: through its import or, if that file doesn't import it
+--- (the interface was declared in another file with other imports), through the package name among the module's
 ---@param alias string
 ---@param pkg GoImplPackage
 ---@param file_path string
@@ -539,8 +539,8 @@ local function related(a, b)
   if a == b then
     return true
   end
-  -- el nombre más largo ACABA en el corto (noteService ~ NoteService, postgresNoteRepository ~ NoteRepository) o es
-  -- `<corto>Impl`; que lo contenga o empiece igual no basta (Note no implementa NoteRepository). El corto, de 4+ letras
+  -- the longer name ENDS in the shorter one (noteService ~ NoteService, postgresNoteRepository ~ NoteRepository) or is
+  -- `<short>Impl`; containing it or starting the same isn't enough (Note doesn't implement NoteRepository). The short one, 4+ letters
   local short, long = #a < #b and a or b, #a < #b and b or a
   if #short < 4 then
     return false
@@ -555,7 +555,7 @@ local function lower_first(name)
   return KEYWORDS[r] and r .. "_" or r
 end
 
---- Interfaz (con sus métodos) a partir de como se escribe; la de otro paquete se lee de disco
+--- Interface (with its methods) from how it is written; one from another package is read from disk
 ---@param written string `NoteService` | `domain.NoteRepository`
 ---@param pkg GoImplPackage
 ---@param file_path string
@@ -638,7 +638,7 @@ local function esc(s)
 end
 
 ---@param row integer
----@param from integer columna donde empieza lo que se reemplaza
+---@param from integer column where what is replaced starts
 ---@param col integer
 local function range_of(row, from, col)
   return { start = { line = row - 1, character = from }, ["end"] = { line = row - 1, character = col } }
@@ -658,8 +658,8 @@ local function current_package()
   return package_at(vim.fs.dirname(path), { path = path, text = src }), path
 end
 
---- Valor cero de un tipo tal como está escrito en el archivo actual: resuelve los structs, interfaces y tipos
---- definidos del paquete y de los paquetes del módulo importados (`domain.Note` → `domain.Note{}`)
+--- Zero value of a type as written in the current file: resolves the package's structs, interfaces and defined
+--- types and those of the imported module packages (`domain.Note` → `domain.Note{}`)
 ---@param t string
 ---@param pkg GoImplPackage
 ---@param file_path string
@@ -683,7 +683,7 @@ local function zero_for(t, pkg, file_path)
   return "*new(" .. t .. ")"
 end
 
---- Nodo de treesitter bajo el cursor del buffer actual (`row` 1-based, `col` 0-based; el carácter anterior al cursor)
+--- Treesitter node under the cursor of the current buffer (`row` 1-based, `col` 0-based; the character before the cursor)
 ---@param row integer
 ---@param col integer
 ---@return TSNode?
@@ -695,7 +695,7 @@ local function node_at(row, col)
   return ok and node or nil
 end
 
---- Struct (con sus campos) a partir de como se escribe (`ListFilter` | `domain.ListFilter`); el de otro paquete se lee de disco
+--- Struct (with its fields) from how it is written (`ListFilter` | `domain.ListFilter`); one from another package is read from disk
 ---@param written string
 ---@param pkg GoImplPackage
 ---@param file_path string
@@ -715,7 +715,7 @@ end
 
 M.resolve_struct = resolve_struct
 M.node_at = node_at
---- Nombre idiomático del receptor de un tipo: la inicial de su ÚLTIMA palabra (noteService → s, NoteHandler → h)
+--- Idiomatic receiver name for a type: the initial of its LAST word (noteService → s, NoteHandler → h)
 ---@param name string
 ---@return string
 local function receiver_name(name)

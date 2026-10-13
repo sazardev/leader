@@ -1,15 +1,15 @@
--- ── Colores de diagnóstico: una sola fuente para toda la UI ──────────────────
--- La etiqueta de la barra de estado (E2 / W1), el número de línea y los bloques en línea
--- (utils/diagblocks.lua) salen de aquí, así el rojo del error es EL MISMO en los tres sitios.
--- El acento es el `DiagnosticX` del tema activo; el texto sobre él es el fondo del tema (igual
--- que el texto de la sección de modo de lualine) y, si no alcanza contraste, negro o blanco.
+-- ── Diagnostic colors: a single source for the whole UI ──────────────────────
+-- The statusline label (E2 / W1), the line number and the inline blocks
+-- (utils/diagblocks.lua) come from here, so the error red is THE SAME in all three places.
+-- The accent is the active theme's `DiagnosticX`; the text on top of it is the theme background (like
+-- the text of lualine's mode section) and, if it lacks contrast, black or white.
 local color = require "appearance.color"
 
 local M = {}
 
 local SEV = vim.diagnostic.severity
 
--- severidad → nombre corto y grupo del tema del que sale el acento
+-- severity → short name and theme group the accent comes from
 M.KINDS = {
   [SEV.ERROR] = { name = "Error", from = "DiagnosticError", fallback = "#e06c75" },
   [SEV.WARN] = { name = "Warn", from = "DiagnosticWarn", fallback = "#e5c07b" },
@@ -24,15 +24,15 @@ local function fg_of(name)
 end
 
 ---@param severity integer
----@return string hex color de acento de esa severidad en el tema activo
+---@return string hex accent color of that severity in the active theme
 function M.accent(severity)
   local kind = M.KINDS[severity]
   local fg = fg_of(kind.from)
   return fg and ("#%06x"):format(fg) or kind.fallback
 end
 
---- Texto legible sobre un fondo de acento (3.5: las etiquetas son en negrita, y así el texto es el
---- mismo en errores y avisos en vez de saltar entre fondo y negro)
+--- Readable text over an accent background (3.5: labels are bold, so the text is the
+--- same on errors and warnings instead of jumping between background and black)
 ---@param accent string
 ---@return string
 function M.on_accent(accent)
@@ -44,7 +44,7 @@ function M.on_accent(accent)
   return color.contrast("#000000", accent) >= color.contrast("#ffffff", accent) and "#000000" or "#ffffff"
 end
 
---- Etiqueta sólida de la severidad: fondo = acento, texto = `on_accent`, en negrita
+--- Solid severity label: background = accent, text = `on_accent`, bold
 ---@param severity integer
 ---@return { bg: string, fg: string, bold: boolean }
 function M.pill(severity)
@@ -52,12 +52,12 @@ function M.pill(severity)
   return { bg = accent, fg = M.on_accent(accent), bold = true }
 end
 
--- ── Sincronía con el tema ────────────────────────────────────────────────────
--- Los highlights derivados (número de línea, bloques) se calculan una vez; si el tema cambia sin
--- ColorScheme ni NvThemeReload (base46 carga su caché en silencio al arrancar, el tema heredado de
--- la terminal se recompila en vivo), quedarían con el color anterior mientras la barra de estado,
--- que se evalúa en cada refresco, ya usa el nuevo. `sync()` lo detecta comparando firmas y
--- avisa a quien registró un `on_change`; se llama desde cada refresco de la barra y de los bloques.
+-- ── Theme sync ───────────────────────────────────────────────────────────────
+-- Derived highlights (line number, blocks) are computed once; if the theme changes without
+-- ColorScheme or NvThemeReload (base46 loads its cache silently at startup, the theme inherited from
+-- the terminal is recompiled live), they would keep the old color while the statusline,
+-- which is evaluated on every refresh, already uses the new one. `sync()` detects it by comparing signatures and
+-- notifies whoever registered an `on_change`; it is called from every refresh of the bar and of the blocks.
 local last ---@type string?
 local listeners = {} ---@type fun()[]
 
@@ -70,13 +70,13 @@ local function signature()
   return table.concat(parts, "|")
 end
 
----@param fn fun() recalcula los highlights derivados
+---@param fn fun() recomputes the derived highlights
 function M.on_change(fn)
   listeners[#listeners + 1] = fn
 end
 
---- Si el tema cambió desde la última comprobación, recalcula lo derivado (en el siguiente tick:
---- se puede llamar desde la evaluación de la barra de estado)
+--- If the theme changed since the last check, recomputes the derived stuff (on the next tick:
+--- it can be called from the statusline evaluation)
 function M.sync()
   local current = signature()
   if current == last then

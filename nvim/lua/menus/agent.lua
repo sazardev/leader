@@ -1,7 +1,7 @@
--- ── Contexto Agent (global): <leader>a ───────────────────────────────────────
--- Las acciones salen del registro (agent/actions): añadir una no obliga a tocar este
--- archivo. Funcionan en normal (función bajo el cursor) y en visual (la selección).
--- Aceptar/rechazar una propuesta NO tiene entrada aquí: son ⏎/⎋ sobre la propuesta.
+-- ── Agent context (global): <leader>a ────────────────────────────────────────
+-- The actions come from the registry (agent/actions): adding one does not require touching this
+-- file. They work in normal mode (function under the cursor) and in visual mode (the selection).
+-- Accepting/rejecting a proposal has NO entry here: it is ⏎/⎋ on the proposal.
 local function agent()
   return require "agent"
 end
@@ -39,7 +39,7 @@ vim.list_extend(maps, {
     "c",
     "clear",
     function()
-      -- en visual, los de la selección; en normal, los de la línea
+      -- in visual, those of the selection; in normal, those of the line
       local mode = vim.fn.mode()
       if mode == "v" or mode == "V" or mode == "\22" then
         local a, b = vim.fn.line "v", vim.fn.line "."

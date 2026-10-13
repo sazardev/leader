@@ -1,21 +1,21 @@
--- ── Atajos para archivos de modelo de Go (`*_model.go` / `model.go`) ─────────
--- Solo existen en esos archivos, para que no salgan en cada struct de cada paquete.
--- Los consume `utils/gosmart.lua` al empezar una declaración (columna 0):
+-- ── Shortcuts for Go model files (`*_model.go` / `model.go`) ──────────────────
+-- They only exist in those files, so they don't show up for every struct of every package.
+-- `utils/gosmart.lua` consumes them when starting a declaration (column 0):
 --   functable        → func (NoteModel) TableName() string { return "notes" }       (gorm)
---   funcdomain       → toDomain + fromDomain de una vez
+--   funcdomain       → toDomain + fromDomain at once
 --   functodomain     → func (m NoteModel) toDomain() *note.Note { return note.Reconstitute(m.ID, …) }
 --   funcfromdomain   → func fromDomain(n *note.Note) NoteModel { return NoteModel{ID: n.ID(), …} }
--- El dominio sale del nombre: `NoteModel` → `note.Note`. Si el archivo importa `…/note` y el
--- paquete está en el módulo, se lee su constructor real (Reconstitute, Rehydrate, Restore…).
+-- The domain comes from the name: `NoteModel` → `note.Note`. If the file imports `…/note` and the
+-- package is in the module, its real constructor is read (Reconstitute, Rehydrate, Restore…).
 local M = {}
 
 local KIND = vim.lsp.protocol.CompletionItemKind
 local FORMAT = vim.lsp.protocol.InsertTextFormat
 
--- letras tecleadas para que salga un atajo `func…` (igual que `funcnew`)
+-- typed letters needed for a `func…` shortcut to show up (same as `funcnew`)
 M.MIN = 5
 
--- Constructores de rehidratación que se buscan en el paquete de dominio, por orden
+-- Rehydration constructors looked up in the domain package, in order
 local CONSTRUCTORS = { "Reconstitute", "Rehydrate", "Restore", "Hydrate", "FromPersistence", "Load" }
 
 ---@return boolean
@@ -30,7 +30,7 @@ local function starts(word, frag)
   return frag == "" or word:lower():sub(1, #frag) == frag:lower()
 end
 
---- `NoteModel` → `notes` (sin sufijo Model, snake_case, plural simple en inglés)
+--- `NoteModel` → `notes` (no Model suffix, snake_case, simple English plural)
 ---@param struct string
 ---@return string
 local function table_name(struct)
@@ -45,12 +45,12 @@ local function table_name(struct)
 end
 
 ---@class GoDomain
----@field pkg string alias del paquete (`note`)
----@field ctor? string constructor de rehidratación encontrado en el paquete
+---@field pkg string package alias (`note`)
+---@field ctor? string rehydration constructor found in the package
 
---- Paquete de dominio de `base` (`Note` → `note`) y su constructor, si se puede leer
+--- Domain package of `base` (`Note` → `note`) and its constructor, if it can be read
 ---@param base string
----@param buf string texto del archivo
+---@param buf string file text
 ---@return GoDomain
 local function domain_info(base, buf)
   local pkg = base:lower():gsub("[^%w]", "")
@@ -129,14 +129,14 @@ local function from_domain_text(s, base, d, fname)
 end
 
 ---@class GoModelOpts
----@field structs GoStruct[] structs del archivo
----@field buf string texto del archivo
+---@field structs GoStruct[] file's structs
+---@field buf string file text
 ---@field mode "func"|"type"|"any"
----@field frag string lo ya tecleado
----@field want_funcs boolean se está empezando un `func`
+---@field frag string what has already been typed
+---@field want_funcs boolean a `func` is being started
 ---@field range table
 
---- Atajos a poner AL PRINCIPIO de la lista (para no bajar hasta la última opción)
+--- Shortcuts to put AT THE START of the list (so you don't have to scroll to the last option)
 ---@param o GoModelOpts
 ---@return table[]
 function M.items(o)
@@ -145,7 +145,7 @@ function M.items(o)
   end
   local mode, frag, buf = o.mode, o.frag, o.buf
 
-  -- `func ` lista lo esencial; los atajos sueltos salen al teclearlos (`short` ≥ 2 letras o `full` ≥ MIN)
+  -- `func ` lists the essentials; the standalone shortcuts show up when typed (`short` ≥ 2 letters or `full` ≥ MIN)
   local function typed(full, short)
     return mode == "any" and ((short and #frag >= 2 and starts(short, frag)) or (#frag >= M.MIN and starts(full, frag)))
   end
@@ -182,7 +182,7 @@ function M.items(o)
     }
   end
 
-  -- gorm: TableName() para los structs que aún no lo tienen
+  -- gorm: TableName() for the structs that don't have it yet
   if want.table then
     local pending = {}
     for _, s in ipairs(o.structs) do
@@ -201,7 +201,7 @@ function M.items(o)
     end
   end
 
-  -- mapeadores modelo ↔ dominio
+  -- model ↔ domain mappers
   for _, m in ipairs(models) do
     local d = domain_info(m.base, buf)
     local fname = single_model and "fromDomain" or ("from%sDomain"):format(m.base)

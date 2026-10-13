@@ -1,5 +1,5 @@
--- astro-ls exige typescript.tsdk: primero el typescript del proyecto y, si no
--- hay node_modules, el que trae el paquete de Mason (evita el error de init).
+-- astro-ls requires typescript.tsdk: first the project's typescript and, if there
+-- is no node_modules, the one shipped by the Mason package (avoids the init error).
 return {
   filetypes = { "astro" },
   before_init = function(_, config)

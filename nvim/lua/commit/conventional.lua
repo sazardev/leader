@@ -1,13 +1,13 @@
--- ── Conventional Commits: análisis puro (sin UI, sin git) ────────────────────
--- Lo único que decide si un mensaje es válido y qué tipo/scope sugerir. Los tipos y límites viven en
--- settings.git.commit; el hook .githooks/commit-msg valida lo mismo en cualquier `git commit`.
+-- ── Conventional Commits: pure analysis (no UI, no git) ──────────────────────
+-- The only thing that decides whether a message is valid and which type/scope to suggest. Types and limits live in
+-- settings.git.commit; the .githooks/commit-msg hook validates the same on any `git commit`.
 local M = {}
 
 local function cfg()
   return require("core.settings").git.commit
 end
 
--- directorios que no dicen nada como scope
+-- directories that say nothing as a scope
 local GENERIC = {
   nvim = true,
   lua = true,
@@ -28,7 +28,7 @@ local GENERIC = {
 ---@field breaking boolean
 ---@field subject string
 
---- Descompone `tipo(scope)!: asunto` SIN validar el tipo; nil si no tiene esa forma
+--- Splits `type(scope)!: subject` WITHOUT validating the type; nil if it does not have that shape
 ---@param line string
 ---@return CommitHeader?
 function M.split(line)
@@ -58,7 +58,7 @@ function M.known_type(type_)
   return false
 end
 
---- Valida la primera línea: `tipo(scope)!: asunto`, tipo de la lista, largo máximo
+--- Validates the first line: `type(scope)!: subject`, type from the list, max length
 ---@param line string
 ---@return CommitHeader?, string? err
 function M.parse_header(line)
@@ -82,7 +82,7 @@ end
 ---@field len integer
 ---@field max integer
 
---- Estado de la primera línea para el indicador en vivo. `incomplete` = va bien pero aún no hay asunto
+--- State of the first line for the live indicator. `incomplete` = fine so far but there is no subject yet
 ---@param line string
 ---@return CommitCheck
 function M.check(line)
@@ -102,9 +102,9 @@ function M.check(line)
   return { state = "ok", header = parsed, len = len, max = max }
 end
 
---- Cambia el tipo (o el scope) de la primera línea conservando el resto; con una línea vacía crea la plantilla
+--- Changes the type (or scope) of the first line keeping the rest; with an empty line it creates the template
 ---@param line string
----@param patch { type: string?, scope: string|false? }  scope = false quita el scope
+---@param patch { type: string?, scope: string|false? }  scope = false removes the scope
 ---@return string
 function M.rewrite(line, patch)
   local h = M.split(line) or { type = "", subject = vim.trim(line), breaking = false }
@@ -118,7 +118,7 @@ function M.rewrite(line, patch)
   return ("%s%s%s: %s"):format(type_, scope and ("(" .. scope .. ")") or "", h.breaking and "!" or "", h.subject)
 end
 
---- Tipo probable según lo que se commitea (nil = sin pista)
+--- Likely type based on what is being committed (nil = no hint)
 ---@param files string[]
 ---@return string?
 function M.suggest_type(files)
@@ -160,8 +160,8 @@ function M.suggest_type(files)
   return nil
 end
 
---- Scopes sugeridos: primero los que salen de las rutas Y ya están en el historial, luego los
---- de las rutas, luego los más usados del historial
+--- Suggested scopes: first those that come from the paths AND are already in the history, then those
+--- from the paths, then the most used ones in the history
 ---@param files string[]
 ---@param history string[]
 ---@return string[]
@@ -210,7 +210,7 @@ function M.suggest_scopes(files, history)
   return result
 end
 
---- Scopes que usa el historial (líneas de asunto), del más al menos frecuente
+--- Scopes used by the history (subject lines), most to least frequent
 ---@param subjects string
 ---@return string[]
 function M.history_scopes(subjects)
@@ -228,7 +228,7 @@ function M.history_scopes(subjects)
   return list
 end
 
---- Quita vallas de código y comillas que algunos modelos añaden alrededor del mensaje
+--- Strips code fences and quotes that some models add around the message
 ---@param out string
 ---@return string[]
 function M.clean_message(out)

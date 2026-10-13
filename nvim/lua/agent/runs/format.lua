@@ -1,4 +1,4 @@
--- ── Formatos compartidos del historial ───────────────────────────────────────
+-- ── Shared history formats ───────────────────────────────────────────────────
 local M = {}
 
 ---@param usd number?

@@ -1,27 +1,27 @@
--- ── Ancla del objetivo ───────────────────────────────────────────────────────
--- Un extmark que cubre las líneas del objetivo: si mientras el agente trabaja editas
--- por encima, el rango se desplaza solo. Al aplicar un resultado se comprueba además
--- que el texto siga siendo el que se envió (si no, se descarta en vez de pisarlo).
+-- ── Target anchor ────────────────────────────────────────────────────────────
+-- An extmark covering the target's lines: if you edit above it while the agent
+-- works, the range shifts by itself. When applying a result it is also checked
+-- that the text is still what was sent (if not, it is discarded instead of overwritten).
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "agent.anchor"
 
---- Final del rango como posición de extmark: SIEMPRE (última línea, fin de esa línea).
---- La forma "(línea siguiente, col 0)" fallaría para un objetivo que acaba en la última
---- línea del buffer: nvim recorta ese extremo y el rango se colapsaría a una fila.
+--- End of the range as an extmark position: ALWAYS (last line, end of that line).
+--- The "(next line, col 0)" form would fail for a target ending on the last
+--- line of the buffer: nvim clamps that end and the range would collapse to one row.
 ---@param buf integer
----@param last integer 1-based, inclusivo
+---@param last integer 1-based, inclusive
 ---@return integer end_row, integer end_col
 function M.finish(buf, last)
   local line = vim.api.nvim_buf_get_lines(buf, last - 1, last, false)[1] or ""
   return last - 1, #line
 end
 
---- Final para PINTAR un rango: (línea siguiente, col 0) incluye el salto de línea, así que
---- `hl_eol` también cubre la última fila; solo en la última línea del buffer no existe "la
---- siguiente" y se cae a (última, fin). Es solo visual: la lógica usa `finish`.
+--- End for PAINTING a range: (next line, col 0) includes the line break, so
+--- `hl_eol` also covers the last row; only on the last line of the buffer is there no "next"
+--- and it falls back to (last, end). Visual only: the logic uses `finish`.
 ---@param buf integer
----@param last integer 1-based, inclusivo
+---@param last integer 1-based, inclusive
 ---@return integer end_row, integer end_col
 function M.highlight_end(buf, last)
   if last < vim.api.nvim_buf_line_count(buf) then
@@ -32,7 +32,7 @@ end
 
 ---@param buf integer
 ---@param first integer 1-based
----@param last integer 1-based, inclusivo
+---@param last integer 1-based, inclusive
 ---@return integer id
 function M.create(buf, first, last)
   local end_row, end_col = M.finish(buf, last)
@@ -46,7 +46,7 @@ function M.create(buf, first, last)
   })
 end
 
---- Rango actual (1-based, inclusivo); nil si el texto del ancla se borró
+--- Current range (1-based, inclusive); nil if the anchor's text was deleted
 ---@param buf integer
 ---@param id integer
 ---@return integer?, integer?
@@ -62,7 +62,7 @@ function M.range(buf, id)
   return mark[1] + 1, details.end_row + 1
 end
 
---- ¿El texto bajo el ancla sigue siendo el que se envió?
+--- Is the text under the anchor still what was sent?
 ---@param job table
 ---@return boolean
 function M.unchanged(job)

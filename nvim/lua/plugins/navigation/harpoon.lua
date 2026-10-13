@@ -1,4 +1,4 @@
--- "Favoritos" de archivos del ciclo de trabajo
+-- File "favorites" for the current work cycle
 local function list()
   return require("harpoon"):list()
 end

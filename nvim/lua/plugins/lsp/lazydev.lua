@@ -1,5 +1,5 @@
--- Tipos y completado de la API de Neovim y de los plugins al editar Lua (lua_ls).
--- Solo carga en archivos .lua; añade a lua_ls solo las librerías que el código usa.
+-- Types and completion for the Neovim API and plugins when editing Lua (lua_ls).
+-- Only loads on .lua files; adds to lua_ls only the libraries the code uses.
 return {
   "folke/lazydev.nvim",
   ft = "lua",

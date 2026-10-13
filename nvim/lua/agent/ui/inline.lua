@@ -1,9 +1,9 @@
--- ── Campo de instrucción EN LÍNEA (estilo Zed / VS Code inline chat) ─────────
--- Un bloque compacto que se abre justo encima del código objetivo y EMPUJA el código hacia
--- abajo (líneas virtuales como hueco) en vez de tapar nada: cabecera con acción y modelo,
--- placeholder, crece al escribir (envuelve), ↑/↓ recuperan instrucciones anteriores.
--- La ventana es un flotante anclado a la línea del objetivo; el hueco que ocupa lo reserva
--- un extmark con `virt_lines_above`, así que los dos siempre miden lo mismo.
+-- ── INLINE instruction field (Zed / VS Code inline chat style) ───────────────
+-- A compact block that opens right above the target code and PUSHES the code down
+-- (virtual lines as a gap) instead of covering anything: header with action and model,
+-- placeholder, grows as you type (wraps), ↑/↓ recall previous instructions.
+-- The window is a float anchored to the target's line; the gap it occupies is reserved
+-- by an extmark with `virt_lines_above`, so both always have the same size.
 require("agent.ui.highlights").ensure()
 
 local M = {}
@@ -12,16 +12,16 @@ local NS = vim.api.nvim_create_namespace "agent.inline"
 local MAX_ROWS = 6
 
 ---@class AgentInlineState
----@field win integer       ventana de código
----@field buf integer       buffer de código
+---@field win integer       code window
+---@field buf integer       code buffer
 ---@field input_win integer
 ---@field input_buf integer
----@field spacer integer    extmark del hueco
----@field rows integer      filas de texto (sin cabecera)
+---@field spacer integer    gap extmark
+---@field rows integer      text rows (without header)
 ---@field width integer
 ---@field closed boolean
 ---@field history string[]
----@field cursor integer    posición en el historial (0 = lo que estás escribiendo)
+---@field cursor integer    position in the history (0 = what you are typing)
 ---@field draft string
 
 ---@type AgentInlineState?
@@ -33,7 +33,7 @@ local function text_width(win)
   return vim.api.nvim_win_get_width(win) - vim.fn.getwininfo(win)[1].textoff
 end
 
---- Garantiza que haya `need` filas visibles encima de la línea (si no, desplaza la vista)
+--- Ensures there are `need` visible rows above the line (otherwise scrolls the view)
 ---@param win integer
 ---@param row integer 1-based
 ---@param need integer
@@ -76,7 +76,7 @@ local function header(st, opts)
     return (text:gsub("%%", "%%%%"))
   end
   local left = (" ✦ %s · %s "):format(opts.title, opts.meta)
-  -- la pista más larga que quepa junto a la cabecera; si ni la corta cabe, se omite
+  -- the longest hint that fits next to the header; if not even the short one fits, it is omitted
   local hints = { "⏎ run · ⌃J newline · ↑ history · ⎋ cancel", "⏎ run · ⎋ cancel", "⏎ run" }
   local hint = ""
   for _, candidate in ipairs(hints) do
@@ -92,7 +92,7 @@ local function header(st, opts)
   )
 end
 
---- Recalcula alto (según lo escrito), ancho y placeholder
+--- Recomputes height (according to what is typed), width and placeholder
 ---@param st AgentInlineState
 local function relayout(st)
   if st.closed or not vim.api.nvim_win_is_valid(st.input_win) then
@@ -147,7 +147,7 @@ local function set_text(st, text)
   relayout(st)
 end
 
---- Parte la línea en el cursor (salto de línea sin enviar)
+--- Splits the line at the cursor (newline without submitting)
 ---@param st AgentInlineState
 local function newline(st)
   local row, col = unpack(vim.api.nvim_win_get_cursor(st.input_win))
@@ -157,7 +157,7 @@ local function newline(st)
   relayout(st)
 end
 
---- ↑/↓: recorre el historial; 0 es lo que estabas escribiendo
+--- ↑/↓: walks the history; 0 is what you were typing
 ---@param st AgentInlineState
 ---@param step integer
 local function recall(st, step)
@@ -174,12 +174,12 @@ end
 
 ---@class AgentInlineOpts
 ---@field win integer
----@field row integer 1-based: el bloque se abre ENCIMA de esta línea
+---@field row integer 1-based: the block opens ABOVE this line
 ---@field title string
 ---@field meta string
 ---@field placeholder string
 ---@field history string[]?
----@field optional boolean? Enter con el campo vacío envía "" (si no, no hace nada)
+---@field optional boolean? Enter with an empty field submits "" (otherwise it does nothing)
 
 ---@param opts AgentInlineOpts
 ---@param on_submit fun(text: string)
@@ -209,9 +209,9 @@ function M.open(opts, on_submit)
   st.input_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[st.input_buf].bufhidden = "wipe"
   vim.bo[st.input_buf].filetype = "agentprompt"
-  vim.b[st.input_buf].completion = false -- blink no sugiere nada en un campo de texto libre
-  vim.b[st.input_buf].minipairs_disable = true -- ni se cierran comillas/paréntesis solos
-  pcall(vim.api.nvim_buf_set_name, st.input_buf, "agent prompt") -- en la statusline, en vez de [No Name]
+  vim.b[st.input_buf].completion = false -- blink suggests nothing in a free text field
+  vim.b[st.input_buf].minipairs_disable = true -- nor are quotes/parentheses auto-closed
+  pcall(vim.api.nvim_buf_set_name, st.input_buf, "agent prompt") -- in the statusline, instead of [No Name]
 
   st.input_win = vim.api.nvim_open_win(st.input_buf, true, {
     relative = "win",
@@ -219,7 +219,7 @@ function M.open(opts, on_submit)
     bufpos = { st.row - 1, 0 },
     anchor = "SW",
     row = 0,
-    col = -1, -- la barra de acento cae en el borde del margen, justo antes del texto
+    col = -1, -- the accent bar falls on the edge of the margin, right before the text
     width = width,
     height = 2,
     style = "minimal",
@@ -265,7 +265,7 @@ function M.open(opts, on_submit)
   map({ "i", "n" }, "<C-n>", function()
     recall(st, -1)
   end)
-  -- ↑/↓ recorren el historial solo mientras el texto cabe en una línea (si no, mueven el cursor)
+  -- ↑/↓ walk the history only while the text fits on one line (otherwise they move the cursor)
   map({ "i", "n" }, "<Up>", function()
     if vim.api.nvim_buf_line_count(st.input_buf) == 1 then
       recall(st, 1)
@@ -280,8 +280,8 @@ function M.open(opts, on_submit)
       vim.cmd "normal! j"
     end
   end)
-  vim.keymap.set("i", "jk", "jk", { buffer = st.input_buf, remap = false }) -- el `jk` global saldría de insert: aquí es texto
-  -- NvChad mapea <C-j> a "bajar" en insert: aquí es salto de línea (y también Alt/Shift+Enter)
+  vim.keymap.set("i", "jk", "jk", { buffer = st.input_buf, remap = false }) -- the global `jk` would leave insert: here it is text
+  -- NvChad maps <C-j> to "move down" in insert: here it is a newline (and so are Alt/Shift+Enter)
   map("i", "<C-j>", function()
     newline(st)
   end)

@@ -1,7 +1,7 @@
--- ── Índice del proyecto para DDD ─────────────────────────────────────────────
--- Recorre el proyecto UNA vez (asíncrono, por tandas, para no congelar nvim) y guarda por archivo: su capa
--- (por directorio), sus imports (y a qué capa o framework apuntan) y las definiciones de tipo que declara.
--- Cachea por mtime+tamaño: las siguientes veces solo se releen los archivos que cambiaron.
+-- ── Project index for DDD ────────────────────────────────────────────────────
+-- Walks the project ONCE (async, in batches, so nvim does not freeze) and stores per file: its layer
+-- (by directory), its imports (and which layer or framework they point to) and the type definitions it declares.
+-- Caches by mtime+size: later runs only re-read the files that changed.
 local imports = require "agent.ddd.imports"
 local layers = require "agent.ddd.layers"
 local scopes = require "agent.context.scopes"
@@ -24,7 +24,7 @@ local ROOT_MARKERS = {
   "pubspec.yaml",
 }
 
---- Raíz del proyecto de un buffer
+--- Project root of a buffer
 ---@param buf integer
 ---@return string
 function M.root(buf)
@@ -36,7 +36,7 @@ end
 ---@field root string
 ---@field go_module string?
 
---- ¿Es un import del propio proyecto? Solo esos se asignan a una capa: `database/sql` no es la capa `database`.
+--- Is it an import of the project itself? Only those are assigned to a layer: `database/sql` is not the `database` layer.
 ---@param spec string
 ---@param ext string
 ---@param ctx DddCtx
@@ -63,7 +63,7 @@ local function is_internal(spec, ext, ctx)
   elseif ext == "dart" then
     return not spec:find "^dart:" and (spec:find "^%." ~= nil or not spec:find "^package:")
   end
-  return true -- Java, Kotlin, C#, PHP...: los paquetes se distinguen por capa y los frameworks ya se detectan aparte
+  return true -- Java, Kotlin, C#, PHP...: packages are told apart by layer and frameworks are already detected separately
 end
 
 ---@class DddType
@@ -88,8 +88,8 @@ end
 ---@field root string
 ---@field files table<string, DddFile>
 ---@field list DddFile[]
----@field counts table<string, integer>  archivos por capa
----@field seen integer  archivos de código encontrados (solo los de capas se analizan)
+---@field counts table<string, integer>  files per layer
+---@field seen integer  source files found (only those in layers are analysed)
 
 ---@type table<string, table<string, DddFile>>
 local cache = {}
@@ -200,7 +200,7 @@ local function read_file(ctx, rel, prev)
   return file
 end
 
---- Rutas de código fuente del proyecto (solo nombres: listar es barato; leer y parsear no)
+--- Source code paths of the project (names only: listing is cheap; reading and parsing is not)
 ---@param root string
 ---@return string[]
 local function list_sources(root)
@@ -227,7 +227,7 @@ local function list_sources(root)
   return out
 end
 
---- Índice del proyecto en `root` (de la caché si nada cambió); `cb` recibe el índice
+--- Index of the project at `root` (from the cache if nothing changed); `cb` receives the index
 ---@param root string
 ---@param cb fun(index: DddIndex)
 function M.get(root, cb)
@@ -237,8 +237,8 @@ function M.get(root, cb)
   end
   waiting[root] = { cb }
   local seen = list_sources(root)
-  -- Solo se lee y parsea lo que las reglas de DDD miran: archivos DENTRO de una capa y que no sean tests.
-  -- En un repo grande esto es la diferencia entre 10 s y unos milisegundos.
+  -- Only what the DDD rules look at is read and parsed: files INSIDE a layer that are not tests.
+  -- In a large repo this is the difference between 10 s and a few milliseconds.
   local rels = {}
   for _, rel in ipairs(seen) do
     if layers.of(rel) and not layers.is_test(rel) and #rels < settings.max_files then
@@ -290,7 +290,7 @@ function M.get(root, cb)
   vim.schedule(step)
 end
 
---- Todos los tipos del proyecto con ese nombre (sin distinguir mayúsculas)
+--- All types in the project with that name (case-insensitive)
 ---@param index DddIndex
 ---@param name string
 ---@return { file: DddFile, type: DddType }[]
@@ -306,7 +306,7 @@ function M.types_named(index, name)
   return out
 end
 
---- Olvida la caché (pruebas)
+--- Forgets the cache (tests)
 function M.reset()
   cache, waiting, lang_cache = {}, {}, {}
 end

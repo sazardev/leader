@@ -1,7 +1,7 @@
--- ── Diagnóstico DDD de todo el proyecto (0 tokens) ───────────────────────────
--- Análisis estático local: capas detectadas, nomenclatura, violaciones (como diagnósticos y lista de
--- quickfix), y por entidad las piezas que faltan y sus conexiones. Un panel lo resume; lo accionable
--- queda en el propio código.
+-- ── DDD diagnosis of the whole project (0 tokens) ────────────────────────────
+-- Local static analysis: detected layers, naming, violations (as diagnostics and a quickfix
+-- list), and per entity the missing pieces and their connections. A panel summarises it; what is actionable
+-- stays in the code itself.
 local index_mod = require "agent.ddd.index"
 local layers = require "agent.ddd.layers"
 local log = require "utils.log"
@@ -16,7 +16,7 @@ local M = {}
 local NS = vim.api.nvim_create_namespace "agent.ddd"
 
 vim.diagnostic.config({
-  virtual_text = false, -- se ve en los bloques en línea (utils/diagblocks.lua)
+  virtual_text = false, -- shown in the inline blocks (utils/diagblocks.lua)
   underline = true,
   signs = false,
   severity_sort = true,
@@ -27,17 +27,17 @@ function M.namespace()
   return NS
 end
 
---- Quita los diagnósticos de DDD (de todos los buffers)
+--- Removes the DDD diagnostics (from all buffers)
 function M.clear()
   vim.diagnostic.reset(NS)
   persist.forget_all "ddd"
 end
 
---- Quita las violaciones locales que caen en un rango (se acaba de arreglar ese código)
+--- Removes the local violations that fall inside a range (that code was just fixed)
 ---@param buf integer
 ---@param first integer 1-based
 ---@param last integer 1-based
----@return integer removed cuántas quitó
+---@return integer removed how many it removed
 function M.resolve(buf, first, last)
   local all = vim.diagnostic.get(buf, { namespace = NS })
   local kept = vim.tbl_filter(function(d)
@@ -55,7 +55,7 @@ local function cell(s)
 end
 
 ---@param index DddIndex
----@return table<string, string[]> capa → directorios (hasta el segmento que la nombra)
+---@return table<string, string[]> layer → directories (up to the segment that names it)
 local function layer_dirs(index)
   local dirs = {}
   for _, f in ipairs(index.list) do
@@ -110,7 +110,7 @@ local function publish(index, violations, steps, aggs)
     vim.bo[buf].buflisted = false
     vim.diagnostic.set(NS, buf, list)
   end
-  persist.replace_all("ddd", persisted) -- por atender: sobrevive a la sesión
+  persist.replace_all("ddd", persisted) -- pending: survives the session
   local at = {}
   for _, a in ipairs(aggs) do
     at[a.name] = a

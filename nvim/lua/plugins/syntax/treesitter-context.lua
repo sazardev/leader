@@ -1,13 +1,13 @@
--- Deja fija arriba la línea de la función/clase/bloque actual al hacer scroll.
--- Reutiliza el árbol de treesitter (sin parseo extra); `:TSContext toggle` lo apaga.
+-- Pins the line of the current function/class/block at the top when scrolling.
+-- Reuses the treesitter tree (no extra parsing); `:TSContext toggle` turns it off.
 return {
 	"nvim-treesitter/nvim-treesitter-context",
 	event = { "BufReadPost", "BufNewFile" },
 	cmd = "TSContext",
 	opts = {
-		max_lines = 3, -- como mucho 3 líneas fijas: no se come la pantalla
-		multiline_threshold = 1, -- firmas largas: solo la primera línea
-		trim_scope = "outer", -- si hay más de max_lines, descarta los ámbitos externos
+		max_lines = 3, -- at most 3 pinned lines: it does not eat the screen
+		multiline_threshold = 1, -- long signatures: only the first line
+		trim_scope = "outer", -- if there are more than max_lines, drops the outer scopes
 	},
 	config = function(_, opts)
 		require("treesitter-context").setup(opts)

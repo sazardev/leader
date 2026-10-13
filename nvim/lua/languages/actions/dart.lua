@@ -1,4 +1,4 @@
--- ── Acciones de Dart / Flutter ───────────────────────────────────────────────
+-- ── Dart / Flutter actions ───────────────────────────────────────────────────
 local actions = require "utils.actions"
 local log = require "utils.log"
 local project = require "utils.project"
@@ -6,7 +6,7 @@ local terminal = require "utils.terminal"
 
 local ex = actions.ex
 
---- Corre `flutter <flutter_sub>` en proyectos Flutter o `dart <dart_sub>` en Dart puro
+--- Runs `flutter <flutter_sub>` in Flutter projects or `dart <dart_sub>` in plain Dart
 local function tool(flutter_sub, dart_sub)
   return function()
     local root = vim.fs.root(0, { "pubspec.yaml" })

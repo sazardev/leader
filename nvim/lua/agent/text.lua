@@ -1,4 +1,4 @@
--- ── Helpers de texto puros ───────────────────────────────────────────────────
+-- ── Pure text helpers ────────────────────────────────────────────────────────
 local M = {}
 
 ---@param s string?
@@ -8,7 +8,7 @@ function M.trim(s)
   return trimmed
 end
 
---- Recorta a `max` caracteres cortando en un salto de línea si se puede
+--- Clips to `max` characters, cutting at a line break if possible
 ---@param s string
 ---@param max integer
 ---@return string

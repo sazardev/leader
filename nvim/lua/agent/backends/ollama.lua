@@ -1,9 +1,9 @@
--- ── Backend: Ollama (modelos locales; CPU o GPU/CUDA, la usa Ollama solo si hay) ─────────────────────────────────
--- Habla con la API HTTP de Ollama (/api/chat, /api/tags) por curl, con streaming. Lo que lo hace bueno de verdad en local:
---   num_ctx automático   Ollama TRUNCA en silencio lo que no cabe en la ventana (2k-4k por defecto): se dimensiona por petición
---   keep_alive           el modelo se queda cargado entre acciones: la primera tarda, las siguientes no
---   temperature baja     el formato (bloque de código, `L<n>|sev|msg`) lo respeta mucho mejor un modelo pequeño
--- Cuesta 0: no hay factura, y por eso las acciones ligeras (docs, explain) son las candidatas ideales (`light_backend`).
+-- ── Backend: Ollama (local models; CPU or GPU/CUDA, Ollama uses the GPU only if there is one) ────────────────────
+-- Talks to Ollama's HTTP API (/api/chat, /api/tags) through curl, with streaming. What makes it really good locally:
+--   automatic num_ctx    Ollama SILENTLY TRUNCATES whatever does not fit the window (2k-4k by default): sized per request
+--   keep_alive           the model stays loaded between actions: the first one is slow, the next ones are not
+--   low temperature      a small model follows the format (code block, `L<n>|sev|msg`) much better
+-- Costs 0: no bill, which is why light actions (docs, explain) are the ideal candidates (`light_backend`).
 local http = require "agent.backends.http"
 local ndjson = require "agent.backends.ndjson"
 local settings = require("core.settings").agent.ollama
@@ -16,7 +16,7 @@ local M = {
   requires_model = true,
 }
 
----@return string url base, sin barra final
+---@return string url base, without trailing slash
 function M.host()
   if settings.host then
     return http.normalize(settings.host, 11434)
@@ -32,8 +32,8 @@ function M.saved()
   return http.saved "ollama"
 end
 
---- Barato (sin red): hay binario, o un servidor configurado / detectado por el setup. Si el servidor no responde, la
---- petición falla con un mensaje que dice qué hacer; no se bloquea el menú preguntándole.
+--- Cheap (no network): there is a binary, or a server configured / detected by the setup. If the server does not answer,
+--- the request fails with a message saying what to do; the menu is not blocked by asking it.
 ---@return boolean
 function M.available()
   return vim.fn.executable "ollama" == 1
@@ -114,7 +114,7 @@ function M.parser()
   return {
     feed = feed,
     finish = function(code, stderr)
-      feed "\n" -- un cuerpo de error sin salto de línea final también se lee
+      feed "\n" -- an error body without a trailing newline is read too
       if err then
         local hint = err:find("not found", 1, true) and " (pull it: `ollama pull <model>` or <leader>am → Setup)"
           or ""
@@ -129,7 +129,7 @@ function M.parser()
         end
         return { ok = false, err = "empty response" }
       end
-      -- los modelos con razonamiento (qwen3, deepseek-r1) pueden devolver su pensamiento entre <think>...</think>
+      -- reasoning models (qwen3, deepseek-r1) may return their thinking between <think>...</think>
       local body = table.concat(chunks):gsub("<think>.-</think>%s*", "")
       local u = final or {}
       return {

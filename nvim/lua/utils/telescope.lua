@@ -1,15 +1,15 @@
--- ── entry_maker de telescope sin íconos ──────────────────────────────────────
--- Los íconos vienen de nvim-web-devicons y no se desactivan con un flag: hay
--- que pisar el entry_maker que arma cada resultado.
+-- ── telescope entry_maker without icons ──────────────────────────────────────
+-- The icons come from nvim-web-devicons and can't be turned off with a flag: you
+-- have to override the entry_maker that builds each result.
 --
--- IMPORTANTE: el require de telescope va DENTRO del closure de display. A nivel
--- de módulo fallaría en una instalación limpia: lazy evalúa los specs ANTES de
--- tener telescope en el runtimepath.
+-- IMPORTANT: the telescope require goes INSIDE the display closure. At module
+-- level it would fail on a clean install: lazy evaluates the specs BEFORE
+-- telescope is on the runtimepath.
 local M = {}
 
 ---@return fun(line: string): table
 function M.no_icons()
-  local displayer -- memo: se crea la primera vez que se muestra un entry
+  local displayer -- memo: created the first time an entry is displayed
 
   return function(line)
     return {
@@ -21,8 +21,8 @@ function M.no_icons()
           displayer = require("telescope.pickers.entry_display").create {
             separator = " ",
             items = {
-              { width = 1 }, -- padding (antes era el ícono)
-              { remaining = true }, -- path completo
+              { width = 1 }, -- padding (it used to be the icon)
+              { remaining = true }, -- full path
             },
           }
         end

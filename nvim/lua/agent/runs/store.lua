@@ -1,7 +1,7 @@
--- ── Almacén de ejecuciones (JSON por líneas, solo-añadir) ────────────────────
--- Cada acción escribe una línea `run` al terminar y, después, líneas `event` (aceptada, rechazada...)
--- que se pliegan sobre su ejecución al leer. Solo se añade: nada se reescribe, salvo la
--- compactación ocasional que conserva las más recientes.
+-- ── Run store (JSON lines, append-only) ──────────────────────────────────────
+-- Each action writes a `run` line when it finishes and, afterwards, `event` lines (accepted, rejected...)
+-- that are folded onto their run when reading. Append-only: nothing is rewritten, except for the
+-- occasional compaction that keeps the most recent ones.
 local settings = require("core.settings").agent.history
 
 local M = {}
@@ -14,7 +14,7 @@ function M.path()
   return override or (vim.fn.stdpath "state" .. "/agent-history.jsonl")
 end
 
---- Cambia el archivo (pruebas)
+--- Changes the file (tests)
 ---@param path string?
 function M.use(path)
   override = path
@@ -33,7 +33,7 @@ function M.append(entry)
   return true
 end
 
---- Resultado final de una ejecución, a partir de su estado y de los eventos que recibió
+--- Final outcome of a run, from its status and the events it received
 ---@param run table
 local function fold(run)
   local seen = {}
@@ -61,7 +61,7 @@ local function fold(run)
   end
 end
 
---- Todas las ejecuciones, la más reciente primero, con su resultado ya plegado
+--- All runs, most recent first, with their outcome already folded
 ---@return table[]
 function M.read()
   local f = io.open(M.path(), "r")
@@ -91,7 +91,7 @@ function M.read()
   return list
 end
 
---- Si el archivo creció demasiado, deja solo las `max_entries` más recientes (con sus eventos)
+--- If the file grew too large, keeps only the most recent `max_entries` (with their events)
 ---@param max_entries integer?
 function M.compact(max_entries)
   max_entries = max_entries or settings.max_entries

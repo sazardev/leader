@@ -1,5 +1,5 @@
--- ── Matemática de color (hex "#rrggbb") ──────────────────────────────────────
--- Funciones puras, sin dependencias de Neovim ni de base46.
+-- ── Color math (hex "#rrggbb") ───────────────────────────────────────────────
+-- Pure functions, with no dependency on Neovim or base46.
 local M = {}
 
 ---@param hex string "#rrggbb"
@@ -19,7 +19,7 @@ function M.to_hex(r, g, b)
   return ("#%02x%02x%02x"):format(channel(r), channel(g), channel(b))
 end
 
---- Mezcla lineal: t = 0 → a, t = 1 → b
+--- Linear blend: t = 0 → a, t = 1 → b
 ---@param a string
 ---@param b string
 ---@param t number 0..1
@@ -30,7 +30,7 @@ function M.blend(a, b, t)
   return M.to_hex(ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t)
 end
 
---- Luminancia relativa (WCAG)
+--- Relative luminance (WCAG)
 ---@param hex string
 ---@return number 0..1
 function M.luminance(hex)
@@ -42,7 +42,7 @@ function M.luminance(hex)
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
 end
 
---- Razón de contraste (WCAG), 1..21
+--- Contrast ratio (WCAG), 1..21
 ---@param a string
 ---@param b string
 ---@return number
@@ -54,12 +54,12 @@ function M.contrast(a, b)
   return (la + 0.05) / (lb + 0.05)
 end
 
---- Acerca `color` hacia `toward` en pasos de 8% hasta alcanzar `min` de contraste
---- contra `against`. Si ya lo cumple, lo devuelve intacto.
+--- Moves `color` toward `toward` in 8% steps until it reaches `min` contrast
+--- against `against`. If it already meets it, returns it untouched.
 ---@param color string
----@param against string fondo contra el que se mide
----@param toward string hacia dónde mover (normalmente el foreground)
----@param min number contraste mínimo
+---@param against string background it is measured against
+---@param toward string where to move toward (normally the foreground)
+---@param min number minimum contrast
 ---@return string
 function M.ensure_contrast(color, against, toward, min)
   local result = color

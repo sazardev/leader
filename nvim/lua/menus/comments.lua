@@ -1,6 +1,6 @@
--- ── Contexto Comments (global): <leader>C ────────────────────────────────────
--- Pliega los comentarios largos (utils/comments.lua; mínimo de líneas en
--- `settings.comments.min_lines`) y genera/audita los de documentación (utils/docgen.lua).
+-- ── Comments context (global): <leader>C ─────────────────────────────────────
+-- Folds long comments (utils/comments.lua; minimum lines in
+-- `settings.comments.min_lines`) and generates/audits documentation comments (utils/docgen.lua).
 local function comments()
   return require "utils.comments"
 end

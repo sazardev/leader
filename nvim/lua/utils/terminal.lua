@@ -1,11 +1,11 @@
--- ── Terminal integrada (toggleterm) ──────────────────────────────────────────
--- Posición y tamaño salen de settings.terminal y se recalculan en cada apertura
--- y al redimensionar la ventana (responsivo).
+-- ── Integrated terminal (toggleterm) ─────────────────────────────────────────
+-- Position and size come from settings.terminal and are recalculated on every open
+-- and when the window is resized (responsive).
 local settings = require "core.settings"
 
 local M = {}
 
---- Dirección de toggleterm según el ancho actual de la pantalla
+--- toggleterm direction according to the current screen width
 ---@return "vertical"|"horizontal"|"float"
 function M.direction()
   local cfg = settings.terminal
@@ -18,7 +18,7 @@ function M.direction()
   return "vertical"
 end
 
---- Tamaño (columnas o líneas) para un terminal de toggleterm
+--- Size (columns or lines) for a toggleterm terminal
 ---@param term { direction: string }
 ---@return number
 function M.size(term)
@@ -29,11 +29,11 @@ function M.size(term)
   return math.max(cfg.min_height, math.floor(vim.o.lines * cfg.height))
 end
 
---- Ajusta los terminales abiertos tras un cambio de tamaño de la ventana
+--- Adjust open terminals after a window resize
 function M.refresh()
   for _, term in pairs(require("toggleterm.terminal").get_all()) do
     if term:is_open() and term:is_split() then
-      -- toggleterm redimensiona la ventana actual: hay que hacerlo desde la del terminal
+      -- toggleterm resizes the current window: it has to be done from the terminal's window
       vim.api.nvim_win_call(term.window, function()
         term:resize(M.size(term))
       end)
@@ -41,12 +41,12 @@ function M.refresh()
   end
 end
 
---- Ejecuta `cmd` en la terminal integrada con cwd `dir`
+--- Run `cmd` in the integrated terminal with cwd `dir`
 ---@param cmd string
 ---@param dir string
 function M.run(cmd, dir)
   local direction = M.direction()
-  -- un terminal cerrado conserva su dirección anterior: la actualizamos
+  -- a closed terminal keeps its previous direction: we update it
   for _, term in pairs(require("toggleterm.terminal").get_all()) do
     if not term:is_open() then
       term.direction = direction

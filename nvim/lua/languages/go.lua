@@ -6,12 +6,12 @@ return {
     always = { "goimports", "gofumpt" },
     full = { "gopls", "golangci-lint" },
   },
-  formatters = { go = { "goimports", "gofumpt" } }, -- primero imports, luego formato estricto
+  formatters = { go = { "goimports", "gofumpt" } }, -- imports first, then strict formatting
   linters = { go = { "golangcilint" } },
-  linters_light = { go = { "govet" } }, -- go vet es efímero; golangci-lint es pesado
+  linters_light = { go = { "govet" } }, -- go vet is ephemeral; golangci-lint is heavy
 
-  -- nvim-lint no trae "govet" de fábrica (solo "golangcilint"); go vet ya viene
-  -- con el toolchain, cero instalación extra.
+  -- nvim-lint does not ship "govet" out of the box (only "golangcilint"); go vet already comes
+  -- with the toolchain, zero extra installation.
   setup_lint = function(lint)
     lint.linters.govet = {
       cmd = "go",

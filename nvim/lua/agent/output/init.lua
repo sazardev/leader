@@ -1,9 +1,9 @@
--- ── Registro de presentadores ────────────────────────────────────────────────
--- Un presentador decide qué hace el resultado en el editor. Contrato:
---   stream(job)          (opcional) texto parcial en job.partial, mientras llega
---   done(job, result)    resultado final; devuelve (opcional) un resumen corto
---   release(job)         (opcional) cancelación/fallo: soltar lo que tenga montado
--- `action.output` elige el presentador. Añadir uno: archivo + NAMES.
+-- ── Presenter registry ───────────────────────────────────────────────────────
+-- A presenter decides what the result does in the editor. Contract:
+--   stream(job)          (optional) partial text in job.partial, while it arrives
+--   done(job, result)    final result; (optionally) returns a short summary
+--   release(job)         (optional) cancellation/failure: release whatever it has set up
+-- `action.output` picks the presenter. Add one: file + NAMES.
 local M = {}
 
 local NAMES = { "replace", "findings", "text" }
@@ -15,7 +15,7 @@ local cache = {}
 ---@return table
 function M.get(kind)
   if not vim.tbl_contains(NAMES, kind) then
-    error("agent: presentador desconocido '" .. tostring(kind) .. "'")
+    error("agent: unknown presenter '" .. tostring(kind) .. "'")
   end
   if not cache[kind] then
     cache[kind] = require("agent.output." .. kind)

@@ -1,7 +1,7 @@
--- ── Colores del panel de commit ──────────────────────────────────────────────
--- Se DERIVAN de los del agente (que a su vez salen de la paleta del tema activo): el panel se ve igual de bien en
--- cualquier tema y comparte fondo, borde y títulos con <leader>a. Solo se añaden los acentos propios (preparado,
--- añadido/borrado, validación) con contraste mínimo garantizado sobre el fondo flotante.
+-- ── Commit panel colors ──────────────────────────────────────────────────────
+-- They are DERIVED from the agent's (which in turn come from the active theme palette): the panel looks equally good in
+-- any theme and shares background, border and titles with <leader>a. Only its own accents are added (staged,
+-- added/removed, validation) with guaranteed minimum contrast over the floating background.
 local color = require "appearance.color"
 
 local M = {}
@@ -56,7 +56,7 @@ end
 
 local ready = false
 
---- Define los grupos y se engancha a los cambios de tema. Idempotente
+--- Defines the groups and hooks into theme changes. Idempotent
 function M.ensure()
   if ready then
     return
@@ -64,7 +64,7 @@ function M.ensure()
   ready = true
   M.apply()
   local group = vim.api.nvim_create_augroup("CommitHighlights", { clear = true })
-  -- tras los del agente (se registraron antes): hay que partir de sus colores ya recalculados
+  -- after the agent's (registered earlier): we must start from their already recalculated colors
   vim.api.nvim_create_autocmd("ColorScheme", { group = group, callback = M.apply })
   vim.api.nvim_create_autocmd("User", { group = group, pattern = "NvThemeReload", callback = M.apply })
 end

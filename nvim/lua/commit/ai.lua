@@ -1,9 +1,9 @@
--- ── Borrador del mensaje con el agente ───────────────────────────────────────
--- Un disparo, sin buffer ni presentador (agent/oneshot): mismo backend y modelo que las acciones, nivel ligero
--- (reasignable con agent.tiers.commit). Lo que se envía es exactamente lo que `describe` anuncia en el panel:
--- los archivos preparados (diff compacto, sin ruido, con tope repartido), la rama y los tipos. NO se envían los asuntos
--- de commits anteriores: el modelo copiaba su idioma (el vocabulario de scopes sale de ellos, en local).
--- El mensaje sale SIEMPRE en inglés y de una sola línea (menos salida = menos espera).
+-- ── Message draft with the agent ─────────────────────────────────────────────
+-- One shot, no buffer or presenter (agent/oneshot): same backend and model as the actions, light tier
+-- (reassignable with agent.tiers.commit). What is sent is exactly what `describe` announces in the panel:
+-- the staged files (compact diff, noise-free, with a split cap), the branch and the types. The subjects
+-- of previous commits are NOT sent: the model copied their language (the scope vocabulary comes from them, locally).
+-- The message ALWAYS comes out in English and on a single line (less output = less waiting).
 local conventional = require "commit.conventional"
 local git = require "commit.git"
 
@@ -13,7 +13,7 @@ local function cfg()
   return require("core.settings").git.commit
 end
 
----@param files string[] rutas preparadas
+---@param files string[] staged paths
 ---@param root string
 ---@return string system, string prompt, { diff_chars: integer, truncated: boolean }
 function M.build(files, root)
@@ -23,7 +23,7 @@ function M.build(files, root)
   end, c.types)
   local scopes = conventional.suggest_scopes(files, conventional.history_scopes(git.recent_subjects(root, c.history)))
 
-  -- Todo en inglés y corto: el modelo devuelve SOLO la primera línea (menos salida = menos espera)
+  -- All in English and short: the model returns ONLY the first line (less output = less waiting)
   local system = table.concat({
     "Write ONE git commit message for the staged diff. Conventional Commits, header line only.",
     "Output exactly one line: `type(scope): subject`. No body, no quotes, no code fences, no commentary.",
@@ -53,14 +53,14 @@ function M.build(files, root)
   return system, prompt, { diff_chars = total, truncated = truncated }
 end
 
---- Qué modelo lo escribiría (sin lanzar nada): "claude/haiku"
+--- Which model would write it (without launching anything): "claude/haiku"
 ---@return string?
 function M.model()
   local sel = require("agent.selection").current { name = "commit", tier = "light" }
   return sel and require("agent.selection").label(sel) or nil
 end
 
---- Lo que se enviaría con N archivos preparados: para mostrarlo ANTES de gastar nada
+--- What would be sent with N staged files: to show it BEFORE spending anything
 ---@param files string[]
 ---@param root string
 ---@return { model: string?, files: integer, diff_chars: integer, truncated: boolean, limit: integer }
@@ -69,7 +69,7 @@ function M.describe(files, root)
   return { model = M.model(), files = #files, diff_chars = total, truncated = truncated, limit = cfg().diff_max_chars }
 end
 
---- Pide el borrador. `cb(ok, lines | error, usage)`; devuelve el proceso para poder cancelarlo
+--- Requests the draft. `cb(ok, lines | error, usage)`; returns the process so it can be cancelled
 ---@param files string[]
 ---@param root string
 ---@param cb fun(ok: boolean, result: string[]|string, usage: table?)
@@ -80,7 +80,7 @@ function M.draft(files, root, cb)
     if not ok then
       return cb(false, out)
     end
-    -- solo la primera línea no vacía: si el modelo añade cuerpo o alternativas, se ignoran
+    -- only the first non-empty line: if the model adds a body or alternatives, they are ignored
     local header = vim.tbl_filter(function(l)
       return vim.trim(l) ~= ""
     end, conventional.clean_message(out))[1]

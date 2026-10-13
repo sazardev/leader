@@ -1,8 +1,8 @@
--- ── Ajustes de UI que algún plugin podría pisar ──────────────────────────────
+-- ── UI settings that some plugin might override ──────────────────────────────
 local M = {}
 
 function M.setup()
-  -- Forzar cmdheight=0 tras la carga completa (pisa cualquier plugin que lo resetee)
+  -- Force cmdheight=0 after the full load (overrides any plugin that resets it)
   vim.api.nvim_create_autocmd("VimEnter", {
     group = vim.api.nvim_create_augroup("ForceCmdheight", { clear = true }),
     once = true,
@@ -11,9 +11,9 @@ function M.setup()
     end,
   })
 
-  -- El dashboard (nvdash) se redibuja al redimensionar poniendo `modifiable = true` y
-  -- nunca lo vuelve a bloquear (bug de NvChad): se podía escribir texto en él. Se
-  -- re-bloquea justo después de su redibujado.
+  -- The dashboard (nvdash) is redrawn on resize setting `modifiable = true` and
+  -- never locks it again (NvChad bug): text could be typed into it. It is
+  -- re-locked right after its redraw.
   vim.api.nvim_create_autocmd({ "WinResized", "VimResized" }, {
     group = vim.api.nvim_create_augroup("RelockNvdash", { clear = true }),
     callback = function()

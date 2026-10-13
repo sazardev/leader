@@ -1,4 +1,4 @@
--- Preguntar: una pregunta concreta sobre lo que estás viendo (un solo disparo, sin chat)
+-- Ask: one specific question about what you are looking at (one-shot, no chat)
 return {
   label = "ask",
   desc = "ask",

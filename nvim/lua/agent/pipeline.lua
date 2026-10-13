@@ -1,6 +1,6 @@
--- ── Flujo de una acción ──────────────────────────────────────────────────────
--- objetivo → (entrada del usuario) → trabajo + ancla + spinner → contexto →
--- prompt → runner. Cada paso es de otro módulo; aquí solo se encadenan.
+-- ── Flow of an action ────────────────────────────────────────────────────────
+-- target → (user input) → job + anchor + spinner → context →
+-- prompt → runner. Each step belongs to another module; here they are only chained.
 local actions = require "agent.actions"
 local anchor = require "agent.anchor"
 local context = require "agent.context"
@@ -18,7 +18,7 @@ require("agent.ui.highlights").ensure()
 
 local M = {}
 
----@param name string|table nombre de una acción, o la acción misma (las de agent/ddd viven en su propio registro)
+---@param name string|table name of an action, or the action itself (those of agent/ddd live in their own registry)
 ---@param opts { range: integer[]? }?
 function M.run(name, opts)
   opts = opts or {}
@@ -40,7 +40,7 @@ function M.run(name, opts)
     return log.warn "Agent: only works in file buffers"
   end
 
-  -- la selección visual se lee ANTES de abrir cualquier ventana
+  -- the visual selection is read BEFORE opening any window
   local target, err = target_mod.resolve(buf, action.scope, opts.range or target_mod.visual_range())
   if not target then
     return log.warn("Agent: " .. err)
@@ -49,8 +49,8 @@ function M.run(name, opts)
   if problem then
     return log.warn("Agent: " .. problem)
   end
-  -- `retarget`: el resultado va a OTRO sitio (p. ej. el archivo de pruebas); lo de aquí pasa a ser el `subject`,
-  -- de donde sale el contexto, mientras el objetivo (lo que se reemplaza y se envía) es el destino
+  -- `retarget`: the result goes ELSEWHERE (e.g. the test file); what is here becomes the `subject`,
+  -- where the context comes from, while the target (what is replaced and sent) is the destination
   local subject
   if action.retarget then
     local dest, why = action.retarget(target)
@@ -65,7 +65,7 @@ function M.run(name, opts)
   end
 
   ---@param input string?
-  ---@param extra { name: string, text: string }[]? secciones que añadió `prepare`
+  ---@param extra { name: string, text: string }[]? sections added by `prepare`
   local function launch(input, extra)
     local job = jobs.create {
       action = action,
@@ -75,14 +75,14 @@ function M.run(name, opts)
       selection = sel,
       presenter = output.get(action.output),
       anchor = anchor.create(buf, target.first, target.last),
-      -- el spinner y el resumen se ven donde estás (el código bajo prueba), no en el archivo de destino
+      -- the spinner and the summary show where you are (the code under test), not in the destination file
       view = subject and {
         buf = subject.buf,
         anchor = anchor.create(subject.buf, subject.first, subject.last),
         first = subject.first,
       } or nil,
     }
-    status.attach(job) -- feedback inmediato, también mientras se reúne el contexto
+    status.attach(job) -- immediate feedback, also while the context is being gathered
 
     context.build(action, subject or target, function(sections)
       if job.state ~= "running" then
@@ -101,7 +101,7 @@ function M.run(name, opts)
     if action.handler then
       return action.handler { target = target, input = input, selection = sel }
     end
-    -- `prepare`: trabajo previo SIN modelo (correr las pruebas...). Si no hay nada que pedirle, se corta aquí: 0 tokens
+    -- `prepare`: prior work WITHOUT a model (running the tests...). If there is nothing to ask it, it stops here: 0 tokens
     if action.prepare then
       log.info(("Agent %s: %s"):format(action.label, action.preparing or "preparing…"))
       return action.prepare(target, function(extra, why)

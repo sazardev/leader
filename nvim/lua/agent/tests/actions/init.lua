@@ -1,9 +1,9 @@
--- ── Registro de acciones de PRUEBAS (<leader>aT) ─────────────────────────────
--- Mismo contrato y pipeline que agent/actions, más los ganchos que el pipeline reconoce:
---   retarget(subject)   el resultado va al archivo de pruebas, no a la función (agent/tests/target.lua)
---   merge(code, target) el modelo devuelve solo lo nuevo; se une al final del archivo
---   reveal              abre el destino a un lado para aceptar/rechazar allí
---   prepare(target, cb) trabajo previo SIN modelo (correr la prueba); si no hay nada que pedir, 0 tokens
+-- ── TEST action registry (<leader>aT) ─────────────────────────────────────────
+-- Same contract and pipeline as agent/actions, plus the hooks the pipeline recognizes:
+--   retarget(subject)   the result goes to the test file, not to the function (agent/tests/target.lua)
+--   merge(code, target) the model returns only what is new; it is joined at the end of the file
+--   reveal              opens the destination to the side to accept/reject there
+--   prepare(target, cb) prior work WITHOUT a model (running the test); if there is nothing to ask, 0 tokens
 local M = {}
 
 local NAMES = { "write", "mock", "fix" }

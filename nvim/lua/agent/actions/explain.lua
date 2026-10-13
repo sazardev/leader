@@ -1,4 +1,4 @@
--- Explicar: respuesta corta, en una ventana junto al código
+-- Explain: short answer, in a window next to the code
 return {
   label = "explain",
   desc = "explain",

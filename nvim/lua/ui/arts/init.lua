@@ -1,18 +1,18 @@
--- ── Arte ASCII del dashboard ─────────────────────────────────────────────────
--- Catálogo: un archivo por arte en `lua/ui/arts/<nombre>.lua` que devuelve la
--- lista de líneas. Para añadir uno: solo crea el archivo; el catálogo se descubre
--- escaneando la carpeta (sin lista que mantener) cada vez que se necesita.
--- IMPORTANTE: todo arte debe ser de PUNTOS (caracteres braille U+2800–U+28FF),
--- nunca ASCII/bloques/emoji, para mantener el mismo estilo en el dashboard.
--- La elección se recuerda entre sesiones (stdpath "state"/dashboard.json); el
--- valor inicial es `settings.dashboard.art`.
+-- ── Dashboard ASCII art ──────────────────────────────────────────────────────
+-- Catalog: one file per art in `lua/ui/arts/<name>.lua` returning the
+-- list of lines. To add one: just create the file; the catalog is discovered
+-- by scanning the folder (no list to maintain) every time it is needed.
+-- IMPORTANT: every art must be made of DOTS (braille characters U+2800–U+28FF),
+-- never ASCII/blocks/emoji, to keep the same style on the dashboard.
+-- The choice is remembered across sessions (stdpath "state"/dashboard.json); the
+-- initial value is `settings.dashboard.art`.
 local log = require "utils.log"
 local settings = require "core.settings"
 
 local M = {}
 
---- Artes disponibles: un `<nombre>.lua` por arte en esta carpeta (excepto init).
----@return string[] nombres ordenados
+--- Available arts: one `<name>.lua` per art in this folder (except init).
+---@return string[] sorted names
 function M.names()
   local names, seen = {}, {}
   for _, path in ipairs(vim.api.nvim_get_runtime_file("lua/ui/arts/*.lua", true)) do
@@ -57,7 +57,7 @@ local function valid(name)
   return vim.tbl_contains(M.names(), name)
 end
 
----@return string nombre elegido
+---@return string chosen name
 function M.current()
   local saved = read_saved()
   if saved and valid(saved) then
@@ -66,8 +66,8 @@ function M.current()
   return valid(settings.dashboard.art) and settings.dashboard.art or M.names()[1]
 end
 
---- Rellena las líneas al mismo ancho: nvdash centra cada línea por separado y
---- un arte con líneas desiguales se vería torcido.
+--- Pads the lines to the same width: nvdash centers each line separately and
+--- an art with uneven lines would look crooked.
 ---@param lines string[]
 ---@return string[]
 local function pad(lines)
@@ -83,7 +83,7 @@ end
 ---@param name string
 ---@return string[]
 function M.load(name)
-  -- sin caché: así un arte editado se ve al reabrir el selector sin reiniciar nvim
+  -- no cache: this way an edited art shows up when reopening the picker without restarting nvim
   package.loaded["ui.arts." .. name] = nil
   local ok, lines = pcall(require, "ui.arts." .. name)
   if not ok or type(lines) ~= "table" then
@@ -93,13 +93,13 @@ function M.load(name)
   return pad(lines)
 end
 
----@return string[] líneas del arte activo
+---@return string[] lines of the active art
 function M.lines()
   return M.load(M.current())
 end
 
---- Redibuja el dashboard si está visible. nvdash reemplaza `header` por su
---- resultado en el primer dibujo, así que hay que volver a ponerle la función.
+--- Redraws the dashboard if visible. nvdash replaces `header` with its
+--- result on the first draw, so the function must be put back.
 local function redraw()
   local buf = vim.g.nvdash_buf
   local win = buf and vim.api.nvim_buf_is_valid(buf) and vim.fn.bufwinid(buf) or -1
@@ -124,7 +124,7 @@ function M.set(name)
   log.info("Dashboard art: " .. name)
 end
 
---- Selector con vista previa (Telescope); cae a vim.ui.select sin Telescope.
+--- Picker with preview (Telescope); falls back to vim.ui.select without Telescope.
 function M.pick()
   local ok, pickers = pcall(require, "telescope.pickers")
   if not ok then

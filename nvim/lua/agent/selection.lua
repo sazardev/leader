@@ -1,6 +1,6 @@
--- ── Qué backend y modelo se usan ─────────────────────────────────────────────
--- Prioridad: lo elegido con <leader>am (state) > settings.agent > autodetección.
--- Los backends no saben nada de esto: reciben el modelo ya resuelto en la petición.
+-- ── Which backend and model are used ─────────────────────────────────────────
+-- Priority: what was picked with <leader>am (state) > settings.agent > autodetection.
+-- The backends know nothing about this: they receive the already-resolved model in the request.
 local settings = require("core.settings").agent
 local backends = require "agent.backends"
 local state = require "agent.state"
@@ -31,10 +31,10 @@ local function main_model(name)
   return (state.get "models" or {})[name] or (settings[name] or {}).model or backends.get(name).default_model
 end
 
---- Modelo ligero del backend; si no hay uno definido, el principal (nunca se inventa un id)
---- Backend de las acciones ligeras: el elegido para ellas (`light_backend`, en el estado o en settings) si está
---- disponible; si no, el mismo que el principal. Así docs/explain pueden correr en un modelo local gratis
---- mientras implement/fix siguen en Claude.
+--- Light model of the backend; if none is defined, the main one (an id is never invented)
+--- Backend of the light actions: the one chosen for them (`light_backend`, in the state or in settings) if it is
+--- available; otherwise the same as the main one. That way docs/explain can run on a free local model
+--- while implement/fix stay on Claude.
 ---@param main string
 ---@return string
 local function light_backend(main)
@@ -51,7 +51,7 @@ local function light_model(name)
   return (state.get "light_models" or {})[name] or (settings[name] or {}).light_model or main_model(name)
 end
 
---- "main" o "light": de la acción, salvo que `settings.agent.tiers` la reasigne
+--- "main" or "light": from the action, unless `settings.agent.tiers` reassigns it
 ---@param action table?
 ---@return "main"|"light"
 function M.tier_of(action)
@@ -61,8 +61,8 @@ function M.tier_of(action)
   return settings.tiers[action.name] or action.tier or "main"
 end
 
---- Selección para una acción: su tier decide el modelo. Las acciones ligeras tampoco heredan
---- el esfuerzo que fijaste: son las baratas, no deben salir caras por un ajuste pensado para otras.
+--- Selection for an action: its tier decides the model. Light actions do not inherit the
+--- effort you set either: they are the cheap ones, they must not turn expensive because of a setting meant for others.
 ---@param action table?
 ---@return AgentSelection?
 function M.current(action)
@@ -90,17 +90,17 @@ end
 
 ---@param backend string
 ---@param model string
----@param tier "main"|"light"? por defecto "main"
+---@param tier "main"|"light"? default "main"
 function M.set(backend, model, tier)
   local key = tier == "light" and "light_models" or "models"
   local models = state.get(key) or {}
   models[backend] = model
   state.set(key, models)
-  -- elegir el modelo ligero NO cambia el backend principal: fija el backend de las acciones ligeras
+  -- picking the light model does NOT change the main backend: it sets the backend of the light actions
   state.set(tier == "light" and "light_backend" or "backend", backend)
 end
 
----@param effort string? nil = el valor por defecto del modelo
+---@param effort string? nil = the model's default value
 function M.set_effort(effort)
   state.set("effort", effort)
 end

@@ -1,7 +1,7 @@
--- ── Apariencia: tema por defecto vs. tema heredado de la terminal ────────────
--- "default" = settings.theme.name (gruvbox). "terminal" = paleta de Alacritty
--- convertida a tema de base46 (ver terminal_theme.lua). Cualquier tema elegido
--- (también desde el selector de NvChad) se recuerda entre sesiones.
+-- ── Appearance: default theme vs. theme inherited from the terminal ──────────
+-- "default" = settings.theme.name (gruvbox). "terminal" = Alacritty palette
+-- converted to a base46 theme (see terminal_theme.lua). Any chosen theme
+-- (also from the NvChad picker) is remembered across sessions.
 local alacritty = require "appearance.alacritty"
 local log = require "utils.log"
 local settings = require "core.settings"
@@ -21,13 +21,13 @@ function M.default()
   return settings.theme.name
 end
 
----@return string tema activo ahora
+---@return string theme active right now
 function M.current()
   return require("nvconfig").base46.theme
 end
 
---- Tema con el que arranca Neovim: el último elegido, o el default si el tema
---- terminal ya no está disponible (sin config de Alacritty, desactivado...).
+--- Theme Neovim starts with: the last chosen one, or the default if the terminal
+--- theme is no longer available (no Alacritty config, disabled...).
 ---@return string
 function M.initial()
   local saved = state.read_choice().theme
@@ -37,8 +37,8 @@ function M.initial()
   return saved or M.default()
 end
 
---- Sigue la config de Alacritty en vivo, pero solo mientras el tema activo sea el
---- terminal (con el default no hay ningún sondeo corriendo).
+--- Follows the Alacritty config live, but only while the active theme is the
+--- terminal one (with the default no polling is running).
 function M.watch()
   if M.current() ~= M.TERMINAL or not terminal_enabled() then
     return watcher.stop()
@@ -50,10 +50,10 @@ function M.watch()
   end)
 end
 
---- Recuerda el tema actual: la elección del usuario y lo que quedó compilado.
---- La firma es la de la lectura CACHEADA (la que usó la compilación), nunca una
---- relectura: si el archivo cambió durante la compilación, la firma guardada
---- queda vieja y el sondeo recompila (con una relectura se perdería ese cambio).
+--- Remembers the current theme: the user's choice and what ended up compiled.
+--- The signature is the one from the CACHED read (the one the compilation used), never a
+--- re-read: if the file changed during compilation, the saved signature
+--- stays stale and the polling recompiles (with a re-read that change would be lost).
 function M.persist()
   local name = M.current()
   local loaded = name == M.TERMINAL and alacritty.load() or nil
@@ -62,7 +62,7 @@ function M.persist()
   M.watch()
 end
 
---- Aplica un tema: recompila los highlights de base46 en caliente
+--- Applies a theme: recompiles the base46 highlights on the fly
 ---@param name string
 ---@return boolean ok
 function M.use(name)
@@ -78,14 +78,14 @@ function M.use(name)
     end
   end
 
-  package.loaded["themes.terminal"] = nil -- releer la paleta
+  package.loaded["themes.terminal"] = nil -- re-read the palette
   require("nvconfig").base46.theme = name
   require("base46").load_all_highlights()
   M.persist()
   return true
 end
 
---- Alterna entre el tema por defecto y el heredado de la terminal
+--- Toggles between the default theme and the one inherited from the terminal
 function M.toggle()
   local target = M.current() == M.TERMINAL and M.default() or M.TERMINAL
   if M.use(target) then
@@ -93,9 +93,9 @@ function M.toggle()
   end
 end
 
---- Garantiza que la caché de highlights corresponde al tema deseado (y, si es el
---- terminal, a la config actual de Alacritty); si no, recompila. Barato: solo
---- compara el marcador de la caché con la firma (mtime + tamaño) de los archivos.
+--- Ensures the highlight cache matches the desired theme (and, if it is the
+--- terminal one, the current Alacritty config); otherwise recompiles. Cheap: it only
+--- compares the cache marker with the signature (mtime + size) of the files.
 ---@return boolean changed
 function M.sync()
   local desired = M.initial()
@@ -107,8 +107,8 @@ function M.sync()
   return M.use(desired)
 end
 
---- Origen del tema actual y estado del seguimiento en vivo, en una sola línea
---- (varias líneas disparan "Press ENTER" y se tragan las teclas siguientes)
+--- Source of the current theme and live-tracking state, on a single line
+--- (several lines trigger "Press ENTER" and swallow the following keys)
 ---@return string
 function M.info()
   local name = M.current()

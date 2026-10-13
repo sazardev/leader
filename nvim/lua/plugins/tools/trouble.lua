@@ -1,4 +1,4 @@
--- Panel de diagnósticos
+-- Diagnostics panel
 return {
   "folke/trouble.nvim",
   cmd = "Trouble",
@@ -7,16 +7,16 @@ return {
   },
   opts = {
     modes = {
-      -- focus: al abrirlo el cursor entra al panel (por defecto se queda en el código y no se
-      -- puede elegir ni dar Enter)
+      -- focus: on opening, the cursor enters the panel (by default it stays in the code and you
+      -- cannot select or press Enter)
       diagnostics = { focus = true },
     },
     keys = {
-      -- Enter salta al diagnóstico y abre su popup, igual que <leader>xd
+      -- Enter jumps to the diagnostic and opens its popup, like <leader>xd
       ["<cr>"] = {
         action = function(view, ctx)
           if not ctx.item then
-            return view:fold(ctx.node) -- sobre un archivo: pliega/despliega
+            return view:fold(ctx.node) -- on a file: folds/unfolds
           end
           view:jump(ctx.item)
           vim.schedule(require("utils.diagblocks").popup)

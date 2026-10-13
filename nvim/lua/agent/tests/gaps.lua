@@ -1,8 +1,8 @@
--- ── Huecos de pruebas (local, 0 tokens) ──────────────────────────────────────
--- ¿Qué funciones públicas de esta carpeta no aparecen en ningún archivo de pruebas? Lectura por treesitter y texto:
--- una función "cubierta" es la que algún archivo de pruebas nombra (`TestParse`, `test_parse`, `parse(`...). Es un
--- mapa aproximado (un nombre corto puede dar un falso "cubierta"), pero gratis y suficiente para decidir dónde
--- pedir pruebas con `<leader>aTw`. El resultado va a la lista de quickfix.
+-- ── Test gaps (local, 0 tokens) ──────────────────────────────────────────────
+-- Which public functions in this folder do not appear in any test file? Read via treesitter and text:
+-- a "covered" function is one that some test file names (`TestParse`, `test_parse`, `parse(`...). It is an
+-- approximate map (a short name can give a false "covered"), but free and enough to decide where to
+-- ask for tests with `<leader>aTw`. The result goes to the quickfix list.
 local convention = require "agent.tests.convention"
 local log = require "utils.log"
 local scopes = require "agent.context.scopes"
@@ -55,7 +55,7 @@ function M.run()
     end
   end
 
-  -- los archivos de pruebas de la convención (p. ej. tests/test_x.py, test/x_test.dart) y los de esta carpeta
+  -- the convention's test files (e.g. tests/test_x.py, test/x_test.dart) and those of this folder
   local seen = {}
   for _, t in ipairs(tests) do
     seen[t] = true
@@ -77,7 +77,7 @@ function M.run()
   for _, path in ipairs(sources) do
     local src = slurp(path)
     local info = convention.locate(path, lang)
-    -- Rust: las pruebas viven en el propio archivo, en su bloque #[cfg(test)]
+    -- Rust: the tests live in the file itself, in its #[cfg(test)] block
     local own = ""
     if info and info.inline then
       local at = src:find "#%[cfg%(test%)%]"

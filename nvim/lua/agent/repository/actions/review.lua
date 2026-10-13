@@ -1,4 +1,4 @@
--- Repository review: lo propio de un adaptador de persistencia, contra su puerto y su esquema
+-- Repository review: what is specific to a persistence adapter, against its port and its schema
 local protocol = require "agent.protocol"
 
 return {

@@ -1,28 +1,28 @@
--- ── Registro de acciones ─────────────────────────────────────────────────────
--- Una acción = una receta fija: qué objetivo toma, qué contexto pide, qué prompt
--- lleva y cómo se presenta el resultado. Contrato (campos de cada archivo):
+-- ── Action registry ──────────────────────────────────────────────────────────
+-- An action = a fixed recipe: which target it takes, which context it asks for, which prompt
+-- it carries and how the result is presented. Contract (fields of each file):
 --
---   label      string        nombre corto (estado, títulos)
---   desc       string        texto del menú del leader
---   key        string        tecla bajo <leader>a
---   modes      string[]?     modos del mapeo (por defecto n y x)
---   scope      string        "function" | "class" | "type" | "file" | "lines" | "diagnostic" (la selección visual manda;
---                            "type" = el tipo bajo el cursor, o el de su receptor si estás en un método de Go)
---   context    string[]?     proveedores de agent/context/providers
---   output     string        presentador: "replace" | "findings" | "text" (agent/output)
---   numbered   boolean?      numerar las líneas del objetivo (hallazgos por línea)
---   input      string?       si abre el campo de instrucción en línea: el placeholder del campo
---   input_optional boolean?  con `input`: Enter con el campo vacío corre sin instrucción (implement, docs,
---              fix); sin esto el texto es obligatorio (ask, refactor, handoff)
---   enabled    fun(): boolean?  si devuelve false la acción no aparece en el menú (handoff fuera de Herdr)
---   examples   boolean?      pide a los proveedores un ejemplo de estilo del propio proyecto (contracts)
---   tier       string?       "light" = corre en el modelo ligero (barato); por defecto "main"
+--   label      string        short name (status, titles)
+--   desc       string        leader menu text
+--   key        string        key under <leader>a
+--   modes      string[]?     mapping modes (default n and x)
+--   scope      string        "function" | "class" | "type" | "file" | "lines" | "diagnostic" (a visual selection wins;
+--                            "type" = the type under the cursor, or its receiver's if you are in a Go method)
+--   context    string[]?     providers from agent/context/providers
+--   output     string        presenter: "replace" | "findings" | "text" (agent/output)
+--   numbered   boolean?      number the target's lines (per-line findings)
+--   input      string?       if it opens the inline instruction field: the field's placeholder
+--   input_optional boolean?  with `input`: Enter on an empty field runs without instruction (implement, docs,
+--              fix); without this the text is required (ask, refactor, handoff)
+--   enabled    fun(): boolean?  if it returns false the action does not show in the menu (handoff outside Herdr)
+--   examples   boolean?      asks the providers for a style example from the project itself (contracts)
+--   tier       string?       "light" = runs on the light (cheap) model; default "main"
 --   system(env), task(env)   prompts; env = { target, input, language }
---   check(target)            (opcional) devuelve un error si la acción no aplica aquí
---   handler(session)         (opcional) sustituye todo el flujo del modelo (p. ej. handoff)
+--   check(target)            (optional) returns an error if the action does not apply here
+--   handler(session)         (optional) replaces the whole model flow (e.g. handoff)
 --
--- Añadir una acción: crea `agent/actions/<nombre>.lua` y agrégala a NAMES; el menú y
--- el cheatsheet salen solos.
+-- Add an action: create `agent/actions/<name>.lua` and add it to NAMES; the menu and
+-- the cheatsheet come out on their own.
 local M = {}
 
 local NAMES = { "implement", "review", "explain", "ask", "fix", "fix_block", "docs", "refactor", "handoff" }

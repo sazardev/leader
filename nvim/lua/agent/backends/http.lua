@@ -1,13 +1,13 @@
--- ── Capa HTTP compartida por los backends locales (Ollama, OpenAI-compatible) ─────
--- Habla con curl (viene con todos los sistemas): sin dependencias, con streaming y con el mismo `vim.system` que usan los
--- demás backends. Resuelve DÓNDE está el servidor (ajuste > variable de entorno > lo que el setup detectó > lo habitual),
--- incluido el caso de WSL con el servidor en el host de Windows, y convierte los errores de curl en mensajes que dicen
--- qué hacer.
+-- ── HTTP layer shared by the local backends (Ollama, OpenAI-compatible) ───────────
+-- Talks through curl (ships with every system): no dependencies, with streaming and the same `vim.system` the other
+-- backends use. Resolves WHERE the server is (setting > environment variable > what the setup detected > the usual),
+-- including WSL with the server on the Windows host, and turns curl errors into messages that say
+-- what to do.
 local state = require "agent.state"
 
 local M = {}
 
---- Normaliza "host:port", "0.0.0.0:11434" o "http://x" a una URL base sin barra final
+--- Normalizes "host:port", "0.0.0.0:11434" or "http://x" to a base URL without trailing slash
 ---@param raw string
 ---@param default_port integer
 ---@return string
@@ -27,7 +27,7 @@ function M.normalize(raw, default_port)
   return url
 end
 
---- Servidor guardado por el setup (stdpath state) para un tipo ("ollama" | "openai")
+--- Server saved by the setup (stdpath state) for a kind ("ollama" | "openai")
 ---@param kind string
 ---@return string?
 function M.saved(kind)
@@ -42,8 +42,8 @@ function M.save(kind, url)
   state.set("endpoints", all)
 end
 
---- Candidatos donde puede estar un servidor local, en orden. En WSL2 el servidor suele vivir en Windows: su IP es la
---- puerta de enlace por defecto o el nameserver de /etc/resolv.conf (según el modo de red).
+--- Candidates where a local server may be, in order. On WSL2 the server usually lives on Windows: its IP is the
+--- default gateway or the nameserver in /etc/resolv.conf (depending on the network mode).
 ---@param port integer
 ---@return string[]
 function M.candidates(port)
@@ -68,7 +68,7 @@ function M.candidates(port)
   return out
 end
 
---- Argumentos de curl para una petición JSON con streaming; el cuerpo va por stdin
+--- curl arguments for a streaming JSON request; the body goes through stdin
 ---@param url string
 ---@param opts { method: string?, headers: string[]?, stream: boolean?, max_time: integer?, connect_timeout: integer?, body: boolean? }?
 ---@return string[]
@@ -95,11 +95,11 @@ function M.curl(url, opts)
   return cmd
 end
 
---- Mensaje útil a partir de un fallo de curl
+--- Useful message from a curl failure
 ---@param code integer
 ---@param stderr string?
 ---@param url string
----@param hint string  qué hacer si no responde
+---@param hint string  what to do if it does not answer
 ---@return string
 function M.explain(code, stderr, url, hint)
   if code == 7 then
@@ -115,16 +115,16 @@ function M.explain(code, stderr, url, hint)
   return msg ~= "" and msg or ("curl exited with code %d"):format(code)
 end
 
---- Tokens aproximados de un texto (para dimensionar el contexto de un modelo local)
+--- Approximate tokens of a text (to size a local model's context)
 ---@param chars integer
 ---@return integer
 function M.approx_tokens(chars)
-  return math.ceil(chars / 3.2) -- el código tokeniza peor que la prosa: se redondea hacia arriba
+  return math.ceil(chars / 3.2) -- code tokenizes worse than prose: rounded up
 end
 
---- Ventana de contexto para esta petición: lo que ocupa el prompt + margen para la respuesta, redondeado a una potencia de
---- dos entre 4096 y `max_ctx`. Ollama TRUNCA en silencio lo que no cabe en `num_ctx` (por defecto, 2k-4k): sin esto un
---- prompt con contexto de verdad perdería justo el principio (las reglas) sin avisar.
+--- Context window for this request: what the prompt takes + room for the answer, rounded to a power of
+--- two between 4096 and `max_ctx`. Ollama SILENTLY TRUNCATES whatever does not fit `num_ctx` (default 2k-4k): without this a
+--- prompt with real context would lose exactly its beginning (the rules) without warning.
 ---@param prompt_chars integer
 ---@param opts { num_ctx: integer?, max_ctx: integer? }
 ---@return integer

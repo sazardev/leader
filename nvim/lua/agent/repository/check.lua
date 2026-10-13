@@ -1,8 +1,8 @@
--- ── Repository check: ¿el adaptador cumple su puerto y su tabla? (0 tokens) ──
--- Para el adaptador bajo el cursor compara, sin LLM:
---   · los métodos del puerto con los que el tipo ya tiene (y el constructor);
---   · los campos de la entidad con las columnas de su tabla (en las migraciones o el schema.prisma);
--- y muestra la base de datos que se usa y el ejemplo hermano que se seguiría. Un panel resume el resultado.
+-- ── Repository check: does the adapter fulfil its port and its table? (0 tokens) ──
+-- For the adapter under the cursor it compares, without an LLM:
+--   · the port's methods with those the type already has (and the constructor);
+--   · the entity's fields with the columns of its table (in the migrations or schema.prisma);
+-- and shows the database in use and the sibling example that would be followed. A panel summarises the result.
 local contracts = require "agent.repository.contracts"
 local discovery = require "agent.discovery"
 local index = require "agent.ddd.index"
@@ -14,7 +14,7 @@ local target_mod = require "agent.context.target"
 
 local M = {}
 
--- Líneas de una definición de tabla que NO son columnas
+-- Lines of a table definition that are NOT columns
 local NOT_COLUMN = {
   constraint = true,
   primary = true,
@@ -27,8 +27,8 @@ local NOT_COLUMN = {
   [")"] = true,
 }
 
----@param lines string[] bloque CREATE TABLE o `model` de Prisma
----@return string[] nombres de columna en minúsculas
+---@param lines string[] CREATE TABLE block or Prisma `model`
+---@return string[] column names in lowercase
 function M.columns(lines)
   local out = {}
   for i, l in ipairs(lines) do
@@ -42,9 +42,9 @@ function M.columns(lines)
   return out
 end
 
----@param lines string[] declaración de la entidad
+---@param lines string[] entity declaration
 ---@param ext string
----@return { name: string, key: string }[] campos con su clave normalizada (sin guiones bajos, en minúsculas)
+---@return { name: string, key: string }[] fields with their normalised key (no underscores, lowercase)
 function M.fields(lines, ext)
   local out = {}
   for i, l in ipairs(lines) do

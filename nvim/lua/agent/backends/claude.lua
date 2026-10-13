@@ -1,13 +1,13 @@
 -- ── Backend: Claude Code (`claude -p`) ───────────────────────────────────────
--- Banderas que lo hacen barato, rápido y predecible (medido: 579 tokens de entrada
--- por llamada frente a ~46 000 con la config por defecto del CLI):
---   --setting-sources ""      no cargar settings, plugins, skills, hooks ni memoria
---   --system-prompt           reemplaza el prompt de sistema del CLI por el de la acción
---   --tools ""                sin herramientas: solo texto, no toca archivos
---   --no-session-persistence  nada de sesiones en disco
---   DISABLE_PROMPT_CACHING=1  la caché solo cobra la escritura (cada mensaje es nuevo): -40% por llamada
--- No usa --bare ni CLAUDE_CODE_SIMPLE: desactivan OAuth y romperían el uso con suscripción. Quedan
--- ~560 tokens de entrada fijos del propio CLI que ninguna bandera segura recorta.
+-- Flags that make it cheap, fast and predictable (measured: 579 input tokens
+-- per call versus ~46,000 with the CLI's default config):
+--   --setting-sources ""      do not load settings, plugins, skills, hooks or memory
+--   --system-prompt           replaces the CLI's system prompt with the action's
+--   --tools ""                no tools: text only, does not touch files
+--   --no-session-persistence  no sessions on disk
+--   DISABLE_PROMPT_CACHING=1  the cache only charges the write (every message is new): -40% per call
+-- It does not use --bare or CLAUDE_CODE_SIMPLE: they disable OAuth and would break subscription use. About
+-- ~560 fixed input tokens from the CLI itself remain that no safe flag trims.
 local settings = require("core.settings").agent.claude
 local ndjson = require "agent.backends.ndjson"
 local sandbox = require "agent.sandbox"
@@ -60,12 +60,12 @@ function M.build(req)
   if settings.max_cost_usd then
     vim.list_extend(cmd, { "--max-budget-usd", tostring(settings.max_cost_usd) })
   end
-  -- sin caché de prompts salvo que se pida: ver settings.agent.claude.prompt_cache
+  -- no prompt caching unless requested: see settings.agent.claude.prompt_cache
   local env = settings.prompt_cache and nil or { DISABLE_PROMPT_CACHING = "1" }
   return { cmd = cmd, stdin = req.prompt, cwd = sandbox.dir(), env = env }
 end
 
----@param result table evento `result` del stream
+---@param result table `result` event of the stream
 ---@return table
 local function usage_of(result)
   local u = result.usage or {}

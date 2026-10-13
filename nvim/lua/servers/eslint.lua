@@ -1,4 +1,4 @@
--- Code actions + auto-fix con <leader>ca
+-- Code actions + auto-fix with <leader>ca
 return {
   settings = {
     workingDirectories = { mode = "auto" },

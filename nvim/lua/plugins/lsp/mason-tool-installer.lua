@@ -1,4 +1,4 @@
--- Auto-instala los paquetes que declaran los lenguajes (lua/languages/).
+-- Auto-installs the packages the languages declare (lua/languages/).
 return {
   "WhoIsSethDaniel/mason-tool-installer.nvim",
   lazy = false,
@@ -6,7 +6,7 @@ return {
   opts = {
     ensure_installed = require("languages").mason(),
     auto_update = false,
-    run_on_start = false, -- tools ya instalados; no checar versiones en cada arranque
+    run_on_start = false, -- tools already installed; do not check versions on every startup
   },
   config = function(_, opts)
     require("mason-tool-installer").setup(opts)

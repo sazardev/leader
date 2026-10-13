@@ -1,10 +1,10 @@
--- ── Pruebas con el agente (<leader>aT) ───────────────────────────────────────
---   run(name)   write | mock | fix: acciones con el LLM (mismo pipeline y experiencia)
---   gaps()      qué funciones de la carpeta no tiene ninguna prueba. Local, 0 tokens
+-- ── Tests with the agent (<leader>aT) ─────────────────────────────────────────
+--   run(name)   write | mock | fix: LLM actions (same pipeline and experience)
+--   gaps()      which functions in the folder have no test at all. Local, 0 tokens
 --
---   convention.lua  dónde viven las pruebas, framework y cómo correrlas   target.lua  el final del archivo de pruebas
---   run.lua         correr una prueba y limpiar su salida                  gaps.lua    el análisis local
---   actions/        las acciones del nivel (registro propio)
+--   convention.lua  where tests live, framework and how to run them      target.lua  the end of the test file
+--   run.lua         run a test and clean up its output                    gaps.lua    the local analysis
+--   actions/        the level's actions (own registry)
 local M = {}
 
 ---@param name string "write" | "mock" | "fix"

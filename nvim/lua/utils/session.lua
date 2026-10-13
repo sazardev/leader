@@ -1,4 +1,4 @@
--- ── Sesiones (persistence.nvim): helpers para menús y dashboard ──────────────
+-- ── Sessions (persistence.nvim): helpers for menus and dashboard ──────────────
 local log = require "utils.log"
 
 local M = {}
@@ -9,8 +9,8 @@ local function persistence()
   return ok and p or nil
 end
 
---- Archivo de sesión de esta carpeta: el de la rama actual y, si no hay, el de
---- la rama principal (mismo orden que usa `persistence.load`).
+--- Session file for this folder: the current branch's and, if none, the
+--- main branch's (same order `persistence.load` uses).
 ---@return string?
 local function current_file()
   local p = persistence()
@@ -24,7 +24,7 @@ local function current_file()
   end
 end
 
----@return boolean hay sesión guardada para esta carpeta
+---@return boolean there is a saved session for this folder
 function M.exists()
   return current_file() ~= nil
 end
@@ -36,7 +36,7 @@ function M.restore()
   persistence().load()
 end
 
---- Elige una sesión de cualquier proyecto (cambia de carpeta y la restaura)
+--- Pick a session from any project (changes folder and restores it)
 function M.pick()
   local p = persistence()
   if p then
@@ -44,7 +44,7 @@ function M.pick()
   end
 end
 
---- Restaura la última sesión guardada (de cualquier proyecto)
+--- Restore the last saved session (from any project)
 function M.last()
   local p = persistence()
   if not p or not p.last() then
@@ -61,7 +61,7 @@ function M.save()
   end
 end
 
---- Deja de guardar la sesión al salir (solo en esta ejecución de nvim)
+--- Stop saving the session on exit (only for this nvim run)
 function M.stop()
   local p = persistence()
   if p then
@@ -70,8 +70,8 @@ function M.stop()
   end
 end
 
---- Cierra las ventanas que no son de archivos (nvim-tree, aerial, trouble,
---- toggleterm, quickfix, ayuda...) para que no se guarden en la sesión.
+--- Close the non-file windows (nvim-tree, aerial, trouble,
+--- toggleterm, quickfix, help...) so they don't get saved in the session.
 function M.close_auxiliary()
   local wins = vim.api.nvim_tabpage_list_wins(0)
   for _, win in ipairs(wins) do

@@ -1,13 +1,13 @@
--- ── Go: mapeadores entre structs de capas distintas (sin LLM, 0 tokens) ──────
--- En arquitectura por capas se escribe una y otra vez `NoteResponse{ID: n.ID, Title: n.Title...}`. Para cada struct del
--- archivo cuyo nombre acaba en Response / Request / DTO / Model / Entity / Record / Input / Output..., busca su par en el módulo
--- (`NoteResponse` → `Note`, también `CreateNoteRequest` → `Note`) y, al empezar una declaración (`func `), ofrece:
---   func toNoteResponse(n *domain.Note) NoteResponse            del dominio al DTO
---   func toNoteResponses(ns []*domain.Note) []NoteResponse      la versión de lista
---   func (r NoteResponse) toNote() *domain.Note                 y de vuelta
--- Los campos se emparejan por nombre (sin distinguir mayúsculas ni `_`); si el origen tiene el campo privado y un getter
--- (`ID()`), usa el getter. Tipos distintos: conversión `domain.Status(x)` si es un tipo definido sobre un básico; si no, el
--- campo sale con un `// TODO` que dice qué no encaja. Los campos sin origen salen como TODO, no inventados.
+-- ── Go: mappers between structs of different layers (no LLM, 0 tokens) ───────
+-- In a layered architecture you write `NoteResponse{ID: n.ID, Title: n.Title...}` over and over. For each struct in the
+-- file whose name ends in Response / Request / DTO / Model / Entity / Record / Input / Output..., it looks for its pair in the module
+-- (`NoteResponse` → `Note`, also `CreateNoteRequest` → `Note`) and, when starting a declaration (`func `), offers:
+--   func toNoteResponse(n *domain.Note) NoteResponse            from domain to DTO
+--   func toNoteResponses(ns []*domain.Note) []NoteResponse      the list version
+--   func (r NoteResponse) toNote() *domain.Note                 and back
+-- Fields are matched by name (ignoring case and `_`); if the source has the field private and a getter
+-- (`ID()`), it uses the getter. Different types: a `domain.Status(x)` conversion if it is a type defined over a basic one; otherwise the
+-- field comes out with a `// TODO` saying what doesn't fit. Fields without a source come out as TODO, not invented.
 local ix = require "utils.goindex"
 
 local M = {}
@@ -33,7 +33,7 @@ local SUFFIXES = {
 }
 local PREFIXES = { "Create", "Update", "Patch", "Delete", "New", "List", "Get" }
 
---- Posibles nombres del struct "de dominio" de un DTO/modelo, del más probable al menos
+--- Possible names of the "domain" struct of a DTO/model, from most to least likely
 ---@param name string
 ---@return string[] bases, string? suffix
 function M.bases(name)
@@ -67,11 +67,11 @@ local function strip(t)
   return (t:gsub("[%w_]+%.", ""):gsub("^%*", ""))
 end
 
---- Expresión para asignar `src` (de tipo `from`) a un campo de tipo `to`; y un comentario TODO si no encaja
+--- Expression to assign `src` (of type `from`) to a field of type `to`; and a TODO comment if it doesn't fit
 ---@param expr string
 ---@param from string
 ---@param to string
----@param qualify fun(t: string): string  califica un tipo del paquete destino (si es de otro paquete)
+---@param qualify fun(t: string): string  qualifies a type of the destination package (if it is from another package)
 ---@return string, string?
 local function convert(expr, from, to, qualify)
   if from == to then
@@ -83,23 +83,23 @@ local function convert(expr, from, to, qualify)
     return expr, ("TODO: %s → %s (pointer vs value)"):format(from, to)
   end
   if f == t then
-    return expr -- mismo tipo con otro calificador (domain.Note / Note)
+    return expr -- same type with another qualifier (domain.Note / Note)
   end
   if
     not to_ptr and ((BASIC[f] and not BASIC[t] and t:match "^%u") or (BASIC[t] and not BASIC[f] and f:match "^%u"))
   then
     return ("%s(%s)"):format(qualify(to), expr)
   end
-  return expr, ("TODO: %s → %s"):format(from, to) -- p. ej. time.Time ↔ string: no se adivina el formato
+  return expr, ("TODO: %s → %s"):format(from, to) -- e.g. time.Time ↔ string: the format isn't guessed
 end
 
 ---@class GoMapSide
----@field name string       nombre del struct
----@field written string    como se escribe en el archivo (`domain.Note` | `NoteResponse`)
+---@field name string       struct name
+---@field written string    as written in the file (`domain.Note` | `NoteResponse`)
 ---@field fields { name: string, type: string }[]
----@field methods table<string, GoImplMethod>  métodos sin parámetros y con un retorno (getters), por clave
----@field qualifier string? alias del paquete si es de otro paquete
----@field declared table<string, boolean> tipos declarados en su paquete
+---@field methods table<string, GoImplMethod>  methods with no parameters and one return (getters), by key
+---@field qualifier string? package alias if it is from another package
+---@field declared table<string, boolean> types declared in its package
 
 ---@param pkg GoImplPackage
 ---@param name string
@@ -144,7 +144,7 @@ local function qualifier_of(s)
   end
 end
 
---- Cuerpo `Field: expr,` de un literal que rellena `dst` desde `src` (`var` es la variable de origen)
+--- `Field: expr,` body of a literal that fills `dst` from `src` (`var` is the source variable)
 ---@param src GoMapSide
 ---@param dst GoMapSide
 ---@param var string
@@ -203,11 +203,11 @@ local function has_private_fields(dst)
 end
 
 ---@class GoMapPair
----@field a GoMapSide  el struct del archivo (DTO/modelo)
----@field p GoMapSide  su par (dominio)
+---@field a GoMapSide  the file's struct (DTO/model)
+---@field p GoMapSide  its pair (domain)
 ---@field suffix string
 
---- Pares (struct del archivo, struct de dominio) del archivo actual
+--- Pairs (file's struct, domain struct) of the current file
 ---@param pkg GoImplPackage
 ---@param path string
 ---@param src string
@@ -225,7 +225,7 @@ local function pairs_in_buffer(pkg, path, src)
         if pkg.structs[base] and base ~= name then
           found = { side(pkg, base, base, nil) }
         else
-          -- primero lo importado por el archivo; luego cualquier paquete del módulo
+          -- first what the file imports; then any package of the module
           local imported = {}
           for alias, import_path in pairs(pkg.imports) do
             imported[import_path] = alias
@@ -287,10 +287,10 @@ function M.declaration_items(range, frag)
 
   for _, pair in ipairs(pairs_in_buffer(pkg, path, src)) do
     local a, p = pair.a, pair.p
-    -- gomodel ya ofrece toDomain/fromDomain en los archivos de modelo
+    -- gomodel already offers toDomain/fromDomain in model files
     if not (model_file and pair.suffix == "Model") then
       local pbase = p.name
-      local pvar, avar = var_of(pbase), ix.receiver_name(a.name) -- NoteResponse → r (el param del dominio: n)
+      local pvar, avar = var_of(pbase), ix.receiver_name(a.name) -- NoteResponse → r (the domain param: n)
       if avar == pvar then
         avar = "x"
       end

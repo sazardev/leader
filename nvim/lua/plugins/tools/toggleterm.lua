@@ -1,6 +1,6 @@
--- Terminal integrada: la usan los menús por lenguaje (utils/terminal.lua) y lazydocker.
--- Posición/tamaño: settings.terminal. Colores: los del tema activo (sin sombreado,
--- así el panel usa el fondo exacto del editor, también con el tema de la terminal).
+-- Integrated terminal: used by the per-language menus (utils/terminal.lua) and lazydocker.
+-- Position/size: settings.terminal. Colors: those of the active theme (no shading,
+-- so the panel uses the editor's exact background, also with the terminal theme).
 return {
   "akinsho/toggleterm.nvim",
   cmd = { "ToggleTerm", "TermExec" },
@@ -12,7 +12,7 @@ return {
       open_mapping = false,
       direction = term.direction(),
       shade_terminals = false,
-      persist_size = false, -- recalcular el tamaño en cada apertura
+      persist_size = false, -- recompute the size on every open
       float_opts = {
         border = "single",
         width = function()
@@ -27,9 +27,9 @@ return {
   end,
   config = function(_, opts)
     require("toggleterm").setup(opts)
-    -- Esc en terminal cierra el panel/ventana flotante
+    -- Esc in the terminal closes the panel/floating window
     vim.keymap.set("t", "<Esc>", "<cmd>lua require('toggleterm').toggle()<cr>", { desc = "Terminal close (Esc)" })
-    -- Responsivo: reajusta los paneles abiertos al cambiar el tamaño de la ventana
+    -- Responsive: readjusts the open panels when the window size changes
     vim.api.nvim_create_autocmd("VimResized", {
       group = vim.api.nvim_create_augroup("TerminalResponsive", { clear = true }),
       callback = function()

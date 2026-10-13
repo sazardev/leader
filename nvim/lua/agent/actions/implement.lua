@@ -1,4 +1,4 @@
--- Implementar: completa la función bajo el cursor a partir de su firma, su doc o su nombre
+-- Implement: completes the function under the cursor from its signature, doc or name
 local protocol = require "agent.protocol"
 
 return {

@@ -1,4 +1,4 @@
--- Documentar: añade o actualiza el comentario de documentación idiomático, sin tocar el código
+-- Document: add or update the idiomatic doc comment, without touching the code
 local protocol = require "agent.protocol"
 
 return {
@@ -8,7 +8,7 @@ return {
   scope = "function",
   context = { "rules", "types" },
   output = "replace",
-  tier = "light", -- poco razonamiento: lo hace bien el modelo pequeño
+  tier = "light", -- little reasoning needed: the small model does it fine
   input = "what should the docs focus on?",
   input_optional = true,
   system = function(env)

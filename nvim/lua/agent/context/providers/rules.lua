@@ -1,4 +1,4 @@
--- Reglas: convenciones que el modelo debe respetar (ajuste global + `.agent.md` del proyecto)
+-- Rules: conventions the model must follow (global setting + the project's `.agent.md`)
 local settings = require("core.settings").agent
 local project = require "utils.project"
 

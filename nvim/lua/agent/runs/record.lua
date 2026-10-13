@@ -1,6 +1,6 @@
--- ── De un trabajo a un registro ──────────────────────────────────────────────
--- Siempre guarda las métricas (tokens, coste, tamaños); el texto (prompt y respuesta, que incluyen
--- tu código) solo con `settings.agent.history.store_text`.
+-- ── From a job to a record ───────────────────────────────────────────────────
+-- It always stores the metrics (tokens, cost, sizes); the text (prompt and response, which include
+-- your code) only with `settings.agent.history.store_text`.
 local jobs = require "agent.jobs"
 local settings = require("core.settings").agent.history
 
@@ -21,7 +21,7 @@ function M.build(job, status, err)
   local ts = os.time()
   local entry = {
     t = "run",
-    id = ("%d-%d"):format(vim.uv.hrtime() / 1e6 % 1e9, job.id), -- único entre sesiones sin depender del reloj
+    id = ("%d-%d"):format(vim.uv.hrtime() / 1e6 % 1e9, job.id), -- unique across sessions without depending on the clock
     ts = ts,
     action = job.action.name,
     output = job.action.output,

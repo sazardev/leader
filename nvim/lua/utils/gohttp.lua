@@ -1,14 +1,14 @@
--- ── Go: handlers HTTP a partir de la interfaz del servicio (sin LLM, 0 tokens) ─
--- Un handler (`type NoteHandler struct { svc application.NoteService }`) casi siempre repite la forma de su servicio: leer
--- el id de la ruta, decodificar el cuerpo, llamar, responder. Con el struct escrito:
---   func (h *NoteHandler) |   → un handler por cada método del servicio que aún no tiene, y `Routes` con sus rutas
---   func |  (columna 0)       → lo mismo con el receptor ya escrito
--- El framework sale de go.mod: net/http (Go ≥ 1.22, PathValue), chi, gin o echo. Reglas (por el nombre y los parámetros):
---   verbo: Get/Find/List/Search → GET · Create/Add → POST · Update → PUT · Set*/Patch* → PATCH · Delete/Remove → DELETE
---   `id` (string, o acaba en ID) → parámetro de ruta; un struct en un GET (`filter ListFilter`) → query string campo a campo;
---   el resto → cuerpo JSON (struct anónimo con tags en snake_case, o el struct tal cual si el servicio recibe uno)
---   (T, error) → 200 con el JSON (201 en POST); solo error → 204. Errores: `writeError` (helpers opcionales: ítem aparte).
--- Fiber u otros routers: sin ítems (no se inventa).
+-- ── Go: HTTP handlers from the service interface (no LLM, 0 tokens) ─────────
+-- A handler (`type NoteHandler struct { svc application.NoteService }`) almost always mirrors the shape of its service: read
+-- the id from the route, decode the body, call, respond. With the struct written:
+--   func (h *NoteHandler) |   → one handler per service method that doesn't have one yet, and `Routes` with their routes
+--   func |  (column 0)        → the same with the receiver already written
+-- The framework comes from go.mod: net/http (Go ≥ 1.22, PathValue), chi, gin or echo. Rules (by name and parameters):
+--   verb: Get/Find/List/Search → GET · Create/Add → POST · Update → PUT · Set*/Patch* → PATCH · Delete/Remove → DELETE
+--   `id` (string, or ends in ID) → route parameter; a struct in a GET (`filter ListFilter`) → query string field by field;
+--   the rest → JSON body (anonymous struct with snake_case tags, or the struct as-is if the service takes one)
+--   (T, error) → 200 with the JSON (201 on POST); error only → 204. Errors: `writeError` (optional helpers: separate item).
+-- Fiber or other routers: no items (nothing is invented).
 local fws = require "utils.gohttpfw"
 local ix = require "utils.goindex"
 
@@ -36,7 +36,7 @@ local function is_context(t)
   return t == "context.Context"
 end
 
---- Verbo HTTP y sufijo de ruta por el nombre del método del servicio
+--- HTTP verb and route suffix from the service method name
 ---@param name string
 ---@return string verb, string? action
 local function verb_of(name)
@@ -88,14 +88,14 @@ local function status_const(verb)
   return verb == "POST" and "http.StatusCreated" or "http.StatusOK"
 end
 
---- Cuerpo de un handler
+--- Body of a handler
 ---@param fw GoHttpFw
 ---@param m GoImplMethod
----@param field string  campo del servicio (`svc`)
+---@param field string  service field (`svc`)
 ---@param recv string
 ---@param pkg GoImplPackage
 ---@param path string
----@return string[] lines (sin sangría), string verb
+---@return string[] lines (unindented), string verb
 local function body_of(fw, m, field, recv, pkg, path)
   local verb = verb_of(m.name)
   local lines, args = {}, {}
@@ -127,12 +127,12 @@ local function body_of(fw, m, field, recv, pkg, path)
       push(("%s := %s"):format(pname, fw.path(pname)))
       args[#args + 1] = pname
     elseif verb == "GET" and not p.type:match "^[%*%[]" and not ix.BUILTIN[p.type] then
-      -- struct de filtro en un GET: campo a campo desde la query
+      -- filter struct in a GET: field by field from the query
       local info = ix.resolve_struct(p.type, pkg, path)
       query_param = { name = pname, type = p.type, fields = info and info.fields or {} }
       args[#args + 1] = pname
     elseif verb == "GET" then
-      -- parámetro simple en un GET: query string
+      -- simple parameter in a GET: query string
       if fw.query_setup and not used_query then
         push(fw.query_setup)
         used_query = true
@@ -140,7 +140,7 @@ local function body_of(fw, m, field, recv, pkg, path)
       push(("%s := %s"):format(pname, fw.query(require("utils.gotags").snake(pname))))
       args[#args + 1] = pname
     elseif not ix.BUILTIN[p.type] and not p.type:match "^[%*%[]" then
-      -- el servicio recibe un struct: ese es el cuerpo
+      -- the service takes a struct: that is the body
       push(("var %s %s"):format(pname, p.type))
       block(fw.decode(pname), fw.bad "err")
       args[#args + 1] = pname
@@ -229,7 +229,7 @@ local function body_of(fw, m, field, recv, pkg, path)
   return lines, verb
 end
 
---- Ítems de handlers para `struct` (handler) según sus servicios
+--- Handler items for `struct` (handler) according to its services
 ---@param pkg GoImplPackage
 ---@param path string
 ---@param struct string
@@ -286,7 +286,7 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
       local texts = {}
       for _, m in ipairs(missing) do
         local text = method_text(m, header)
-        -- en el ítem de "todos", el primero va sin cabecera si el cursor ya está tras el receptor
+        -- in the "all" item, the first one goes without header if the cursor is already after the receiver
         texts[#texts + 1] = method_text(m, header or #texts > 0)
         items[#items + 1] = {
           label = header and ("func %s %s"):format(recv_text, m.name) or m.name,
@@ -355,7 +355,7 @@ local function items_for(pkg, path, struct, recv, ptr, header, range, order)
     end
   end
 
-  -- helpers de respuesta para net/http y chi
+  -- response helpers for net/http and chi
   if (fw_name == "nethttp" or fw_name == "chi") and header then
     local funcs = {}
     for _, fn in ipairs(pkg.funcs) do

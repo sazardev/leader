@@ -1,6 +1,6 @@
--- ── Registro de acciones del nivel SERVICE ───────────────────────────────────
--- Servicios de aplicación / casos de uso: orquestan el dominio y llaman a los puertos. Mismo contrato y mismo pipeline
--- que agent/actions; el contexto propio del nivel es `ports` (las interfaces que el servicio puede llamar).
+-- ── SERVICE level action registry ────────────────────────────────────────────
+-- Application services / use cases: they orchestrate the domain and call the ports. Same contract and same pipeline
+-- as agent/actions; the level's own context is `ports` (the interfaces the service can call).
 local M = {}
 
 local NAMES = { "implement", "review" }

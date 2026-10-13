@@ -1,6 +1,6 @@
--- ── Service deps: ¿las dependencias del servicio existen, se llaman bien y están cableadas? (0 tokens) ─────────────
--- Para el servicio bajo el cursor, sin LLM: por cada puerto que recibe, qué métodos declara, cuáles llama este archivo
--- (y cuáles llama sin que el puerto los declare: no compilaría), qué implementaciones tiene y si alguna está cableada.
+-- ── Service deps: do the service's dependencies exist, are they called correctly and are they wired? (0 tokens) ───
+-- For the service under the cursor, no LLM: for each port it receives, which methods it declares, which ones this file calls
+-- (and which it calls without the port declaring them: it would not compile), which implementations it has and whether any is wired.
 local contracts = require "agent.repository.contracts"
 local discovery = require "agent.discovery"
 local index = require "agent.ddd.index"
@@ -12,10 +12,10 @@ local target_mod = require "agent.context.target"
 
 local M = {}
 
---- Cómo usa este archivo un puerto: el campo que lo guarda, los métodos que llama y los que no declara el puerto
+--- How this file uses a port: the field that holds it, the methods it calls and the ones the port does not declare
 ---@param file_text string
----@param decl_text string  declaración del servicio
----@param ctor string  parámetros del constructor
+---@param decl_text string  service declaration
+---@param ctor string  constructor parameters
 ---@param p AgentDependency
 ---@return string? field, table<string, boolean> called, string[] unknown
 function M.analyse(file_text, decl_text, ctor, p)

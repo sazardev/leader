@@ -1,7 +1,7 @@
--- ── Registro de acciones DDD ─────────────────────────────────────────────────
--- Mismo contrato que agent/actions (ver allí), en un registro APARTE: son otra función, con su menú
--- (<leader>aD) y su contexto propio (`ddd`). Se ejecutan con el mismo pipeline: misma experiencia
--- (diff en línea, hallazgos, ventana, historial y coste).
+-- ── DDD action registry ──────────────────────────────────────────────────────
+-- Same contract as agent/actions (see there), in a SEPARATE registry: it is another feature, with its menu
+-- (<leader>aD) and its own context (`ddd`). They run through the same pipeline: same experience
+-- (inline diff, findings, window, history and cost).
 local M = {}
 
 local NAMES = { "implement", "review", "fix", "missing", "ask" }
@@ -15,7 +15,7 @@ function M.get(name)
   if not cache[name] then
     local action = require("agent.ddd.actions." .. name)
     action.short = name
-    action.name = "ddd_" .. name -- el historial y el informe de gasto los distinguen de los normales
+    action.name = "ddd_" .. name -- history and the spend report tell them apart from the normal ones
     cache[name] = action
   end
   return cache[name]

@@ -1,6 +1,6 @@
--- ── Descubrimiento de código del proyecto (genérico) ────────────────────────
--- Utilidades que comparten los niveles de la arquitectura (repository, service...): buscar con ripgrep y
--- leer una definición de tipo con treesitter, en cualquier lenguaje y sin depender de cómo se llamen las carpetas.
+-- ── Project code discovery (generic) ─────────────────────────────────────────
+-- Utilities shared by the architecture levels (repository, service...): search with ripgrep and
+-- read a type definition with treesitter, in any language and without depending on what the folders are called.
 local scopes = require "agent.context.scopes"
 
 local M = {}
@@ -15,7 +15,7 @@ function M.lang_of(path, ext)
   return ft and vim.treesitter.language.get_lang(ft) or nil
 end
 
---- Busca con ripgrep; `cb` recibe { { path, line, text } } (vacío si no hay rg o no hay resultados)
+--- Searches with ripgrep; `cb` receives { { path, line, text } } (empty if there is no rg or no results)
 ---@param root string
 ---@param regex string
 ---@param extra string[]?
@@ -48,7 +48,7 @@ end
 ---@field line integer
 ---@field lines string[]
 
---- Definición (con sus constantes asociadas) de un tipo del proyecto por nombre, o nil si no es de aquí
+--- Definition (with its associated constants) of a project type by name, or nil if it is not from here
 ---@param root string
 ---@param name string
 ---@param ext string
@@ -76,7 +76,7 @@ function M.find_type(root, name, ext, cb)
         end
       end
       lines = vim.list_slice(all, first, last)
-      -- los valores de un tipo tipo-enum (Pending, Confirmed...) viven en un `const (...)` aparte
+      -- the values of an enum-like type (Pending, Confirmed...) live in a separate `const (...)`
       for _, c in ipairs(scopes.constants_of(text, lang, name)) do
         if c.last - c.first < 15 then
           lines[#lines + 1] = ""
@@ -90,9 +90,9 @@ function M.find_type(root, name, ext, cb)
   end)
 end
 
---- Tipos concretos cuyo nombre contiene el del puerto (`PostgresOrderRepository` para `OrderRepository`)
+--- Concrete types whose name contains the port's (`PostgresOrderRepository` for `OrderRepository`)
 ---@param root string
----@param port string nombre del puerto
+---@param port string port name
 ---@param ext string
 ---@param cb fun(found: { name: string, path: string, line: integer }[])
 function M.implementations(root, port, ext, cb)
@@ -110,11 +110,11 @@ function M.implementations(root, port, ext, cb)
   end)
 end
 
---- ¿Se usa `name` en algún otro archivo que no sea test (p. ej. se cablea en la raíz de composición)?
+--- Is `name` used in any other non-test file (e.g. wired in the composition root)?
 ---@param root string
 ---@param name string
----@param own_path string archivo que lo define (no cuenta)
----@param cb fun(used: boolean?) nil si no hay ripgrep
+---@param own_path string file that defines it (does not count)
+---@param cb fun(used: boolean?) nil if there is no ripgrep
 function M.referenced_elsewhere(root, name, own_path, cb)
   if vim.fn.executable "rg" ~= 1 then
     return cb(nil)
@@ -150,7 +150,7 @@ end
 
 ---@param path string
 ---@param root string
----@return string ruta relativa al proyecto
+---@return string path relative to the project
 function M.rel(path, root)
   return path:sub(1, #root + 1) == root .. "/" and path:sub(#root + 2) or path
 end

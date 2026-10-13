@@ -1,6 +1,6 @@
--- ── Contexto Agent DDD (global): <leader>aD ──────────────────────────────────
--- Función aparte del agente normal: sigue las capas y la nomenclatura de TU proyecto (agent/ddd).
--- Las acciones salen de su registro; `d` es el diagnóstico estático de todo el proyecto (0 tokens).
+-- ── Agent DDD context (global): <leader>aD ───────────────────────────────────
+-- A feature separate from the normal agent: it follows the layers and naming of YOUR project (agent/ddd).
+-- The actions come from its registry; `d` is the static diagnosis of the whole project (0 tokens).
 local function ddd()
   return require "agent.ddd"
 end

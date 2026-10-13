@@ -1,9 +1,9 @@
--- ── Estado persistente de la apariencia ──────────────────────────────────────
--- Dos archivos, ambos fuera del repo (estado de máquina):
---   · elección  (stdpath "state"):  qué tema quiere el usuario.
---   · compilado (junto a la caché de base46): qué tema contiene REALMENTE la
---     caché de highlights y con qué firma de la terminal. Vive con la caché para
---     que nunca se desincronicen (si una se borra, la otra también).
+-- ── Persistent appearance state ──────────────────────────────────────────────
+-- Two files, both outside the repo (machine state):
+--   · choice   (stdpath "state"):  which theme the user wants.
+--   · compiled (next to the base46 cache): which theme the highlight cache
+--     ACTUALLY contains and with which terminal signature. It lives with the cache so
+--     they never get out of sync (if one is deleted, the other goes too).
 local M = {}
 
 ---@param path string

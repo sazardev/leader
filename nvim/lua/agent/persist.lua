@@ -1,14 +1,14 @@
--- ── Hallazgos persistentes ───────────────────────────────────────────────────
--- Los hallazgos de `review`, de `ddd review` y el diagnóstico de DDD son diagnósticos "por atender": se
--- guardan por archivo (stdpath("state")/agent-findings.json) con el TEXTO de la línea señalada, y al abrir
--- el archivo en otra sesión vuelven a ser diagnósticos. Si el código se movió, se reubican por ese texto; si
--- la línea ya no existe (se arregló o se reescribió), se descartan.
+-- ── Persistent findings ──────────────────────────────────────────────────────
+-- The findings of `review`, of `ddd review` and the DDD diagnosis are "pending" diagnostics: they are
+-- stored per file (stdpath("state")/agent-findings.json) with the TEXT of the flagged line, and when the
+-- file is opened in another session they become diagnostics again. If the code moved, they are re-anchored by that text; if
+-- the line no longer exists (it was fixed or rewritten), they are dropped.
 local M = {}
 
---- Clave del almacén → nombre del namespace de diagnósticos (idempotente: crear el mismo nombre da el mismo id)
+--- Store key → diagnostics namespace name (idempotent: creating the same name gives the same id)
 M.NAMESPACES = { findings = "agent.findings", ddd = "agent.ddd" }
 
-local WINDOW = 40 -- cuántas líneas arriba/abajo se busca el texto si la línea se movió
+local WINDOW = 40 -- how many lines up/down the text is searched for if the line moved
 
 ---@type string?
 local override
@@ -18,7 +18,7 @@ function M.path()
   return override or (vim.fn.stdpath "state" .. "/agent-findings.json")
 end
 
---- Cambia el archivo (pruebas)
+--- Changes the file (tests)
 ---@param path string?
 function M.use(path)
   override = path
@@ -60,7 +60,7 @@ local function namespace(key)
   return vim.api.nvim_create_namespace(M.NAMESPACES[key])
 end
 
---- Reemplaza lo guardado de (archivo, clave) por `entries`
+--- Replaces what is stored for (file, key) with `entries`
 ---@param path string
 ---@param key string
 ---@param entries table[]
@@ -74,13 +74,13 @@ local function replace(path, key, entries)
   write(data)
 end
 
---- Línea (1-based) donde está ahora el texto de un hallazgo, o nil si ya no está
+--- Line (1-based) where a finding's text is now, or nil if it is no longer there
 ---@param lines string[]
 ---@param entry { line: integer, text: string }
 ---@return integer?
 function M.reanchor(lines, entry)
   if entry.text == "" then
-    return lines[entry.line] and entry.line or nil -- sin texto con el que reubicar: solo vale si la línea existe
+    return lines[entry.line] and entry.line or nil -- no text to re-anchor with: only valid if the line exists
   end
   if trim(lines[entry.line]) == entry.text then
     return entry.line
@@ -95,7 +95,7 @@ function M.reanchor(lines, entry)
   return nil
 end
 
---- Guarda los diagnósticos de `key` que tiene ahora el buffer (posiciones y texto actuales)
+--- Stores the `key` diagnostics the buffer has now (current positions and text)
 ---@param buf integer
 ---@param key "findings"|"ddd"
 function M.sync(buf, key)
@@ -119,7 +119,7 @@ function M.sync(buf, key)
   replace(path, key, entries)
 end
 
---- Guarda lo que `key` señala en varios archivos (el diagnóstico de DDD toca muchos, abiertos o no)
+--- Stores what `key` flags across several files (the DDD diagnosis touches many, open or not)
 ---@param key "findings"|"ddd"
 ---@param by_path table<string, { line: integer, severity: integer, message: string, source: string? }[]>
 function M.replace_all(key, by_path)
@@ -149,7 +149,7 @@ function M.replace_all(key, by_path)
   write(data)
 end
 
---- Olvida lo guardado de un archivo (todo, o solo una clave)
+--- Forgets what is stored for a file (everything, or just one key)
 ---@param path string
 ---@param key string?
 function M.forget(path, key)
@@ -162,7 +162,7 @@ function M.forget(path, key)
   end
 end
 
---- Olvida una clave en todos los archivos
+--- Forgets a key in all files
 ---@param key string
 function M.forget_all(key)
   local data = read()
@@ -175,7 +175,7 @@ function M.forget_all(key)
   write(data)
 end
 
---- Cuántos hay guardados (para avisos y pruebas)
+--- How many are stored (for notices and tests)
 ---@return integer
 function M.count()
   local n = 0
@@ -185,7 +185,7 @@ function M.count()
   return n
 end
 
---- Devuelve a un buffer sus diagnósticos guardados, reubicados por el texto de su línea
+--- Gives a buffer its stored diagnostics back, re-anchored by the text of their line
 ---@param buf integer
 function M.restore(buf)
   local path = vim.api.nvim_buf_get_name(buf)
@@ -219,13 +219,13 @@ function M.restore(buf)
   end
 
   for key, list in pairs(by_key) do
-    -- cargar el módulo del presentador fija su estilo de diagnóstico (prefijo, subrayado...)
+    -- loading the presenter module sets its diagnostic style (prefix, underline...)
     pcall(require, key == "findings" and "agent.output.findings" or "agent.ddd.diagnose")
     vim.diagnostic.set(namespace(key), buf, list)
-    M.sync(buf, key) -- guarda las posiciones ya reubicadas
+    M.sync(buf, key) -- stores the already re-anchored positions
   end
   if dropped > 0 then
-    -- lo que ya no coincide con el código se limpia también de lo guardado
+    -- what no longer matches the code is also cleaned from what is stored
     for _, key in ipairs { "findings", "ddd" } do
       if not by_key[key] then
         replace(path, key, {})
@@ -244,7 +244,7 @@ function M.restore(buf)
   end
 end
 
---- Tras guardar el archivo: actualiza las posiciones guardadas (el código pudo moverse)
+--- After saving the file: updates the stored positions (the code may have moved)
 ---@param buf integer
 function M.resync(buf)
   for key in pairs(M.NAMESPACES) do

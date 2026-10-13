@@ -1,4 +1,4 @@
--- El LSP (dartls) lo gestiona flutter-tools.nvim, no vim.lsp.enable.
+-- The LSP (dartls) is managed by flutter-tools.nvim, not vim.lsp.enable.
 return {
   filetypes = { "dart" },
   treesitter = { "dart" },

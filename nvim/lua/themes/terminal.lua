@@ -1,5 +1,5 @@
--- Tema "terminal": base46 lo carga como `themes.terminal` (lua/themes/ es su
--- carpeta de temas de usuario). La lógica vive en lua/appearance/.
+-- "terminal" theme: base46 loads it as `themes.terminal` (lua/themes/ is its
+-- user themes folder). The logic lives in lua/appearance/.
 local loaded = require("appearance.alacritty").load()
 if not loaded then
   error "terminal theme: Alacritty config not found"

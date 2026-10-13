@@ -1,8 +1,8 @@
--- ── Clipboard por OSC 52 ─────────────────────────────────────────────────────
--- Sin servidor gráfico (WSL, SSH) wl-copy/xclip no sirven; OSC 52 copia vía la
--- terminal (herdr lo reenvía a Alacritty). Pegar usa el registro sin nombre
--- porque Alacritty no responde a consultas OSC 52 (el pegado del sistema es
--- Ctrl+Shift+V en la terminal).
+-- ── Clipboard via OSC 52 ─────────────────────────────────────────────────────
+-- Without a graphical server (WSL, SSH) wl-copy/xclip are useless; OSC 52 copies
+-- through the terminal (herdr forwards it to Alacritty). Pasting uses the
+-- unnamed register because Alacritty does not answer OSC 52 queries (system
+-- paste is Ctrl+Shift+V in the terminal).
 local settings = require "core.settings"
 
 local M = {}

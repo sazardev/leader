@@ -1,4 +1,4 @@
--- El formateo requiere prettier-plugin-astro en el proyecto (o global).
+-- Formatting requires prettier-plugin-astro in the project (or global).
 return {
   filetypes = { "astro" },
   treesitter = { "astro" },

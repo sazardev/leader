@@ -1,14 +1,14 @@
--- ── Modo ligero: detección de recursos ───────────────────────────────────────
--- En equipos de poca RAM (Orange Pi 1-2GB, VMs recortadas) se desactiva todo lo
--- residente: LSP (gopls cuesta 150-500MB), go.nvim, golangci-lint. Se mantiene
--- lo barato: treesitter, conform (formatters efímeros) y nvim-lint.
+-- ── Light mode: resource detection ───────────────────────────────────────────
+-- On low-RAM machines (Orange Pi 1-2GB, trimmed-down VMs) everything resident is
+-- disabled: LSP (gopls costs 150-500MB), go.nvim, golangci-lint. The cheap stuff
+-- stays: treesitter, conform (ephemeral formatters) and nvim-lint.
 --
--- Prioridad: NVIM_LIGHT=1|0  >  settings.light.force  >  vim.g.light_mode  >  RAM
+-- Priority: NVIM_LIGHT=1|0  >  settings.light.force  >  vim.g.light_mode  >  RAM
 local settings = require "core.settings"
 
 local M = {}
 
----@return integer bytes de RAM total (0 si no se pudo leer)
+---@return integer total RAM in bytes (0 if it could not be read)
 local function total_ram()
   local ok, mem = pcall(vim.uv.get_total_memory)
   if ok and mem and mem > 0 then

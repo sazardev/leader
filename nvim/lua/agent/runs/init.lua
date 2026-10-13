@@ -1,6 +1,6 @@
--- ── Historial de ejecuciones: fachada ────────────────────────────────────────
--- `record` al terminar un trabajo y `event` cuando el usuario decide (aceptar, rechazar...). Nunca
--- debe romper la acción: cualquier fallo al escribir se ignora.
+-- ── Run history: facade ──────────────────────────────────────────────────────
+-- `record` when a job finishes and `event` when the user decides (accept, reject...). It must never
+-- break the action: any write failure is ignored.
 local settings = require("core.settings").agent.history
 local store = require "agent.runs.store"
 

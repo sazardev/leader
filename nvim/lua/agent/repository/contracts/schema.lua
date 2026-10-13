@@ -1,8 +1,8 @@
--- ── Esquema de base de datos de una entidad, y el dialecto que se usa ────────
--- Busca la tabla de la entidad en las migraciones SQL (`CREATE TABLE`, más los `ALTER TABLE` posteriores) o en un
--- `schema.prisma`, y deduce el dialecto y el acceso a datos: de la sintaxis del esquema y de los manifiestos del
--- proyecto (go.mod, package.json, pyproject, Cargo.toml, pom.xml...). Es agnóstico: el modelo recibe los nombres
--- REALES de tablas y columnas y el estilo de parámetros (`$1`, `?`...) de ESTA base de datos, no uno supuesto.
+-- ── Database schema of an entity, and the dialect in use ─────────────────────
+-- Looks for the entity's table in the SQL migrations (`CREATE TABLE`, plus later `ALTER TABLE`s) or in a
+-- `schema.prisma`, and deduces the dialect and the data access: from the schema syntax and the project
+-- manifests (go.mod, package.json, pyproject, Cargo.toml, pom.xml...). It is agnostic: the model receives the
+-- REAL table and column names and the parameter style (`$1`, `?`...) of THIS database, not an assumed one.
 local discovery = require "agent.discovery"
 local names = require "agent.repository.contracts.names"
 
@@ -21,7 +21,7 @@ local MANIFESTS = {
   "pubspec.yaml",
 }
 
--- subcadena (en minúsculas) del manifiesto → dialecto
+-- substring (lowercase) of the manifest → dialect
 local DRIVERS = {
   postgres = { "pgx", "lib/pq", "postgres", "psycopg", "asyncpg", "tokio-postgres", '"pg"', "node-postgres", "npgsql" },
   mysql = { "go-sql-driver/mysql", "mysql2", "pymysql", "mysql-connector", "mysqlclient", "aiomysql", "mariadb" },
@@ -29,7 +29,7 @@ local DRIVERS = {
   sqlserver = { "go-mssqldb", "mssql", "tedious", "pyodbc", "sqlserver" },
 }
 
--- subcadena (en minúsculas) → librería de acceso a datos
+-- substring (lowercase) → data access library
 local ACCESS = {
   { "sqlx", "sqlx" },
   { "gorm", "gorm" },
@@ -63,7 +63,7 @@ local function manifests_text(root)
   return table.concat(parts, "\n")
 end
 
----@param text string  esquema SQL
+---@param text string  SQL schema
 ---@return string?
 local function dialect_from_sql(text)
   local t = text:lower()
@@ -87,7 +87,7 @@ local function dialect_from_sql(text)
   return nil
 end
 
---- Sintaxis de parámetros según dialecto y lenguaje
+--- Parameter syntax by dialect and language
 ---@param dialect string?
 ---@param ext string
 ---@return string?
@@ -110,8 +110,8 @@ function M.placeholders(dialect, ext)
   return "? (positional)"
 end
 
---- Dialecto, librería de acceso y un resumen de una línea. El dialecto sale primero del esquema (más fiable) y
---- si no, de los drivers de los manifiestos.
+--- Dialect, access library and a one-line summary. The dialect comes first from the schema (more reliable) and
+--- otherwise from the drivers in the manifests.
 ---@param root string
 ---@param ext string
 ---@param schema_text string?
@@ -151,7 +151,7 @@ function M.environment(root, ext, schema_text, import_specs)
   return { dialect = dialect, driver = driver, access = access, line = table.concat(parts, " · ") }
 end
 
---- Líneas del bloque que empieza en `first` (hasta cerrar el paréntesis / la llave)
+--- Lines of the block that starts at `first` (until the parenthesis / brace closes)
 ---@param lines string[]
 ---@param first integer
 ---@param closer "sql"|"prisma"
@@ -172,9 +172,9 @@ end
 
 ---@class AgentSchema
 ---@field tables { path: string, line: integer, lines: string[] }[]
----@field changes string[]  ALTER TABLE / CREATE INDEX posteriores
+---@field changes string[]  later ALTER TABLE / CREATE INDEX
 
---- Busca la definición de la tabla de `entity` (SQL o Prisma) y los cambios posteriores
+--- Looks for the table definition of `entity` (SQL or Prisma) and the later changes
 ---@param root string
 ---@param entity string
 ---@param cb fun(schema: AgentSchema?)

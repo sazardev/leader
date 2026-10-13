@@ -1,5 +1,5 @@
--- ── Contexto Agent Tests (global): <leader>aT ────────────────────────────────
--- Pruebas con el agente: las acciones salen del registro (agent/tests/actions); `g` es el análisis local (0 tokens).
+-- ── Agent Tests context (global): <leader>aT ─────────────────────────────────
+-- Testing with the agent: the actions come from the registry (agent/tests/actions); `g` is the local analysis (0 tokens).
 local function tests()
   return require "agent.tests"
 end

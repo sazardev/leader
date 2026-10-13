@@ -1,7 +1,7 @@
--- ── Lectura de la config de Alacritty ────────────────────────────────────────
--- Localiza alacritty.toml, resuelve sus `import` con las reglas de Alacritty
--- (los imports se aplican en orden; el archivo que importa pisa a sus imports)
--- y devuelve la paleta de colores resultante.
+-- ── Reading the Alacritty config ─────────────────────────────────────────────
+-- Locates alacritty.toml, resolves its `import`s with Alacritty's rules
+-- (imports are applied in order; the importing file overrides its imports)
+-- and returns the resulting color palette.
 local toml = require "appearance.toml"
 
 local M = {}
@@ -11,7 +11,7 @@ local MAX_IMPORT_DEPTH = 5
 local NAMES = { "normal", "bright" }
 local ANSI = { "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white" }
 
---- Colores por defecto de Alacritty cuando la config no define `[colors]`
+--- Alacritty default colors when the config does not define `[colors]`
 local DEFAULTS = {
   background = "#181818",
   foreground = "#d8d8d8",
@@ -19,7 +19,7 @@ local DEFAULTS = {
   bright = { "#6b6b6b", "#c55555", "#aac474", "#feca88", "#82b8c8", "#c28cb8", "#93d3c3", "#f8f8f8" },
 }
 
---- Marca de modificación de un archivo (mtime + tamaño); "" si no existe
+--- Modification stamp of a file (mtime + size); "" if it does not exist
 ---@param path string
 ---@return string
 local function stamp(path)
@@ -33,8 +33,8 @@ local function expand(path)
   return vim.fs.normalize(path)
 end
 
---- Candidatas en orden de prioridad: override del usuario, Linux/macOS, Windows y
---- (en WSL) el AppData de Windows más recientemente modificado.
+--- Candidates in priority order: user override, Linux/macOS, Windows and
+--- (on WSL) the most recently modified Windows AppData.
 ---@return string[]
 local function candidates()
   local list = {}
@@ -49,7 +49,7 @@ local function candidates()
     table.insert(list, expand(vim.env.APPDATA .. "/alacritty/alacritty.toml"))
   end
 
-  -- WSL: Alacritty corre en Windows y su config vive en /mnt/<disco>/Users/*/AppData
+  -- WSL: Alacritty runs on Windows and its config lives in /mnt/<drive>/Users/*/AppData
   local wsl = vim.fn.glob("/mnt/*/Users/*/AppData/Roaming/alacritty/alacritty.toml", false, true)
   table.sort(wsl, function(a, b)
     local sa, sb = vim.uv.fs_stat(a), vim.uv.fs_stat(b)
@@ -79,21 +79,21 @@ end
 
 ---@param a table
 ---@param b table
----@return table b mezclado sobre a (b gana)
+---@return table b merged over a (b wins)
 local function merge(a, b)
   return vim.tbl_deep_extend("force", a, b)
 end
 
---- Lee un archivo y todos sus imports (recursivo). Devuelve la tabla fusionada y
---- registra cada archivo visitado y cuál definió el fondo.
+--- Reads a file and all its imports (recursive). Returns the merged table and
+--- records every visited file and which one defined the background.
 ---@param path string
 ---@param ctx { files: table[], theme_file: string? }
 ---@param depth integer
 ---@return table
 local function load_file(path, ctx, depth)
-  -- La marca se toma ANTES de leer: si el archivo cambia entre ambas cosas, la
-  -- marca queda más vieja que el contenido y el sondeo lo detecta como obsoleto
-  -- (al revés se perdería la actualización).
+  -- The stamp is taken BEFORE reading: if the file changes between the two, the
+  -- stamp ends up older than the content and the polling detects it as stale
+  -- (the other way around the update would be lost).
   local file_stamp = stamp(path)
   local f = io.open(path, "r")
   if not f then
@@ -121,7 +121,7 @@ local function load_file(path, ctx, depth)
   return merge(result, own)
 end
 
----@param colors table sección [colors] fusionada
+---@param colors table merged [colors] section
 ---@return table palette
 local function build_palette(colors)
   local primary = colors.primary or {}
@@ -143,7 +143,7 @@ end
 ---@type table?
 local cache
 
---- Carga y cachea la paleta de Alacritty
+--- Loads and caches the Alacritty palette
 ---@return { palette: table, config: string, theme_file: string?, signature: string }?, string? err
 function M.load()
   if cache then
@@ -170,7 +170,7 @@ function M.load()
   return cache
 end
 
---- Firma de los archivos que definen la paleta (cambia si se edita cualquiera)
+--- Signature of the files that define the palette (changes if any is edited)
 ---@return string?
 function M.signature()
   M.reset()
@@ -178,8 +178,8 @@ function M.signature()
   return loaded and loaded.signature or nil
 end
 
---- ¿Cambió algún archivo de la config desde la última lectura? Solo hace `stat`
---- (sin releer ni parsear), así que es apto para sondeo periódico.
+--- Did any config file change since the last read? It only does `stat`
+--- (no re-reading or parsing), so it is suitable for periodic polling.
 ---@return boolean
 function M.is_stale()
   if not cache then
@@ -193,7 +193,7 @@ function M.is_stale()
   return false
 end
 
---- Descarta la caché (releer en el próximo load)
+--- Discards the cache (re-read on the next load)
 function M.reset()
   cache = nil
 end

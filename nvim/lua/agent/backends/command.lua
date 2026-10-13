@@ -1,22 +1,22 @@
--- ── Backend declarativo: cualquier agente por línea de comandos ──────────────────────────────────────────────────
--- Una entrada en `settings.agent.custom` basta para integrar Hermes Agent, Gemini CLI, Codex, Aider u otro CLI que
--- reciba un prompt y escriba la respuesta:
+-- ── Declarative backend: any command-line agent ─────────────────────────────────────────────────────────────────
+-- One entry in `settings.agent.custom` is enough to integrate Hermes Agent, Gemini CLI, Codex, Aider or any other CLI that
+-- takes a prompt and writes the response:
 --
 --   custom = {
 --     hermes = {
 --       label = "Hermes Agent",
---       cmd = { "hermes", "chat", "-q", "{prompt}" },  -- {prompt} {system} {model} se sustituyen en cada argumento
---       system_in_prompt = true,                       -- el CLI no tiene bandera de system: va dentro del mensaje
---       stdin = false,                                 -- true: el mensaje va por stdin en vez de por {prompt}
---       model_flag = { "-m", "{model}" },              -- opcional: se añade si hay modelo elegido
---       models = { "default" },                        -- o models_cmd = { "hermes", "models" } (una id por línea)
---       json = nil,                                    -- "a.b.c": la salida son eventos JSON por línea; el texto está en esa ruta
+--       cmd = { "hermes", "chat", "-q", "{prompt}" },  -- {prompt} {system} {model} are substituted in each argument
+--       system_in_prompt = true,                       -- the CLI has no system flag: it goes inside the message
+--       stdin = false,                                 -- true: the message goes through stdin instead of {prompt}
+--       model_flag = { "-m", "{model}" },              -- optional: appended when a model is chosen
+--       models = { "default" },                        -- or models_cmd = { "hermes", "models" } (one id per line)
+--       json = nil,                                    -- "a.b.c": the output is JSON events per line; the text is at that path
 --       env = {},
 --     },
 --   }
 --
--- Corre en el directorio neutro (agent/sandbox), sin herramientas del propio proyecto. REVISA las banderas de tu versión:
--- la entrada es tuya, el agente no las adivina.
+-- Runs in the neutral directory (agent/sandbox), without the project's own tools. CHECK the flags for your version:
+-- the entry is yours, the agent does not guess them.
 local sandbox = require "agent.sandbox"
 local text = require "agent.text"
 
@@ -31,7 +31,7 @@ local function expand(s, vars)
   end))
 end
 
---- Valor en una ruta "a.b.c" de una tabla
+--- Value at an "a.b.c" path of a table
 ---@param tbl table
 ---@param path string
 ---@return any

@@ -1,20 +1,20 @@
--- ── Errores centinela de Go: texto fantasma en vivo ──────────────────────────
--- Al escribir el NOMBRE de un error, el resto de la declaración aparece solo,
--- en gris a la derecha del cursor, y crece con cada letra:
+-- ── Go sentinel errors: live ghost text ───────────────────────────────────────
+-- When you type an error's NAME, the rest of the declaration shows up by itself,
+-- in grey to the right of the cursor, and grows with each letter:
 --   ErrDescriptionTooLong|   →   ErrDescriptionTooLong = errors.New("description too long")
--- Tab lo acepta (cursor al final de la línea); Enter lo acepta y abre línea nueva.
--- Sigue tecleando y la sugerencia se ajusta; Esc la descarta.
---   dentro de `var ( … )`   ErrNotFound
---   tras `var `             var ErrNotFound
---   a nivel de paquete      ErrNotFound      (se antepone `var `)
--- Acepta también el nombre sin exportar (`errNotFound`).
+-- Tab accepts it (cursor at end of line); Enter accepts it and opens a new line.
+-- Keep typing and the suggestion adjusts; Esc dismisses it.
+--   inside `var ( … )`      ErrNotFound
+--   after `var `            var ErrNotFound
+--   at package level        ErrNotFound      (`var ` is prepended)
+-- It also accepts the unexported name (`errNotFound`).
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "goerrors"
-local SCAN_LINES = 300 -- cuánto se mira hacia arriba buscando el `var (`
+local SCAN_LINES = 300 -- how far up to look for the `var (`
 
 --- "NotFound" → "not found", "InvalidID" → "invalid id", "HTTPError" → "http error"
----@param name string # con o sin el prefijo `Err`
+---@param name string # with or without the `Err` prefix
 ---@return string
 function M.message(name)
   local rest = name:gsub("^[eE]rr", "")
@@ -22,9 +22,9 @@ function M.message(name)
   return (rest:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", ""):lower())
 end
 
---- ¿La línea `row` cae dentro de un `var ( … )` de nivel de paquete?
---- Se mira el texto, no treesitter: la línea que se está tecleando (`ErrX` suelto)
---- no parsea y deja el árbol roto justo donde hace falta.
+--- Does line `row` fall inside a package-level `var ( … )`?
+--- It looks at the text, not treesitter: the line being typed (a bare `ErrX`)
+--- doesn't parse and leaves the tree broken exactly where it's needed.
 ---@param row integer 1-indexed
 ---@return boolean
 local function in_var_block(row)
@@ -35,19 +35,19 @@ local function in_var_block(row)
     if line:match "^var%s*%(%s*$" or line:match "^var%s*%(%s*//" then
       return true
     elseif line:match "^%)" or line:match "^%a" then
-      return false -- cerró el bloque, o es otra declaración en la columna 0
+      return false -- closed the block, or it is another declaration at column 0
     end
   end
   return false
 end
 
 ---@class GoErrorContext
----@field name string # el nombre tecleado (`ErrNotFound`)
----@field start integer # columna (0-indexed) donde empieza el nombre
----@field prefix string # texto que va ANTES del nombre al aceptar (`var ` o nada)
----@field suffix string # texto que va DESPUÉS (` = errors.New("not found")`)
+---@field name string # the typed name (`ErrNotFound`)
+---@field start integer # column (0-indexed) where the name starts
+---@field prefix string # text that goes BEFORE the name on accept (`var ` or nothing)
+---@field suffix string # text that goes AFTER (` = errors.New("not found")`)
 
---- ¿Se está declarando un error por su nombre, con el cursor al final de la línea? (nil = no)
+--- Is an error being declared by its name, with the cursor at the end of the line? (nil = no)
 ---@param line string
 ---@param row integer 1-indexed
 ---@param col integer 0-indexed
@@ -76,7 +76,7 @@ function M.context(line, row, col)
   end
 end
 
----@return GoErrorContext?, integer?, integer? # contexto, fila (1-indexed), columna
+---@return GoErrorContext?, integer?, integer? # context, row (1-indexed), column
 local function current()
   if vim.bo.filetype ~= "go" or vim.api.nvim_get_mode().mode ~= "i" then
     return nil
@@ -85,7 +85,7 @@ local function current()
   return M.context(vim.api.nvim_get_current_line(), row, col), row, col
 end
 
---- ¿Hay una sugerencia a la vista? (blink la usa para ocultar su menú)
+--- Is there a suggestion in view? (blink uses it to hide its menu)
 ---@return boolean
 function M.active()
   return current() ~= nil
@@ -110,9 +110,9 @@ local function render()
   end
 end
 
---- Escribe la sugerencia. Devuelve false si no había ninguna (para que la tecla siga su camino).
---- Blink llama esto desde un mapping `expr` (con el texto bloqueado), así que la edición se agenda.
----@param newline? boolean # además abre una línea nueva (Enter)
+--- Write the suggestion. Returns false if there was none (so the key goes on its way).
+--- Blink calls this from an `expr` mapping (with the text locked), so the edit is scheduled.
+---@param newline? boolean # also opens a new line (Enter)
 ---@return boolean
 function M.accept(newline)
   local err, row = current()
@@ -122,7 +122,7 @@ function M.accept(newline)
   vim.schedule(function()
     clear()
     local line = vim.api.nvim_get_current_line()
-    -- primero el sufijo (a la derecha), luego el prefijo: así las columnas no se corren
+    -- suffix first (on the right), then the prefix: that way the columns don't shift
     vim.api.nvim_buf_set_text(0, row - 1, #line, row - 1, #line, { err.suffix })
     if err.prefix ~= "" then
       vim.api.nvim_buf_set_text(0, row - 1, err.start, row - 1, err.start, { err.prefix })
@@ -135,7 +135,7 @@ function M.accept(newline)
   return true
 end
 
---- Dibuja la sugerencia mientras se teclea. Llamar una vez al arrancar.
+--- Draw the suggestion while typing. Call once at startup.
 function M.setup()
   local group = vim.api.nvim_create_augroup("GoErrors", { clear = true })
   vim.api.nvim_create_autocmd({ "InsertEnter", "TextChangedI", "TextChangedP", "CursorMovedI" }, {

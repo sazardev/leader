@@ -1,18 +1,18 @@
--- ── Registro de LENTES (<leader>aL) ──────────────────────────────────────────
--- Una lente es una revisión con UN solo foco (seguridad, rendimiento...). Cada archivo declara solo lo que la
--- distingue; aquí se completa el resto (objetivo, salida como diagnósticos, prompt común). Añadir una lente = un
--- archivo + su nombre en NAMES; el menú sale del registro.
+-- ── LENS registry (<leader>aL) ────────────────────────────────────────────────
+-- A lens is a review with ONE single focus (security, performance...). Each file declares only what
+-- sets it apart; the rest is filled in here (target, output as diagnostics, shared prompt). Adding a lens = one
+-- file + its name in NAMES; the menu comes out of the registry.
 --
---   key      string        tecla bajo <leader>aL
---   title    string        nombre corto ("security")
---   focus    string        qué busca (una frase larga: es el prompt)
---   gate     string[]?     palabras: si el código no contiene NINGUNA, la lente ni llama al modelo (0 tokens)
---   context  string[]?     proveedores (por defecto, rules y callees: lo mínimo)
---   tier     string?       "light" = modelo barato; por defecto "main"
---   check    fun(target)?  motivo para no correr (antes de gastar nada)
+--   key      string        key under <leader>aL
+--   title    string        short name ("security")
+--   focus    string        what it looks for (one long sentence: it is the prompt)
+--   gate     string[]?     words: if the code contains NONE of them, the lens does not even call the model (0 tokens)
+--   context  string[]?     providers (default, rules and callees: the minimum)
+--   tier     string?       "light" = cheap model; default "main"
+--   check    fun(target)?  reason not to run (before spending anything)
 --
--- Los hallazgos son diagnósticos con su lente como origen (`[security]`): `af`/`aF` los arreglan, y repetir una lente
--- solo reemplaza lo suyo.
+-- Findings are diagnostics with their lens as source (`[security]`): `af`/`aF` fix them, and re-running a lens
+-- only replaces its own.
 local protocol = require "agent.protocol"
 local target_mod = require "agent.context.target"
 
@@ -74,7 +74,7 @@ function M.get(name)
   if not cache[name] then
     local action = build(require("agent.lenses.actions." .. name))
     action.short = name
-    action.name = "lens_" .. name -- `settings.agent.tiers.lens_security = "light"` la reasigna
+    action.name = "lens_" .. name -- `settings.agent.tiers.lens_security = "light"` reassigns it
     cache[name] = action
   end
   return cache[name]
@@ -85,6 +85,6 @@ function M.list()
   return vim.tbl_map(M.get, NAMES)
 end
 
-M.target = target_mod -- (para pruebas)
+M.target = target_mod -- (for tests)
 
 return M

@@ -1,15 +1,15 @@
--- ── Bootstrap y arranque de lazy.nvim ────────────────────────────────────────
+-- ── lazy.nvim bootstrap and startup ──────────────────────────────────────────
 local M = {}
 
--- Grupos de plugins: cada carpeta de lua/plugins/<grupo>/ se importa completa
--- (un archivo = un plugin o una funcionalidad). Añade grupos aquí.
+-- Plugin groups: each lua/plugins/<group>/ folder is imported whole
+-- (one file = one plugin or one feature). Add groups here.
 local GROUPS = { "core", "lsp", "tools", "syntax", "languages", "navigation", "editing", "git", "ui" }
 
 local OPTIONS = {
   defaults = { lazy = true },
   install = { colorscheme = { "nvchad" } },
 
-  -- Ningún plugin usa rocks: evita el ERROR de hererocks en :checkhealth lazy
+  -- No plugin uses rocks: avoids the hererocks ERROR in :checkhealth lazy
   rocks = { enabled = false },
 
   ui = {

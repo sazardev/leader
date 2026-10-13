@@ -1,25 +1,25 @@
--- ── Componentes de lualine ───────────────────────────────────────────────────
+-- ── lualine components ───────────────────────────────────────────────────────
 local M = {}
 
--- ── Diagnósticos ─────────────────────────────────────────────────────────────
--- Errores y warnings por separado (el uno nunca tapa al otro), como etiquetas sólidas con el
--- color de la severidad. Solo cuentan; el detalle está en el código. Los colores salen de
--- ui/diagcolors.lua, los mismos del número de línea y de los bloques en línea.
+-- ── Diagnostics ──────────────────────────────────────────────────────────────
+-- Errors and warnings separately (one never hides the other), as solid labels with the
+-- severity color. They only count; the detail is in the code. The colors come from
+-- ui/diagcolors.lua, the same as the line number and the inline blocks.
 local SEVERITY = vim.diagnostic.severity
 local LETTER = { [SEVERITY.ERROR] = "E", [SEVERITY.WARN] = "W" }
 
 ---@param severity integer
----@return table color de lualine: fondo = acento de la severidad, texto legible encima
+---@return table lualine color: background = severity accent, readable text on top
 local function pill_color(severity)
   local diag = require "ui.diagcolors"
-  diag.sync() -- si el tema cambió, el número de línea y los bloques se recalculan con esta barra
+  diag.sync() -- if the theme changed, the line number and the blocks are recomputed with this bar
   local pill = diag.pill(severity)
   return { fg = pill.fg, bg = pill.bg, gui = "bold" }
 end
 
---- Etiqueta " E2 " / " W1 " (vacía si no hay de esa severidad; `cond` la oculta)
+--- Label " E2 " / " W1 " (empty if there are none of that severity; `cond` hides it)
 ---@param severity integer
----@return table componente de lualine
+---@return table lualine component
 function M.diagnostic_count(severity)
   return {
     function()
@@ -35,10 +35,10 @@ function M.diagnostic_count(severity)
   }
 end
 
--- ── Agente ───────────────────────────────────────────────────────────────────
---- Spinner mientras hay acciones del agente en marcha. No carga el agente: si nunca se usó
---- (módulo sin cargar) no hay nada que mostrar.
----@return table componente de lualine
+-- ── Agent ────────────────────────────────────────────────────────────────────
+--- Spinner while agent actions are running. It does not load the agent: if it was never used
+--- (module not loaded) there is nothing to show.
+---@return table lualine component
 function M.agent_status()
   return {
     function()
@@ -54,7 +54,7 @@ function M.agent_status()
   }
 end
 
----@return string nombre de la carpeta de trabajo
+---@return string name of the working folder
 function M.project_name()
   local cwd = vim.uv.cwd() or ""
   return cwd:match "([^/\\]+)[/\\]*$" or cwd

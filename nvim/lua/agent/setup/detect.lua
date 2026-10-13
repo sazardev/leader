@@ -1,13 +1,13 @@
--- ── Detección: qué hay en esta máquina para el agente ────────────────────────
--- Una foto (snapshot) de TODO lo que el agente puede usar, medida en paralelo y sin bloquear nvim: CLIs de agente, servidores
--- locales (Ollama y APIs compatibles con OpenAI, también los que viven en el host de Windows si estás en WSL), los modelos
--- que ya tienes, si cargan en GPU o CPU y cuánta VRAM/RAM hay para recomendar. No instala ni arranca nada: solo mira.
+-- ── Detection: what this machine has for the agent ───────────────────────────
+-- A snapshot of EVERYTHING the agent can use, measured in parallel without blocking nvim: agent CLIs, local servers
+-- (Ollama and OpenAI-compatible APIs, including those living on the Windows host if you are on WSL), the models
+-- you already have, whether they load on GPU or CPU and how much VRAM/RAM is available to recommend from. It installs and starts nothing: it only looks.
 local http = require "agent.backends.http"
 local settings = require("core.settings").agent
 
 local M = {}
 
---- CLIs de agente que se buscan: ejecutable → para qué sirven
+--- Agent CLIs to look for: executable → what they are for
 M.CLIS = {
   { name = "claude", role = "backend: Claude Code" },
   { name = "opencode", role = "backend: OpenCode" },
@@ -46,7 +46,7 @@ local function get_json(url, cb)
   end)
 end
 
---- RAM total en GB (Linux/WSL); nil si no se puede leer
+--- Total RAM in GB (Linux/WSL); nil if it cannot be read
 ---@return number?
 local function ram_gb()
   local f = io.open("/proc/meminfo", "r")
@@ -67,7 +67,7 @@ local function nvidia_smi()
   end
 end
 
---- Servidores donde mirar, sin repetir: lo configurado / el entorno / lo guardado primero
+--- Servers to look at, without repeats: configured / environment / saved first
 ---@return string[]
 local function ollama_urls()
   local out, seen = {}, {}
@@ -127,7 +127,7 @@ end
 ---@field custom string[]
 ---@field warnings string[]
 
---- Mide todo en paralelo y entrega la foto
+--- Measures everything in parallel and delivers the snapshot
 ---@param cb fun(snapshot: AgentSnapshot)
 function M.run(cb)
   local snap = {
@@ -162,8 +162,8 @@ function M.run(cb)
     end
   end
 
-  start() -- guarda de arranque: el callback final no se dispara antes de lanzar todas las sondas
-  -- CLIs: ejecutable + versión
+  start() -- start guard: the final callback does not fire before all probes are launched
+  -- CLIs: executable + version
   for i, cli in ipairs(M.CLIS) do
     local path = vim.fn.exepath(cli.name)
     snap.clis[i] = { name = cli.name, role = cli.role, path = path ~= "" and path or nil }
@@ -176,7 +176,7 @@ function M.run(cb)
     end
   end
 
-  -- Ollama: versión, modelos instalados y cuáles están cargados (y dónde: GPU o CPU)
+  -- Ollama: version, installed models and which are loaded (and where: GPU or CPU)
   for _, url in ipairs(ollama_urls()) do
     start()
     get_json(url .. "/api/version", function(ver)
@@ -208,7 +208,7 @@ function M.run(cb)
     end)
   end
 
-  -- APIs compatibles con OpenAI (LM Studio, llama.cpp, vLLM...)
+  -- OpenAI-compatible APIs (LM Studio, llama.cpp, vLLM...)
   for _, url in ipairs(openai_urls()) do
     start()
     get_json(url .. "/v1/models", function(models)
@@ -240,7 +240,7 @@ function M.run(cb)
     end)
   end
 
-  finish() -- libera la guarda
+  finish() -- release the guard
 end
 
 return M

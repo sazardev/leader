@@ -1,12 +1,12 @@
--- ── Panel de commit ──────────────────────────────────────────────────────────
--- UNA experiencia para commitear, igual de clara que <leader>a: arriba, QUÉ se commitea (preparado vs. no preparado,
--- con +/− por archivo); abajo, el mensaje con validación Conventional Commits en vivo y una línea que dice qué hará
--- el agente (modelo, qué lee, cuánto cuesta) ANTES de gastar nada. Todo con teclado y con los colores del tema.
+-- ── Commit panel ─────────────────────────────────────────────────────────────
+-- ONE experience for committing, as clear as <leader>a: on top, WHAT gets committed (staged vs. not staged,
+-- with +/− per file); below, the message with live Conventional Commits validation and a line saying what the
+-- agent will do (model, what it reads, how much it costs) BEFORE spending anything. All keyboard-driven, with the theme colors.
 --
---   archivos   ⎵ prepara/quita · a todo · u nada · p diff · ⇥ mensaje        mensaje   ⌃s commit · ⌃g IA · ⌃t tipo · ⌃o scope
+--   files   ⎵ stage/unstage · a all · u none · p diff · ⇥ message        message   ⌃s commit · ⌃g AI · ⌃t type · ⌃o scope
 --
--- Rutas de entrada (menú <leader>G): `c` abre el panel, `m` lo abre y pide el borrador a la IA, `a` reescribe el último
--- commit (amend). Las tres comparten el mismo panel.
+-- Entry points (<leader>G menu): `c` opens the panel, `m` opens it and asks the AI for the draft, `a` rewrites the last
+-- commit (amend). All three share the same panel.
 local ai = require "commit.ai"
 local conventional = require "commit.conventional"
 local git = require "commit.git"
@@ -37,7 +37,7 @@ local WINHL = "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTi
 ---@field status_buf integer
 ---@field status_win integer
 ---@field ai { state: "idle"|"running"|"done"|"error", handle: vim.SystemObj?, t0: integer?, secs: number?, usage: table?, err: string?, timer: uv.uv_timer_t?, model: string? }
----@field busy string?    "committing…" mientras corre git commit (los hooks pueden tardar)
+---@field busy string?    "committing…" while git commit runs (hooks may take a while)
 ---@field preview integer?
 ---@field closing boolean?
 ---@type CommitState?
@@ -73,7 +73,7 @@ end
 
 ---@param chunks table[] { text, hl }[]
 ---@param width integer
----@param keep integer  cuántos trozos iniciales no se recortan nunca
+---@param keep integer  how many leading chunks are never trimmed
 ---@return table[]
 local function fit(chunks, width, keep)
   local function total()
@@ -99,7 +99,7 @@ local function alive()
   return S ~= nil and not S.closing and vim.api.nvim_win_is_valid(S.files_win) and vim.api.nvim_win_is_valid(S.msg_win)
 end
 
--- ── ventanas ─────────────────────────────────────────────────────────────────
+-- ── windows ──────────────────────────────────────────────────────────────────
 
 ---@return table files_cfg, table msg_cfg, table status_cfg
 local function layout()
@@ -113,7 +113,7 @@ local function layout()
   local msg_row = top + list_h + 2
   return vim.tbl_extend("force", base, { height = list_h, row = top }),
     vim.tbl_extend("force", base, { height = MSG_HEIGHT, row = msg_row }),
-    -- la línea del agente va justo debajo del panel, sin borde: se lee como la barra de estado del commit
+    -- the agent line goes right below the panel, borderless: it reads as the commit's status bar
     {
       relative = "editor",
       width = width + 2,
@@ -126,14 +126,14 @@ local function layout()
     }
 end
 
---- Título y pie de las dos ventanas (cambian con la rama, el estado y la validación)
+--- Title and footer of the two windows (they change with the branch, the state and the validation)
 local function chrome()
   if not alive() then
     return
   end
   local files_cfg, msg_cfg, status_cfg = layout()
 
-  -- arriba: qué y dónde
+  -- top: what and where
   local b = S.branch
   local where = b.upstream and ("%s → %s"):format(b.name, b.upstream) or ("%s (no upstream)"):format(b.name)
   local title = {
@@ -152,7 +152,7 @@ local function chrome()
   files_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.files_win, files_cfg)
 
-  -- abajo: validación Conventional Commits en vivo
+  -- bottom: live Conventional Commits validation
   local line = vim.api.nvim_buf_get_lines(S.msg_buf, 0, 1, false)[1] or ""
   local c = conventional.check(line)
   local mtitle
@@ -187,7 +187,7 @@ local function chrome()
   vim.api.nvim_win_set_config(S.status_win, status_cfg)
 end
 
---- Línea del agente sobre el asunto: qué hará, con qué modelo y cuánto cuesta; luego, qué hizo
+--- Agent line about the subject: what it will do, with which model and how much it costs; then, what it did
 local function ai_line()
   if not alive() then
     return
@@ -239,7 +239,7 @@ local function ai_line()
     }
   end
   fit(chunks, width, 3)
-  -- se escribe como texto con un resaltado por trozo
+  -- written as text with one highlight per chunk
   local line, spans = " ", {}
   for _, c in ipairs(chunks) do
     spans[#spans + 1] = { #line, #line + #c[1], c[2] }
@@ -252,7 +252,7 @@ local function ai_line()
   for _, sp in ipairs(spans) do
     vim.api.nvim_buf_set_extmark(S.status_buf, NS, 0, sp[1], { end_col = sp[2], hl_group = sp[3] })
   end
-  -- marcador de posición cuando el mensaje está vacío
+  -- placeholder when the message is empty
   local empty = #vim.api.nvim_buf_get_lines(S.msg_buf, 0, -1, false) == 1
     and (vim.api.nvim_buf_get_lines(S.msg_buf, 0, 1, false)[1] or "") == ""
   pcall(vim.api.nvim_buf_del_extmark, S.msg_buf, NS, 2)
@@ -271,11 +271,11 @@ local function redraw_msg()
   ai_line()
 end
 
--- ── lista de archivos ────────────────────────────────────────────────────────
+-- ── file list ────────────────────────────────────────────────────────────────
 
 local LETTER_HL = { A = "CommitAdd", ["?"] = "CommitAdd", D = "CommitDel", U = "CommitErr" }
 
---- Pinta qué se commitea y qué NO; conserva el cursor sobre la misma ruta
+--- Paints what gets committed and what does NOT; keeps the cursor on the same path
 ---@param keep_path string?
 local function render_files(keep_path)
   local lines, marks, rows = {}, {}, {}
@@ -386,7 +386,7 @@ local function render_files(keep_path)
     end
   end
 
-  -- cursor: misma ruta, o la primera fila de archivo
+  -- cursor: same path, or the first file row
   local target
   for i, r in pairs(rows) do
     if r.entry and (keep_path == nil or r.entry.path == keep_path) and (target == nil or i < target) then
@@ -403,7 +403,7 @@ local function render_files(keep_path)
   end
 end
 
---- Relee git y repinta todo
+--- Re-reads git and repaints everything
 ---@param keep_path string?
 local function refresh(keep_path)
   if not alive() then
@@ -415,7 +415,7 @@ local function refresh(keep_path)
   redraw_msg()
 end
 
--- ── acciones ─────────────────────────────────────────────────────────────────
+-- ── actions ──────────────────────────────────────────────────────────────────
 
 local function focus(which)
   if not alive() then
@@ -485,7 +485,7 @@ local function close_preview()
   end
 end
 
---- Diff del archivo bajo el cursor en una ventana flotante (q / Esc la cierran)
+--- Diff of the file under the cursor in a floating window (q / Esc close it)
 local function preview()
   local row = current_row()
   if not (row and row.entry) then
@@ -535,7 +535,7 @@ local function stop_timer()
   end
 end
 
---- Cierra todo (cancela al agente si trabajaba)
+--- Closes everything (cancels the agent if it was working)
 function M.close()
   if not S or S.closing then
     return
@@ -554,7 +554,7 @@ function M.close()
   S = nil
 end
 
--- ── IA ───────────────────────────────────────────────────────────────────────
+-- ── AI ───────────────────────────────────────────────────────────────────────
 
 local function draft()
   if not alive() or S.ai.state == "running" or S.busy then
@@ -589,7 +589,7 @@ local function draft()
       return redraw_msg()
     end
     a.state, a.usage = "done", usage
-    -- reemplaza el mensaje (se deshace con `u`) y deja el foco listo para revisar y commitear
+    -- replaces the message (undo with `u`) and leaves the focus ready to review and commit
     vim.api.nvim_buf_set_lines(S.msg_buf, 0, -1, false, result --[[@as string[] ]])
     focus "msg"
     vim.cmd "stopinsert"
@@ -597,10 +597,10 @@ local function draft()
     redraw_msg()
   end)
   ai_line()
-  -- sin backend, `complete` ya devolvió el error de forma síncrona
+  -- with no backend, `complete` already returned the error synchronously
 end
 
--- ── tipo y scope ─────────────────────────────────────────────────────────────
+-- ── type and scope ───────────────────────────────────────────────────────────
 
 ---@param patch { type: string?, scope: string|false? }
 local function rewrite_header(patch)
@@ -709,7 +709,7 @@ local function submit()
     S.busy = nil
     if not ok then
       chrome()
-      -- el panel sigue abierto: se corrige el mensaje (o lo que rechazó el hook) y se reintenta
+      -- the panel stays open: fix the message (or whatever the hook rejected) and retry
       return log.error("git commit failed:\n" .. text.clip(info, 600))
     end
     M.close()
@@ -730,7 +730,7 @@ local function submit()
   end)
 end
 
--- ── apertura ─────────────────────────────────────────────────────────────────
+-- ── opening ──────────────────────────────────────────────────────────────────
 
 ---@param buf integer
 ---@param map fun(modes: string|string[], lhs: string, fn: function, desc: string)
@@ -798,12 +798,12 @@ function M.open(opts)
     vim.wo[win].wrap = false
   end
   vim.wo[S.files_win].cursorline = true
-  vim.wo[S.files_win].signcolumn = "yes:1" -- margen izquierdo
+  vim.wo[S.files_win].signcolumn = "yes:1" -- left margin
   vim.wo[S.msg_win].signcolumn = "yes:1"
   vim.wo[S.files_win].winhighlight = WINHL .. ",CursorLine:CommitCursor"
   vim.wo[S.msg_win].wrap = true
   vim.api.nvim_set_current_win(S.msg_win)
-  vim.bo[S.msg_buf].filetype = "gitcommit" -- con la ventana de mensaje activa: ortografía y columna 73 caen en ella
+  vim.bo[S.msg_buf].filetype = "gitcommit" -- with the message window active: spelling and column 73 apply to it
   vim.wo[S.msg_win].colorcolumn = tostring(cfg().subject_max + 1)
 
   local function mapper(buf)
@@ -848,7 +848,7 @@ function M.open(opts)
     group = group,
     pattern = { tostring(S.files_win), tostring(S.msg_win) },
     callback = function()
-      -- el cierre llega encolado: si entretanto se abrió otro panel, no es éste el que hay que cerrar
+      -- the close arrives queued: if another panel was opened in the meantime, this is not the one to close
       local this = S
       vim.schedule(function()
         if S == this then

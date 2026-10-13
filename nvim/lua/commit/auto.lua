@@ -1,12 +1,12 @@
--- ── Commit automático (<leader>GM): sin panel, en segundo plano ──────────────
--- Qué hace, en este orden, y nada más:
---   1. si hay archivos preparados, commitea ESO; si no, prepara todo lo modificado (menos lo sensible: settings
---      git.commit.sensitive) y lo deja anotado para deshacerlo si algo falla;
---   2. pide UN mensaje al agente (commit/ai.lua: diff compacto, rama, asuntos recientes, tipos; todo en inglés);
---   3. valida la cabecera (Conventional Commits) y commitea;
---   4. avisa en una línea: hash, mensaje, archivos, +/− y lo que costó.
--- Si algo falla (sin backend, error de la IA, cabecera inválida, un hook), lo preparado por esta orden se
--- deshace y no queda nada a medias: el aviso dice qué pasó y cómo seguir a mano (<leader>Gm).
+-- ── Automatic commit (<leader>GM): no panel, in the background ───────────────
+-- What it does, in this order, and nothing more:
+--   1. if there are staged files, commits THAT; otherwise stages everything modified (except sensitive files: settings
+--      git.commit.sensitive) and records it so it can be undone if something fails;
+--   2. asks the agent for ONE message (commit/ai.lua: compact diff, branch, recent subjects, types; all in English);
+--   3. validates the header (Conventional Commits) and commits;
+--   4. reports in one line: hash, message, files, +/− and what it cost.
+-- If something fails (no backend, AI error, invalid header, a hook), whatever this command staged is
+-- undone and nothing is left half-done: the notice says what happened and how to continue by hand (<leader>Gm).
 local conventional = require "commit.conventional"
 local git = require "commit.git"
 local log = require "utils.log"
@@ -50,7 +50,7 @@ function M.run()
     return log.info "Commit: nothing to commit"
   end
 
-  -- 1. qué entra: lo preparado o, si no hay nada, todo menos lo sensible
+  -- 1. what goes in: what is staged or, if nothing is, everything except sensitive files
   local staged = vim.tbl_filter(function(e)
     return e.staged
   end, entries)

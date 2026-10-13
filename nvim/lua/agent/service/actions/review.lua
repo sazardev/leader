@@ -1,4 +1,4 @@
--- Service review: lo propio de un servicio de aplicación, contra los puertos que realmente tiene
+-- Service review: what is specific to an application service, checked against the ports it really has
 local principles = require "agent.ddd.principles"
 local protocol = require "agent.protocol"
 

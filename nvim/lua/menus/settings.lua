@@ -1,5 +1,5 @@
--- ── Contexto Settings (global): <leader>S ────────────────────────────────────
--- Apariencia hoy; aquí se agregan futuros ajustes en caliente.
+-- ── Settings context (global): <leader>S ─────────────────────────────────────
+-- Appearance today; future live settings get added here.
 local function appearance()
   return require "appearance"
 end

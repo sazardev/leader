@@ -1,12 +1,12 @@
--- ── Go: cablear constructores (composition root) sin LLM, 0 tokens ───────────
--- En `main` (o donde armas las dependencias), teclear `New…` ofrece los constructores de los paquetes del módulo con
--- los argumentos YA puestos a partir de lo que hay en ámbito:
+-- ── Go: wire up constructors (composition root), no LLM, 0 tokens ────────────
+-- In `main` (or wherever you assemble dependencies), typing `New…` offers the constructors of the module's packages with
+-- the arguments ALREADY filled in from what is in scope:
 --   noteRepo := infrastructure.NewNoteRepository(db)
---   noteService := application.NewNoteService(noteRepo)        ← `noteRepo` va solo: su tipo cumple domain.NoteRepository
--- Cómo elige cada argumento (el primero que encaje): una variable del MISMO tipo → una variable cuyo tipo concreto
--- IMPLEMENTA la interfaz que pide el parámetro (por los métodos) → una variable con el mismo NOMBRE que el parámetro →
--- `context.Background()` para un context → un hueco con el nombre del parámetro. Los tipos de las variables salen de los
--- parámetros, de `var x T`, de `&T{}` y del retorno de los constructores que ya llamaste. El import lo añade goimports al guardar.
+--   noteService := application.NewNoteService(noteRepo)        ← `noteRepo` goes in on its own: its type satisfies domain.NoteRepository
+-- How it picks each argument (the first that fits): a variable of the SAME type → a variable whose concrete type
+-- IMPLEMENTS the interface the parameter asks for (by methods) → a variable with the same NAME as the parameter →
+-- `context.Background()` for a context → a placeholder named after the parameter. Variable types come from the
+-- parameters, from `var x T`, from `&T{}` and from the return of the constructors you already called. goimports adds the import on save.
 local ix = require "utils.goindex"
 
 local M = {}
@@ -29,7 +29,7 @@ end
 ---@field params { name: string?, type: string }[]
 ---@field results string[]
 
---- Constructores `NewX` del módulo (y del paquete actual), de los paquetes importados primero
+--- `NewX` constructors of the module (and the current package), from imported packages first
 ---@param path string
 ---@param current GoImplPackage
 ---@return GoWireCtor[], table<string, GoWireCtor>, GoImplModule?
@@ -64,11 +64,11 @@ end
 
 ---@class GoWireVar
 ---@field name string
----@field type string?     normalizado (sin paquete ni `*`)
+---@field type string?     normalised (without package or `*`)
 ---@field written string?
----@field pkg GoImplPackage? paquete donde se declaró el tipo (para saber sus métodos)
+---@field pkg GoImplPackage? package where the type was declared (to know its methods)
 
---- Variables de la función que contiene el cursor, leídas del texto desde su `func` hasta la línea actual
+--- Variables of the function containing the cursor, read from the text from its `func` to the current line
 ---@param row integer
 ---@param by_call table<string, GoWireCtor>
 ---@return GoWireVar[]
@@ -101,7 +101,7 @@ local function scope_vars(row, by_call)
     return vim.treesitter.get_node_text(n, src)
   end
 
-  --- tipo de una expresión de la derecha
+  --- type of a right-hand-side expression
   local function infer(expr)
     local t = expr:type()
     if t == "unary_expression" and expr:named_child(0) then
@@ -136,7 +136,7 @@ local function scope_vars(row, by_call)
           if #values == #ids then
             written, pkg = infer(values[i])
           elseif #values == 1 then
-            written, pkg = infer(values[1]) -- `x, err := NewX(...)`: el primero es el valor
+            written, pkg = infer(values[1]) -- `x, err := NewX(...)`: the first is the value
             if i > 1 then
               written, pkg = i == #ids and "error" or nil, nil
             end
@@ -158,7 +158,7 @@ local function scope_vars(row, by_call)
   return vars
 end
 
---- Métodos (nombres) que tiene un tipo concreto, buscándolo en los paquetes del módulo
+--- Method names of a concrete type, looking it up in the module's packages
 ---@param name string
 ---@param packages GoImplPackage[]
 ---@param prefer GoImplPackage?
@@ -186,7 +186,7 @@ local function methods_of(name, packages, prefer)
     end)()
 end
 
---- Nombres de los métodos de una interfaz del módulo
+--- Method names of a module interface
 ---@param name string
 ---@param packages GoImplPackage[]
 ---@return string[]?
@@ -201,7 +201,7 @@ local function interface_names(name, packages)
   end
 end
 
---- Elige el argumento para un parámetro
+--- Pick the argument for a parameter
 ---@param param { name: string?, type: string }
 ---@param vars GoWireVar[]
 ---@param packages GoImplPackage[]
@@ -271,7 +271,7 @@ function M.items(ctx)
     return {}
   end
   local row, col = ctx.cursor[1], ctx.cursor[2]
-  -- solo dentro de una función
+  -- only inside a function
   local fn_start
   for r = row, 1, -1 do
     if (vim.api.nvim_buf_get_lines(0, r - 1, r, false)[1] or ""):match "^func%s" then

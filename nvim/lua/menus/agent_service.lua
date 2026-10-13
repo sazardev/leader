@@ -1,5 +1,5 @@
--- ── Contexto Agent Service (global): <leader>aS ──────────────────────────────
--- Nivel de aplicación de la arquitectura hexagonal: servicios / casos de uso que orquestan el dominio y llaman a puertos.
+-- ── Agent Service context (global): <leader>aS ───────────────────────────────
+-- Application level of the hexagonal architecture: services / use cases that orchestrate the domain and call ports.
 local function service()
   return require "agent.service"
 end

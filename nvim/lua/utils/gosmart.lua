@@ -1,15 +1,15 @@
--- ── Go consciente del contexto (fuente de blink.cmp + filtros) ───────────────
--- Lee el árbol de treesitter para saber DÓNDE está el cursor y ofrecer solo lo
--- que aplica, con nombres legibles (nada de siglas):
---   inicio de declaración → variantes de `func`, métodos de CADA struct del
---                           archivo, `NewX(campos…)` para los structs sin
---                           constructor, y variantes de `type`
+-- ── Context-aware Go (blink.cmp source + filters) ──────────────────────────────
+-- Reads the treesitter tree to know WHERE the cursor is and offer only what
+-- applies, with readable names (no acronyms):
+--   start of declaration → `func` variants, methods of EVERY struct in the
+--                          file, `NewX(fields…)` for structs without a
+--                          constructor, and `type` variants
 --   type Envelope |       → struct { } / interface { } / func(…)
---   dentro de interface   → firmas de método (error, ctx, resultado…)
---   snippets (json)       → declaraciones solo a nivel de paquete, sentencias
---                           solo dentro de funciones
---   ruido                 → ahí no salen palabras del buffer ni el `func`/`type`
---                           genérico del LSP
+--   inside interface      → method signatures (error, ctx, result…)
+--   snippets (json)       → declarations only at package level, statements
+--                           only inside functions
+--   noise                 → no buffer words or the LSP's generic `func`/`type`
+--                           show up there
 local M = {}
 
 local KIND = vim.lsp.protocol.CompletionItemKind
@@ -30,13 +30,13 @@ end
 
 local last = { key = "", scope = "other" }
 
---- "top" (nivel de paquete) | "func" (cuerpo de función) | "struct" | "interface" | "other"
+--- "top" (package level) | "func" (function body) | "struct" | "interface" | "other"
 ---@param row integer
 ---@param col integer
 ---@param line string
 ---@return "top"|"func"|"struct"|"interface"|"other"
 function M.scope(row, col, line)
-  -- varias fuentes preguntan por la misma pulsación: se calcula una vez
+  -- several sources ask about the same keystroke: computed once
   local key = ("%d:%d:%d:%d"):format(vim.api.nvim_get_current_buf(), vim.b.changedtick or 0, row, col)
   if key == last.key then
     return last.scope
@@ -49,7 +49,7 @@ function M.scope(row, col, line)
     if t == "block" then
       in_block = true
     elseif FUNC_NODES[t] then
-      scope = in_block and "func" or "other" -- sin bloque: estás en la firma
+      scope = in_block and "func" or "other" -- no block: you're in the signature
       break
     elseif t == "field_declaration_list" then
       scope = "struct"
@@ -58,7 +58,7 @@ function M.scope(row, col, line)
       scope = "interface"
       break
     elseif t == "source_file" then
-      -- un árbol roto puede dejar código indentado como "top": ahí no se filtra
+      -- a broken tree can leave indented code as "top": no filtering there
       scope = line:find "^%s" and "other" or "top"
       break
     end
@@ -69,8 +69,8 @@ function M.scope(row, col, line)
 end
 
 ---@param ctx blink.cmp.Context
----@return "func"|"type"|"any"? mode # qué declaración se está empezando (nil = otra cosa)
----@return string? frag # lo ya tecleado de la palabra (tras `func `/`type ` o al inicio de línea)
+---@return "func"|"type"|"any"? mode # which declaration is being started (nil = something else)
+---@return string? frag # what has already been typed of the word (after `func `/`type ` or at line start)
 local function decl_start(ctx)
   local row, col = ctx.cursor[1], ctx.cursor[2]
   local before = ctx.line:sub(1, col)
@@ -86,7 +86,7 @@ local function decl_start(ctx)
   end
 end
 
--- ── vista previa (ventana de documentación de blink) ─────────────────────────
+-- ── preview (blink's documentation window) ────────────────────────────────────
 ---@param item table
 ---@return string
 local function preview_text(item)
@@ -94,13 +94,13 @@ local function preview_text(item)
   if item.insertTextFormat == FORMAT.Snippet then
     local ok, parsed = pcall(vim.lsp._snippet_grammar.parse, text)
     if ok and parsed then
-      return tostring(parsed) -- placeholders reemplazados por sus valores por defecto
+      return tostring(parsed) -- placeholders replaced by their default values
     end
   end
   return text
 end
 
---- `resolve` de una fuente: muestra en la ventana de docs lo que se va a insertar
+--- A source's `resolve`: shows in the docs window what is about to be inserted
 ---@param item table
 ---@param callback fun(item: table)
 function M.resolve(item, callback)
@@ -109,7 +109,7 @@ function M.resolve(item, callback)
   callback(resolved)
 end
 
--- ── helpers de texto ─────────────────────────────────────────────────────────
+-- ── text helpers ───────────────────────────────────────────────────────────────
 local GO_KEYWORDS = {}
 for _, kw in ipairs {
   "break",
@@ -157,7 +157,7 @@ end
 ---@field fields { name: string, type: string }[]
 
 ---@param root TSNode
----@param source integer|string buffer o texto del que sale `root`
+---@param source integer|string buffer or text `root` comes from
 ---@return GoStruct[]
 local function structs_from(root, source)
   local function text(n)
@@ -173,7 +173,7 @@ local function structs_from(root, source)
           for _, list in ipairs(typ:named_children()) do
             for _, field in ipairs(list:named_children()) do
               local ftype = field:field("type")[1]
-              -- los embebidos (sin nombre) se omiten
+              -- embedded fields (unnamed) are skipped
               if field:type() == "field_declaration" and ftype and #field:field "name" > 0 then
                 for _, fname in ipairs(field:field "name") do
                   s.fields[#s.fields + 1] = { name = text(fname), type = text(ftype) }
@@ -189,7 +189,7 @@ local function structs_from(root, source)
   return found
 end
 
---- `type Kind string` → { Kind = "string" } (los structs van aparte)
+--- `type Kind string` → { Kind = "string" } (structs are handled separately)
 ---@param root TSNode
 ---@param source integer|string
 ---@return table<string, string>
@@ -233,10 +233,10 @@ local function package_name(root, source)
   end
 end
 
--- structs de los demás archivos del paquete, en caché por fecha de modificación
+-- structs from the package's other files, cached by modification time
 local file_cache = {}
 
----@param current string ruta del buffer actual
+---@param current string path of the current buffer
 ---@param pkg string
 ---@return GoStruct[] structs, table<string, string> types
 local function sibling_structs(current, pkg)
@@ -274,8 +274,8 @@ end
 
 local package_types_cache = {}
 
---- Structs que se pueden rellenar: los del buffer + los del resto del paquete
---- (mismo directorio y mismo `package`). Los de otros paquetes los completa gopls.
+--- Structs that can be filled in: the buffer's + the rest of the package's
+--- (same directory and same `package`). Those from other packages are completed by gopls.
 ---@return GoStruct[]
 local function package_structs()
   local list = structs_in_buffer()
@@ -302,7 +302,7 @@ local function package_structs()
   return list
 end
 
---- Tipos definidos del paquete (`Kind` → `string`), tras la última llamada a package_structs()
+--- Defined types of the package (`Kind` → `string`), after the last call to package_structs()
 ---@return table<string, string>
 local function package_types()
   return package_types_cache
@@ -324,17 +324,17 @@ local function constructor_text(s)
   return ("%s\n\treturn &%s{\n%s\n\t}\n}"):format(head, s.name, table.concat(assigns, "\n"))
 end
 
-local FUNCNEW_MIN = 5 -- letras tecleadas (`funcn`) para que salga `funcnew`
+local FUNCNEW_MIN = 5 -- typed letters (`funcn`) for `funcnew` to show up
 
---- Escapa lo que el parser de snippets LSP interpreta (`$`, `}` y `\`)
+--- Escape what the LSP snippet parser interprets (`$`, `}` and `\`)
 ---@param text string
 ---@return string
 local function snippet_escape(text)
   return (text:gsub("[$}\\]", "\\%0"))
 end
 
---- Campos `time.Time` que nacen con el objeto (createdAt, updatedAt, modifiedAt…): no son
---- parámetros, se rellenan con un único `now`. El resto de `time.Time` (dueDate…) sí lo es.
+--- `time.Time` fields born with the object (createdAt, updatedAt, modifiedAt…): they aren't
+--- parameters, they're filled with a single `now`. Other `time.Time` fields (dueDate…) are parameters.
 ---@param f { name: string, type: string }
 ---@return boolean
 local function is_now_field(f)
@@ -342,12 +342,12 @@ local function is_now_field(f)
   return f.type == "time.Time" and (n:find "^created" or n:find "^updated" or n:find "^modified") ~= nil
 end
 
---- `New` (o `NewX` si hay varios structs) con los campos y `(*X, error)`.
---- Los parámetros contiguos del mismo tipo se agrupan: `id, title, content string`.
---- Los `time.Time` de creación/actualización salen de `now := time.Now().UTC()`.
---- `$0` queda antes del return, para las validaciones.
+--- `New` (or `NewX` if there are several structs) with the fields and `(*X, error)`.
+--- Contiguous parameters of the same type are grouped: `id, title, content string`.
+--- Creation/update `time.Time` fields come from `now := time.Now().UTC()`.
+--- `$0` lands before the return, for validations.
 ---@param s GoStruct
----@param single boolean # único struct del archivo → `New`
+---@param single boolean # only struct in the file → `New`
 ---@return string
 local function constructor_error_text(s, single)
   local groups, assigns, width, uses_now = {}, {}, 0, false
@@ -384,8 +384,8 @@ local function constructor_error_text(s, single)
   return snippet_escape(head .. "\n\t") .. "$0" .. snippet_escape(body .. "\n}")
 end
 
--- ── plantillas ───────────────────────────────────────────────────────────────
--- { etiqueta, descripción, cuerpo (snippet LSP) }
+-- ── templates ─────────────────────────────────────────────────────────────────
+-- { label, description, body (LSP snippet) }
 local FUNCS = {
   { "func", "function", "func ${1:name}(${2}) {\n\t$0\n}" },
   { "func error", "→ error", "func ${1:name}(${2}) error {\n\t$0\n\treturn nil\n}" },
@@ -447,7 +447,7 @@ local TYPES = {
   },
 }
 
--- dentro de `interface { }`
+-- inside `interface { }`
 local METHODS = {
   { "method", "Do()", "${1:Do}(${2})" },
   { "method error", "→ error", "${1:Do}(${2}) error" },
@@ -485,14 +485,14 @@ local function add_templates(templates, items, range)
   end
 end
 
---- ¿`word` empieza con lo tecleado? (sin distinguir mayúsculas; vacío = sí)
+--- Does `word` start with what was typed? (case-insensitive; empty = yes)
 ---@param word string
 ---@param frag string
 local function starts(word, frag)
   return frag == "" or word:lower():sub(1, #frag) == frag:lower()
 end
 
---- Ayudas con el código ya escrito para una declaración nueva (0 tokens): goimpl, goenum, gomap, gohttp
+--- Helpers based on already-written code for a new declaration (0 tokens): goimpl, goenum, gomap, gohttp
 ---@param range table
 ---@param frag string
 ---@return table[]
@@ -502,17 +502,17 @@ function M.extra_declaration_items(range, frag)
     vim.list_extend(items, require("utils." .. name).declaration_items(range, frag))
   end
   for _, item in ipairs(items) do
-    item.sortText = "!" .. (item.sortText or "") -- "!" ordena antes que los dígitos: encima de las plantillas y constructores
+    item.sortText = "!" .. (item.sortText or "") -- "!" sorts before digits: above templates and constructors
   end
   return items
 end
 
--- Filtro ESTRICTO por prefijo (no fuzzy): `pac` no debe traer nada de `type`.
---   func family  → `f`, `fu`, `func`, o tras `func ` sin nada más
---   type family  → `t`, `ty`, `type`, o tras `type ` sin nada más
---   constructor  → `New…` o el nombre del struct (`Env…`), y tras `func Ne…`
---   funcnew      → (solo tecleándolo) `New(todos los campos) (*X, error)`
---   tras `type Foo` / `func Foo` se está NOMBRANDO algo: no sale nada más
+-- STRICT prefix filter (not fuzzy): `pac` must not bring anything from `type`.
+--   func family  → `f`, `fu`, `func`, or after `func ` with nothing else
+--   type family  → `t`, `ty`, `type`, or after `type ` with nothing else
+--   constructor  → `New…` or the struct's name (`Env…`), and after `func Ne…`
+--   funcnew      → (only when typed) `New(all the fields) (*X, error)`
+--   after `type Foo` / `func Foo` something is being NAMED: nothing else shows up
 ---@param ctx blink.cmp.Context
 ---@param mode "func"|"type"|"any"
 ---@param frag string
@@ -532,16 +532,16 @@ local function declaration_items(ctx, mode, frag)
   if want_funcs then
     add_templates(FUNCS, items, range)
   end
-  -- Archivos *_model.go: functable, funcdomain, functodomain, funcfromdomain (ver utils/gomodel.lua).
-  -- Van ANTES que el resto de `func…` para no tener que bajar hasta la última opción.
-  -- ayudas con el código ya escrito (0 tokens), también AL PRINCIPIO: métodos que faltan para una interfaz (goimpl), helpers
-  -- de un enum (goenum), mapeadores entre structs (gomap) y handlers de un servicio (gohttp)
+  -- *_model.go files: functable, funcdomain, functodomain, funcfromdomain (see utils/gomodel.lua).
+  -- They go BEFORE the rest of the `func…` items so you don't have to scroll to the last option.
+  -- helpers based on already-written code (0 tokens), also AT THE START: missing methods for an interface (goimpl), enum
+  -- helpers (goenum), mappers between structs (gomap) and a service's handlers (gohttp)
   if want_funcs then
     for i, item in ipairs(M.extra_declaration_items(range, mode == "func" and "" or frag)) do
       table.insert(items, i, item)
     end
   end
-  -- `var _ I = (*T)(nil)` de los structs que ya se reconocen como implementación (goport)
+  -- `var _ I = (*T)(nil)` for the structs already recognised as an implementation (goport)
   if mode == "any" and frag ~= "" and starts("var", frag) then
     for i, item in ipairs(require("utils.goport").declaration_items(range, frag)) do
       table.insert(items, i, item)
@@ -603,7 +603,7 @@ local function declaration_items(ctx, mode, frag)
       end
     end
   end
-  -- `funcnew`: constructor con todos los campos → (*X, error). Solo si lo tecleas (≥ `funcn`)
+  -- `funcnew`: constructor with all the fields → (*X, error). Only if you type it (≥ `funcn`)
   if mode == "any" and #frag >= FUNCNEW_MIN and starts("funcnew", frag) then
     local structs = structs_in_buffer()
     for _, s in ipairs(structs) do
@@ -625,8 +625,8 @@ local function declaration_items(ctx, mode, frag)
   return items
 end
 
--- ── dentro de `Envelope{ }`: campos que faltan ────────────────────────────────
--- Solo structs declarados en el mismo archivo (el resto lo completa gopls).
+-- ── inside `Envelope{ }`: missing fields ────────────────────────────────────────
+-- Only structs declared in the same file (gopls completes the rest).
 local ZERO_VALUES = {
   string = '""',
   bool = "false",
@@ -666,7 +666,7 @@ local function type_name(node)
   end
 end
 
---- Nombre del tipo de un literal: `Envelope{`, `&Envelope{` o el elemento elidido de `[]Envelope{ {…} }`
+--- Type name of a literal: `Envelope{`, `&Envelope{` or the elided element of `[]Envelope{ {…} }`
 ---@param lv TSNode literal_value
 ---@return string?
 local function literal_type(lv)
@@ -686,21 +686,21 @@ local function literal_type(lv)
   end
 end
 
--- por dónde NO se puede pasar al subir: estás dentro del valor de otro elemento
+-- what you can NOT pass through when climbing: you're inside another element's value
 local INSIDE_VALUE = { keyed_element = true, argument_list = true, call_expression = true }
 
 ---@class GoLiteral
 ---@field struct GoStruct
 ---@field missing { name: string, type: string }[]
----@field inline boolean `T{|}` en una sola línea: hay que abrir las líneas
+---@field inline boolean `T{|}` on a single line: the lines have to be opened
 
---- ¿Empiezas un elemento nuevo dentro de un literal de un struct conocido?
+--- Are you starting a new element inside a literal of a known struct?
 ---@param ctx { line: string, cursor: integer[] }
 ---@return GoLiteral?
 local function compute_literal(ctx)
   local row, col = ctx.cursor[1], ctx.cursor[2]
   local before, after = ctx.line:sub(1, col), ctx.line:sub(col + 1)
-  -- `Envelope{|}` en una sola línea (mini.pairs o al aceptar `Envelope{}`) o elemento nuevo
+  -- `Envelope{|}` on a single line (mini.pairs or on accepting `Envelope{}`) or a new element
   local inline = before:match "{%s*$" ~= nil and after:match "^%s*}" ~= nil
   if not (inline or before:match "^%s*[%w_]*$") then
     return nil
@@ -733,7 +733,7 @@ local function compute_literal(ctx)
     if child:type() == "keyed_element" then
       present[vim.treesitter.get_node_text(child:field("key")[1], 0)] = true
     elseif child:type() == "literal_element" and child:start() ~= row - 1 then
-      return nil -- literal posicional (`T{a, b}`): no se mezclan claves
+      return nil -- positional literal (`T{a, b}`): keys aren't mixed in
     end
   end
   local missing = {}
@@ -750,7 +750,7 @@ end
 
 local literal_memo = { key = "" }
 
---- varias fuentes preguntan por la misma pulsación: se calcula una vez
+--- several sources ask about the same keystroke: computed once
 ---@param ctx { line: string, cursor: integer[] }
 ---@return GoLiteral?
 local function literal_info(ctx)
@@ -766,8 +766,8 @@ local function literal_info(ctx)
   return literal_memo.value
 end
 
----@param known table<string, boolean> nombres de structs del paquete
----@param types? table<string, string> tipos definidos (`Kind` → `string`)
+---@param known table<string, boolean> names of the package's structs
+---@param types? table<string, string> defined types (`Kind` → `string`)
 ---@return fun(t: string): string
 local function zero_value_for(known, types)
   local function zero(t, depth)
@@ -801,15 +801,15 @@ local function names_of(structs)
   return known
 end
 
--- Ojo: vim.snippet ya agrega la indentación de la línea actual a cada línea nueva
--- del snippet, así que aquí solo se usa la indentación RELATIVA (`\t`).
+-- Careful: vim.snippet already adds the current line's indentation to each new line
+-- of the snippet, so only the RELATIVE indentation (`\t`) is used here.
 ---@param ctx blink.cmp.Context
 ---@param lit GoLiteral
 ---@return table[]
 local function literal_items(ctx, lit)
   local row, col = ctx.cursor[1], ctx.cursor[2]
   local indent = ctx.line:match "^%s*"
-  -- línea nueva: se reemplaza lo tecleado; `T{|}`: se abren las líneas alrededor del cursor
+  -- new line: what was typed is replaced; `T{|}`: the lines around the cursor are opened
   local range = {
     start = { line = row - 1, character = lit.inline and col or #indent },
     ["end"] = { line = row - 1, character = col },
@@ -840,19 +840,19 @@ local function literal_items(ctx, lit)
       insertTextFormat = FORMAT.Snippet,
       filterText = "fill all fields",
       sortText = "000",
-      -- Tab salta de valor en valor
+      -- Tab jumps from value to value
       textEdit = { newText = wrap(table.concat(lines, lit.inline and "\n\t" or "\n")), range = range },
     })
   end
   return items
 end
 
--- ── `x := Env|` → el struct YA relleno al aceptarlo ───────────────────────────
--- En una posición de VALOR (lado derecho de `:=`/`=`, `return`, `Campo: `, argumento
--- de una llamada) el nombre de un struct del paquete se ofrece como literal completo:
--- Enter inserta `Envelope{ Kind: …, ID: … }` con Tab de valor en valor.
--- En posición de TIPO (`var e Envelope`, parámetros, `[]Envelope`, `new(Envelope)`)
--- no aplica y sigue el completado normal de gopls.
+-- ── `x := Env|` → the struct ALREADY filled in on accept ───────────────────────
+-- In a VALUE position (right side of `:=`/`=`, `return`, `Field: `, call argument)
+-- the name of a package struct is offered as a full literal:
+-- Enter inserts `Envelope{ Kind: …, ID: … }` with Tab jumping from value to value.
+-- In a TYPE position (`var e Envelope`, parameters, `[]Envelope`, `new(Envelope)`)
+-- it doesn't apply and gopls' normal completion follows.
 ---@param ctx blink.cmp.Context
 ---@return string? frag
 local function value_position(ctx)
@@ -930,7 +930,7 @@ local function struct_literal_items(ctx, info)
   return items
 end
 
--- ── `type Name |` → cuerpo ───────────────────────────────────────────────────
+-- ── `type Name |` → body ─────────────────────────────────────────────────────
 local function type_body_items(before)
   if not before:match "^type%s+[%w_]+%s+[%w_]*$" then
     return {}
@@ -953,7 +953,7 @@ local function type_body_items(before)
   }
 end
 
--- ── dentro de `interface { }` ────────────────────────────────────────────────
+-- ── inside `interface { }` ────────────────────────────────────────────────────
 local function interface_items(ctx)
   local col = ctx.cursor[2]
   if not ctx.line:sub(1, col):match "^%s*[%w_.]*$" then
@@ -968,7 +968,7 @@ local function interface_items(ctx)
   return items
 end
 
--- ── snippets del usuario: filtro por contexto ────────────────────────────────
+-- ── user snippets: filter by context ───────────────────────────────────────────
 local function set(list)
   local s = {}
   for _, v in ipairs(list) do
@@ -977,7 +977,7 @@ local function set(list)
   return s
 end
 
--- declaraciones: solo a nivel de paquete
+-- declarations: package level only
 local TOP_ONLY = set {
   "errorsentinel",
   "testtable",
@@ -1007,7 +1007,7 @@ local TOP_ONLY = set {
   "meth",
   "fum",
 }
--- sentencias: solo dentro de una función
+-- statements: only inside a function
 local FUNC_ONLY = set {
   "iferr",
   "errorsis",
@@ -1054,7 +1054,7 @@ local FUNC_ONLY = set {
   "sv",
   "om",
 }
--- friendly-snippets que ahora cubre gosmart (con más variantes y sin siglas)
+-- friendly-snippets now covered by gosmart (with more variants and no acronyms)
 local SUPERSEDED = set { "func", "fum", "meth", "tyf", "tyi", "tys", "finit", "fmain" }
 
 ---@param ctx blink.cmp.Context
@@ -1065,7 +1065,7 @@ function M.filter_snippets(ctx, items)
     return items
   end
   if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) or require("utils.goiferr").fresh(ctx) then
-    return {} -- tras `func (s *T) ` solo se nombra un método; tras `x, err := …`, solo el `if err != nil`
+    return {} -- after `func (s *T) ` a method is only being named; after `x, err := …`, only the `if err != nil`
   end
   local scope = M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line)
   return vim.tbl_filter(function(it)
@@ -1081,8 +1081,8 @@ function M.filter_snippets(ctx, items)
   end, items)
 end
 
--- ── ruido de otras fuentes ───────────────────────────────────────────────────
---- Al empezar una declaración: sin palabras sueltas del buffer (p. ej. "ID").
+-- ── noise from other sources ───────────────────────────────────────────────────
+--- When starting a declaration: no stray buffer words (e.g. "ID").
 ---@param ctx blink.cmp.Context
 ---@param items blink.cmp.CompletionItem[]
 function M.quiet_buffer(ctx, items)
@@ -1099,7 +1099,7 @@ function M.quiet_buffer(ctx, items)
     return {}
   end
   local value = value_info(ctx)
-  if value then -- sin el mismo nombre suelto del buffer
+  if value then -- without the same stray name from the buffer
     local mine = names_of(value.structs)
     return vim.tbl_filter(function(it)
       return not mine[it.label]
@@ -1108,7 +1108,7 @@ function M.quiet_buffer(ctx, items)
   return items
 end
 
---- Al empezar una declaración: sin el `func`/`type` genérico del LSP (ya salen las variantes).
+--- When starting a declaration: without the LSP's generic `func`/`type` (the variants already show up).
 ---@param ctx blink.cmp.Context
 ---@param items blink.cmp.CompletionItem[]
 function M.quiet_lsp(ctx, items)
@@ -1121,18 +1121,18 @@ function M.quiet_lsp(ctx, items)
     end, items)
   end
   if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
-    return {} -- los nombres salen de goimpl (lo que falta de la interfaz), no de gopls
+    return {} -- the names come from goimpl (what's missing from the interface), not gopls
   end
   if require("utils.goiferr").fresh(ctx) then
-    return {} -- línea nueva tras `x, err := …`: solo el bloque `if err != nil`
+    return {} -- new line after `x, err := …`: only the `if err != nil` block
   end
-  if literal_info(ctx) then -- los campos ya salen de gosmart (con valores por defecto)
+  if literal_info(ctx) then -- the fields already come from gosmart (with default values)
     return vim.tbl_filter(function(it)
       return it.kind ~= KIND.Field
     end, items)
   end
   local value = value_info(ctx)
-  if value then -- el struct ya sale relleno de gosmart: sin el nombre suelto de gopls
+  if value then -- the struct already comes filled in from gosmart: without gopls' stray name
     local mine = names_of(value.structs)
     return vim.tbl_filter(function(it)
       return not mine[it.label]
@@ -1141,9 +1141,9 @@ function M.quiet_lsp(ctx, items)
   return items
 end
 
--- ── menú automático al abrir una línea nueva dentro de `T{ }` ─────────────────
---- Enter dentro de `Envelope{` crea una línea en blanco: ahí se abre el menú solo,
---- sin tener que teclear una letra. Se repite tras cada `campo: valor,`.
+-- ── automatic menu when opening a new line inside `T{ }` ───────────────────────
+--- Enter inside `Envelope{` creates a blank line: the menu opens by itself there,
+--- without having to type a letter. It repeats after each `field: value,`.
 function M.autotrigger()
   vim.api.nvim_create_autocmd("TextChangedI", {
     group = vim.api.nvim_create_augroup("GoSmartLiteral", { clear = true }),
@@ -1154,20 +1154,20 @@ function M.autotrigger()
       local line = vim.api.nvim_get_current_line()
       local row, col = unpack(vim.api.nvim_win_get_cursor(0))
       local prev = row > 1 and vim.api.nvim_buf_get_lines(0, row - 2, row - 1, false)[1] or ""
-      -- `func (s *noteService) ` recién escrito: abre el menú con los métodos que faltan (sin tener que teclear una letra)
+      -- `func (s *noteService) ` just typed: opens the menu with the missing methods (without having to type a letter)
       local impl = require("utils.goimpl").method_position(line, col)
       local inline = line:sub(1, col):match "{$" ~= nil and line:sub(col + 1):match "^}" ~= nil
-      -- `Envelope{|}`, o línea en blanco recién abierta tras `{` o tras `campo: valor,`
+      -- `Envelope{|}`, or a blank line just opened after `{` or after `field: value,`
       local fresh = line:match "^%s*$" ~= nil and prev:match "[{,]%s*$" ~= nil
-      -- `func ` recién escrito en columna 0: si hay algo que ofrecer con el código ya escrito (métodos que faltan, helpers de
-      -- un enum, mapeadores, handlers), abre el menú
+      -- `func ` just typed at column 0: if there is something to offer from the already-written code (missing methods, enum
+      -- helpers, mappers, handlers), open the menu
       if line == "func " and col == 5 then
         local range = { start = { line = row - 1, character = 0 }, ["end"] = { line = row - 1, character = col } }
         if #M.extra_declaration_items(range, "") > 0 then
           impl = true
         end
       end
-      -- línea nueva tras `x, err := …`: abre el menú con el `if err != nil` ya hecho
+      -- new line after `x, err := …`: opens the menu with the `if err != nil` already built
       if not impl and not line:match "%S" and require("utils.goiferr").fresh { line = line, cursor = { row, col } } then
         impl = true
       end
@@ -1183,7 +1183,7 @@ function M.autotrigger()
       if not (inline or fresh) then
         return
       end
-      -- con un respiro: si acabas de aceptar un ítem, blink aún está cerrando su menú
+      -- with a short delay: if you just accepted an item, blink is still closing its menu
       vim.defer_fn(function()
         local ok, cmp = pcall(require, "blink.cmp")
         local now = vim.api.nvim_win_get_cursor(0)
@@ -1217,9 +1217,9 @@ function Source:get_completions(ctx, callback)
   local incomplete = false
   local before = ctx.line:sub(1, ctx.cursor[2])
   local items = type_body_items(before)
-  -- `func (s *noteService) |`: los métodos que faltan para cumplir su interfaz
+  -- `func (s *noteService) |`: the methods missing to satisfy its interface
   if #items == 0 and require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
-    -- lo que falta de una interfaz (goimpl) y los handlers de un servicio (gohttp)
+    -- what's missing from an interface (goimpl) and a service's handlers (gohttp)
     local method_items = require("utils.goimpl").method_items(ctx)
     vim.list_extend(method_items, require("utils.gohttp").method_items(ctx))
     return callback { is_incomplete_forward = false, is_incomplete_backward = false, items = method_items }
@@ -1234,16 +1234,16 @@ function Source:get_completions(ctx, callback)
     local mode, frag = decl_start(ctx)
     if mode then
       items = declaration_items(ctx, mode, frag)
-      -- `funcnew` solo existe con ≥ 5 letras: blink debe volver a preguntar mientras la palabra crece
+      -- `funcnew` only exists with ≥ 5 letters: blink must ask again while the word grows
       incomplete = mode == "any" and #frag < FUNCNEW_MIN and starts("funcnew", frag)
     elseif M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "interface" then
       items = interface_items(ctx)
-      -- los métodos que ya tiene el struct relacionado (goport) van antes
+      -- the methods the related struct already has (goport) go first
       for i, item in ipairs(require("utils.goport").interface_items(ctx)) do
         table.insert(items, i, item)
       end
     elseif M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "func" then
-      -- `if err != nil` con los retornos de la función (goiferr) y constructores ya cableados (gowire)
+      -- `if err != nil` with the function's returns (goiferr) and already-wired constructors (gowire)
       items = require("utils.goiferr").items(ctx)
       vim.list_extend(items, require("utils.gowire").items(ctx))
     end

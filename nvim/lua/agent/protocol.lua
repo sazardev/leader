@@ -1,8 +1,8 @@
--- ── Protocolo de salida ──────────────────────────────────────────────────────
--- Lo que el modelo debe devolver y cómo se lee. Las reglas (que van al prompt) y los
--- parsers viven JUNTOS a propósito: si uno cambia, el otro cambia con él.
--- Es texto plano y no JSON: funciona igual en todos los backends y tolera un modelo
--- que se enrolla mejor que un JSON a medio cerrar.
+-- ── Output protocol ──────────────────────────────────────────────────────────
+-- What the model must return and how it is read. The rules (which go into the prompt) and the
+-- parsers live TOGETHER on purpose: if one changes, the other changes with it.
+-- It is plain text, not JSON: it works the same on all backends and copes with a model
+-- that rambles better than with a half-closed JSON.
 local M = {}
 
 M.REPLACE_RULES = [=[
@@ -43,7 +43,7 @@ local function first_content(lines)
   return ""
 end
 
---- Bloques cerrados de la respuesta, en orden: { open, close } (índices de las vallas)
+--- Closed blocks of the response, in order: { open, close } (fence indices)
 ---@param lines string[]
 ---@return { open: integer, close: integer }[]
 local function blocks_of(lines)
@@ -66,12 +66,12 @@ local function blocks_of(lines)
   return blocks
 end
 
---- El código de la respuesta y los imports que dice necesitar.
---- Si el modelo desobedece y manda varios bloques (borrador + versión corregida), se usa el
---- ÚLTIMO que empieza como el objetivo; si ninguno, el primero. Un objetivo que ya contiene
---- vallas (markdown) no admite este reparto: ahí el bloque va de la primera valla a la última.
+--- The code of the response and the imports it says it needs.
+--- If the model disobeys and sends several blocks (draft + corrected version), the
+--- LAST one that starts like the target is used; if none does, the first. A target that already contains
+--- fences (markdown) does not allow this split: there the block goes from the first fence to the last.
 ---@param response string
----@param target_lines string[]? el código original (para elegir entre varios bloques)
+---@param target_lines string[]? the original code (to choose among several blocks)
 ---@return string[]? code, string? needs_import, string? err, integer? blocks, string? note
 function M.extract_code(response, target_lines)
   local lines = vim.split(response, "\n", { plain = true })
@@ -143,7 +143,7 @@ local SEVERITY = {
 ---@field severity integer
 ---@field message string
 
---- Hallazgos `L<n>|<sev>|<msg>`; las líneas que no cumplen el formato se ignoran
+--- Findings `L<n>|<sev>|<msg>`; lines that do not match the format are ignored
 ---@param response string
 ---@return AgentFinding[]
 function M.parse_findings(response)
@@ -157,7 +157,7 @@ function M.parse_findings(response)
   return list
 end
 
---- ¿La respuesta es el "todo bien" del protocolo de hallazgos?
+--- Is the response the findings protocol's "all good"?
 ---@param response string
 ---@return boolean
 function M.is_ok(response)

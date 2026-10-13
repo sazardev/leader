@@ -1,7 +1,7 @@
--- ── Presentador "replace": propuesta en línea, aceptar/rechazar ──────────────
--- El resultado NO toca el buffer: se pinta como diff sobre el código (ui/preview) y
--- esperas tu decisión. Aceptar = un solo set_lines (un `u` lo deshace entero). Si
--- el código cambió mientras el agente trabajaba, se descarta en vez de pisarlo.
+-- ── "replace" presenter: inline proposal, accept/reject ──────────────────────
+-- The result does NOT touch the buffer: it is painted as a diff over the code (ui/preview) and
+-- you wait for your decision. Accept = a single set_lines (one `u` undoes it all). If
+-- the code changed while the agent was working, it is discarded instead of overwritten.
 local anchor = require "agent.anchor"
 local log = require "utils.log"
 local preview = require "agent.ui.preview"
@@ -43,7 +43,7 @@ local function unbind(buf)
   end
 end
 
---- La propuesta del cursor; si no hay, la más antigua del buffer
+--- The proposal under the cursor; if none, the oldest one in the buffer
 ---@param buf integer
 ---@return AgentProposal?
 local function current(buf)
@@ -81,7 +81,7 @@ local function drop(p)
   end
 end
 
---- Quita bordes en blanco que el modelo añadió y el objetivo no tenía
+--- Removes blank edges the model added and the target did not have
 ---@param code string[]
 ---@param target AgentTarget
 ---@return string[]
@@ -98,7 +98,7 @@ local function normalize(code, target)
   return code
 end
 
---- Une las partes con " · " descartando las de menor prioridad (número mayor) hasta que quepa
+--- Joins the parts with " · " dropping the lowest-priority ones (higher number) until it fits
 ---@param parts { [1]: string, [2]: integer }[]
 ---@param width integer
 ---@return string
@@ -132,7 +132,7 @@ function M.done(job, result)
     log.warn("Agent: " .. err .. " (showing the raw response)")
     return require("agent.output.text").done(job, result)
   end
-  -- `merge`: el modelo devolvió solo lo NUEVO (añadir pruebas al final de un archivo): se une a lo que ya hay
+  -- `merge`: the model returned only what is NEW (adding tests at the end of a file): it is joined to what is already there
   if job.action.merge then
     code = job.action.merge(code, job.target)
   end
@@ -155,7 +155,7 @@ function M.done(job, result)
   end
 
   local first = anchor.range(job.buf, job.anchor)
-  -- el destino puede ser otro archivo (pruebas): se abre a un lado, en la propuesta, para decidir allí
+  -- the destination can be another file (tests): it opens to the side, at the proposal, to decide there
   if job.action.reveal and vim.fn.bufwinid(job.buf) == -1 then
     vim.cmd "botright vsplit"
     vim.api.nvim_win_set_buf(0, job.buf)
@@ -165,8 +165,8 @@ function M.done(job, result)
   local proposal = { job = job, lines = code, ids = {} }
   proposal.ids = preview.render(job.buf, first, job.target.lines, code, function(hunks)
     local keys = settings.keys
-    -- partes por prioridad (1 = imprescindible): si la ventana es estrecha se descartan las menos
-    -- importantes en vez de cortar la línea por la mitad
+    -- parts by priority (1 = essential): if the window is narrow the least
+    -- important ones are dropped instead of cutting the line in half
     local parts = {
       { ("%s accept · %s reject"):format(label(keys.accept), label(keys.reject)), 1 },
       { ("%d change%s"):format(hunks, hunks == 1 and "" or "s"), 2 },
@@ -202,8 +202,8 @@ function M.accept()
   local first, last = anchor.range(buf, p.job.anchor)
   drop(p)
   runs.event(p.job, "accepted")
-  -- el código de ese rango se reescribe: lo que el review señalaba ahí ya no aplica (y si era un fix, tampoco
-  -- sus violaciones locales de DDD)
+  -- the code in that range is rewritten: what the review flagged there no longer applies (and if it was a fix, neither
+  -- do its local DDD violations)
   pcall(function()
     require("agent.output.findings").resolve(buf, first, last)
     if p.job.action.fixes then
@@ -238,7 +238,7 @@ function M.reject()
   end
 end
 
---- Descarta todas las propuestas pendientes (de un buffer, o de todos)
+--- Discards all pending proposals (from one buffer, or all of them)
 ---@param buf integer?
 function M.discard_all(buf)
   for b, list in pairs(proposals) do

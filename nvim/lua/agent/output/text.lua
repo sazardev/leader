@@ -1,4 +1,4 @@
--- Presentador "text": la respuesta en una ventana junto al código (explicar, preguntar)
+-- "text" presenter: the response in a window next to the code (explain, ask)
 local anchor = require "agent.anchor"
 local float = require "agent.ui.float"
 local jobs = require "agent.jobs"

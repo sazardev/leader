@@ -1,6 +1,6 @@
--- ── Modismos de DDD por lenguaje ─────────────────────────────────────────────
--- UNA línea por lenguaje, y solo la del lenguaje en curso va al modelo: así el consejo es específico
--- (constructores, errores, inyección) sin pagar tokens por los demás.
+-- ── DDD idioms per language ──────────────────────────────────────────────────
+-- ONE line per language, and only the current language's goes to the model: so the advice is specific
+-- (constructors, errors, injection) without paying tokens for the others.
 local M = {}
 
 local GO =

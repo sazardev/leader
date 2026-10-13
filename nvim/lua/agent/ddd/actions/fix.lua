@@ -1,5 +1,5 @@
--- DDD fix: arregla lo que el review de DDD (y el diagnóstico local) dejó por atender, con el cambio mínimo
--- y respetando las capas
+-- DDD fix: fixes what the DDD review (and the local diagnosis) left pending, with the smallest change
+-- and respecting the layers
 local principles = require "agent.ddd.principles"
 local protocol = require "agent.protocol"
 
@@ -8,7 +8,7 @@ return {
   desc = "ddd fix",
   key = "f",
   scope = "function",
-  fixes = true, -- al aceptar, las violaciones locales de ese rango también se dan por resueltas
+  fixes = true, -- on accept, the local violations in that range are also marked as resolved
   context = { "rules", "ddd", "findings", "diagnostics", "contracts", "types" },
   output = "replace",
   input = "hint for the fix",

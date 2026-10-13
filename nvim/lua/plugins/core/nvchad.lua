@@ -1,5 +1,5 @@
--- NvChad v2.5 trae su propio stack nvim-cmp + LuaSnip + autopairs;
--- deshabilitado a favor de blink.cmp (sus deps ya no cargan).
+-- NvChad v2.5 ships its own nvim-cmp + LuaSnip + autopairs stack;
+-- disabled in favor of blink.cmp (its deps no longer load).
 return {
   { "hrsh7th/nvim-cmp", enabled = false },
 }

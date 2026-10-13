@@ -1,5 +1,5 @@
--- Esquema del archivo: cabecera (imports) + primera línea de cada declaración. Barato (sin
--- LSP) y le dice al modelo qué más existe a su alrededor para que no invente nombres.
+-- File outline: header (imports) + first line of each declaration. Cheap (no
+-- LSP) and tells the model what else exists around it so it does not invent names.
 local scopes = require "agent.context.scopes"
 
 local MAX_ENTRIES = 40
@@ -13,7 +13,7 @@ return {
   collect = function(target, done, ctx)
     local with_types = ctx and vim.tbl_contains(ctx.names, "types")
     local all = scopes.declarations(target.buf)
-    -- los tipos ya van con sus campos en <types>; la cabecera (imports) se mide con TODAS las declaraciones
+    -- types already go with their fields in <types>; the header (imports) is measured against ALL the declarations
     local decls = vim.tbl_filter(function(d)
       return not (with_types and d.kind == "class")
     end, all)
@@ -22,7 +22,7 @@ return {
     end
 
     local out = {}
-    -- cabecera: lo que hay antes de la primera declaración (package/imports/use...)
+    -- header: what comes before the first declaration (package/imports/use...)
     local header_end = math.min(all[1].row, MAX_HEADER)
     if header_end > 0 and target.first - 1 >= header_end then
       local header = vim.tbl_filter(function(l)

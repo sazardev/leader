@@ -1,14 +1,14 @@
--- ── Recuerdo de instrucciones ────────────────────────────────────────────────
--- Lo que escribiste en cada acción, para volver a usarlo con ↑/↓ en el campo inline
--- (no confundir con runs/: el historial de ejecuciones con prompt, respuesta y coste).
--- Persistente (agent/state), más reciente primero, sin repetidos consecutivos.
+-- ── Instruction recall ───────────────────────────────────────────────────────
+-- What you typed in each action, to reuse with ↑/↓ in the inline field
+-- (not to be confused with runs/: the run history with prompt, response and cost).
+-- Persistent (agent/state), most recent first, no consecutive duplicates.
 local state = require "agent.state"
 
 local M = {}
 
 local MAX = 30
 
----@param key string acción ("implement", "ask"...)
+---@param key string action ("implement", "ask"...)
 ---@return string[]
 function M.list(key)
   return (state.get "prompt_history" or {})[key] or {}
