@@ -1,6 +1,6 @@
--- Pruebas del panel de commit (lua/commit): análisis Conventional Commits, lecturas/acciones de git sobre un repo
--- temporal, y el panel entero (lista, preparar/quitar, borrador de IA con un backend falso, commit y amend).
--- Hermético: repo en un directorio temporal, estado del agente en memoria, sin red ni tokens.
+-- Tests for the commit panel (lua/commit): Conventional Commits parsing, git reads/actions on a temporary
+-- repo, and the whole panel (list, stage/unstage, AI draft with a fake backend, commit and amend).
+-- Hermetic: repo in a temporary directory, in-memory agent state, no network or tokens.
 local fails = 0
 local function print(...)
   io.stdout:write(table.concat(vim.tbl_map(tostring, { ... }), "\t"), "\n")
@@ -17,49 +17,49 @@ end
 vim.o.columns, vim.o.lines = 130, 40
 local conv = require "commit.conventional"
 
--- ── Conventional Commits (puro) ──────────────────────────────────────────────
+-- ── Conventional Commits (pure) ──────────────────────────────────────────────
 eq(
-  "split: tipo, scope, ruptura y asunto",
+  "split: type, scope, breaking and subject",
   conv.split "feat(api)!: add x",
   { type = "feat", scope = "api", breaking = true, subject = "add x" }
 )
-eq("split: sin scope", conv.split "fix: bug", { type = "fix", scope = nil, breaking = false, subject = "bug" })
-eq("split: falta el espacio tras los dos puntos", conv.split "fix:bug", nil)
-eq("split: no es conventional", conv.split "Update stuff", nil)
-eq("parse_header: válido", (conv.parse_header "feat(commit): panel nuevo").scope, "commit")
-eq("parse_header: tipo desconocido", select(2, conv.parse_header "wip: algo"), "unknown type `wip`")
-eq("parse_header: asunto vacío", select(2, conv.parse_header "feat: ") ~= nil, true)
+eq("split: no scope", conv.split "fix: bug", { type = "fix", scope = nil, breaking = false, subject = "bug" })
+eq("split: missing space after the colon", conv.split "fix:bug", nil)
+eq("split: not conventional", conv.split "Update stuff", nil)
+eq("parse_header: valid", (conv.parse_header "feat(commit): new panel").scope, "commit")
+eq("parse_header: unknown type", select(2, conv.parse_header "wip: something"), "unknown type `wip`")
+eq("parse_header: empty subject", select(2, conv.parse_header "feat: ") ~= nil, true)
 eq(
-  "parse_header: demasiado largo",
+  "parse_header: too long",
   select(2, conv.parse_header("feat: " .. ("x"):rep(80))):find("max 72", 1, true) ~= nil,
   true
 )
-eq("check: vacío", conv.check("").state, "empty")
-eq("check: tipo sin asunto", conv.check("feat(x): ").state, "incomplete")
+eq("check: empty", conv.check("").state, "empty")
+eq("check: type without subject", conv.check("feat(x): ").state, "incomplete")
 eq(
   "check: ok",
-  { conv.check("fix(ui): arregla el borde").state, conv.check("fix(ui): arregla el borde").len },
+  { conv.check("fix(ui): fix border edges").state, conv.check("fix(ui): fix border edges").len },
   { "ok", 25 }
 )
-eq("check: error de tipo", conv.check("nope: x").state, "error")
+eq("check: type error", conv.check("nope: x").state, "error")
 eq(
-  "rewrite: cambia el tipo y conserva scope y asunto",
-  conv.rewrite("feat(ui): borde", { type = "fix" }),
-  "fix(ui): borde"
+  "rewrite: changes the type and keeps scope and subject",
+  conv.rewrite("feat(ui): border", { type = "fix" }),
+  "fix(ui): border"
 )
-eq("rewrite: cambia el scope", conv.rewrite("feat(ui): borde", { scope = "core" }), "feat(core): borde")
-eq("rewrite: quita el scope", conv.rewrite("feat(ui): borde", { scope = false }), "feat: borde")
-eq("rewrite: plantilla desde cero", conv.rewrite("", { type = "docs" }), "docs: ")
-eq("suggest_type: solo docs", conv.suggest_type { "README.md", "docs/a.md" }, "docs")
-eq("suggest_type: mezcla → nil", conv.suggest_type { "README.md", "src/a.go" }, nil)
+eq("rewrite: changes the scope", conv.rewrite("feat(ui): border", { scope = "core" }), "feat(core): border")
+eq("rewrite: removes the scope", conv.rewrite("feat(ui): border", { scope = false }), "feat: border")
+eq("rewrite: template from scratch", conv.rewrite("", { type = "docs" }), "docs: ")
+eq("suggest_type: docs only", conv.suggest_type { "README.md", "docs/a.md" }, "docs")
+eq("suggest_type: mix → nil", conv.suggest_type { "README.md", "src/a.go" }, nil)
 eq(
-  "history_scopes: del más al menos usado",
+  "history_scopes: from most to least used",
   conv.history_scopes "feat(a): x\nfix(b): y\nfeat(a): z\nchore: q",
   { "a", "b" }
 )
-eq("clean_message: sin vallas ni comillas", conv.clean_message "```\nfeat: x\n```", { "feat: x" })
+eq("clean_message: no fences or quotes", conv.clean_message "```\nfeat: x\n```", { "feat: x" })
 
--- ── repo temporal ────────────────────────────────────────────────────────────
+-- ── temporary repo ────────────────────────────────────────────────────────────
 local repo = vim.fn.tempname()
 vim.fn.mkdir(repo, "p")
 local function sh(...)
@@ -78,32 +78,32 @@ write("a.lua", { "one", "two" })
 write("b.lua", { "x" })
 sh("add", "-A")
 sh("commit", "-q", "-m", "chore: base")
-write("a.lua", { "one", "TWO", "three" }) -- se preparará
-write("b.lua", { "x", "y" }) -- quedará sin preparar
-write("docs/c.md", { "nuevo" }) -- sin seguimiento
+write("a.lua", { "one", "TWO", "three" }) -- will be staged
+write("b.lua", { "x", "y" }) -- will stay unstaged
+write("docs/c.md", { "new" }) -- untracked
 sh("add", "a.lua")
 
 local git = require "commit.git"
 local entries = git.status(repo)
 eq(
-  "status: preparado primero, luego sin preparar, luego nuevo",
+  "status: staged first, then unstaged, then new",
   vim.tbl_map(function(e)
     return e.path .. ":" .. e.letter .. ":" .. tostring(e.staged)
   end, entries),
   { "a.lua:M:true", "b.lua:M:false", "docs/:?:false" }
 )
-eq("status: +/− de lo preparado", { entries[1].adds, entries[1].dels }, { 2, 1 })
-eq("status: +/− de lo no preparado", { entries[2].adds, entries[2].dels }, { 1, 0 })
-eq("branch: sin upstream", { git.branch(repo).name, git.branch(repo).upstream }, { "main", nil })
+eq("status: +/− of what is staged", { entries[1].adds, entries[1].dels }, { 2, 1 })
+eq("status: +/− of what is unstaged", { entries[2].adds, entries[2].dels }, { 1, 0 })
+eq("branch: no upstream", { git.branch(repo).name, git.branch(repo).upstream }, { "main", nil })
 git.stage(repo, { "b.lua" })
-eq("stage: b.lua pasa a preparado", git.status(repo)[2].staged, true)
+eq("stage: b.lua becomes staged", git.status(repo)[2].staged, true)
 git.unstage(repo, { "b.lua" })
-eq("unstage: vuelve a no preparado", git.status(repo)[2].staged, false)
+eq("unstage: goes back to unstaged", git.status(repo)[2].staged, false)
 write("a.lua", { "one", "TWO", "three", "four" })
-eq("status: preparado con más cambios sin preparar = parcial", git.status(repo)[1].partial, true)
+eq("status: staged with more unstaged changes = partial", git.status(repo)[1].partial, true)
 sh("add", "a.lua")
 
--- ── el panel ─────────────────────────────────────────────────────────────────
+-- ── the panel ─────────────────────────────────────────────────────────────────
 local notes = {}
 vim.notify = function(msg, level)
   notes[#notes + 1] = { msg = msg, level = level }
@@ -112,7 +112,7 @@ local function last_note()
   return notes[#notes] and notes[#notes].msg or ""
 end
 
--- backend falso para el borrador (estado en memoria: no toca tu agent.json)
+-- fake backend for the draft (in-memory state: does not touch your agent.json)
 local state = require "agent.state"
 local real_get, real_set = state.get, state.set
 local store = { backend = "fakecommit" }
@@ -203,59 +203,67 @@ end
 
 panel.open()
 local fb = float_bufs()
-eq("panel: tres flotantes (archivos, mensaje y línea del agente)", wins_open(), 3)
+eq("panel: three floats (files, message and agent line)", wins_open(), 3)
 local lines = vim.api.nvim_buf_get_lines(fb.commitfiles, 0, -1, false)
 eq(
-  "panel: cabecera de lo que SÍ se commitea",
+  "panel: header for what DOES get committed",
   lines[1]:find("Staged · 1 file — goes in the commit", 1, true) ~= nil,
   true
 )
-eq("panel: cabecera de lo que NO se commitea", lines[3]:find("Not staged · 2 — NOT included", 1, true) ~= nil, true)
-eq("panel: filas de archivo con marca y letra", {
+eq(
+  "panel: header for what does NOT get committed",
+  lines[3]:find("Not staged · 2 — NOT included", 1, true) ~= nil,
+  true
+)
+eq("panel: file rows with mark and letter", {
   lines[2]:find("● M", 1, true) ~= nil,
   lines[4]:find("○ M", 1, true) ~= nil,
   lines[5]:find("○ ?", 1, true) ~= nil,
 }, { true, true, true })
-eq("panel: título con la rama", title_of(fb.commitfiles):find("main", 1, true) ~= nil, true)
-eq("panel: con algo preparado el foco va al mensaje", vim.bo[vim.api.nvim_get_current_buf()].filetype, "gitcommit")
+eq("panel: title with the branch", title_of(fb.commitfiles):find("main", 1, true) ~= nil, true)
 eq(
-  "panel: mensaje vacío → título con el formato esperado",
+  "panel: with something staged the focus goes to the message",
+  vim.bo[vim.api.nvim_get_current_buf()].filetype,
+  "gitcommit"
+)
+eq(
+  "panel: empty message → title with the expected format",
   title_of(fb.gitcommit):find("type(scope): subject", 1, true) ~= nil,
   true
 )
 
--- línea del agente: anuncia qué leerá y con qué modelo ANTES de gastar nada
+-- agent line: announces what it will read and with which model BEFORE spending anything
 local function ai_text()
   return vim.api.nvim_buf_get_lines(fb.commitstatus, 0, 1, false)[1] or ""
 end
 local before = ai_text()
-eq("panel: el agente anuncia modelo y archivos que leerá", {
+eq("panel: the agent announces the model and the files it will read", {
   before:find("fakecommit", 1, true) ~= nil,
   before:find("reads 1 file", 1, true) ~= nil,
   before:find("⌃g to draft", 1, true) ~= nil,
 }, { true, true, true })
 
--- preparar desde la lista
+-- stage from the list
 vim.api.nvim_set_current_win(vim.fn.bufwinid(fb.commitfiles))
 vim.api.nvim_win_set_cursor(0, { 4, 0 })
 press(fb.commitfiles, "<Space>")
 lines = vim.api.nvim_buf_get_lines(fb.commitfiles, 0, -1, false)
-eq("panel: ⎵ prepara el archivo bajo el cursor", lines[1]:find("Staged · 2 files", 1, true) ~= nil, true)
-eq("panel: tras preparar, el anuncio de la IA cuenta 2 archivos", ai_text():find("reads 2 files", 1, true) ~= nil, true)
+eq("panel: ⎵ stages the file under the cursor", lines[1]:find("Staged · 2 files", 1, true) ~= nil, true)
+eq("panel: after staging, the AI announcement counts 2 files", ai_text():find("reads 2 files", 1, true) ~= nil, true)
 press(fb.commitfiles, "u")
 eq(
-  "panel: u quita todo de lo preparado",
+  "panel: u unstages everything",
   vim.api.nvim_buf_get_lines(fb.commitfiles, 0, -1, false)[1]:find("Staged · 0 files", 1, true) ~= nil,
   true
 )
 eq(
-  "panel: sin nada preparado la lista lo explica",
+  "panel: with nothing staged the list explains it",
   vim.api.nvim_buf_get_lines(fb.commitfiles, 0, -1, false)[2]:find("nothing staged yet", 1, true) ~= nil,
   true
 )
 press(fb.commitfiles, "a")
 eq(
-  "panel: a lo prepara todo",
+  "panel: a stages everything",
   vim.api.nvim_buf_get_lines(fb.commitfiles, 0, -1, false)[1]:find("Staged · 3 files", 1, true) ~= nil,
   true
 )
@@ -267,52 +275,52 @@ press(fb.commitfiles, "u")
 vim.api.nvim_win_set_cursor(0, { 3, 0 })
 git.stage(repo, { "a.lua" })
 panel.close()
-eq("panel: close cierra las dos ventanas", wins_open(), 0)
+eq("panel: close closes the windows", wins_open(), 0)
 
--- borrador de IA
+-- AI draft
 panel.open { ai = true }
 fb = float_bufs()
 eq(
-  "panel: <leader>Gm arranca el borrador",
+  "panel: <leader>Gm starts the draft",
   wait(function()
     return ai_text():find("drafted by", 1, true) ~= nil
   end),
   true
 )
 eq(
-  "IA: el mensaje del agente llena la ventana",
+  "AI: the agent's message fills the window",
   vim.api.nvim_buf_get_lines(fb.gitcommit, 0, -1, false),
-  { "feat(editor): add the commit panel" } -- solo la cabecera: el modelo devuelve cuerpo y se ignora
+  { "feat(editor): add the commit panel" } -- header only: the model returns a body and it is ignored
 )
 eq(
-  "IA: el título valida el borrador (✔ tipo(scope) y largo)",
+  "AI: the title validates the draft (✔ type(scope) and length)",
   title_of(fb.gitcommit):find("✔ feat(editor)", 1, true) ~= nil,
   true
 )
 eq(
-  "IA: tras el borrador se ve modelo, tokens y coste",
+  "AI: after the draft the model, tokens and cost are shown",
   { ai_text():find("100→20 tok", 1, true) ~= nil, ai_text():find("$0.0004", 1, true) ~= nil },
   { true, true }
 )
-eq("IA: lo enviado lleva rama, archivos, diff compacto y la lista de tipos", {
+eq("AI: what is sent carries branch, files, compact diff and the type list", {
   FAKE.req.prompt:find("<branch>", 1, true) ~= nil,
   FAKE.req.prompt:find("<files>", 1, true) ~= nil,
   FAKE.req.prompt:find("<diff>\n## ", 1, true) ~= nil,
   FAKE.req.prompt:find("diff --git", 1, true) == nil,
   FAKE.req.system:find("feat | fix", 1, true) ~= nil,
 }, { true, true, true, true, true })
-eq("IA: instrucciones en inglés, una sola línea y siempre en inglés", {
+eq("AI: instructions in English, a single line and always in English", {
   FAKE.req.system:find("ALWAYS English", 1, true) ~= nil,
   FAKE.req.system:find("header line only", 1, true) ~= nil,
-  FAKE.req.system:find("Spanish", 1, true) == nil and FAKE.req.system:find("Español", 1, true) == nil,
+  FAKE.req.system:find("Spanish", 1, true) == nil,
 }, { true, true, true })
 eq(
-  "IA: el borrador usa el nivel ligero (commit)",
+  "AI: the draft uses the light tier (commit)",
   require("agent.selection").current({ name = "commit", tier = "light" }).tier,
   "light"
 )
 
--- tipo y scope desde el panel
+-- type and scope from the panel
 local picks = { { "fix" }, { "ui" } }
 local real_select = vim.ui.select
 vim.ui.select = function(items, opts, cb)
@@ -326,44 +334,44 @@ vim.ui.select = function(items, opts, cb)
 end
 press(fb.gitcommit, "<C-t>")
 eq(
-  "tipo: ⌃t cambia el tipo y conserva el resto",
+  "type: ⌃t changes the type and keeps the rest",
   vim.api.nvim_buf_get_lines(fb.gitcommit, 0, 1, false)[1],
   "fix(editor): add the commit panel"
 )
 vim.ui.select = real_select
 
--- el cuerpo que escribes tú viaja con el commit
+-- the body you write yourself travels with the commit
 local msg_lines = vim.api.nvim_buf_get_lines(fb.gitcommit, 0, -1, false)
 vim.api.nvim_buf_set_lines(fb.gitcommit, 0, -1, false, vim.list_extend(msg_lines, { "", "- shows what is committed" }))
 
 -- commit
-eq("antes de commitear HEAD es el commit base", sh("log", "-1", "--format=%s"), "chore: base")
+eq("before committing, HEAD is the base commit", sh("log", "-1", "--format=%s"), "chore: base")
 vim.cmd "stopinsert"
 press(fb.gitcommit, "<C-s>", "n")
 eq(
-  "commit: el commit se hace y se cierra el panel",
+  "commit: the commit is made and the panel closes",
   wait(function()
     return wins_open() == 0
   end),
   true
 )
-eq("commit: asunto del commit", sh("log", "-1", "--format=%s"), "fix(editor): add the commit panel")
-eq("commit: el cuerpo viaja", sh("log", "-1", "--format=%b"), "- shows what is committed")
-eq("commit: solo lo preparado (b.lua y docs/ quedan fuera)", sh("show", "--name-only", "--format=", "HEAD"), "a.lua")
+eq("commit: commit subject", sh("log", "-1", "--format=%s"), "fix(editor): add the commit panel")
+eq("commit: the body travels", sh("log", "-1", "--format=%b"), "- shows what is committed")
+eq("commit: only what is staged (b.lua and docs/ stay out)", sh("show", "--name-only", "--format=", "HEAD"), "a.lua")
 eq(
-  "commit: aviso con hash, archivos y +/−",
+  "commit: notice with hash, files and +/−",
   last_note():find("Committed", 1, true) ~= nil and last_note():find("1 file +", 1, true) ~= nil,
   true
 )
 
--- validaciones: asunto inválido y nada preparado NO commitean
+-- validations: an invalid subject and nothing staged do NOT commit
 git.stage(repo, { "b.lua" })
 panel.open()
 fb = float_bufs()
 vim.api.nvim_buf_set_lines(fb.gitcommit, 0, -1, false, { "wip: nope" })
 press(fb.gitcommit, "<C-s>")
 eq(
-  "validación: un tipo desconocido no commitea",
+  "validation: an unknown type does not commit",
   { sh("log", "-1", "--format=%s"), last_note():find("unknown type", 1, true) ~= nil },
   { "fix(editor): add the commit panel", true }
 )
@@ -377,106 +385,102 @@ eq(
   true
 )
 
--- IA con error: el panel lo muestra y sigue usable
+-- AI with an error: the panel shows it and stays usable
 write("a.lua", { "again" })
 sh("add", "a.lua")
 FAKE.cmd = { "sh", "-c", "exit 3" }
 panel.open { ai = true }
 fb = float_bufs()
 eq(
-  "IA con error: se anuncia en la línea del agente",
+  "AI with error: announced on the agent line",
   wait(function()
     return ai_text():find("AI failed", 1, true) ~= nil
   end),
   true
 )
 eq(
-  "IA con error: el mensaje sigue vacío y el panel abierto",
+  "AI with error: the message stays empty and the panel open",
   { vim.api.nvim_buf_get_lines(fb.gitcommit, 0, -1, false), wins_open() },
   { { "" }, 3 }
 )
 panel.close()
 
--- sin nada preparado
+-- nothing staged
 sh("reset", "-q")
 panel.open()
 fb = float_bufs()
-eq("sin nada preparado: foco en la lista", vim.bo[vim.api.nvim_get_current_buf()].filetype, "commitfiles")
-vim.api.nvim_buf_set_lines(fb.gitcommit, 0, -1, false, { "feat(x): sin nada" })
+eq("nothing staged: focus on the list", vim.bo[vim.api.nvim_get_current_buf()].filetype, "commitfiles")
+vim.api.nvim_buf_set_lines(fb.gitcommit, 0, -1, false, { "feat(x): nothing" })
 press(fb.gitcommit, "<C-s>")
 eq(
-  "sin nada preparado: no commitea y avisa",
+  "nothing staged: does not commit and warns",
   { sh("log", "-1", "--format=%s"), last_note():find("Nothing staged", 1, true) ~= nil },
   { "feat(x): ok", true }
 )
 panel.close()
 
--- amend: el mensaje del último commit llega precargado
+-- amend: the last commit's message arrives preloaded
 require("commit").amend()
 fb = float_bufs()
 eq(
-  "amend: mensaje precargado y título",
+  "amend: preloaded message and title",
   { vim.api.nvim_buf_get_lines(fb.gitcommit, 0, 1, false)[1], title_of(fb.commitfiles):find("Amend", 1, true) ~= nil },
   { "feat(x): ok", true }
 )
 vim.api.nvim_buf_set_lines(fb.gitcommit, 0, 1, false, { "feat(x): ok again" })
 press(fb.gitcommit, "<C-s>")
 eq(
-  "amend: reescribe el último commit",
+  "amend: rewrites the last commit",
   wait(function()
     return sh("log", "-1", "--format=%s") == "feat(x): ok again" and wins_open() == 0
   end),
   true
 )
-eq("amend: no crea un commit nuevo", sh("rev-list", "--count", "HEAD"), "3")
+eq("amend: does not create a new commit", sh("rev-list", "--count", "HEAD"), "3")
 
--- árbol limpio
+-- clean tree
 sh("reset", "-q", "--hard")
 sh("clean", "-fdq")
 panel.open()
-eq("árbol limpio: no abre nada", { wins_open(), last_note():find("Nothing to commit", 1, true) ~= nil }, { 0, true })
+eq("clean tree: opens nothing", { wins_open(), last_note():find("Nothing to commit", 1, true) ~= nil }, { 0, true })
 
--- ── diff compacto para el modelo ─────────────────────────────────────────────
+-- ── compact diff for the model ─────────────────────────────────────────────
 write("pkg/big.lua", vim.fn.map(vim.fn.range(1, 400), "'line ' . v:val . ' of a very long file'"))
 write("pkg/small.lua", { "local x = 1" })
 write("deps.lock", { "a", "b" })
 sh("add", "-A")
 local compact, total, cut = git.diff_for_ai(repo, 1500)
-eq("diff compacto: sin cabeceras de git, un `## ruta` por archivo", {
+eq("compact diff: no git headers, one `## path` per file", {
   compact:find("diff --git", 1, true) == nil and compact:find("\nindex ", 1, true) == nil,
   compact:find("## pkg/small.lua (new)", 1, true) ~= nil,
   compact:find("## pkg/big.lua (new)", 1, true) ~= nil,
 }, { true, true, true })
 eq(
-  "diff compacto: lockfile listado pero sin su diff",
+  "compact diff: lockfile listed but without its diff",
   compact:find("## deps.lock (new) (generated, diff omitted)", 1, true) ~= nil,
   true
 )
 eq(
-  "diff compacto: el archivo enorme se recorta y avisa",
+  "compact diff: the huge file is cut and flagged",
   { cut, total > 1500, compact:find("[… cut]", 1, true) ~= nil },
   { true, true, true }
 )
 eq(
-  "diff compacto: el pequeño cabe entero aunque el grande se recorte",
+  "compact diff: the small one fits whole even if the big one is cut",
   compact:find("+local x = 1", 1, true) ~= nil,
   true
 )
-eq("diff compacto: respeta el tope (con las cabeceras)", #compact < 1500 + 400, true)
-eq(
-  "numstat: una línea por archivo con +/−",
-  git.staged_numstat(repo):find("pkg/small.lua +1 -0", 1, true) ~= nil,
-  true
-)
+eq("compact diff: respects the cap (with the headers)", #compact < 1500 + 400, true)
+eq("numstat: one line per file with +/−", git.staged_numstat(repo):find("pkg/small.lua +1 -0", 1, true) ~= nil, true)
 sh("reset", "-q", "--hard")
 sh("clean", "-fdq")
 
--- ── commit automático (<leader>GM) ───────────────────────────────────────────
+-- ── automatic commit (<leader>GM) ───────────────────────────────────────────
 local auto = require "commit.auto"
 local function head()
   return sh("log", "-1", "--format=%s")
 end
--- lanza el commit automático y espera su aviso final (el commit y el aviso van después de la IA)
+-- launches the automatic commit and waits for its final notice (the commit and the notice come after the AI)
 local function run_auto(final)
   notes = {}
   auto.run()
@@ -484,47 +488,43 @@ local function run_auto(final)
     return last_note():find(final, 1, true) ~= nil
   end)
 end
-eq("auto: árbol limpio, no hace nada", run_auto "nothing to commit", true)
+eq("auto: clean tree, does nothing", run_auto "nothing to commit", true)
 
--- sin nada preparado: prepara todo menos lo sensible, y SOLO la cabecera del mensaje
+-- nothing staged: stages everything except sensitive files, and ONLY the message header
 FAKE.cmd = { "printf", "%s", "feat(core): add x\n\nbody that must be ignored" }
 write("a.lua", { "one", "TWO" })
 write("x.lua", { "new" })
 write(".env", { "SECRET=1" })
 eq(
-  "auto: commitea en segundo plano con el mensaje del agente",
+  "auto: commits in the background with the agent's message",
   run_auto "Committed" and head() == "feat(core): add x",
   true
 )
-eq("auto: lo sensible se queda fuera, lo demás entra", {
+eq("auto: sensitive files stay out, the rest goes in", {
   sh("show", "--name-only", "--format=", "HEAD"),
   sh("status", "--porcelain"),
 }, { "a.lua\nx.lua", "?? .env" })
-eq("auto: solo la cabecera (el cuerpo del modelo se ignora)", sh("log", "-1", "--format=%b"), "")
-eq("auto: el aviso trae hash, mensaje, archivos, modelo y coste, y lo que dejó fuera", {
+eq("auto: header only (the model's body is ignored)", sh("log", "-1", "--format=%b"), "")
+eq("auto: the notice carries hash, message, files, model and cost, and what it left out", {
   last_note():find("Committed", 1, true) ~= nil,
   last_note():find("feat(core): add x · 2 files", 1, true) ~= nil,
   last_note():find("fakecommit", 1, true) ~= nil,
   last_note():find("$0.0004", 1, true) ~= nil,
   last_note():find("left out: .env", 1, true) ~= nil,
 }, { true, true, true, true, true })
-eq("auto: el prompt lleva la rama y las reglas en inglés", {
+eq("auto: the prompt carries the branch and the rules in English", {
   FAKE.req.prompt:find("<branch>main</branch>", 1, true) ~= nil,
   FAKE.req.system:find("ALWAYS English", 1, true) ~= nil,
 }, { true, true })
 
--- con algo preparado: solo eso
+-- with something staged: only that
 FAKE.cmd = { "printf", "%s", "fix(core): staged only" }
 write("a.lua", { "one", "THREE" })
 write("x.lua", { "new", "more" })
 sh("add", "a.lua")
+eq("auto: with staged files it commits only those", run_auto "Committed" and head() == "fix(core): staged only", true)
 eq(
-  "auto: con archivos preparados commitea solo esos",
-  run_auto "Committed" and head() == "fix(core): staged only",
-  true
-)
-eq(
-  "auto: lo no preparado sigue sin preparar",
+  "auto: what was unstaged stays unstaged",
   { sh("show", "--name-only", "--format=", "HEAD"), sh("status", "--porcelain") },
   {
     "a.lua",
@@ -532,41 +532,41 @@ eq(
   }
 )
 
--- cabecera inválida: no commitea y devuelve el índice como estaba
+-- invalid header: does not commit and gives the index back as it was
 FAKE.cmd = { "printf", "%s", "wip: nope" }
-eq("auto: cabecera inválida, nada commiteado y archivos sin preparar otra vez", run_auto "is not valid", true)
+eq("auto: invalid header, nothing committed and files unstaged again", run_auto "is not valid", true)
 eq(
-  "auto: tras fallar, el índice queda vacío",
+  "auto: after failing, the index is left empty",
   { head(), sh("diff", "--cached", "--name-only") },
   { "fix(core): staged only", "" }
 )
 
--- la IA falla
+-- the AI fails
 FAKE.cmd = { "sh", "-c", "exit 3" }
 auto.run()
-eq("auto: si la IA falla, avisa y deja todo como estaba", wait(function()
+eq("auto: if the AI fails, it warns and leaves everything as it was", wait(function()
   return last_note():find("AI failed", 1, true) ~= nil
 end) and sh("diff", "--cached", "--name-only") == "", true)
 
--- un hook rechaza el commit
+-- a hook rejects the commit
 FAKE.cmd = { "printf", "%s", "feat(core): hook says no" }
 vim.fn.writefile({ "#!/bin/sh", "echo rejected by hook >&2", "exit 1" }, repo .. "/.git/hooks/pre-commit")
 vim.fn.setfperm(repo .. "/.git/hooks/pre-commit", "rwxr-xr-x")
 auto.run()
-eq("auto: si un hook rechaza, lo avisa y deshace lo que preparó", wait(function()
+eq("auto: if a hook rejects, it warns and undoes what it staged", wait(function()
   return last_note():find("rejected by hook", 1, true) ~= nil
 end) and sh("diff", "--cached", "--name-only") == "" and head() == "fix(core): staged only", true)
 os.remove(repo .. "/.git/hooks/pre-commit")
 
--- solo hay archivos sensibles
+-- only sensitive files
 sh("checkout", "-q", "--", "x.lua")
 eq(
-  "auto: solo sensibles, avisa y no toca nada",
+  "auto: only sensitive, warns and touches nothing",
   { run_auto "only sensitive files changed", sh("diff", "--cached", "--name-only") },
   { true, "" }
 )
 
 state.get, state.set = real_get, real_set
 vim.fn.delete(repo, "rf")
-print(fails == 0 and "\nTODO OK" or ("\nFALLOS: " .. fails))
+print(fails == 0 and "\nALL OK" or ("\nFAILURES: " .. fails))
 vim.cmd(fails == 0 and "qa!" or "cquit 1")

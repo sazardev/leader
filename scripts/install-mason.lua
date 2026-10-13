@@ -1,7 +1,7 @@
--- Instala (y espera) los LSP, formatters y linters que declaran los lenguajes activos. Lo usan install.sh e install.ps1:
+-- Installs (and waits for) the LSPs, formatters and linters declared by the active languages. Used by install.sh and install.ps1:
 --   nvim --headless -c "luafile scripts/install-mason.lua" +qa
--- `tree-sitter-cli` (binario precompilado de Mason) se añade solo si no hay uno en el PATH: los parsers lo necesitan y
--- así no hace falta cargo ni npm.
+-- `tree-sitter-cli` (Mason's prebuilt binary) is added only if there is none in PATH: the parsers need it and
+-- this way neither cargo nor npm is required.
 require("lazy").load { plugins = { "mason.nvim", "mason-tool-installer.nvim" } }
 local list = require("languages").mason()
 if vim.fn.executable "tree-sitter" == 0 then

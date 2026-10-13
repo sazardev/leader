@@ -1,5 +1,5 @@
--- Pruebas de utils/goimpl.lua: métodos que faltan para cumplir una interfaz de Go, como completado (0 tokens).
--- Hermético: módulos Go en directorios temporales, sin gopls ni red.
+-- Tests for utils/goimpl.lua: methods still missing to satisfy a Go interface, as completion (0 tokens).
+-- Hermetic: Go modules in temporary directories, no gopls or network.
 local fails = 0
 local function print(...)
   io.stdout:write(table.concat(vim.tbl_map(tostring, { ... }), "\t"), "\n")
@@ -35,7 +35,7 @@ local function item(items, label)
     end
   end
 end
--- lo que se insertaría, sin los marcadores del snippet
+-- what would be inserted, without the snippet markers
 local function plain(it)
   return (it.textEdit.newText:gsub("%$%d", ""):gsub("\\([%$}\\])", "%1"))
 end
@@ -91,9 +91,9 @@ write("internal/application/note_service.go", {
   "}",
 })
 
--- ── el caso del usuario: noteService / NoteService ───────────────────────────
+-- ── the user's case: noteService / NoteService ───────────────────────────
 open "internal/application/note_service.go"
-eq("detecta la interfaz (constructor y nombre) y lo que falta, en orden", gi.missing "noteService", {
+eq("detects the interface (constructor and name) and what is missing, in order", gi.missing "noteService", {
   { iface = "NoteService", missing = { "Create", "Get", "List", "Update", "SetDone", "Delete" } },
 })
 
@@ -104,7 +104,7 @@ local function at_method(prefix)
 end
 local ctx = at_method "func (s *noteService) "
 local items = gi.method_items(ctx)
-eq("al escribir el receptor: 'todos' primero y luego cada método que falta", labels(items), {
+eq("typing the receiver: 'all' first, then each missing method", labels(items), {
   "…all missing (6)",
   "Create",
   "Get",
@@ -114,68 +114,68 @@ eq("al escribir el receptor: 'todos' primero y luego cada método que falta", la
   "Delete",
 })
 eq(
-  "firma exacta de la interfaz, con el receptor que tecleaste y el cuerpo vacío compilable",
+  "exact interface signature, with the receiver you typed and a compilable empty body",
   plain(item(items, "Create")),
   "Create(ctx context.Context, title, content string) (*domain.Note, error) {\n\t\n\treturn nil, nil\n}"
 )
 eq(
-  "cuerpo: Get llama a repo.FindByID (misma forma de parámetros y retorno)",
+  "body: Get calls repo.FindByID (same parameter and return shape)",
   plain(item(items, "Get")),
   "Get(ctx context.Context, id string) (*domain.Note, error) {\n\treturn s.repo.FindByID(ctx, id)\n}"
 )
 eq(
-  "cuerpo: List → repo.FindAll (aunque el tipo se escriba con otro paquete)",
+  "body: List → repo.FindAll (even if the type is written with another package)",
   plain(item(items, "List")):match "return [^\n]+",
   "return s.repo.FindAll(ctx, filter)"
 )
 eq(
-  "cuerpo: Delete → repo.Delete (mismo nombre y forma)",
+  "body: Delete → repo.Delete (same name and shape)",
   plain(item(items, "Delete")):match "return [^\n]+",
   "return s.repo.Delete(ctx, id)"
 )
 eq(
-  "Update y SetDone no tienen equivalente en el repo: cuerpo vacío con return de ceros",
+  "Update and SetDone have no equivalent in the repo: empty body returning zero values",
   plain(item(items, "SetDone")):match "return [^\n]+",
   "return nil, nil"
 )
-eq("el ítem 'todos' lleva cada método con su cabecera completa", {
+eq("the 'all' item carries each method with its full header", {
   select(2, plain(items[1]):gsub("\nfunc %(s %*noteService%) ", "")),
   plain(items[1]):find "^Create%(" ~= nil,
 }, { 5, true })
 eq(
-  "se inserta desde lo tecleado (reemplaza solo el nombre)",
+  "inserts from what was typed (replaces only the name)",
   { item(items, "Get").textEdit.range.start.character, item(items, "Get").textEdit.range["end"].character },
   { 22, 22 }
 )
 
--- el snippet de "todos" es válido: nvim solo admite UN `$0` (cada cuerpo vacío lleva su propio $N)
+-- the "all" snippet is valid: nvim only admits ONE `$0` (each empty body carries its own $N)
 local all = items[1].textEdit.newText
-eq("'todos': un solo $0 como mucho y tabstops numerados para los cuerpos vacíos", {
+eq("'all': at most one $0 and numbered tabstops for the empty bodies", {
   select(2, all:gsub("%$0", "")) <= 1,
   all:find "%$1" ~= nil,
   select(2, item(items, "Create").textEdit.newText:gsub("%$0", "")),
 }, { true, true, 1 })
 local parsed_ok = pcall(vim.lsp._snippet_grammar.parse, all)
-eq("'todos' lo acepta el parser de snippets de nvim", parsed_ok, true)
+eq("'all' is accepted by nvim's snippet parser", parsed_ok, true)
 
--- filtrado por lo tecleado
+-- filtering by what was typed
 local ctx2 = at_method "func (s *noteService) Se"
-eq("lo tecleado filtra (Se → SetDone)", labels(gi.method_items(ctx2)), { "SetDone" })
+eq("what was typed filters (Se → SetDone)", labels(gi.method_items(ctx2)), { "SetDone" })
 eq(
-  "sin receptor completo no hay nada que ofrecer",
+  "without a complete receiver there is nothing to offer",
   gi.method_items { line = "func (s *noteService", cursor = { 1, 20 } },
   {}
 )
 
--- al empezar la declaración (columna 0)
+-- at the start of the declaration (column 0)
 local top = gi.declaration_items({ start = { line = 0, character = 0 }, ["end"] = { line = 0, character = 0 } }, "")
-eq("al empezar una declaración: para el struct del archivo, con receptor y cabecera", {
+eq("at the start of a declaration: for the file's struct, with receiver and header", {
   top[1].label,
   top[2].label,
   plain(top[3]):match "^func %(s %*noteService%) Get%(",
 }, { "func (s *noteService) …all missing (6)", "func (s *noteService) Create", "func (s *noteService) Get(" })
 
--- lo ya implementado no se vuelve a ofrecer, y sirve para reconocer la interfaz
+-- what is already implemented is not offered again, and it helps recognise the interface
 vim.cmd "silent bwipeout!"
 write("internal/application/note_service.go", {
   "package application",
@@ -188,11 +188,15 @@ write("internal/application/note_service.go", {
   "func (s *noteService) Delete(ctx context.Context, id string) error { return nil }",
 })
 open "internal/application/note_service.go"
-eq("lo ya implementado se excluye (sin constructor: por nombre y por lo que ya tiene)", gi.missing "noteService", {
-  { iface = "NoteService", missing = { "Create", "List", "Update", "SetDone" } },
-})
 eq(
-  "el receptor ya usado en el struct se respeta aunque no lo teclees",
+  "what is already implemented is excluded (no constructor: by name and by what it already has)",
+  gi.missing "noteService",
+  {
+    { iface = "NoteService", missing = { "Create", "List", "Update", "SetDone" } },
+  }
+)
+eq(
+  "the receiver already used in the struct is respected even if you do not type it",
   select(
     2,
     plain(gi.declaration_items({ start = { line = 0, character = 0 }, ["end"] = { line = 0, character = 0 } }, "")[2]):gsub(
@@ -203,7 +207,7 @@ eq(
   1
 )
 
--- ── interfaz de OTRO paquete: tipos calificados y nombres inventados ─────────
+-- ── interface from ANOTHER package: qualified types and made-up names ─────────
 write("internal/infrastructure/note_repo.go", {
   "package infrastructure",
   "",
@@ -220,11 +224,11 @@ write("internal/infrastructure/note_repo.go", {
   "}",
 })
 open "internal/infrastructure/note_repo.go"
-eq("interfaz de otro paquete del módulo: se lee de disco", gi.missing "postgresNoteRepository", {
+eq("interface from another package of the module: read from disk", gi.missing "postgresNoteRepository", {
   { iface = "domain.NoteRepository", missing = { "Save", "FindByID", "FindAll", "Delete" } },
 })
 local repo_items = gi.method_items(at_method "func (r *postgresNoteRepository) ")
-eq("los tipos del otro paquete se califican (Note → domain.Note, ListFilter → domain.ListFilter)", {
+eq("the other package's types are qualified (Note → domain.Note, ListFilter → domain.ListFilter)", {
   plain(item(repo_items, "FindByID")):match "^FindByID%b() %b()",
   plain(item(repo_items, "FindAll")):match "^FindAll%b() %b()",
 }, {
@@ -232,7 +236,7 @@ eq("los tipos del otro paquete se califican (Note → domain.Note, ListFilter �
   "FindAll(ctx context.Context, filter domain.ListFilter) ([]*domain.Note, error)",
 })
 
--- ── var _ I = (*T)(nil), parámetros sin nombre, y lo que NO debe ofrecer ─────
+-- ── var _ I = (*T)(nil), unnamed parameters, and what it must NOT offer ─────
 write("pkg/store/store.go", {
   "package store",
   "",
@@ -249,19 +253,19 @@ write("pkg/store/store.go", {
 })
 open "pkg/store/store.go"
 eq(
-  "var _ I = (*T)(nil) declara la interfaz aunque el nombre no se parezca",
+  "var _ I = (*T)(nil) declares the interface even if the name does not look alike",
   gi.missing "fileStore",
   { { iface = "Closer", missing = { "Close", "Write" } } }
 )
-eq("un struct sin relación no recibe sugerencias", gi.missing "unrelated", {})
+eq("an unrelated struct gets no suggestions", gi.missing "unrelated", {})
 local store_items = gi.method_items(at_method "func (f fileStore) ")
-eq("parámetros sin nombre: se inventan (string → arg1, []byte → arg2) y receptor por valor", {
+eq("unnamed parameters: made up (string → arg1, []byte → arg2) and value receiver", {
   plain(item(store_items, "Write")):match "^Write%b() %b()",
   item(store_items, "Close") ~= nil,
 }, { "Write(arg1 string, arg2 []byte) (int, error)", true })
-eq("retorno cero de (int, error)", plain(item(store_items, "Write")):match "return [^\n]+", "return 0, nil")
+eq("zero return of (int, error)", plain(item(store_items, "Write")):match "return [^\n]+", "return 0, nil")
 
 vim.cmd "silent bwipeout!"
 vim.fn.delete(root, "rf")
-print(fails == 0 and "\nTODO OK" or ("\nFALLOS: " .. fails))
+print(fails == 0 and "\nALL OK" or ("\nFAILURES: " .. fails))
 vim.cmd(fails == 0 and "qa!" or "cquit 1")

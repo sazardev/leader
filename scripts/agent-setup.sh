@@ -1,18 +1,18 @@
 #!/bin/sh
-# Setup del agente desde la terminal: detecta backends (Claude Code, OpenCode, Ollama CPU/CUDA, LM Studio, llama.cpp...),
-# modelos y hardware; arranca / descarga / fija la selección SOLO si lo pides con una bandera.
-#   scripts/agent-setup.sh                      informe (exit 0 si hay un backend listo, 1 si no)
-#   scripts/agent-setup.sh --start              arranca `ollama serve` si no responde
-#   scripts/agent-setup.sh --pull qwen2.5-coder:7b   descarga un modelo (se puede repetir)
-#   scripts/agent-setup.sh --auto               aplica la recomendación con los modelos que ya tienes
-#   scripts/agent-setup.sh --use ollama/qwen2.5-coder:7b@light   fija backend/modelo (sin @light = principal)
-#   scripts/agent-setup.sh --json               la foto completa en JSON
+# Agent setup from the terminal: detects backends (Claude Code, OpenCode, Ollama CPU/CUDA, LM Studio, llama.cpp...),
+# models and hardware; starts / downloads / sets the selection ONLY if you ask for it with a flag.
+#   scripts/agent-setup.sh                      report (exit 0 if a backend is ready, 1 if not)
+#   scripts/agent-setup.sh --start              starts `ollama serve` if it does not respond
+#   scripts/agent-setup.sh --pull qwen2.5-coder:7b   downloads a model (can be repeated)
+#   scripts/agent-setup.sh --auto               applies the recommendation with the models you already have
+#   scripts/agent-setup.sh --use ollama/qwen2.5-coder:7b@light   sets backend/model (without @light = main)
+#   scripts/agent-setup.sh --json               the full snapshot as JSON
 # Combinable: scripts/agent-setup.sh --start --pull qwen2.5-coder:3b --auto
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-command -v nvim >/dev/null 2>&1 || { echo "agent-setup: nvim no está en el PATH" >&2; exit 2; }
+command -v nvim >/dev/null 2>&1 || { echo "agent-setup: nvim is not in PATH" >&2; exit 2; }
 
-# argumentos → tabla Lua (con comillas escapadas), para no depender de cómo nvim trata sus propios flags
+# arguments → Lua table (with escaped quotes), so we do not depend on how nvim handles its own flags
 args=""
 for a in "$@"; do
   esc=$(printf '%s' "$a" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")

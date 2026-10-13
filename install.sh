@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Instala esta config de Neovim lista para trabajar: dependencias, enlace, plugins, LSP/formatters y parsers.
-# Linux, WSL y macOS. Idempotente: puedes volver a correrlo cuando quieras (actualiza lo que falte).
+# Installs this Neovim config ready to work: dependencies, link, plugins, LSPs/formatters and parsers.
+# Linux, WSL and macOS. Idempotent: you can run it again whenever you want (it updates whatever is missing).
 #
-#   ./install.sh                       instala todo, preguntando antes de tocar el sistema
-#   ./install.sh -y                    sin preguntas
-#   ./install.sh --lang go,typescript  solo esos lenguajes (el resto se desactiva en lua/local.lua)
-#   ./install.sh --theme catppuccin    tema por defecto (lua/local.lua)
-#   ./install.sh --light | --no-light  fuerza el modo ligero (sin LSP residente) o lo apaga; sin esto, se detecta por RAM
-#   ./install.sh --agent auto          configura el agente de IA: `auto` (lo mejor que haya), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`...
-#                                      `none` lo omite; sin la opción solo enseña lo que detecta (scripts/agent-setup.sh)
-#   ./install.sh --no-deps             no instala paquetes del sistema ni Neovim
-#   ./install.sh --no-plugins          solo enlaza (plugins y herramientas se instalan al abrir nvim)
-#   ./install.sh --dry-run             muestra lo que haría sin hacer nada
+#   ./install.sh                       installs everything, asking before touching the system
+#   ./install.sh -y                    no questions
+#   ./install.sh --lang go,typescript  only those languages (the rest are disabled in lua/local.lua)
+#   ./install.sh --theme catppuccin    default theme (lua/local.lua)
+#   ./install.sh --light | --no-light  forces light mode (no resident LSP) or turns it off; without this, it is detected by RAM
+#   ./install.sh --agent auto          configures the AI agent: `auto` (the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`...
+#                                      `none` skips it; without the option it only shows what it detects (scripts/agent-setup.sh)
+#   ./install.sh --no-deps             does not install system packages or Neovim
+#   ./install.sh --no-plugins          only links (plugins and tools are installed when nvim is opened)
+#   ./install.sh --dry-run             shows what it would do without doing anything
 #
-# Windows nativo: install.ps1.
+# Native Windows: install.ps1.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -37,7 +37,7 @@ while [ $# -gt 0 ]; do
     --agent) AGENT="${2:-}"; shift ;;
     --agent=*) AGENT="${1#--agent=}" ;;
     -h | --help) awk 'NR > 1 { if (/^#/) { sub(/^# ?/, ""); print } else exit }' "$0"; exit 0 ;;
-    *) echo "install: argumento desconocido: $1 (usa --help)" >&2; exit 2 ;;
+    *) echo "install: unknown argument: $1 (use --help)" >&2; exit 2 ;;
   esac
   shift
 done
@@ -49,22 +49,22 @@ warn() { printf '  %s!%s %s\n' "$Y" "$N" "$*"; }
 die() { printf '  %s✘ %s%s\n' "$R" "$*" "$N" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 run() { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else "$@"; fi; }
-ask() { # ask "pregunta" → 0 si sí (con -y siempre sí; sin terminal, no)
+ask() { # ask "question" → 0 if yes (with -y always yes; without a terminal, no)
   [ "$YES" = 1 ] && return 0
   [ -t 0 ] || return 1
-  read -r -p "  $1 [S/n] " a
-  case "$a" in "" | s | S | y | Y) return 0 ;; *) return 1 ;; esac
+  read -r -p "  $1 [Y/n] " a
+  case "$a" in "" | y | Y) return 0 ;; *) return 1 ;; esac
 }
-version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; } # version_ge actual minima
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; } # version_ge current minimum
 
 OS="$(uname -s)"
 SUDO=""
 [ "$(id -u)" != 0 ] && have sudo && SUDO="sudo"
 printf '%snvim config%s %s · %s%s\n' "$B" "$N" "$(cat "$ROOT/VERSION" 2>/dev/null || echo dev)" "$OS" "$([ -r /proc/version ] && grep -qi microsoft /proc/version && echo ' (WSL)')"
 
-# ── 1. Paquetes del sistema ───────────────────────────────────────────────────
-# Necesarios: git curl unzip tar gzip + compilador de C (treesitter). Recomendados: ripgrep (Telescope), node/npm (LSP y
-# formatters de JS/TS/web vía Mason), cmake (telescope-fzf-native).
+# ── 1. System packages ────────────────────────────────────────────────────────
+# Required: git curl unzip tar gzip + C compiler (treesitter). Recommended: ripgrep (Telescope), node/npm (LSPs and
+# JS/TS/web formatters via Mason), cmake (telescope-fzf-native).
 pm_install() {
   if have apt-get; then run $SUDO apt-get update -qq && run $SUDO apt-get install -y git curl unzip tar gzip build-essential ripgrep cmake nodejs npm
   elif have dnf; then run $SUDO dnf install -y git curl unzip tar gzip gcc gcc-c++ make ripgrep cmake nodejs npm
@@ -76,79 +76,79 @@ pm_install() {
 }
 
 if [ "$DEPS" = 1 ]; then
-  step "Dependencias"
+  step "Dependencies"
   missing=()
   for c in git curl unzip tar gzip; do have "$c" || missing+=("$c"); done
-  have cc || have gcc || have clang || missing+=("compilador de C")
+  have cc || have gcc || have clang || missing+=("C compiler")
   rec=()
   for c in rg node npm cmake; do have "$c" || rec+=("$c"); done
   if [ ${#missing[@]} -eq 0 ] && [ ${#rec[@]} -eq 0 ]; then
     ok "git curl unzip tar gzip cc rg node npm cmake"
   else
-    [ ${#missing[@]} -gt 0 ] && warn "faltan (necesarios): ${missing[*]}"
-    [ ${#rec[@]} -gt 0 ] && warn "faltan (recomendados): ${rec[*]}"
-    if ask "¿Instalarlos con el gestor de paquetes del sistema?"; then
-      pm_install || warn "no encontré apt/dnf/pacman/zypper/apk/brew: instálalos a mano"
+    [ ${#missing[@]} -gt 0 ] && warn "missing (required): ${missing[*]}"
+    [ ${#rec[@]} -gt 0 ] && warn "missing (recommended): ${rec[*]}"
+    if ask "Install them with the system package manager?"; then
+      pm_install || warn "could not find apt/dnf/pacman/zypper/apk/brew: install them by hand"
     fi
-    for c in git curl; do have "$c" || [ "$DRY" = 1 ] || die "falta $c: no se puede continuar"; done
+    for c in git curl; do have "$c" || [ "$DRY" = 1 ] || die "$c is missing: cannot continue"; done
   fi
 
-  # Neovim >= 0.11 (nvim-treesitter y la API de LSP nueva lo exigen)
+  # Neovim >= 0.11 (nvim-treesitter and the new LSP API require it)
   nvim_ok() { have nvim && version_ge "$(nvim --version | sed -n '1s/[^0-9]*\([0-9.]*\).*/\1/p')" "$MIN_NVIM"; }
   if nvim_ok; then
     ok "Neovim $(nvim --version | sed -n '1s/NVIM v//p')"
   else
     cur=""
-    have nvim && cur=" (hay $(nvim --version | sed -n '1s/NVIM v//p'))"
-    warn "Neovim >= $MIN_NVIM no encontrado$cur"
+    have nvim && cur=" (found $(nvim --version | sed -n '1s/NVIM v//p'))"
+    warn "Neovim >= $MIN_NVIM not found$cur"
     if [ "$OS" = Darwin ] && have brew; then
-      ask "¿Instalar Neovim con brew?" && run brew install neovim
+      ask "Install Neovim with brew?" && run brew install neovim
     elif [ "$OS" = Linux ]; then
       case "$(uname -m)" in x86_64) pkg=nvim-linux-x86_64 ;; aarch64 | arm64) pkg=nvim-linux-arm64 ;; *) pkg="" ;; esac
-      if [ -n "$pkg" ] && ask "¿Descargar Neovim estable en ~/.local/opt/nvim (sin sudo)?"; then
+      if [ -n "$pkg" ] && ask "Download stable Neovim to ~/.local/opt/nvim (no sudo)?"; then
         run mkdir -p "$HOME/.local/opt" "$HOME/.local/bin"
-        echo "  descargando Neovim ($pkg)…"
+        echo "  downloading Neovim ($pkg)…"
         run curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/$pkg.tar.gz" -o "/tmp/$pkg.tar.gz"
         run rm -rf "$HOME/.local/opt/nvim"
         run mkdir -p "$HOME/.local/opt/nvim"
         run tar -xzf "/tmp/$pkg.tar.gz" -C "$HOME/.local/opt/nvim" --strip-components=1
         run ln -sf "$HOME/.local/opt/nvim/bin/nvim" "$HOME/.local/bin/nvim"
         export PATH="$HOME/.local/bin:$PATH"
-        case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) warn "añade ~/.local/bin a tu PATH" ;; esac
+        case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) warn "add ~/.local/bin to your PATH" ;; esac
       fi
     fi
-    if [ "$DRY" != 1 ]; then nvim_ok || die "necesito Neovim >= $MIN_NVIM (https://github.com/neovim/neovim/releases)"; fi
+    if [ "$DRY" != 1 ]; then nvim_ok || die "Neovim >= $MIN_NVIM is required (https://github.com/neovim/neovim/releases)"; fi
   fi
 fi
-[ "$DRY" = 1 ] || have nvim || die "nvim no está en el PATH"
+[ "$DRY" = 1 ] || have nvim || die "nvim is not in PATH"
 
-# ── 2. Enlace ~/.config/nvim → este repo ──────────────────────────────────────
-step "Enlace $TARGET"
+# ── 2. Link ~/.config/nvim → this repo ────────────────────────────────────────
+step "Link $TARGET"
 run mkdir -p "$CONFIG_HOME"
 if [ -L "$TARGET" ] && [ "$(readlink -f "$TARGET")" = "$(readlink -f "$ROOT/nvim")" ]; then
-  ok "ya apunta a $ROOT/nvim"
+  ok "already points to $ROOT/nvim"
 else
   if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
     backup="$TARGET.bak-$(date +%Y%m%d-%H%M%S)"
-    warn "ya existía una config: la guardo en $backup"
+    warn "a config already existed: saving it to $backup"
     run mv "$TARGET" "$backup"
   fi
   run ln -s "$ROOT/nvim" "$TARGET"
   ok "$TARGET → $ROOT/nvim"
 fi
 
-# ── 3. Hooks de git (cheatsheet al día, commits convencionales) ───────────────
+# ── 3. Git hooks (up-to-date cheatsheet, conventional commits) ────────────────
 if [ -d "$ROOT/.git" ] && have git; then
   run git -C "$ROOT" config core.hooksPath .githooks
-  ok "git hooks activados (.githooks)"
+  ok "git hooks enabled (.githooks)"
 fi
 
-# ── 4. Ajustes por máquina ────────────────────────────────────────────────────
-# `--lang`, `--theme` y `--light/--no-light` se escriben en lua/local.lua (ignorado por git) con scripts/install-local.lua, la
-# misma implementación que usa install.ps1. Todos los lenguajes están activos por defecto; si local.lua ya existe NO se toca:
-# se dice qué añadir.
+# ── 4. Per-machine settings ───────────────────────────────────────────────────
+# `--lang`, `--theme` and `--light/--no-light` are written to lua/local.lua (git-ignored) with scripts/install-local.lua, the
+# same implementation install.ps1 uses. All languages are active by default; if local.lua already exists it is NOT touched:
+# it says what to add.
 if [ -n "$LANGS$THEME$LIGHT" ]; then
-  step "Ajustes (lua/local.lua)"
+  step "Settings (lua/local.lua)"
   if have nvim; then
     rc=0
     out="$(NVIM_INSTALL_LANGS="$LANGS" NVIM_INSTALL_THEME="$THEME" NVIM_INSTALL_LIGHT="$LIGHT" NVIM_INSTALL_DRY="$DRY" \
@@ -162,22 +162,22 @@ if [ -n "$LANGS$THEME$LIGHT" ]; then
     done
     [ "$rc" = 0 ] || exit "$rc"
   else
-    printf '  [dry-run] escribiría lua/local.lua con: lang=%s theme=%s light=%s\n' "$LANGS" "$THEME" "$LIGHT"
+    printf '  [dry-run] would write lua/local.lua with: lang=%s theme=%s light=%s\n' "$LANGS" "$THEME" "$LIGHT"
   fi
 fi
 
-# Avisos de runtimes que Mason/plugins usan para los lenguajes elegidos (no bloquean: solo evitan sorpresas)
+# Warnings about runtimes that Mason/plugins use for the chosen languages (they do not block: they just avoid surprises)
 want() { [ -z "$LANGS" ] || case ",$LANGS," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
-want go && ! have go && warn "Go activo pero sin \`go\` en el PATH: go.nvim y gopls no podrán instalar sus herramientas (https://go.dev/dl)"
-{ want typescript || want html || want css || want json; } && ! have npm && warn "sin node/npm: los LSP y prettier de JS/TS/web no se instalarán"
-want rust && ! have cargo && warn "Rust activo pero sin cargo/rustup (https://rustup.rs)"
+want go && ! have go && warn "Go is active but there is no \`go\` in PATH: go.nvim and gopls will not be able to install their tools (https://go.dev/dl)"
+{ want typescript || want html || want css || want json; } && ! have npm && warn "no node/npm: the JS/TS/web LSPs and prettier will not be installed"
+want rust && ! have cargo && warn "Rust is active but there is no cargo/rustup (https://rustup.rs)"
 
-# ── 5. Plugins, LSP/formatters/linters y parsers ──────────────────────────────
+# ── 5. Plugins, LSPs/formatters/linters and parsers ────────────────────────────
 if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then
-  # nvim headless escribe MUCHO progreso: todo va a un log y solo se enseñan las líneas que parecen un fallo
+  # headless nvim writes A LOT of progress: everything goes to a log and only lines that look like a failure are shown
   LOG="${TMPDIR:-/tmp}/nvim-config-install.log"
   NV_BAD=0
-  done_ok() { if [ "$NV_BAD" = 0 ]; then ok "$1"; else warn "$1 — con avisos (arriba); repite ./install.sh o mira $LOG"; fi; }
+  done_ok() { if [ "$NV_BAD" = 0 ]; then ok "$1"; else warn "$1 — with warnings (above); re-run ./install.sh or check $LOG"; fi; }
   : >"$LOG"
   nv() {
     local from rc=0
@@ -188,46 +188,46 @@ if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then
       grep -Ei 'error|failed|E[0-9]{3,4}:' | grep -v 'Finished task' | sort -u | head -8 || true)"
     NV_BAD=0
     if [ -n "$bad" ]; then NV_BAD=1; printf '%s\n' "$bad" | sed 's/^/    /'; fi
-    [ "$rc" = 124 ] && warn "tiempo agotado (NVIM_INSTALL_TIMEOUT=${NVIM_INSTALL_TIMEOUT:-1500}s)"
+    [ "$rc" = 124 ] && warn "timed out (NVIM_INSTALL_TIMEOUT=${NVIM_INSTALL_TIMEOUT:-1500}s)"
     return 0
   }
 
   step "Plugins (lazy.nvim)"
   nv "+Lazy! sync" +qa
-  done_ok "plugins al día (nvim/lazy-lock.json)"
+  done_ok "plugins up to date (nvim/lazy-lock.json)"
 
-  step "LSP, formatters y linters (Mason)"
+  step "LSPs, formatters and linters (Mason)"
   nv -c "luafile $ROOT/scripts/install-mason.lua" +qa
-  done_ok "herramientas instaladas"
+  done_ok "tools installed"
 
-  step "Parsers de treesitter"
+  step "Treesitter parsers"
   nv -c "luafile $ROOT/scripts/install-treesitter.lua" +qa
-  done_ok "parsers compilados"
+  done_ok "parsers compiled"
 elif [ "$DRY" = 1 ]; then
   step "Plugins"
   printf '  [dry-run] lazy sync · MasonToolsInstallSync · treesitter install\n'
 else
-  warn "plugins, herramientas y parsers: se instalan solos la primera vez que abras nvim (o corre ./install.sh sin --no-plugins)"
+  warn "plugins, tools and parsers: they install themselves the first time you open nvim (or run ./install.sh without --no-plugins)"
 fi
 
-# ── 6. Agente de IA (opcional) ────────────────────────────────────────────────
-# Con --agent se configura (auto | backend/modelo[@light]); sin la opción solo enseña lo que detecta; `none` lo omite.
-# Necesita los plugins ya instalados (usa la config), por eso va el último y se salta con --no-plugins o --dry-run.
+# ── 6. AI agent (optional) ────────────────────────────────────────────────────
+# With --agent it is configured (auto | backend/model[@light]); without the option it only shows what it detects; `none` skips it.
+# It needs the plugins already installed (it uses the config), so it goes last and is skipped with --no-plugins or --dry-run.
 if [ "$AGENT" != none ]; then
-  step "Agente de IA"
+  step "AI agent"
   if [ "$DRY" = 1 ]; then
     printf '  [dry-run] scripts/agent-setup.sh %s\n' "$([ -n "$AGENT" ] && { [ "$AGENT" = auto ] && echo --auto || echo "--use $AGENT"; })"
   elif [ "$PLUGINS" != 1 ]; then
-    warn "con --no-plugins se salta: cuando abras nvim por primera vez, corre ./scripts/agent-setup.sh${AGENT:+ $([ "$AGENT" = auto ] && echo --auto || echo "--use $AGENT")}"
+    warn "skipped with --no-plugins: when you first open nvim, run ./scripts/agent-setup.sh${AGENT:+ $([ "$AGENT" = auto ] && echo --auto || echo "--use $AGENT")}"
   else
     case "$AGENT" in
-      "") "$ROOT/scripts/agent-setup.sh" || true ;; # informe; sale 1 si no hay ningún backend listo
-      auto) "$ROOT/scripts/agent-setup.sh" --auto || warn "no se pudo aplicar la recomendación: <Space>am → Setup dentro de nvim" ;;
-      *) "$ROOT/scripts/agent-setup.sh" --use "$AGENT" || warn "no se pudo fijar $AGENT: <Space>am → Setup dentro de nvim" ;;
+      "") "$ROOT/scripts/agent-setup.sh" || true ;; # report; exits 1 if no backend is ready
+      auto) "$ROOT/scripts/agent-setup.sh" --auto || warn "could not apply the recommendation: <Space>am → Setup inside nvim" ;;
+      *) "$ROOT/scripts/agent-setup.sh" --use "$AGENT" || warn "could not set $AGENT: <Space>am → Setup inside nvim" ;;
     esac
   fi
 fi
 
-step "Listo"
-[ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ] && printf '  (registro de la instalación: %s)\n' "${TMPDIR:-/tmp}/nvim-config-install.log"
-ok "abre nvim: <Space> muestra los menús; CHEATSHEET.md tiene todas las teclas"
+step "Done"
+[ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ] && printf '  (install log: %s)\n' "${TMPDIR:-/tmp}/nvim-config-install.log"
+ok "open nvim: <Space> shows the menus; CHEATSHEET.md has all the keys"

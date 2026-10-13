@@ -1,13 +1,13 @@
 #!/bin/sh
-# Mantiene CHEATSHEET.md al día: si el commit toca la config de nvim, lo regenera
-# desde los keymaps reales y lo añade al commit. Nunca bloquea el commit: si falta
-# nvim o los plugins, solo avisa.
-# Activar una vez por clon: git config core.hooksPath .githooks
+# Keeps CHEATSHEET.md up to date: if the commit touches the nvim config, it regenerates it
+# from the real keymaps and adds it to the commit. Never blocks the commit: if nvim
+# or the plugins are missing, it only warns.
+# Enable once per clone: git config core.hooksPath .githooks
 git diff --cached --name-only | grep -q '^nvim/' || exit 0
 
 ROOT="$(git rev-parse --show-toplevel)"
 if ! "$ROOT/scripts/gen-cheatsheet.sh"; then
-  echo "pre-commit: no se pudo regenerar CHEATSHEET.md (¿nvim y plugins instalados?)" >&2
+  echo "pre-commit: could not regenerate CHEATSHEET.md (are nvim and the plugins installed?)" >&2
   exit 0
 fi
 git add "$ROOT/CHEATSHEET.md"

@@ -1,4 +1,4 @@
--- Compila (y espera) los parsers de treesitter de los lenguajes activos. Lo usan install.sh e install.ps1:
+-- Compiles (and waits for) the treesitter parsers of the active languages. Used by install.sh and install.ps1:
 --   nvim --headless -c "luafile scripts/install-treesitter.lua" +qa
 require("lazy").load { plugins = { "nvim-treesitter" } }
 local ts = require "nvim-treesitter"

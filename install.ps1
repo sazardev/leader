@@ -1,10 +1,10 @@
-# Instala esta config de Neovim en Windows: junction en %LOCALAPPDATA%\nvim, hooks de git, plugins, LSP/formatters y parsers.
-# Idempotente. Uso (PowerShell):
+# Installs this Neovim config on Windows: junction at %LOCALAPPDATA%\nvim, git hooks, plugins, LSPs/formatters and parsers.
+# Idempotent. Usage (PowerShell):
 #   ./install.ps1 [-NoPlugins] [-Lang go,typescript] [-Theme catppuccin] [-Light | -NoLight] [-Agent auto|none|claude/haiku]
-# Mismas opciones que install.sh (-Lang/-Theme/-Light se escriben en lua/local.lua con scripts/install-local.lua; -Agent
-# configura el agente de IA con su módulo `agent.setup`).
-# Requisitos: Neovim >= 0.11, git y un compilador de C (por ejemplo `winget install -e --id MartinStorsjo.LLVM-MinGW.UCRT`
-# o Visual Studio Build Tools). Opcionales: ripgrep, node, cmake.
+# Same options as install.sh (-Lang/-Theme/-Light are written to lua/local.lua with scripts/install-local.lua; -Agent
+# configures the AI agent with its `agent.setup` module).
+# Requirements: Neovim >= 0.11, git and a C compiler (for example `winget install -e --id MartinStorsjo.LLVM-MinGW.UCRT`
+# or Visual Studio Build Tools). Optional: ripgrep, node, cmake.
 param([switch]$NoPlugins, [string]$Lang = '', [string]$Theme = '', [switch]$Light, [switch]$NoLight, [string]$Agent = '')
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -13,23 +13,23 @@ $Target = Join-Path $env:LOCALAPPDATA 'nvim'
 
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 
-Step 'Requisitos'
+Step 'Requirements'
 foreach ($c in 'nvim', 'git') {
-  if (-not (Get-Command $c -ErrorAction SilentlyContinue)) { throw "falta $c (winget install Neovim.Neovim / Git.Git)" }
+  if (-not (Get-Command $c -ErrorAction SilentlyContinue)) { throw "$c is missing (winget install Neovim.Neovim / Git.Git)" }
 }
 $v = [version](((nvim --version)[0]) -replace '[^\d\.]', '' -replace '\.$', '')
-if ($v -lt [version]'0.11') { throw "necesito Neovim >= 0.11 (tienes $v)" }
-if (-not ((Get-Command gcc, clang, cl -ErrorAction SilentlyContinue))) { Write-Warning 'no encuentro un compilador de C: treesitter no podrá compilar parsers' }
+if ($v -lt [version]'0.11') { throw "Neovim >= 0.11 is required (you have $v)" }
+if (-not ((Get-Command gcc, clang, cl -ErrorAction SilentlyContinue))) { Write-Warning 'no C compiler found: treesitter will not be able to compile parsers' }
 
-Step "Enlace $Target"
+Step "Link $Target"
 $want = Join-Path $Root 'nvim'
 $item = Get-Item $Target -ErrorAction SilentlyContinue
 if ($item -and $item.LinkType -and ($item.Target -eq $want)) {
-  Write-Host '  ya apunta a este repo'
+  Write-Host '  already points to this repo'
 } else {
   if ($item) {
     $bak = "$Target.bak-$(Get-Date -Format yyyyMMdd-HHmmss)"
-    Write-Warning "ya existía una config: la guardo en $bak"
+    Write-Warning "a config already existed: saving it to $bak"
     Move-Item $Target $bak
   }
   New-Item -ItemType Junction -Path $Target -Target $want | Out-Null
@@ -38,12 +38,12 @@ if ($item -and $item.LinkType -and ($item.Target -eq $want)) {
 
 if (Test-Path (Join-Path $Root '.git')) {
   git -C $Root config core.hooksPath .githooks
-  Write-Host '  git hooks activados (.githooks)'
+  Write-Host '  git hooks enabled (.githooks)'
 }
 
-# Ajustes por máquina (lua/local.lua): la misma implementación que install.sh
+# Per-machine settings (lua/local.lua): the same implementation as install.sh
 if ($Lang -or $Theme -or $Light -or $NoLight) {
-  Step 'Ajustes (lua/local.lua)'
+  Step 'Settings (lua/local.lua)'
   $env:NVIM_INSTALL_LANGS = $Lang
   $env:NVIM_INSTALL_THEME = $Theme
   $env:NVIM_INSTALL_LIGHT = if ($Light) { '1' } elseif ($NoLight) { '0' } else { '' }
@@ -54,7 +54,7 @@ if ($Lang -or $Theme -or $Light -or $NoLight) {
     elseif ($line.StartsWith('WARN ')) { Write-Warning $line.Substring(5) }
     elseif ($line.StartsWith('OK ')) { Write-Host "  $($line.Substring(3))" }
   }
-  if ($LASTEXITCODE -ne 0) { throw 'ajustes no validos (arriba)' }
+  if ($LASTEXITCODE -ne 0) { throw 'invalid settings (above)' }
 }
 
 if (-not $NoPlugins) {
@@ -62,24 +62,24 @@ if (-not $NoPlugins) {
   Remove-Item $log -ErrorAction SilentlyContinue
   foreach ($job in @(
       @('Plugins (lazy.nvim)', '+Lazy! sync', '+qa'),
-      @('LSP, formatters y linters (Mason)', '-c', "luafile $RootU/scripts/install-mason.lua", '+qa'),
-      @('Parsers de treesitter', '-c', "luafile $RootU/scripts/install-treesitter.lua", '+qa'))) {
+      @('LSPs, formatters and linters (Mason)', '-c', "luafile $RootU/scripts/install-mason.lua", '+qa'),
+      @('Treesitter parsers', '-c', "luafile $RootU/scripts/install-treesitter.lua", '+qa'))) {
     Step $job[0]
     & nvim --headless @($job[1..($job.Length - 1)]) *>> $log
   }
-  Write-Host "`n  (registro de la instalación: $log)"
+  Write-Host "`n  (install log: $log)"
 }
 
-# Agente de IA (opcional): -Agent auto | claude/haiku | none; sin la opcion solo enseña lo que detecta
+# AI agent (optional): -Agent auto | claude/haiku | none; without the option it only shows what it detects
 if ($Agent -ne 'none') {
-  Step 'Agente de IA'
+  Step 'AI agent'
   if ($NoPlugins) {
-    Write-Warning 'con -NoPlugins se salta: cuando abras nvim por primera vez, usa <Space>am -> Setup'
+    Write-Warning 'skipped with -NoPlugins: when you first open nvim, use <Space>am -> Setup'
   } else {
     $flags = if (-not $Agent) { '' } elseif ($Agent -eq 'auto') { "'--auto'" } else { "'--use','$Agent'" }
     & nvim --headless -c "lua vim.defer_fn(function() require('agent.setup').cli({ $flags }) end, 300)" 2>&1 | Write-Host
   }
 }
 
-Step 'Listo'
-Write-Host '  Abre nvim: <Space> muestra los menus; CHEATSHEET.md tiene todas las teclas.'
+Step 'Done'
+Write-Host '  Open nvim: <Space> shows the menus; CHEATSHEET.md has all the keys.'

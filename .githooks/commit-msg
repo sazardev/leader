@@ -1,8 +1,8 @@
 #!/bin/sh
-# Exige Conventional Commits en la primera línea: `tipo(scope)!: asunto`.
-# Los tipos son los de settings.git.commit.types (nvim/lua/core/settings.lua): si cambias
-# la lista allí, cámbiala aquí. Deja pasar merges, reverts y fixup!/squash! de git.
-# Activar una vez por clon: git config core.hooksPath .githooks
+# Requires Conventional Commits on the first line: `type(scope)!: subject`.
+# The types are those of settings.git.commit.types (nvim/lua/core/settings.lua): if you change
+# the list there, change it here. Lets git's merges, reverts and fixup!/squash! through.
+# Enable once per clone: git config core.hooksPath .githooks
 TYPES='feat|fix|refactor|docs|style|perf|test|build|ci|chore|revert'
 MAX=72
 
@@ -14,17 +14,17 @@ esac
 
 if ! printf '%s' "$header" | grep -Eq "^($TYPES)(\([^()]+\))?!?: .+"; then
   cat >&2 <<MSG
-commit-msg: el mensaje no sigue Conventional Commits.
-  primera línea: "$header"
-  formato:       tipo(scope): asunto      (el scope es opcional)
-  tipos:         $(echo "$TYPES" | tr '|' ' ')
-  ejemplo:       feat(session): autoguardado periódico
-  desde nvim:    <leader>Gc (asistente) o <leader>Gm (mensaje con IA)
+commit-msg: the message does not follow Conventional Commits.
+  first line: "$header"
+  format:     type(scope): subject      (the scope is optional)
+  types:      $(echo "$TYPES" | tr '|' ' ')
+  example:    feat(session): periodic autosave
+  from nvim:  <leader>Gc (wizard) or <leader>Gm (AI message)
 MSG
   exit 1
 fi
 
 if [ "${#header}" -gt "$MAX" ]; then
-  echo "commit-msg: la primera línea tiene ${#header} caracteres (máximo $MAX)." >&2
+  echo "commit-msg: the first line has ${#header} characters (maximum $MAX)." >&2
   exit 1
 fi

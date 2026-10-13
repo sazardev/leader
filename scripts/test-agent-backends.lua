@@ -1,5 +1,5 @@
--- Pruebas de los backends locales (Ollama, OpenAI-compatible, comandos) y del setup. Se ejecutan con
--- scripts/test-agent.sh, tras test-agent.lua (archivo aparte: el otro agotó el límite de 200 locales de Lua).
+-- Tests for the local backends (Ollama, OpenAI-compatible, commands) and the setup. Run by
+-- scripts/test-agent.sh, after test-agent.lua (separate file: the other one hit Lua's limit of 200 locals).
 local fails = 0
 local function print(...)
   io.stdout:write(table.concat(vim.tbl_map(tostring, { ... }), "\t"), "\n")
@@ -15,9 +15,9 @@ end
 local protocol = require "agent.protocol"
 local real_selection = package.loaded["agent.selection"]
 
--- ── Backends locales y setup ─────────────────────────────────────────────────
--- Hermético: el estado (agent.json) se sustituye EN SITIO por uno en memoria y los servidores son falsos
--- (scripts/fake-llm.py habla Ollama y la API de OpenAI). Nada toca tu estado real ni la red.
+-- ── Local backends and setup ─────────────────────────────────────────────────
+-- Hermetic: the state (agent.json) is replaced IN PLACE by an in-memory one and the servers are fake
+-- (scripts/fake-llm.py speaks Ollama and the OpenAI API). Nothing touches your real state or the network.
 do
   local agent_state = require "agent.state"
   local real_get, real_set = agent_state.get, agent_state.set
@@ -30,17 +30,17 @@ do
   end
 
   local http = require "agent.backends.http"
-  eq("http: contexto mínimo 4096", http.context_size(100, {}), 4096)
-  eq("http: el contexto crece con el prompt (potencia de dos)", http.context_size(40000, {}), 16384)
-  eq("http: el contexto respeta el tope", http.context_size(900000, { max_ctx = 32768 }), 32768)
-  eq("http: num_ctx fijo manda", http.context_size(900000, { num_ctx = 8192 }), 8192)
+  eq("http: minimum context 4096", http.context_size(100, {}), 4096)
+  eq("http: the context grows with the prompt (power of two)", http.context_size(40000, {}), 16384)
+  eq("http: the context respects the cap", http.context_size(900000, { max_ctx = 32768 }), 32768)
+  eq("http: a fixed num_ctx wins", http.context_size(900000, { num_ctx = 8192 }), 8192)
   eq(
     "http: normalize",
     { http.normalize("0.0.0.0:11434", 11434), http.normalize("localhost", 11434), http.normalize("http://x:1/", 11434) },
     { "http://127.0.0.1:11434", "http://localhost:11434", "http://x:1" }
   )
   eq(
-    "http: curl con cuerpo por stdin y streaming",
+    "http: curl with body via stdin and streaming",
     http.curl("http://h/x", { stream = true, body = true, connect_timeout = 1 }),
     {
       "curl",
@@ -59,16 +59,16 @@ do
     }
   )
   eq(
-    "http: curl 7 explica qué hacer",
+    "http: curl 7 explains what to do",
     http.explain(7, "", "http://h", "start it"):find("start it", 1, true) ~= nil,
     true
   )
 
-  -- Ollama: construcción y lectura (sin servidor)
+  -- Ollama: building and reading (no server)
   local ollama = require "agent.backends.ollama"
   local ob = ollama.build { system = "SYS", prompt = "PROMPT", model = "m:7b", action = "docs" }
   local obody = vim.json.decode(ob.stdin)
-  eq("ollama: cuerpo (modelo, streaming, contexto automático, keep_alive)", {
+  eq("ollama: body (model, streaming, automatic context, keep_alive)", {
     obody.model,
     obody.stream,
     obody.options.num_ctx,
@@ -76,33 +76,29 @@ do
     obody.messages[1].role,
     obody.messages[2].content,
   }, { "m:7b", true, 4096, require("core.settings").agent.ollama.keep_alive, "system", "PROMPT" })
-  eq("ollama: curl al endpoint de chat", vim.endswith(ob.cmd[#ob.cmd], "/api/chat"), true)
+  eq("ollama: curl to the chat endpoint", vim.endswith(ob.cmd[#ob.cmd], "/api/chat"), true)
   local op = ollama.parser()
   local streamed =
     op.feed '{"message":{"content":"<think>hm</think>He"},"done":false}\n{"message":{"content":"llo"},"done":false}\n'
   local ofin = op.feed '{"done":true,"prompt_eval_count":12,"eval_count":3,"total_duration":2000000000}\n'
   local ores = op.finish(0, "")
   eq(
-    "ollama: texto en streaming, sin <think>, con uso y coste 0",
+    "ollama: streamed text, without <think>, with usage and cost 0",
     { streamed, ofin, ores.ok, ores.text, ores.usage.tokens_in, ores.usage.tokens_out, ores.usage.cost, ores.usage.ms },
     { "<think>hm</think>Hello", nil, true, "Hello", 12, 3, 0, 2000 }
   )
   local oe = ollama.parser()
   oe.feed '{"error":"model \\"x\\" not found, try pulling it first"}\n'
-  eq("ollama: modelo ausente sugiere descargarlo", oe.finish(0, "").err:find("pull", 1, true) ~= nil, true)
-  eq(
-    "ollama: servidor caído → qué hacer",
-    ollama.parser().finish(7, "").err:find("ollama serve", 1, true) ~= nil,
-    true
-  )
+  eq("ollama: a missing model suggests downloading it", oe.finish(0, "").err:find("pull", 1, true) ~= nil, true)
+  eq("ollama: server down → what to do", ollama.parser().finish(7, "").err:find("ollama serve", 1, true) ~= nil, true)
 
-  -- OpenAI-compatible: construcción y lectura
+  -- OpenAI-compatible: building and reading
   local openai = require "agent.backends.openai"
   local oai = require("core.settings").agent.openai
   oai.base_url = "http://127.0.0.1:1234"
-  eq("openai: base_url acaba en /v1", openai.base_url(), "http://127.0.0.1:1234/v1")
+  eq("openai: base_url ends in /v1", openai.base_url(), "http://127.0.0.1:1234/v1")
   local oab = openai.build { system = "S", prompt = "P", model = "gguf", action = "docs" }
-  eq("openai: endpoint y cuerpo", { oab.cmd[#oab.cmd], vim.json.decode(oab.stdin).stream_options.include_usage }, {
+  eq("openai: endpoint and body", { oab.cmd[#oab.cmd], vim.json.decode(oab.stdin).stream_options.include_usage }, {
     "http://127.0.0.1:1234/v1/chat/completions",
     true,
   })
@@ -110,10 +106,10 @@ do
   oap.feed 'data: {"choices":[{"delta":{"content":"Hi "}}]}\n\ndata: {"choices":[{"delta":{"content":"there"}}]}\n\n'
   oap.feed 'data: {"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":2}}\n\ndata: [DONE]\n'
   local oar = oap.finish(0, "")
-  eq("openai: SSE → texto y uso", { oar.text, oar.usage.tokens_in, oar.usage.tokens_out }, { "Hi there", 7, 2 })
+  eq("openai: SSE → text and usage", { oar.text, oar.usage.tokens_in, oar.usage.tokens_out }, { "Hi there", 7, 2 })
   oai.base_url = nil
 
-  -- backend declarativo (Hermes Agent, Gemini CLI...)
+  -- declarative backend (Hermes Agent, Gemini CLI...)
   local command = require "agent.backends.command"
   local hermes = command.from_spec("hermes", {
     label = "Hermes Agent",
@@ -123,21 +119,21 @@ do
   })
   local hb = hermes.build { system = "SYS", prompt = "PROMPT", model = "hermes3", action = "explain" }
   eq(
-    "command: {prompt} y bandera de modelo; el system va dentro del mensaje",
+    "command: {prompt} and model flag; the system goes inside the message",
     { hb.cmd[1], hb.cmd[4]:find("SYS", 1, true) ~= nil, hb.cmd[4]:find("PROMPT", 1, true) ~= nil, hb.cmd[5], hb.cmd[6] },
     { "hermes", true, true, "-m", "hermes3" }
   )
-  eq("command: sin el ejecutable no está disponible", hermes.available(), false)
+  eq("command: without the executable it is not available", hermes.available(), false)
   local jsonb = command.from_spec("j", { cmd = { "x" }, json = "msg.text" })
   local jp = jsonb.parser()
   jp.feed '{"msg":{"text":"alpha "}}\n{"msg":{"text":"beta"}}\n{"other":1}\n'
-  eq("command: texto por ruta JSON", jp.finish(0, "").text, "alpha beta")
-  eq("command: error de proceso", command.from_spec("z", { cmd = { "x" } }).parser().finish(3, "boom").err, "boom")
+  eq("command: text by JSON path", jp.finish(0, "").text, "alpha beta")
+  eq("command: process error", command.from_spec("z", { cmd = { "x" } }).parser().finish(3, "boom").err, "boom")
   local registered = require "agent.backends"
   registered.register("hermes", hermes)
-  eq("registro: un backend en caliente aparece en names()", vim.tbl_contains(registered.names(), "hermes"), true)
+  eq("registry: a hot-registered backend shows up in names()", vim.tbl_contains(registered.names(), "hermes"), true)
 
-  -- recomendación y estado (puros)
+  -- recommendation and state (pure)
   local recommend = require "agent.setup.recommend"
   local report = require "agent.setup.report"
   local function snap(extra)
@@ -152,20 +148,20 @@ do
   end
   local cloud = { { name = "claude", path = "/bin/claude" } }
   eq(
-    "recommend: 24 GB de VRAM → 32b principal",
+    "recommend: 24 GB of VRAM → 32b main",
     recommend.tier(snap { gpu = { name = "g", vram_gb = 24 } }).main,
     "qwen2.5-coder:32b"
   )
   eq(
-    "recommend: 8 GB de VRAM → 7b",
+    "recommend: 8 GB of VRAM → 7b",
     recommend.tier(snap { gpu = { name = "g", vram_gb = 8 } }).main,
     "qwen2.5-coder:7b"
   )
-  eq("recommend: CPU con 32 GB de RAM → tope de 8 GB útiles", recommend.budget_gb(snap { ram_gb = 32 }), 8)
-  eq("recommend: CPU con 4 GB de RAM → 3b", recommend.tier(snap { ram_gb = 4 }).main, "qwen2.5-coder:3b")
+  eq("recommend: CPU with 32 GB of RAM → cap of 8 usable GB", recommend.budget_gb(snap { ram_gb = 32 }), 8)
+  eq("recommend: CPU with 4 GB of RAM → 3b", recommend.tier(snap { ram_gb = 4 }).main, "qwen2.5-coder:3b")
   local nothing = recommend.pick(snap { clis = cloud, gpu = { name = "g", vram_gb = 12 } })
   eq(
-    "recommend: sin modelos y con Claude → solo se sugiere el ligero",
+    "recommend: no models and with Claude → only the light one is suggested",
     { nothing.main, nothing.light, vim.tbl_map(function(p)
       return p.model
     end, nothing.pulls) },
@@ -173,7 +169,7 @@ do
   )
   local only_local = recommend.pick(snap { gpu = { name = "g", vram_gb = 12 } })
   eq(
-    "recommend: sin CLI de nube se sugieren ligero y principal",
+    "recommend: without a cloud CLI, light and main are suggested",
     vim.tbl_map(function(p)
       return p.model
     end, only_local.pulls),
@@ -188,34 +184,34 @@ do
   local with_models =
     recommend.pick(snap { clis = cloud, ollama_servers = { { url = "u", models = models, loaded = {} } } })
   eq(
-    "recommend: con modelos instalados → el de código más pequeño para el ligero; el principal sigue en la nube",
+    "recommend: with installed models → the smallest code model for the light one; the main one stays in the cloud",
     { with_models.main, with_models.light, #with_models.pulls },
     { nil, { backend = "ollama", model = "qwen2.5-coder:1.5b" }, 0 }
   )
   local local_only = recommend.pick(snap { ollama_servers = { { url = "u", models = models, loaded = {} } } })
   eq(
-    "recommend: sin nube el local es también el principal (el mayor de código)",
+    "recommend: without cloud the local one is also the main one (the largest code model)",
     { local_only.main.model, local_only.light.model },
     { "qwen2.5-coder:7b", "qwen2.5-coder:1.5b" }
   )
-  eq("report: sin nada listo → no ready", report.ready(snap {}), false)
+  eq("report: nothing ready → not ready", report.ready(snap {}), false)
   eq(
-    "report: con un servidor con modelos → ready",
+    "report: with a server with models → ready",
     report.ready(snap { ollama_servers = { { url = "u", models = models, loaded = {} } } }),
     true
   )
-  eq("report: un backend custom cuenta como listo", report.ready(snap { custom = { "hermes" } }), true)
+  eq("report: a custom backend counts as ready", report.ready(snap { custom = { "hermes" } }), true)
   local text_report = table.concat(report.build(snap { docker = true }, recommend.pick(snap {}), nil), "\n")
   eq(
-    "report: sin servidor explica cómo conseguir Ollama (incluido Docker con GPU)",
+    "report: without a server it explains how to get Ollama (including Docker with GPU)",
     { text_report:find("ollama.com/download", 1, true) ~= nil, text_report:find("--gpus all", 1, true) ~= nil },
     { true, true }
   )
 
-  -- servidores falsos reales: Ollama + OpenAI-compatible
+  -- real fake servers: Ollama + OpenAI-compatible
   local have_python = vim.fn.executable "python3" == 1
   if not have_python then
-    print "skip servidores falsos (sin python3)"
+    print "skip fake servers (no python3)"
   else
     local fake_ollama =
       vim.system { "python3", "-I", (vim.env.AGENT_TEST_ROOT or vim.fn.getcwd()) .. "/scripts/fake-llm.py", "18434" }
@@ -227,13 +223,13 @@ do
           == 0
       end, 150)
     end
-    eq("servidores falsos arrancan", { wait_up(18434), wait_up(18435) }, { true, true })
+    eq("fake servers start", { wait_up(18434), wait_up(18435) }, { true, true })
 
     local cfg = require("core.settings").agent
     local prev_host, prev_base = cfg.ollama.host, cfg.openai.base_url
     cfg.ollama.host, cfg.openai.base_url = "127.0.0.1:18434", "http://127.0.0.1:18435/v1"
 
-    --- Ejecuta una petición completa de un backend (como el runner) y devuelve su resultado
+    --- Runs a complete backend request (like the runner) and returns its result
     local function roundtrip(backend, req)
       local spec = backend.build(req)
       local parser = backend.parser()
@@ -258,7 +254,7 @@ do
       )
     end
 
-    -- modelos
+    -- models
     local listed
     ollama.models(function(list)
       listed = list
@@ -267,7 +263,7 @@ do
       return listed ~= nil
     end)
     eq(
-      "ollama: lista los modelos del servidor (con tamaño)",
+      "ollama: lists the server's models (with size)",
       { #listed, listed[1].id, listed[1].label:find("7.6B", 1, true) ~= nil },
       { 3, "qwen2.5-coder:7b", true }
     )
@@ -279,45 +275,45 @@ do
       return oai_listed ~= nil
     end)
     eq(
-      "openai: lista /v1/models",
+      "openai: lists /v1/models",
       vim.tbl_map(function(m)
         return m.id
       end, oai_listed),
       { "fake-gguf", "fake-small" }
     )
 
-    -- una acción completa de extremo a extremo
+    -- a complete action end to end
     local code_req = { system = "x", prompt = "implement this", model = "qwen2.5-coder:7b", action = "implement" }
     local res = roundtrip(ollama, code_req)
     eq(
-      "ollama e2e: respuesta, uso y coste 0",
+      "ollama e2e: response, usage and cost 0",
       { res.ok, res.usage.tokens_in, res.usage.tokens_out, res.usage.cost },
       { true, 321, 45, 0 }
     )
     eq(
-      "ollama e2e: el protocolo extrae el bloque de código",
+      "ollama e2e: the protocol extracts the code block",
       (protocol.extract_code(res.text)),
       { "func Add(a, b int) int {", "\treturn a + b", "}" }
     )
     local seen = last_request(18434)
     eq(
-      "ollama e2e: el servidor recibió modelo y num_ctx",
+      "ollama e2e: the server received model and num_ctx",
       { seen.body.model, seen.body.options.num_ctx },
       { "qwen2.5-coder:7b", 4096 }
     )
     local review =
       roundtrip(ollama, { system = "OUTPUT, one finding per line", prompt = "p", model = "m", action = "review" })
-    eq("ollama e2e: los hallazgos se leen con el protocolo", #protocol.parse_findings(review.text), 2)
+    eq("ollama e2e: findings are read with the protocol", #protocol.parse_findings(review.text), 2)
     local missing = roundtrip(ollama, { system = "s", prompt = "p", model = "missing", action = "docs" })
     eq(
-      "ollama e2e: modelo inexistente → error con la pista de descargarlo",
+      "ollama e2e: nonexistent model → error with the hint to download it",
       { missing.ok, missing.err:find("not found", 1, true) ~= nil, missing.err:find("pull", 1, true) ~= nil },
       { false, true, true }
     )
     local long_prompt = ("x"):rep(30000)
     roundtrip(ollama, { system = "s", prompt = long_prompt, model = "m", action = "docs" })
     eq(
-      "ollama e2e: un prompt largo amplía num_ctx (no se trunca en silencio)",
+      "ollama e2e: a long prompt enlarges num_ctx (no silent truncation)",
       last_request(18434).body.options.num_ctx,
       16384
     )
@@ -326,17 +322,17 @@ do
     cfg.openai.api_key_env = "TEST_AGENT_KEY"
     local ores2, ospec2 =
       roundtrip(openai, { system = "x", prompt = "implement this", model = "fake-gguf", action = "implement" })
-    eq("openai e2e: texto y uso", { ores2.ok, ores2.usage.tokens_in, ores2.usage.tokens_out }, { true, 210, 33 })
-    eq("openai e2e: la clave viaja como Authorization", last_request(18435).authorization, "Bearer secret-key")
+    eq("openai e2e: text and usage", { ores2.ok, ores2.usage.tokens_in, ores2.usage.tokens_out }, { true, 210, 33 })
+    eq("openai e2e: the key travels as Authorization", last_request(18435).authorization, "Bearer secret-key")
     eq(
-      "openai: la clave NO está en los argumentos del proceso",
+      "openai: the key is NOT in the process arguments",
       table.concat(ospec2.cmd, " "):find("secret-key", 1, true),
       nil
     )
     cfg.openai.api_key_env = "OPENAI_API_KEY"
     vim.env.TEST_AGENT_KEY = nil
 
-    -- detección contra los servidores falsos
+    -- detection against the fake servers
     local detect = require "agent.setup.detect"
     local found
     detect.run(function(s)
@@ -345,31 +341,31 @@ do
     vim.wait(8000, function()
       return found ~= nil
     end, 100)
-    eq("detect: termina", found ~= nil, true)
+    eq("detect: finishes", found ~= nil, true)
     local srv = found.ollama_servers[1]
     eq(
-      "detect: encuentra Ollama, sus modelos y lo cargado (GPU)",
+      "detect: finds Ollama, its models and what is loaded (GPU)",
       { srv.url, srv.version, #srv.models, srv.loaded[1].name, srv.loaded[1].vram == srv.loaded[1].size },
       { "http://127.0.0.1:18434", "0.5.0-fake", 3, "qwen2.5-coder:7b", true }
     )
     eq(
-      "detect: encuentra el servidor OpenAI-compatible (y no repite el de Ollama)",
+      "detect: finds the OpenAI-compatible server (and does not repeat the Ollama one)",
       vim.tbl_map(function(s)
         return s.url
       end, found.openai_servers),
       { "http://127.0.0.1:18435" }
     )
-    eq("detect: ve los CLIs presentes con su versión", vim.tbl_filter(function(c)
+    eq("detect: sees the present CLIs with their version", vim.tbl_filter(function(c)
       return c.name == "claude"
     end, found.clis)[1].path ~= nil or vim.fn.executable "claude" == 0, true)
     local text2 = table.concat(report.build(found, recommend.pick(found), "claude/sonnet"), "\n")
-    eq("report: muestra servidores, modelos y dónde corre lo cargado", {
+    eq("report: shows servers, models and where the loaded one runs", {
       text2:find("Ollama 0.5.0-fake", 1, true) ~= nil,
       text2:find("qwen2.5-coder:7b", 1, true) ~= nil,
       text2:find("on GPU", 1, true) ~= nil,
     }, { true, true, true })
 
-    -- acciones: descarga con progreso, arranque cuando ya está arriba, recordar y aplicar
+    -- actions: download with progress, start when already up, remember and apply
     local setup_actions = require "agent.setup.actions"
     local pct_seen, pull_ok = {}, nil
     setup_actions.pull("http://127.0.0.1:18434", "qwen2.5-coder:3b", function(_, pct)
@@ -381,7 +377,7 @@ do
       return pull_ok ~= nil
     end)
     eq(
-      "actions: pull con progreso",
+      "actions: pull with progress",
       { pull_ok, vim.tbl_contains(pct_seen, 30), vim.tbl_contains(pct_seen, 100) },
       { true, true, true }
     )
@@ -392,57 +388,61 @@ do
     vim.wait(3000, function()
       return started ~= nil
     end)
-    eq("actions: start con el servidor ya arriba no lanza nada y devuelve ok", started, true)
-    cfg.ollama.host = nil -- sin fijar el host, el setup SÍ recuerda lo detectado
+    eq("actions: start with the server already up launches nothing and returns ok", started, true)
+    cfg.ollama.host = nil -- without a fixed host, the setup DOES remember what was detected
     eq(
-      "actions: recuerda los servidores detectados",
+      "actions: remembers the detected servers",
       setup_actions.remember(found),
       { "ollama → http://127.0.0.1:18434", "openai → http://127.0.0.1:18435/v1" }
     )
-    eq("actions: el backend lee el servidor recordado", ollama.host(), "http://127.0.0.1:18434")
+    eq("actions: the backend reads the remembered server", ollama.host(), "http://127.0.0.1:18434")
     cfg.ollama.host = "127.0.0.1:18434"
 
-    -- selección: el modelo ligero puede vivir en otro backend (gratis, local) sin mover el principal
+    -- selection: the light model can live on another backend (free, local) without moving the main one
     package.loaded["agent.selection"] = nil
     local sel = require "agent.selection"
     fake_store.backend, fake_store.models = "claude", nil
     sel.set("ollama", "qwen2.5-coder:1.5b", "light")
     local actions_reg = require "agent.actions"
-    eq("selection: elegir el ligero en otro backend no cambia el principal", fake_store.backend, "claude")
+    eq(
+      "selection: choosing the light one on another backend does not change the main one",
+      fake_store.backend,
+      "claude"
+    )
     if require("agent.backends").is_available "claude" then
       local docs_sel, impl_sel = sel.current(actions_reg.get "docs"), sel.current(actions_reg.get "implement")
       eq(
-        "selection: docs va al backend local; implement sigue en Claude",
+        "selection: docs goes to the local backend; implement stays on Claude",
         { docs_sel.backend, docs_sel.model, impl_sel.backend },
         { "ollama", "qwen2.5-coder:1.5b", "claude" }
       )
     end
-    fake_store.light_backend = "no-existe"
+    fake_store.light_backend = "does-not-exist"
     eq(
-      "selection: un backend ligero inexistente se ignora",
-      sel.current(actions_reg.get "docs").backend ~= "no-existe",
+      "selection: a nonexistent light backend is ignored",
+      sel.current(actions_reg.get "docs").backend ~= "does-not-exist",
       true
     )
     fake_store.backend, fake_store.models = "ollama", nil
     eq(
-      "selection: Ollama sin modelo elegido → model nil y el backend lo exige",
+      "selection: Ollama with no model chosen → model nil and the backend requires it",
       { sel.current(actions_reg.get "implement").model, ollama.requires_model },
       { nil, true }
     )
     local applied =
       setup_actions.apply { main = { backend = "ollama", model = "a" }, light = { backend = "ollama", model = "b" } }
     eq(
-      "actions: apply fija principal y ligero",
+      "actions: apply sets main and light",
       { fake_store.models.ollama, fake_store.light_models.ollama, #applied },
       { "a", "b", 2 }
     )
     eq(
-      "actions: parse_spec acepta modelos con / y :",
+      "actions: parse_spec accepts models with / and :",
       { setup_actions.parse_spec "ollama/hf.co/x/y:q4" },
       { "ollama", "hf.co/x/y:q4" }
     )
-    eq("actions: parse_spec rechaza backends desconocidos y specs sin modelo", {
-      (setup_actions.parse_spec "nada/x"),
+    eq("actions: parse_spec rejects unknown backends and specs without a model", {
+      (setup_actions.parse_spec "nothing/x"),
       (setup_actions.parse_spec "ollama"),
     }, {})
 
@@ -451,7 +451,7 @@ do
     fake_openai:kill(15)
   end
 
-  -- sin servidor: Ollama no responde → la petición falla con un mensaje que dice qué hacer
+  -- no server: Ollama does not respond → the request fails with a message saying what to do
   do
     local cfg = require("core.settings").agent
     local prev = cfg.ollama.host
@@ -461,7 +461,7 @@ do
     local out = vim.system(spec.cmd, { text = true, stdin = spec.stdin }):wait()
     local res = parser.finish(out.code, out.stderr or "")
     eq(
-      "ollama sin servidor: error accionable",
+      "ollama without a server: actionable error",
       { res.ok, res.err:find("ollama serve", 1, true) ~= nil },
       { false, true }
     )
@@ -471,5 +471,5 @@ do
   package.loaded["agent.selection"] = real_selection
 end
 
-print(fails == 0 and "\nTODO OK" or ("\nFALLOS: " .. fails))
+print(fails == 0 and "\nALL OK" or ("\nFAILURES: " .. fails))
 vim.cmd(fails == 0 and "qa!" or "cquit 1")

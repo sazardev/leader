@@ -1,7 +1,7 @@
 #!/bin/sh
-# Auto-reload hook: marca que la config fue actualizada
-# para que Neovim la recargue en el próximo UIEnter.
-# La ruta debe coincidir con vim.fn.stdpath("data") de Neovim:
+# Auto-reload hook: flags that the config was updated
+# so Neovim reloads it on the next UIEnter.
+# The path must match Neovim's vim.fn.stdpath("data"):
 #   Windows (Git Bash): ~/AppData/Local/nvim-data
 #   Linux/macOS:        ${XDG_DATA_HOME:-~/.local/share}/nvim
 if [ -d "$HOME/AppData/Local" ]; then

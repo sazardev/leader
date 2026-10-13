@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Servidor falso de LLM para las pruebas del agente (scripts/test-agent.sh): habla los protocolos de Ollama y de la API
-compatible con OpenAI, con streaming, sin ningún modelo real. Uso: fake-llm.py PUERTO
+"""Fake LLM server for the agent tests (scripts/test-agent.sh): speaks the Ollama and OpenAI-compatible API
+protocols, with streaming, without any real model. Usage: fake-llm.py PORT
 
 Ollama:  GET /api/version · GET /api/tags · GET /api/ps · POST /api/chat (NDJSON) · POST /api/pull (NDJSON)
 OpenAI:  GET /v1/models · POST /v1/chat/completions (SSE)
-Auxiliar: GET /__last devuelve el último cuerpo y las cabeceras recibidas (para comprobar num_ctx, Authorization...).
-Modelo "missing" → 404 con el error que da Ollama; modelo "slow" → tarda 3 s.
+Helper: GET /__last returns the last body and headers received (to check num_ctx, Authorization...).
+Model "missing" → 404 with the error Ollama gives; model "slow" → takes 3 s.
 """
 import json, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

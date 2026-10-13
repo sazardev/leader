@@ -1,6 +1,6 @@
--- Pruebas de los dos niveles de fix del agente: `fix` (en línea: el diagnóstico de la línea del cursor) y
--- `fix_block` (la función entera). Objetivo, contexto de alrededor, objetos a los que apunta el diagnóstico
--- (tipo de la variable, vía LSP si hay gopls) y prompts. Hermético: sin red ni tokens.
+-- Tests for the agent's two fix levels: `fix` (inline: the diagnostic on the cursor line) and
+-- `fix_block` (the whole function). Target, surrounding context, objects the diagnostic points at
+-- (variable type, via LSP if gopls is present) and prompts. Hermetic: no network or tokens.
 local fails = 0
 local function print(...)
   io.stdout:write(table.concat(vim.tbl_map(tostring, { ... }), "\t"), "\n")
@@ -19,16 +19,16 @@ local target_mod = require "agent.context.target"
 local context = require "agent.context"
 local prompt = require "agent.prompt"
 
--- ── registro ─────────────────────────────────────────────────────────────────
+-- ── registry ─────────────────────────────────────────────────────────────────
 local inline, block = actions.get "fix", actions.get "fix_block"
-eq("teclas: f en línea, F bloque", { inline.key, block.key }, { "f", "F" })
-eq("alcance: diagnóstico / función", { inline.scope, block.scope }, { "diagnostic", "function" })
-eq("ambos son fixes (resuelven findings al aceptar)", { inline.fixes, block.fixes }, { true, true })
-eq("en línea lee lo de alrededor; el bloque ya lo lleva en el objetivo", {
+eq("keys: f inline, F block", { inline.key, block.key }, { "f", "F" })
+eq("scope: diagnostic / function", { inline.scope, block.scope }, { "diagnostic", "function" })
+eq("both are fixes (they resolve findings on accept)", { inline.fixes, block.fixes }, { true, true })
+eq("inline reads the surroundings; the block already carries them in the target", {
   vim.tbl_contains(inline.context, "around"),
   vim.tbl_contains(block.context, "around"),
 }, { true, false })
-eq("ambos leen diagnostics, findings, types y callees", {
+eq("both read diagnostics, findings, types and callees", {
   vim.tbl_contains(inline.context, "types") and vim.tbl_contains(inline.context, "callees"),
   vim.tbl_contains(block.context, "types") and vim.tbl_contains(block.context, "callees"),
 }, { true, true })
@@ -37,21 +37,21 @@ for _, a in ipairs(actions.list()) do
   keys[a.key] = (keys[a.key] or 0) + 1
 end
 eq(
-  "ninguna tecla repetida en <leader>a",
+  "no repeated key in <leader>a",
   vim.tbl_filter(function(n)
     return n > 1
   end, keys),
   {}
 )
 
--- ── proyecto Go temporal ─────────────────────────────────────────────────────
+-- ── temporary Go project ─────────────────────────────────────────────────────
 local dir = vim.fn.tempname()
 vim.fn.mkdir(dir, "p")
 vim.fn.writefile({ "module example.com/p", "", "go 1.21" }, dir .. "/go.mod")
 vim.fn.writefile({
   "package p",
   "",
-  "// Note es la nota.",
+  "// Note is the note.",
   "type Note struct {",
   "\tTitle string",
   "\tBody  string",
@@ -76,7 +76,7 @@ local main = {
   "}", -- 14
 }
 vim.fn.writefile(main, dir .. "/main.go")
--- el proveedor `types` solo lee archivos del proyecto (raíz = .git o el cwd)
+-- the `types` provider only reads project files (root = .git or the cwd)
 vim.cmd.cd(dir)
 vim.cmd("edit " .. dir .. "/main.go")
 local buf = vim.api.nvim_get_current_buf()
@@ -98,24 +98,24 @@ set_diags {
   },
 }
 
--- ── objetivo: las líneas del diagnóstico ─────────────────────────────────────
+-- ── target: the diagnostic lines ─────────────────────────────────────
 vim.api.nvim_win_set_cursor(0, { 9, 0 })
 local t = target_mod.resolve(buf, "diagnostic")
-eq("inline: el objetivo es la línea del diagnóstico", t and { t.kind, t.first, t.last }, { "diagnostic", 9, 9 })
-eq("inline: check pasa con diagnóstico", inline.check(t), nil)
+eq("inline: the target is the diagnostic line", t and { t.kind, t.first, t.last }, { "diagnostic", 9, 9 })
+eq("inline: check passes with a diagnostic", inline.check(t), nil)
 vim.api.nvim_win_set_cursor(0, { 5, 0 })
 local none, err = target_mod.resolve(buf, "diagnostic")
 eq(
-  "inline: sin diagnóstico en la línea, error claro",
+  "inline: with no diagnostic on the line, a clear error",
   { none, err and err:match "no diagnostic on this line" },
   { nil, "no diagnostic on this line" }
 )
--- diagnóstico de varias líneas
-set_diags { { lnum = 5, end_lnum = 7, col = 0, end_col = 1, message = "bloque", severity = D.WARN } }
+-- multi-line diagnostic
+set_diags { { lnum = 5, end_lnum = 7, col = 0, end_col = 1, message = "block", severity = D.WARN } }
 vim.api.nvim_win_set_cursor(0, { 7, 0 })
 t = target_mod.resolve(buf, "diagnostic")
-eq("inline: un diagnóstico multilínea cubre todo su rango", { t.first, t.last }, { 6, 8 })
--- un hallazgo del agente también cuenta (son diagnósticos por atender)
+eq("inline: a multi-line diagnostic covers its whole range", { t.first, t.last }, { 6, 8 })
+-- an agent finding also counts (they are diagnostics to attend to)
 local findings_ns = require("agent.output.findings").namespace()
 set_diags {}
 vim.diagnostic.set(
@@ -125,34 +125,34 @@ vim.diagnostic.set(
 )
 vim.api.nvim_win_set_cursor(0, { 13, 0 })
 t = target_mod.resolve(buf, "diagnostic")
-eq("inline: también arregla un hallazgo del agente", t and { t.first, t.last }, { 13, 13 })
+eq("inline: also fixes an agent finding", t and { t.first, t.last }, { 13, 13 })
 vim.diagnostic.reset(findings_ns, buf)
--- un diagnóstico enorme: solo lo que empieza en la línea, con tope
+-- a huge diagnostic: only what starts on the line, with a cap
 set_diags {
-  { lnum = 0, end_lnum = 13, col = 0, end_col = 1, message = "todo el archivo", severity = D.HINT },
-  { lnum = 8, end_lnum = 8, col = 0, end_col = 3, message = "esta línea", severity = D.ERROR },
+  { lnum = 0, end_lnum = 13, col = 0, end_col = 1, message = "whole file", severity = D.HINT },
+  { lnum = 8, end_lnum = 8, col = 0, end_col = 3, message = "this line", severity = D.ERROR },
 }
 vim.api.nvim_win_set_cursor(0, { 9, 0 })
 t = target_mod.resolve(buf, "diagnostic")
-eq("inline: un diagnóstico desmesurado no arrastra todo el archivo", { t.first, t.last }, { 9, 9 })
+eq("inline: an oversized diagnostic does not drag in the whole file", { t.first, t.last }, { 9, 9 })
 
--- ── objetivo del bloque: la función entera ───────────────────────────────────
+-- ── block target: the whole function ───────────────────────────────────
 set_diags {
   { lnum = 8, col = 19, end_lnum = 8, end_col = 23, message = "n.Titl undefined", severity = D.ERROR, source = "lsp" },
 }
 vim.api.nvim_win_set_cursor(0, { 6, 0 })
 local bt = target_mod.resolve(buf, block.scope)
 eq(
-  "bloque: el objetivo es la función aunque el diagnóstico esté en otra línea",
+  "block: the target is the function even if the diagnostic is on another line",
   bt and { bt.kind, bt.first, bt.last },
   { "function", 3, 10 }
 )
-eq("bloque: check pasa si hay diagnóstico dentro", block.check(bt), nil)
+eq("block: check passes if there is a diagnostic inside", block.check(bt), nil)
 vim.api.nvim_win_set_cursor(0, { 13, 0 })
 local ob = target_mod.resolve(buf, block.scope)
-eq("bloque: función sin diagnósticos, no hace nada", block.check(ob), "no diagnostics in the target: nothing to fix")
+eq("block: function without diagnostics, does nothing", block.check(ob), "no diagnostics in the target: nothing to fix")
 
--- ── contexto de alrededor ────────────────────────────────────────────────────
+-- ── surrounding context ────────────────────────────────────────────────────
 local function section(a, tg, name)
   local out
   context.build(a, tg, function(sections)
@@ -176,45 +176,45 @@ around.collect(t, function(x)
   around_text = x
 end)
 eq(
-  "alrededor: arranca en la firma de la función",
+  "around: starts at the function signature",
   around_text and around_text:match "^func Title%(id int%) string {",
   "func Title(id int) string {"
 )
-eq("alrededor: lleva lo de antes (variables en ámbito) y marca dónde va el objetivo", {
+eq("around: carries what comes before (variables in scope) and marks where the target goes", {
   around_text:find("prefix := ", 1, true) ~= nil,
   around_text:find("[<target> lines 9-9 go here]", 1, true) ~= nil,
-  around_text:find("n.Titl", 1, true) == nil, -- el objetivo no se repite
+  around_text:find("n.Titl", 1, true) == nil, -- the target is not repeated
 }, { true, true, true })
-eq("alrededor: no sale de la función (no trae Other)", around_text:find("Other", 1, true), nil)
+eq("around: does not leave the function (does not bring Other)", around_text:find("Other", 1, true), nil)
 local fn_target = target_mod.resolve(buf, "function")
 local nothing = "x"
 around.collect(fn_target, function(x)
   nothing = x
 end)
-eq("alrededor: si el objetivo ya es la función, no aporta", nothing, nil)
+eq("around: if the target is already the function, it contributes nothing", nothing, nil)
 
 -- ── prompts ──────────────────────────────────────────────────────────────────
 local env = { target = t }
-eq("prompt inline: solo las líneas del diagnóstico, alrededor de solo lectura", {
+eq("inline prompt: only the diagnostic lines, read-only surroundings", {
   inline.system(env):find("ONLY the problem", 1, true) ~= nil,
   inline.system(env):find("<around>", 1, true) ~= nil,
   inline.system(env):find("OUTPUT: one fenced block", 1, true) ~= nil,
 }, { true, true, true })
-eq("prompt bloque: mantiene el bloque coherente", {
+eq("block prompt: keeps the block coherent", {
   block.system(env):find("coherent", 1, true) ~= nil,
   block.system(env):find("<around>", 1, true) == nil,
 }, { true, true })
 local _, p = prompt.build(inline, t, { { name = "around", text = "ctx" } }, "keep the prefix")
-eq("prompt inline: lleva el objetivo numerado por rango y la instrucción del usuario", {
+eq("inline prompt: carries the target numbered by range and the user instruction", {
   p:find('<target lines="9-9" kind="diagnostic">', 1, true) ~= nil,
   p:find("keep the prefix", 1, true) ~= nil,
 }, { true, true })
 
--- ── objetos a los que apunta el diagnóstico (treesitter) ─────────────────────
+-- ── objects the diagnostic points at (treesitter) ─────────────────────
 local scopes = require "agent.context.scopes"
-local ids = scopes.identifiers_in(buf, 8, 19, 8, 23) -- `Titl` en `n.Titl`
+local ids = scopes.identifiers_in(buf, 8, 19, 8, 23) -- `Titl` in `n.Titl`
 eq(
-  "identificadores: el objeto del acceso va primero (x.Titl -> x), luego el miembro",
+  "identifiers: the accessed object comes first (x.Titl -> x), then the member",
   vim.tbl_map(function(i)
     return i.name
   end, ids),
@@ -223,26 +223,26 @@ eq(
 local types_provider = require "agent.context.providers.types"
 t = target_mod.resolve(buf, "diagnostic")
 eq(
-  "types: los identificadores del diagnóstico salen del LSP, no de otros",
+  "types: the diagnostic's identifiers come from the LSP, not others",
   vim.tbl_map(function(i)
     return i.name
   end, types_provider.diagnostic_identifiers(t)),
   { "n", "Titl" }
 )
 set_diags {}
-eq("types: sin diagnóstico no hay nada que resolver", types_provider.diagnostic_identifiers(t), {})
+eq("types: without a diagnostic there is nothing to resolve", types_provider.diagnostic_identifiers(t), {})
 set_diags {
   { lnum = 8, col = 19, end_lnum = 8, end_col = 23, message = "n.Titl undefined", severity = D.ERROR, source = "lsp" },
 }
 
--- ── el tipo de la variable sale del LSP (gopls), aunque el código no nombre el tipo ──
+-- ── the variable's type comes from the LSP (gopls), even if the code does not name the type ──
 if vim.fn.executable "gopls" == 1 then
   vim.lsp.start({ name = "gopls", cmd = { "gopls" }, root_dir = dir }, { bufnr = buf })
   local attached = vim.wait(60000, function()
     return #vim.lsp.get_clients { bufnr = buf, name = "gopls" } > 0
   end, 50)
-  eq("gopls arranca", attached, true)
-  -- espera a que el workspace esté cargado: typeDefinition responde con la ubicación de `Note`
+  eq("gopls starts", attached, true)
+  -- wait for the workspace to load: typeDefinition answers with the location of `Note`
   local out
   vim.wait(60000, function()
     out = nil
@@ -257,16 +257,16 @@ if vim.fn.executable "gopls" == 1 then
     end, 20)
     return out and out:find("Note", 1, true) ~= nil
   end, 500)
-  eq("types: el tipo de `n` (de otro archivo, no nombrado en el objetivo) viene del LSP", {
+  eq("types: the type of `n` (from another file, not named in the target) comes from the LSP", {
     out and out:find("type Note struct", 1, true) ~= nil,
     out and out:find("Title string", 1, true) ~= nil,
     out and out:find("note.go", 1, true) ~= nil,
   }, { true, true, true })
 else
-  print "skip gopls no instalado: se omite la prueba de typeDefinition"
+  print "skip gopls not installed: the typeDefinition test is skipped"
 end
 
 vim.cmd.cd "/"
 vim.fn.delete(dir, "rf")
-print(fails == 0 and "\nTODO OK" or ("\nFALLOS: " .. fails))
+print(fails == 0 and "\nALL OK" or ("\nFAILURES: " .. fails))
 vim.cmd(fails == 0 and "qa!" or "cquit 1")

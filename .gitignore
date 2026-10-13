@@ -4,8 +4,8 @@
 # Serena MCP tool cache/state (machine-specific)
 .serena/
 
-# Artefacto accidental de redirección `2>nul` en Windows git bash
+# Accidental artifact of the `2>nul` redirect in Windows git bash
 nul
 
-# Overrides locales por máquina (ver nvim/lua/core/settings.lua)
+# Per-machine local overrides (see nvim/lua/core/settings.lua)
 nvim/lua/local.lua
