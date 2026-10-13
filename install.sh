@@ -5,6 +5,10 @@
 #   ./install.sh                       instala todo, preguntando antes de tocar el sistema
 #   ./install.sh -y                    sin preguntas
 #   ./install.sh --lang go,typescript  solo esos lenguajes (el resto se desactiva en lua/local.lua)
+#   ./install.sh --theme catppuccin    tema por defecto (lua/local.lua)
+#   ./install.sh --light | --no-light  fuerza el modo ligero (sin LSP residente) o lo apaga; sin esto, se detecta por RAM
+#   ./install.sh --agent auto          configura el agente de IA: `auto` (lo mejor que haya), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`...
+#                                      `none` lo omite; sin la opción solo enseña lo que detecta (scripts/agent-setup.sh)
 #   ./install.sh --no-deps             no instala paquetes del sistema ni Neovim
 #   ./install.sh --no-plugins          solo enlaza (plugins y herramientas se instalan al abrir nvim)
 #   ./install.sh --dry-run             muestra lo que haría sin hacer nada
@@ -17,7 +21,7 @@ CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 TARGET="$CONFIG_HOME/nvim"
 MIN_NVIM="0.11"
 
-YES=0 DRY=0 DEPS=1 PLUGINS=1 LANGS=""
+YES=0 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -y | --yes) YES=1 ;;
@@ -26,7 +30,13 @@ while [ $# -gt 0 ]; do
     --no-plugins) PLUGINS=0 ;;
     --lang) LANGS="${2:-}"; shift ;;
     --lang=*) LANGS="${1#--lang=}" ;;
-    -h | --help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --theme) THEME="${2:-}"; shift ;;
+    --theme=*) THEME="${1#--theme=}" ;;
+    --light) LIGHT=1 ;;
+    --no-light) LIGHT=0 ;;
+    --agent) AGENT="${2:-}"; shift ;;
+    --agent=*) AGENT="${1#--agent=}" ;;
+    -h | --help) awk 'NR > 1 { if (/^#/) { sub(/^# ?/, ""); print } else exit }' "$0"; exit 0 ;;
     *) echo "install: argumento desconocido: $1 (usa --help)" >&2; exit 2 ;;
   esac
   shift
@@ -133,26 +143,26 @@ if [ -d "$ROOT/.git" ] && have git; then
   ok "git hooks activados (.githooks)"
 fi
 
-# ── 4. Lenguajes ──────────────────────────────────────────────────────────────
-# Todos están activos por defecto. `--lang a,b` deja solo esos (más lua) escribiendo `languages.disabled` en lua/local.lua
-# (ignorado por git); si ese archivo ya existe NO se toca: te digo qué añadir.
-if [ -n "$LANGS" ]; then
-  step "Lenguajes: $LANGS"
-  all="$(awk '/^local NAMES = \{/{f=1;next} f&&/^\}/{exit} f{gsub(/[", ]/,"");print}' "$ROOT/nvim/lua/languages/init.lua")"
-  keep=",lua,$(printf '%s' "$LANGS" | tr -d ' '),"
-  for l in $(printf '%s' "$LANGS" | tr ',' ' '); do
-    printf '%s\n' "$all" | grep -qx "$l" || die "lenguaje desconocido: $l (disponibles: $(printf '%s' "$all" | tr '\n' ' '))"
-  done
-  disabled=""
-  for l in $all; do case "$keep" in *",$l,"*) ;; *) disabled="$disabled\"$l\", " ;; esac; done
-  snippet="return { languages = { disabled = { ${disabled%, } } } }"
-  if [ -e "$ROOT/nvim/lua/local.lua" ]; then
-    warn "lua/local.lua ya existe: añade dentro de su tabla →  languages = { disabled = { ${disabled%, } } }"
-  elif [ "$DRY" = 1 ]; then
-    printf '  [dry-run] escribiría lua/local.lua: %s\n' "$snippet"
+# ── 4. Ajustes por máquina ────────────────────────────────────────────────────
+# `--lang`, `--theme` y `--light/--no-light` se escriben en lua/local.lua (ignorado por git) con scripts/install-local.lua, la
+# misma implementación que usa install.ps1. Todos los lenguajes están activos por defecto; si local.lua ya existe NO se toca:
+# se dice qué añadir.
+if [ -n "$LANGS$THEME$LIGHT" ]; then
+  step "Ajustes (lua/local.lua)"
+  if have nvim; then
+    rc=0
+    out="$(NVIM_INSTALL_LANGS="$LANGS" NVIM_INSTALL_THEME="$THEME" NVIM_INSTALL_LIGHT="$LIGHT" NVIM_INSTALL_DRY="$DRY" \
+      nvim -u NONE --headless -l "$ROOT/scripts/install-local.lua" 2>&1)" || rc=$?
+    printf '%s\n' "$out" | tr -d '\r' | while IFS= read -r line; do
+      case "$line" in
+        "OK "*) ok "${line#OK }" ;;
+        "WARN "*) warn "${line#WARN }" ;;
+        "ERR "*) printf '  %s✘ %s%s\n' "$R" "${line#ERR }" "$N" >&2 ;;
+      esac
+    done
+    [ "$rc" = 0 ] || exit "$rc"
   else
-    printf -- '-- Generado por install.sh --lang (ajustes por máquina, ignorado por git)\n%s\n' "$snippet" >"$ROOT/nvim/lua/local.lua"
-    ok "lua/local.lua: desactivados ${disabled%, }"
+    printf '  [dry-run] escribiría lua/local.lua con: lang=%s theme=%s light=%s\n' "$LANGS" "$THEME" "$LIGHT"
   fi
 fi
 
@@ -200,7 +210,24 @@ else
   warn "plugins, herramientas y parsers: se instalan solos la primera vez que abras nvim (o corre ./install.sh sin --no-plugins)"
 fi
 
+# ── 6. Agente de IA (opcional) ────────────────────────────────────────────────
+# Con --agent se configura (auto | backend/modelo[@light]); sin la opción solo enseña lo que detecta; `none` lo omite.
+# Necesita los plugins ya instalados (usa la config), por eso va el último y se salta con --no-plugins o --dry-run.
+if [ "$AGENT" != none ]; then
+  step "Agente de IA"
+  if [ "$DRY" = 1 ]; then
+    printf '  [dry-run] scripts/agent-setup.sh %s\n' "$([ -n "$AGENT" ] && { [ "$AGENT" = auto ] && echo --auto || echo "--use $AGENT"; })"
+  elif [ "$PLUGINS" != 1 ]; then
+    warn "con --no-plugins se salta: cuando abras nvim por primera vez, corre ./scripts/agent-setup.sh${AGENT:+ $([ "$AGENT" = auto ] && echo --auto || echo "--use $AGENT")}"
+  else
+    case "$AGENT" in
+      "") "$ROOT/scripts/agent-setup.sh" || true ;; # informe; sale 1 si no hay ningún backend listo
+      auto) "$ROOT/scripts/agent-setup.sh" --auto || warn "no se pudo aplicar la recomendación: <Space>am → Setup dentro de nvim" ;;
+      *) "$ROOT/scripts/agent-setup.sh" --use "$AGENT" || warn "no se pudo fijar $AGENT: <Space>am → Setup dentro de nvim" ;;
+    esac
+  fi
+fi
+
 step "Listo"
 [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ] && printf '  (registro de la instalación: %s)\n' "${TMPDIR:-/tmp}/nvim-config-install.log"
 ok "abre nvim: <Space> muestra los menús; CHEATSHEET.md tiene todas las teclas"
-printf '  Agente de IA (opcional): ./scripts/agent-setup.sh  (o <Space>am → Setup dentro de nvim)\n'

@@ -1,8 +1,11 @@
 # Instala esta config de Neovim en Windows: junction en %LOCALAPPDATA%\nvim, hooks de git, plugins, LSP/formatters y parsers.
-# Idempotente. Uso (PowerShell):  ./install.ps1 [-NoPlugins]
+# Idempotente. Uso (PowerShell):
+#   ./install.ps1 [-NoPlugins] [-Lang go,typescript] [-Theme catppuccin] [-Light | -NoLight] [-Agent auto|none|claude/haiku]
+# Mismas opciones que install.sh (-Lang/-Theme/-Light se escriben en lua/local.lua con scripts/install-local.lua; -Agent
+# configura el agente de IA con su módulo `agent.setup`).
 # Requisitos: Neovim >= 0.11, git y un compilador de C (por ejemplo `winget install -e --id MartinStorsjo.LLVM-MinGW.UCRT`
 # o Visual Studio Build Tools). Opcionales: ripgrep, node, cmake.
-param([switch]$NoPlugins)
+param([switch]$NoPlugins, [string]$Lang = '', [string]$Theme = '', [switch]$Light, [switch]$NoLight, [string]$Agent = '')
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootU = $Root.Replace('\', '/')
@@ -38,6 +41,22 @@ if (Test-Path (Join-Path $Root '.git')) {
   Write-Host '  git hooks activados (.githooks)'
 }
 
+# Ajustes por máquina (lua/local.lua): la misma implementación que install.sh
+if ($Lang -or $Theme -or $Light -or $NoLight) {
+  Step 'Ajustes (lua/local.lua)'
+  $env:NVIM_INSTALL_LANGS = $Lang
+  $env:NVIM_INSTALL_THEME = $Theme
+  $env:NVIM_INSTALL_LIGHT = if ($Light) { '1' } elseif ($NoLight) { '0' } else { '' }
+  $out = & nvim -u NONE --headless -l (Join-Path $Root 'scripts/install-local.lua') 2>&1
+  $out | ForEach-Object {
+    $line = "$_"
+    if ($line.StartsWith('ERR ')) { Write-Error $line.Substring(4) }
+    elseif ($line.StartsWith('WARN ')) { Write-Warning $line.Substring(5) }
+    elseif ($line.StartsWith('OK ')) { Write-Host "  $($line.Substring(3))" }
+  }
+  if ($LASTEXITCODE -ne 0) { throw 'ajustes no validos (arriba)' }
+}
+
 if (-not $NoPlugins) {
   $log = Join-Path $env:TEMP 'nvim-config-install.log'
   Remove-Item $log -ErrorAction SilentlyContinue
@@ -49,6 +68,17 @@ if (-not $NoPlugins) {
     & nvim --headless @($job[1..($job.Length - 1)]) *>> $log
   }
   Write-Host "`n  (registro de la instalación: $log)"
+}
+
+# Agente de IA (opcional): -Agent auto | claude/haiku | none; sin la opcion solo enseña lo que detecta
+if ($Agent -ne 'none') {
+  Step 'Agente de IA'
+  if ($NoPlugins) {
+    Write-Warning 'con -NoPlugins se salta: cuando abras nvim por primera vez, usa <Space>am -> Setup'
+  } else {
+    $flags = if (-not $Agent) { '' } elseif ($Agent -eq 'auto') { "'--auto'" } else { "'--use','$Agent'" }
+    & nvim --headless -c "lua vim.defer_fn(function() require('agent.setup').cli({ $flags }) end, 300)" 2>&1 | Write-Host
+  }
 }
 
 Step 'Listo'
