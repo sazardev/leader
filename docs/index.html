@@ -110,7 +110,7 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .list button:hover{color:var(--fg)}
 .list button.on{background:var(--green);color:var(--on);font-weight:600}
 .list button.on i{color:color-mix(in srgb,var(--on) 60%,transparent)}
-.ed{background:var(--deep);position:sticky;top:76px;font:13px/1.75 "Geist Mono",ui-monospace,monospace;--gut:3.4em;overflow:hidden;--lb:color-mix(in srgb,var(--soft) 90%,var(--fg))}
+.ed{background:var(--deep);color:var(--fg);position:sticky;top:76px;font:13px/1.75 "Geist Mono",ui-monospace,monospace;--gut:3.4em;overflow:hidden;--lb:color-mix(in srgb,var(--soft) 90%,var(--fg))}
 .ed .code{height:452px;display:flex;gap:2px;background:var(--soft)}
 .ed .pn{flex:1;min-width:0;overflow:hidden;position:relative;padding:12px 0;background:var(--deep)}
 .ed .r{display:flex;white-space:pre;tab-size:4;position:relative;min-height:1.75em}
@@ -121,8 +121,8 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .n.d{background:var(--blue);color:var(--on);font-weight:700}
 .ed .t{flex:1;min-width:0;padding-right:16px;overflow:hidden;text-overflow:clip}
 .ed .vt{margin-left:auto;padding:0 14px;color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent)}
-.ed .cur{display:inline-block;width:.6em;height:1.25em;background:var(--fg);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
-.ed.ins .cur{width:2px;background:var(--green)}
+.ed .cur{display:inline-block;width:.6em;margin-right:-.6em;height:1.25em;background:color-mix(in srgb,var(--fg) 78%,transparent);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+.ed.ins .cur{width:2px;margin-right:-2px;background:var(--green)}
 .ed .cur.m{background:var(--purple)}
 .ed.ins .cur.m{background:var(--purple)}
 .ed .mk{background:color-mix(in srgb,var(--blue) 38%,transparent)}
@@ -160,7 +160,7 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .wk{position:absolute;left:0;right:0;bottom:24px;background:var(--soft);padding:8px 16px 6px;z-index:6;font-size:12px;line-height:1.6;transform:translateY(120%);opacity:0;transition:transform .18s,opacity .18s}
 .ed .wk.on{transform:none;opacity:1}
 .ed .wk ul{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:0 18px}
-.ed .wk li{color:var(--dim);display:flex;gap:8px;padding:0 4px;white-space:nowrap;overflow:hidden}
+.ed .wk li{color:var(--dim);display:flex;gap:8px;padding:0 4px;white-space:nowrap;overflow:hidden;min-width:0}
 .ed .wk li b{color:var(--yellow);min-width:1ch;font-weight:600}
 .ed .wk li u{text-decoration:none;color:var(--faint)}
 .ed .wk li s{text-decoration:none;color:var(--purple)}
@@ -197,6 +197,72 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .sl .ag{color:var(--purple)}
 .ed .sl .dg{font-weight:700;color:var(--on);margin:0 2px;padding:0 8px;height:16px;line-height:16px;align-self:center}
 .ed .sl .dg.e{background:var(--red)} .ed .sl .dg.w{background:var(--yellow)}
+.side{min-width:0}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:8px}
+.tabs button{padding:6px 9px;font:500 11.5px "Geist Mono",monospace;background:var(--deep);color:var(--dim);transition:background .2s,color .2s}
+.tabs button:hover{color:var(--fg)}
+.tabs button.on{background:var(--fg);color:var(--on)}
+.ed .tree{flex:none;width:208px;background:var(--deep);padding:12px 0;overflow:hidden;white-space:pre}
+.ed .tn{color:var(--fg);padding-right:8px;position:relative}
+.ed .tn.d{color:var(--blue)} .ed .tn.rt{color:var(--yellow);font-weight:600}
+.ed .tn.s{background:var(--soft)}
+.ed .tn.bm::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:3px;background:var(--yellow)}
+.ed .tn.nw{animation:fresh 1.6s ease-out}
+.ed .ov2{position:absolute;left:0;right:0;top:0;bottom:24px;z-index:7;pointer-events:none;opacity:0;transition:opacity .15s}
+.ed .ov2.on{opacity:1}
+.ed .ov2 h6{font:600 11px "Geist Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:5px 12px 2px}
+.ed .ov2 .dd{color:var(--faint)}
+.ed .ov2 .cur{background:var(--fg);width:.6em;height:1.2em;display:inline-block;vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+.ed .tel{position:absolute;inset:12px 16px;display:flex;gap:2px;background:var(--deep)}
+.ed .tel .lf{flex:0 0 46%;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ed .tel .bx{background:var(--soft);min-width:0;overflow:hidden}
+.ed .tel .rs{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4px;min-height:0}
+.ed .tel .rl{display:flex;flex-direction:column;justify-content:flex-end}
+.ed .tel .it{padding:0 12px;white-space:pre;color:var(--dim);overflow:hidden}
+.ed .tel .it.s{background:var(--blue);color:var(--on)} .ed .tel .it.s .dd{color:var(--on)}
+.ed .tel .it b{color:var(--yellow);font-weight:600} .ed .tel .it.s b{color:var(--on);text-decoration:underline}
+.ed .tel .pq{padding:2px 12px 6px;display:flex;gap:2px;align-items:center;white-space:pre} .ed .tel .pq em{margin-left:auto;font-style:normal;color:var(--faint)}
+.ed .tel .pv{flex:1;overflow:hidden}
+.ed .tel .pt{padding:0 12px 6px;color:var(--yellow)}
+.ed .tel .ln{display:flex;white-space:pre;padding-right:12px;color:var(--fg)} .ed .tel .ln i{font-style:normal;color:var(--faint);width:3.4em;text-align:right;padding-right:1.2em;flex:none}
+.ed .tel .ln.hit{background:color-mix(in srgb,var(--yellow) 18%,transparent)}
+.ed .md{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);min-width:400px;max-width:84%;background:var(--soft);padding:6px 16px 12px;white-space:pre;line-height:1.65}
+.ed .md h6{padding:2px 0 6px;color:var(--fg)}
+.ed .md .in{background:var(--deep);padding:2px 10px;margin-top:8px}
+.ed .md .ft2{color:var(--faint);margin-top:6px;font-size:11.5px}
+.ed .md .f{color:var(--blue)} .ed .md .m{color:var(--yellow)} .ed .md .w{color:var(--yellow)} .ed .md .mu{color:var(--faint)} .ed .md .sel{background:var(--blue);color:var(--on)} .ed .md .e{color:var(--red)}
+.ed .gr{position:absolute;inset:12px 16px;background:var(--soft);padding:6px 16px;overflow:hidden;white-space:pre;line-height:1.65}
+.ed .gr .gh{font-weight:600;color:var(--fg);padding-bottom:4px} .ed .gr .gh em{float:right;font-style:normal;font-weight:400;color:var(--faint)}
+.ed .gr .gi{background:var(--deep);padding:0 10px;margin-bottom:2px;color:var(--fg)} .ed .gr .gi span:first-child{color:var(--aqua);display:inline-block;width:14ch}
+.ed .gr .gs{color:var(--faint);margin:6px 0 4px}
+.ed .gr .gf{color:var(--blue);margin-top:2px}
+.ed .gr .gl{color:var(--dim)} .ed .gr .gl i{font-style:normal;color:var(--faint);display:inline-block;width:4ch}
+.ed .gr .rm{text-decoration:line-through;background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red)}
+.ed .gr .ad{font-weight:400;background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green)}
+.ed .tm{position:absolute;left:5%;right:5%;top:14%;bottom:12%;background:var(--bg);padding:8px 14px;white-space:pre;line-height:1.55;overflow:hidden;color:var(--fg)}
+.ed .tm .ok{color:var(--green)} .ed .tm .no{color:var(--red)} .ed .tm .mu{color:var(--faint)} .ed .tm .ye{color:var(--yellow)}
+.ed .ds{position:absolute;inset:0;background:var(--deep);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;pointer-events:none}
+.ed .ds pre{font:inherit;line-height:1.08;color:var(--aqua);margin-bottom:6px}
+.ed .ds .gi2{color:var(--yellow)} .ed .ds .gi3{color:var(--faint);margin-bottom:6px}
+.ed .ds .bt{display:flex;justify-content:space-between;width:300px;padding:2px 14px;background:var(--soft);color:var(--dim)}
+.ed .ds .bt.s{background:var(--blue);color:var(--on)} .ed .ds .bt kbd{font:inherit;color:var(--faint)} .ed .ds .bt.s kbd{color:var(--on)}
+.ed .tb{position:absolute;left:0;right:0;bottom:0;height:40%;background:var(--soft);padding:2px 0;overflow:hidden;white-space:pre}
+.ed .tb .th{padding:2px 16px;color:var(--fg);font-weight:600} .ed .tb .th em{font-style:normal;color:var(--faint);font-weight:400}
+.ed .tb .trw{padding:0 16px;color:var(--dim)} .ed .tb .trw.s{background:var(--deep);color:var(--fg)}
+.ed .tb .e{color:var(--red)} .ed .tb .w{color:var(--yellow)}
+.ed .dv{position:absolute;inset:0;background:var(--deep);display:flex;gap:2px;pointer-events:none}
+.ed .dv h6{padding:12px 12px 4px}
+.ed .dv .dfl{flex:0 0 190px;background:var(--soft);white-space:pre;color:var(--dim)} .ed .dv .dfl div{padding:0 12px} .ed .dv .dfl .s{background:var(--blue);color:var(--on)} .ed .dv .dfl b{color:var(--yellow)} .ed .dv .dfl .s b{color:var(--on)}
+.ed .dv .dcol{flex:1;min-width:0;overflow:hidden;white-space:pre;background:var(--deep)}
+.ed .dv .dl{display:flex;padding-right:8px;color:var(--fg)} .ed .dv .dl i{font-style:normal;color:var(--faint);width:3.4em;text-align:right;padding-right:1.2em;flex:none}
+.ed .dv .dl.rm{background:color-mix(in srgb,var(--red) 18%,transparent)} .ed .dv .dl.ad{background:color-mix(in srgb,var(--green) 18%,transparent)} .ed .dv .dl.ph{background:var(--soft)}
+.ed .sl.cmd{background:var(--deep);color:var(--fg)} .ed .sl.cmd span{padding:0 10px;color:var(--fg)}
+.ed .fk{background:var(--purple);color:var(--on);font-weight:700}
+.ed.fdim .t,.ed.fdim .t span:not(.fk):not(.mk){color:var(--faint)!important}
+.ed .vs{background:color-mix(in srgb,var(--blue) 30%,transparent)}
+.ed .cfo{background:color-mix(in srgb,var(--green) 14%,transparent)} .ed .cft{background:color-mix(in srgb,var(--blue) 14%,transparent)} .ed .cfm{background:color-mix(in srgb,var(--yellow) 14%,transparent);color:var(--faint)}
+.ed .vt.bl{background:none;color:var(--faint);font-style:italic} .ed .vt.fd{background:none;color:var(--faint)}
+@media(max-width:900px){.ed .tree{width:130px}.ed .tel .pv{display:none}.ed .tel .lf{flex:1}.ed .dv .dfl{display:none}}
 .sy-k{color:var(--red)} .sy-s{color:var(--green)} .sy-f{color:var(--yellow)} .sy-t{color:var(--aqua)} .sy-n{color:var(--purple)} .sy-c{color:var(--faint);font-style:italic}
 
 /* ── keys ─────────────────────────────────────────────────────────────────────────────────────── */
@@ -292,12 +358,13 @@ footer a:hover{color:var(--fg)}
     <span class="eyebrow rv">Custom, for speed</span>
     <h2 class="rv">Type less.<br><span>Ask when it matters.</span></h2>
     <div class="stage rv" style="--d:.1s">
-      <ol class="list" id="list"></ol>
+      <div class="side"><div class="tabs" id="tabs"></div><ol class="list" id="list"></ol></div>
       <div class="ed" id="ed" role="img" aria-label="An animated Neovim editor showing completions, multicursor, the AI agent and the commit panel">
         <div class="code" id="code"></div>
         <div class="wk" id="wk"></div>
         <div class="ov" id="panel"></div>
         <div class="cp" id="cp"></div>
+        <div class="ov2" id="ov2"></div>
         <div class="note" id="note"></div>
         <div class="keys" id="edkeys"></div>
         <div class="sl" id="sl"></div>
@@ -411,14 +478,14 @@ footer a:hover{color:var(--fg)}
   addEventListener("resize", tick); tick();
 
   /* ── the editor mock: a tiny scripted Neovim, faithful to the real one ───────────────────────── */
-  var ed = $("#ed"), codeEl = $("#code"), wkEl = $("#wk"), noteEl = $("#note"), keysEl = $("#edkeys"), slEl = $("#sl"), panelEl = $("#panel"), cpEl = $("#cp");
+  var ed = $("#ed"), codeEl = $("#code"), wkEl = $("#wk"), noteEl = $("#note"), keysEl = $("#edkeys"), slEl = $("#sl"), panelEl = $("#panel"), cpEl = $("#cp"), ov2El = $("#ov2");
   var S = null, run = 0, FR = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
   function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
   var KW = /^(func|return|if|else|for|range|type|struct|interface|var|const|package|import|switch|case|go|defer|map|chan)$/;
   /* \u0001 \u0002 wrap a multicursor selection, \u0003 is the cursor, \u0004 an extra multicursor cursor */
   function hl(t) {
-    return t.replace(/([\u0001\u0002\u0003\u0004])|(\/\/.*$)|("(?:[^"\\]|\\.)*")|([A-Za-z_]\w*)(?=\()|([A-Za-z_]\w*)|([\s\S])/g, function (m, mk, c, str, call, id, other) {
-      if (mk) return mk === "\u0001" ? '<span class="mk">' : mk === "\u0002" ? "</span>" : mk === "\u0003" ? '<span class="cur"></span>' : '<span class="cur m"></span>';
+    return t.replace(/([\u0001\u0002\u0003\u0004\u0005\u0006])|(\/\/.*$)|("(?:[^"\\]|\\.)*")|([A-Za-z_]\w*)(?=\()|([A-Za-z_]\w*)|([\s\S])/g, function (m, mk, c, str, call, id, other) {
+      if (mk) return mk === "\u0001" ? '<span class="mk">' : mk === "\u0005" ? '<span class="fk">' : mk === "\u0002" || mk === "\u0006" ? "</span>" : mk === "\u0003" ? '<span class="cur"></span>' : '<span class="cur m"></span>';
       if (c) return '<span class="sy-c">' + esc(c) + "</span>";
       if (str) return '<span class="sy-s">' + esc(str) + "</span>";
       if (call) return '<span class="' + (KW.test(call) ? "sy-k" : "sy-f") + '">' + call + "</span>";
@@ -455,7 +522,8 @@ footer a:hover{color:var(--fg)}
         if (L.diag.sev === "error") { nc = " e"; tally.e++; } else if (L.diag.sev === "warn") { nc = " w"; tally.w++; } else nc = " d";
       } else if (isCur && !sign) nc = " cl";
       var text = L.t.replace(/\t/g, "    "), pop = "";
-      if (o.mc && o.mc.rows.indexOf(i) >= 0) text = mcText(text, o.mc, o.mc.rows[o.mc.rows.length - 1] === i);
+      if (o.flash && o.flash[i]) o.flash[i].forEach(function (f) { text = text.slice(0, f.col) + "\u0001" + text.slice(f.col, f.col + f.len) + "\u0002\u0005" + f.label + "\u0006" + text.slice(f.col + f.len + 1); });
+      else if (o.mc && o.mc.rows.indexOf(i) >= 0) text = mcText(text, o.mc, o.mc.rows[o.mc.rows.length - 1] === i);
       else if (isCur && o.showCursor) text = L.cc != null ? text.slice(0, L.cc) + "\u0003" + text.slice(L.cc) : text + "\u0003";
       if (o.pop && isCur) {
         var dk = o.pop.docs && o.pop.docs[o.pop.sel];
@@ -464,8 +532,8 @@ footer a:hover{color:var(--fg)}
           (dk ? '<div class="pd"><pre>' + hl(dk[0]) + "</pre><hr><p>" + esc(dk[1]) + "</p></div>" : "") + "</div>";
       }
       if (o.fl && isCur) pop += '<div class="fl2 ' + (o.fl.up ? "up" : "dn") + '" style="left:calc(var(--gut) + ' + o.fl.col + 'ch)">' + o.fl.html + "</div>";
-      var vt = L.vt ? '<span class="vt">' + esc(L.vt) + "</span>" : "";
-      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.gs ? " g" + L.gs : "") + (L.fresh ? " fresh" : "") + (isCur ? " foc" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + hl(text) + "</span>" + vt + pop + "</div>");
+      var vt = L.vt ? '<span class="vt' + (L.vtk ? " " + L.vtk : "") + '">' + esc(L.vt) + "</span>" : "";
+      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.gs ? " g" + L.gs : "") + (L.fresh ? " fresh" : "") + (L.k ? " " + L.k : "") + (isCur ? " foc" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + hl(text) + "</span>" + vt + pop + "</div>");
       if (L.diag && o.blocks !== false) {
         var d = L.diag, cls = d.sev === "warn" ? " w" : d.sev === "info" ? " i" : "";
         out.push('<div class="blk' + cls + '"><span><b>' + (d.icon || (d.sev === "error" ? "✖ Error" : "▲ Warn")) + "</b> <i>" + esc(d.src) + "</i><br>" + esc(d.msg) + "</span><em>1/" + (d.of || 1) + "</em></div>");
@@ -483,20 +551,26 @@ footer a:hover{color:var(--fg)}
   }
 
   function render() {
-    var tally = { e: 0, w: 0 }, main = rowsHtml(S.lines, { cur: S.cur, showCursor: S.showCursor && !S.split, pop: S.pop, mc: S.mc, fl: S.fl, blocks: S.blocks }, tally);
-    var html = '<div class="pn" id="pn1">' + main + "</div>";
+    var tf = S.tree && S.tree.focus, tally = { e: 0, w: 0 }, main = rowsHtml(S.lines, { cur: S.cur, showCursor: S.showCursor && !S.split && !tf, pop: S.pop, mc: S.mc, fl: S.fl, blocks: S.blocks, flash: S.flash }, tally);
+    var html = S.tree ? '<div class="tree" id="tr">' + treeHtml(S.tree) + "</div>" : "";
+    html += '<div class="pn" id="pn1">' + main + "</div>";
     if (S.split) html += '<div class="pn" id="pn2">' + rowsHtml(S.split.lines, { cur: S.split.cur, showCursor: S.showCursor }, tally) + "</div>";
     codeEl.innerHTML = html;
     keepVisible($("#pn1"), ".foc");
+    if (S.tree) { var tr = $("#tr"), ts = tr.querySelector(".tn.s"); if (ts) { if (ts.offsetTop + 60 > tr.scrollTop + tr.clientHeight) tr.scrollTop = ts.offsetTop + 60 - tr.clientHeight; if (ts.offsetTop < tr.scrollTop) tr.scrollTop = ts.offsetTop; } }
+    if (S.theme) ed.dataset.theme = S.theme; else ed.removeAttribute("data-theme");
+    ov2El.innerHTML = S.ov ? OV[S.ov.kind](S.ov) : ""; ov2El.classList.toggle("on", !!S.ov);
     if (S.split) keepVisible($("#pn2"), ".foc");
     ed.classList.toggle("ins", S.mode === "INSERT"); ed.classList.toggle("vis", S.mode === "VISUAL");
 
     var target = S.split ? S.split : S, nr = lineNo(target.lines, target.cur);
     var tl = target.lines[target.cur], colN = (tl ? (tl.cc != null ? tl.cc : tl.t.replace(/\t/g, "    ").length) : 0) + 1;
-    slEl.innerHTML = '<span class="m">' + S.mode + '</span><span class="b">' + (S.split ? S.split.file : S.file) + '</span><span class="c">⎇ main</span><span class="sp"></span>' +
+    slEl.classList.toggle("cmd", !!S.cmd);
+    if (S.cmd) slEl.innerHTML = "<span>" + esc(S.cmd) + '<span class="cur"></span></span>';
+    else slEl.innerHTML = '<span class="m">' + S.mode + '</span><span class="b">' + (tf ? "NvimTree_1" : S.split ? S.split.file : S.file) + '</span><span class="c">⎇ main</span><span class="sp"></span>' +
       (S.agent ? '<span class="ag">' + FR[Math.floor(Date.now() / 90) % FR.length] + " " + S.agent + "</span>" : "") +
       (tally.e ? '<span class="dg e">E' + tally.e + "</span>" : "") + (tally.w ? '<span class="dg w">W' + tally.w + "</span>" : "") +
-      '<span class="b">notesapi</span><span class="z">' + nr + ":" + colN + "</span>";
+      '<span class="b">notesapi</span><span class="z">' + (tf ? S.tree.cur + 1 + ":1" : nr + ":" + colN) + "</span>";
 
     if (S.wk) {
       wkEl.innerHTML = "<ul>" + S.wk.items.map(function (it) {
@@ -540,16 +614,159 @@ footer a:hover{color:var(--fg)}
     }
   };
 
+  /* a tiny project the demo scenarios share: search, tree, grep and replace all read from it */
+  var PROJ = {
+    "cmd/api/main.go": ["package main", "", "func main() {", "\tdb, err := sql.Open(\"pgx\", dsn)", "\tnoteRepository := infrastructure.NewNoteRepository(db)", "\tnoteService := application.NewNoteService(noteRepository)", "\thttp.ListenAndServe(\":8080\", transport.Routes(noteService))", "}"],
+    "go.mod": ["module notesapi", "", "go 1.23"],
+    "internal/domain/note.go": ["package domain", "", "type Note struct {", "\tID     string", "\tTitle  string", "\tStatus Status", "}", "", "type NoteRepository interface {", "\tFindByID(ctx context.Context, id string) (*Note, error)", "\tSave(ctx context.Context, n *Note) error", "}"],
+    "internal/domain/status.go": ["package domain", "", "type Status string", "", "const (", "\tStatusPending Status = \"pending\"", "\tStatusDone    Status = \"done\"", ")"],
+    "internal/application/note_service.go": ["package application", "", "type noteService struct{ repo domain.NoteRepository }", "", "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\tn, err := s.repo.FindByID(ctx, id)", "\tif err != nil {", "\t\treturn nil, err", "\t}", "\treturn n, nil", "}", "", "func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tn, err := s.repo.FindByID(ctx, id)", "\tif err != nil {", "\t\treturn err", "\t}", "\tn.Title = title", "\treturn s.repo.Save(ctx, n)", "}"],
+    "internal/application/note_service_test.go": ["package application", "", "func TestRename(t *testing.T) {", "\tsvc := NewNoteService(fakeRepo())", "\tif err := svc.Rename(ctx, \"1\", \"new\"); err != nil {", "\t\tt.Fatal(err)", "\t}", "}"],
+    "internal/infrastructure/note_repo.go": ["package infrastructure", "", "type PostgresNoteRepository struct{ db *sql.DB }", "", "func (r *PostgresNoteRepository) FindByID(ctx context.Context, id string) (*domain.Note, error) {", "\trow := r.db.QueryRowContext(ctx, \"SELECT id, title, status FROM notes WHERE id = $1\", id)", "\tn := &domain.Note{}", "\treturn n, row.Scan(&n.ID, &n.Title, &n.Status)", "}"],
+    "internal/transport/dto.go": ["package transport", "", "type NoteResponse struct {", "\tID     string", "\tTitle  string", "\tStatus string", "}"],
+    "internal/transport/note_handler.go": ["package transport", "", "type NoteHandler struct{ svc application.NoteService }", "", "func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {", "\tres, err := h.svc.Get(r.Context(), r.PathValue(\"id\"))", "\tif err != nil {", "\t\twriteError(w, err)", "\t\treturn", "\t}", "\twriteJSON(w, http.StatusOK, toNoteResponse(res.Title))", "}"],
+    "migrations/001_notes.sql": ["CREATE TABLE notes (", "  id text primary key,", "  title text not null,", "  status int not null", ");"],
+    "README.md": ["# notesapi", "", "A small notes API. Each note has a title and a status."]
+  };
+  var PATHS = Object.keys(PROJ).sort();
+
+  /* fuzzy matching like telescope-fzf: subsequence, tighter and earlier is better; returns the matched indices */
+  function fuzzy(q, s) {
+    q = q.toLowerCase(); var low = s.toLowerCase(), at = [], j = 0;
+    for (var i = 0; i < low.length && j < q.length; i++) if (low[i] === q[j]) { at.push(i); j++; }
+    return j === q.length ? at : null;
+  }
+  function fzList(q, pool) {
+    if (!q) return pool.map(function (s, i) { return { s: s, at: [], i: i }; });
+    var out = [];
+    pool.forEach(function (s, i) { var at = fuzzy(q, s); if (at) out.push({ s: s, at: at, i: i, k: (at[at.length - 1] - at[0]) + at[0] * 0.01 + s.length * 0.001 }); });
+    return out.sort(function (a, b) { return a.k - b.k; });
+  }
+  function bolded(s, at) {
+    var out = "", set = {}; at.forEach(function (i) { set[i] = 1; });
+    for (var i = 0; i < s.length; i++) out += set[i] ? "<b>" + esc(s[i]) + "</b>" : esc(s[i]);
+    return out;
+  }
+  function grepList(q) {
+    var out = []; if (q.length < 2) return out; var lq = q.toLowerCase();
+    PATHS.forEach(function (f) { PROJ[f].forEach(function (t, i) { var c = t.toLowerCase().indexOf(lq); if (c >= 0) out.push({ f: f, ln: i + 1, col: c + 1, t: t.replace(/\t/g, "  ").trim() }); }); });
+    return out;
+  }
+  function codeRows(lines, hit, n) {
+    var from = Math.max(0, Math.min((hit || 0) - 3, lines.length - n)), out = "";
+    for (var i = from; i < Math.min(lines.length, from + n); i++)
+      out += '<div class="ln' + (i === hit ? " hit" : "") + '"><i>' + (i + 1) + '</i><span>' + hl(lines[i].replace(/\t/g, "    ")) + "</span></div>";
+    return out;
+  }
+  function pathHtml(p) { var i = p.lastIndexOf("/"); return i < 0 ? esc(p) : '<span class="dd">' + esc(p.slice(0, i + 1)) + "</span>" + esc(p.slice(i + 1)); }
+
+  /* nvim-tree rows from a list of paths (a trailing "/" is an empty folder); folders first, like the real one */
+  function treeRows(paths, open, root) {
+    var node = { n: root, d: {}, f: [] };
+    paths.forEach(function (p) {
+      var parts = p.split("/").filter(Boolean), cur = node, empty = /\/$/.test(p);
+      parts.forEach(function (x, i) {
+        if (i === parts.length - 1 && !empty) cur.f.push(x);
+        else { cur.d[x] = cur.d[x] || { n: x, d: {}, f: [] }; cur = cur.d[x]; }
+      });
+    });
+    var rows = [{ name: root, dir: true, depth: 0, path: "", root: true }];
+    (function walk(nd, pre, depth) {
+      Object.keys(nd.d).sort().forEach(function (k) {
+        var path = pre + k; rows.push({ name: k, dir: true, depth: depth, path: path, open: open.indexOf(path) >= 0 });
+        if (open.indexOf(path) >= 0) walk(nd.d[k], path + "/", depth + 1);
+      });
+      nd.f.sort().forEach(function (f) { rows.push({ name: f, dir: false, depth: depth, path: pre + f }); });
+    })(node, "", 1);
+    return rows;
+  }
+  function treeHtml(T) {
+    return T.rows.map(function (r, i) {
+      return '<div class="tn' + (r.dir ? " d" : "") + (r.root ? " rt" : "") + (i === T.cur && T.focus ? " s" : "") + (T.bm && T.bm.indexOf(r.path) >= 0 ? " bm" : "") + (r.nw ? " nw" : "") + '" style="padding-left:' + (12 + r.depth * 12) + 'px">' + esc(r.name) + "</div>";
+    }).join("");
+  }
+
+  /* overlay renderers: telescope, modal, grug-far, terminal, dashboard, trouble, diffview */
+  var OV = {
+    tel: function (o) {
+      var grep = o.grep, rows = grep ? grepList(o.q) : fzList(o.q, o.pool), sel = Math.min(o.sel, Math.max(0, rows.length - 1));
+      var shown = rows.slice(0, 11).reverse(), cur = rows[sel], pv = "";
+      if (cur) {
+        var f = grep ? cur.f : cur.s, lines = PROJ[f] || [], hit = grep ? cur.ln - 1 : -1;
+        pv = '<div class="pt">' + esc(f) + "</div>" + codeRows(lines, hit, 14);
+      }
+      var items = shown.map(function (r) {
+        var k = rows.indexOf(r) === sel;
+        var t = grep ? '<span class="dd">' + esc(r.f) + ":" + r.ln + ":" + r.col + ":</span> " + esc(r.t) : bolded(r.s, r.at);
+        return '<div class="it' + (k ? " s" : "") + '">' + t + "</div>";
+      }).join("");
+      return '<div class="tel"><div class="lf"><div class="bx rs"><h6>Results</h6><div class="rl">' + items + '</div></div>' +
+        '<div class="bx pr"><h6>' + esc(o.title) + '</h6><div class="pq">&gt; ' + esc(o.q) + '<span class="cur"></span><em>' + (rows.length ? sel + 1 : 0) + " / " + (grep ? rows.length : rows.length) + "</em></div></div></div>" +
+        '<div class="bx pv"><h6>Preview</h6>' + pv + "</div></div>";
+    },
+    modal: function (o) {
+      return '<div class="md"><h6>' + esc(o.title) + "</h6>" + o.lines.map(function (l) { return "<div>" + (l || "&nbsp;") + "</div>"; }).join("") +
+        (o.input != null ? '<div class="in">' + esc(o.input) + '<span class="cur"></span></div>' : "") + '<div class="ft2">' + (o.hint || "") + "</div></div>";
+    },
+    grug: function (o) {
+      var q = o.search, rep = o.replace, files = {}, total = 0, nf = 0;
+      if (q.length >= 1) PATHS.forEach(function (f) {
+        if (o.filter && !/\.go$/.test(f)) return;
+        PROJ[f].forEach(function (t, i) {
+          var at = t.indexOf(q); if (at < 0) return;
+          (files[f] = files[f] || []).push({ ln: i + 1, t: t.replace(/\t/g, "    ") }); total++;
+        });
+      });
+      var res = "";
+      Object.keys(files).forEach(function (f) {
+        nf++; res += '<div class="gf">' + esc(f) + "</div>";
+        files[f].forEach(function (r) {
+          var t = esc(r.t).split(esc(q)).join(o.done ? '<b class="ad">' + esc(rep) + "</b>" : '<s class="rm">' + esc(q) + "</s>" + (rep ? '<b class="ad">' + esc(rep) + "</b>" : ""));
+          res += '<div class="gl"><i>' + r.ln + "</i>" + t + "</div>";
+        });
+      });
+      return '<div class="gr"><div class="gh">Grug FAR <em>g? help</em></div>' +
+        '<div class="gi"><span>Search:</span>' + esc(q) + (o.at === "s" ? '<span class="cur"></span>' : "") + "</div>" +
+        '<div class="gi"><span>Replace:</span>' + esc(rep) + (o.at === "r" ? '<span class="cur"></span>' : "") + "</div>" +
+        '<div class="gi"><span>Files Filter:</span>' + esc(o.filter || "") + (o.at === "f" ? '<span class="cur"></span>' : "") + "</div>" +
+        '<div class="gs">' + (o.done ? "Replaced " + total + " matches in " + nf + " files" : (q ? total + " matches in " + nf + " files" : "Type a search")) + "</div>" + res + "</div>";
+    },
+    term: function (o) {
+      return '<div class="tm">' + o.lines.map(function (l) { return '<div class="' + (l[0] || "") + '">' + esc(l[1]) + "</div>"; }).join("") + (o.prompt != null ? '<div><span class="ok">~/notesapi</span> $ ' + esc(o.prompt) + '<span class="cur"></span></div>' : "") + "</div>";
+    },
+    dash: function (o) {
+      return '<div class="ds"><pre>' + esc(o.art) + '</pre><div class="gi2">' + esc(o.repo) + '</div><div class="gi3">' + esc(o.user) + "</div>" +
+        o.buttons.map(function (b, i) { return '<div class="bt' + (i === o.sel ? " s" : "") + '"><span>' + esc(b[0]) + "</span><kbd>" + esc(b[1]) + "</kbd></div>"; }).join("") + "</div>";
+    },
+    trouble: function (o) {
+      return '<div class="tb"><div class="th">Diagnostics <em>' + o.rows.length + "</em></div>" + o.rows.map(function (r, i) {
+        return '<div class="trw' + (i === o.sel ? " s" : "") + '"><span class="' + r[0] + '">' + (r[0] === "e" ? "✖" : "▲") + "</span> " + esc(r[1]) + ' <span class="dd">' + esc(r[2]) + " [" + r[3] + "]</span></div>";
+      }).join("") + "</div>";
+    },
+    diff: function (o) {
+      function col(rows) { return rows.map(function (r) { return '<div class="dl ' + (r[0] || "") + '"><i>' + (r[2] || "") + "</i><span>" + hl(r[1]) + "</span></div>"; }).join(""); }
+      return '<div class="dv"><div class="dfl"><h6>Changes</h6>' + o.files.map(function (f, i) { return '<div class="' + (i === o.sel ? "s" : "") + '"><b>' + f[0] + "</b> " + esc(f[1]) + "</div>"; }).join("") + '</div>' +
+        '<div class="dcol"><h6>HEAD</h6>' + col(o.left) + '</div><div class="dcol"><h6>Working tree</h6>' + col(o.right) + "</div></div>";
+    }
+  };
+
   /* which-key menus, as the real config shows them (key ➜ description, "+" for groups) */
   var MENU = {
-    "": ["", [["a", "Agent", 1], ["C", "Comments", 1], ["G", "Git", 1], ["g", "Go", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1]]],
+    "": ["", [["a", "Agent", 1], ["C", "Comments", 1], ["f", "Find", 1], ["G", "Git", 1], ["g", "Go", 1], ["h", "Harpoon", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1], ["e", "Nvim-tree focus window"], ["H", "Find file history (session)"], ["d", "General delete without copying"], ["w", "General save"], ["q", "General close buffer / quit"], ["/", "Comment"]]],
+    f: ["Find", [["b", "Find buffers"], ["f", "Find files"], ["o", "Find oldfiles"], ["w", "Find live grep"], ["r", "Find replace in project (grug-far)"], ["m", "General format file"]]],
+    h: ["Harpoon", [["a", "Harpoon add file"], ["m", "Harpoon menu"], ["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"]]],
+    n: ["Nvim-tree", [["d", "nvim-tree: New folder(s)"], ["x", "nvim-tree: Delete folder with contents"]]],
+    g: ["Go", [["a", "struct: add json tags"], ["A", "struct: add json + omitempty"], ["D", "struct: remove json tags"], ["s", "struct: fill literal"], ["e", "if err != nil for the call"], ["T", "add test for the function"], ["r", "run"], ["b", "build"], ["v", "lint"], ["f", "format"], ["t", "go mod tidy"], ["x", "golangci-lint --fix"], ["m", "go test ./..."], ["R", "go test -race ./..."], ["c", "go test -cover ./..."], ["p", "go fix -diff"], ["i", "go fix"], ["g", "go generate ./..."], ["u", "go get -u + go mod tidy"]]],
+    C: ["Comments", [["c", "collapse long comments"], ["e", "expand comments"], ["t", "toggle comment under cursor"], ["d", "doc comment template for this function/type"], ["m", "public functions missing a doc comment (quickfix)"]]],
+    P: ["Session", [["r", "restore session (this folder)"], ["s", "select session (any project)"], ["l", "restore last session"], ["w", "save session now"], ["x", "don't save on exit"]]],
+    S: ["Settings", [["t", "toggle theme"], ["d", "default theme (gruvbox)"], ["a", "terminal theme (Alacritty)"], ["r", "re-sync terminal theme"], ["p", "theme picker"], ["i", "theme info"]]],
     a: ["Agent", [["i", "Agent implement"], ["r", "Agent review"], ["e", "Agent explain"], ["a", "Agent ask"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["d", "Agent docs"], ["R", "Agent refactor"], ["m", "Agent model"], ["h", "Agent history"], ["c", "Agent clear"], ["x", "Agent stop"], ["D", "Agent DDD", 1], ["L", "Agent Lenses", 1], ["P", "Agent Repository", 1], ["T", "Agent Tests", 1]]],
     aD: ["Agent DDD", [["i", "Agent ddd implement"], ["r", "Agent ddd review"], ["f", "Agent ddd fix"], ["m", "Agent ddd missing"], ["a", "Agent ddd ask"], ["d", "Agent ddd diagnose"], ["c", "Agent ddd clear"]]],
     aL: ["Agent Lenses", [["s", "Agent lens security"], ["p", "Agent lens performance"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["a", "Agent lens api"]]],
     aP: ["Agent Repository", [["p", "Agent repo port"], ["i", "Agent repo implement"], ["r", "Agent repo review"], ["c", "Agent repo check"]]],
     aT: ["Agent Tests", [["w", "Agent test write"], ["m", "Agent test mock"], ["f", "Agent test fix"], ["g", "Agent test gaps"]]],
     x: ["Diagnostics", [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list"]]],
-    G: ["Git", [["c", "Git commit"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["a", "Git amend"], ["t", "Git status"], ["b", "Git blame"], ["d", "Git diff"], ["f", "Git file history"], ["r", "Git repo history"]]]
+    G: ["Git", [["c", "Git commit"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["a", "Git amend"], ["t", "Git status"], ["b", "Git blame"], ["d", "Git diff"], ["f", "Git file history"], ["r", "Git repo history"], ["q", "Git close diff"], ["o", "Git conflict ours"], ["T", "Git conflict theirs"], ["B", "Git conflict both"], ["N", "Git conflict none"], ["n", "Git conflict next"], ["p", "Git conflict previous"], ["l", "Git conflict list"]]]
   };
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -559,7 +776,7 @@ footer a:hover{color:var(--fg)}
     var p = {
       w: function (ms) { return sleep(ms).then(gone); },
       set: function (lines, file, mode) {
-        S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, showCursor: true, split: null, mc: null, panel: null, cp: null, agent: null, fl: null, blocks: true };
+        S = { lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1, mode: mode || "NORMAL", file: file, pop: null, wk: null, showCursor: true, split: null, mc: null, panel: null, cp: null, agent: null, fl: null, blocks: true, tree: null, ov: null, cmd: null, theme: null, flash: null };
         render();
       },
       cursor: function (r, cc) { S.lines.forEach(function (L) { delete L.cc; }); S.cur = r; if (cc != null) S.lines[r].cc = cc; render(); },
@@ -653,11 +870,56 @@ footer a:hover{color:var(--fg)}
         var mc = S.mc; mc.rows.forEach(function (r) { var L = S.lines[r]; L.t = L.t.replace(mc.word, mc.typed); L.gs = "c"; L.fresh = true; });
         S.mc = null; S.showCursor = true; render();
       },
-      commitPanel: function (o) { S.cp = o; render(); }
+      commitPanel: function (o) { S.cp = o; render(); },
+      r: render,
+      /* nvim-tree: rows come from treeRows(); the cursor row and focus move with the scenario */
+      tree: function (rows, cur, focus) { S.tree = rows ? { rows: rows, cur: cur || 0, focus: !!focus, bm: [] } : null; render(); },
+      treeCur: function (i) { S.tree.cur = i; render(); },
+      treeFocus: function (on) { S.tree.focus = !!on; render(); },
+      ov: function (o) { S.ov = o; render(); },
+      cmd: function (t) { S.cmd = t; render(); },
+      theme: function (t) { S.theme = t; render(); },
+      typeInto: function (o, key, str, ms) {
+        var i = 0; ms = ms || 55;
+        return (function step() {
+          if (i >= str.length) return Promise.resolve();
+          o[key] += str[i++]; render(); return sleep(ms + Math.random() * 25).then(gone).then(step);
+        })();
+      },
+      /* load a project file in the main pane, keeping tree / theme / split state */
+      open: function (path, row, cc) {
+        S.lines = PROJ[path].map(function (t) { return { t: t }; }); S.file = path.split("/").pop(); S.ov = null; S.flash = null; S.fkeep = null; S.cmd = null;
+        ed.classList.remove("fdim"); S.cur = row || 0; if (cc != null) S.lines[S.cur].cc = cc; S.mode = "NORMAL"; S.pop = null; S.fl = null; render();
+      },
+      line: function (row, text, gs) { S.lines[row].t = text; S.lines[row].fresh = true; if (gs) S.lines[row].gs = gs; render(); },
+      insertLines: function (at, arr, gs) {
+        S.lines.splice.apply(S.lines, [at, 0].concat(arr.map(function (t) { return { t: t, fresh: true, gs: gs || "a" }; }))); render();
+      },
+      removeLines: function (from, to) { S.lines.splice(from, to - from + 1); S.cur = Math.min(S.cur, S.lines.length - 1); render(); },
+      swap: function (a, b) { var t = S.lines[a]; S.lines[a] = S.lines[b]; S.lines[b] = t; S.lines[b].gs = "c"; S.lines[a].gs = S.lines[a].gs || "c"; render(); },
+      vsel: function (from, to) { for (var i = from; i <= to; i++) S.lines[i].k = "vs"; S.mode = "VISUAL"; render(); },
+      unvsel: function () { S.lines.forEach(function (L) { delete L.k; }); S.mode = "NORMAL"; render(); },
+      mark: function (row, k) { S.lines[row].k = k; render(); },
+      vt: function (row, text, kind) { S.lines[row].vt = text; S.lines[row].vtk = kind || ""; render(); },
+      /* flash: every match of `pat` gets a label that replaces the next character; returns label -> {row, col} */
+      flash: function (pat) {
+        var map = {}, where = {}, labels = "asdfghjklqwertyuiop", n = 0, lp = pat.toLowerCase();
+        S.lines.forEach(function (L, i) {
+          if (L.kind) return;
+          var low = L.t.replace(/\t/g, "    ").toLowerCase(), at = -1, arr = [];
+          while ((at = low.indexOf(lp, at + 1)) >= 0 && n < labels.length) { arr.push({ col: at, len: lp.length, label: labels[n] }); where[labels[n]] = { row: i, col: at }; n++; }
+          if (arr.length) map[i] = arr.reverse();
+        });
+        S.flash = map; ed.classList.add("fdim"); render(); return where;
+      },
+      unflash: function () { S.flash = null; ed.classList.remove("fdim"); render(); }
     };
     return p;
   }
 
+  /* scenario helpers: load a project file into the main pane; type into the command line like nvim-tree prompts do */
+  function load(p, path, row, cc) { p.set(PROJ[path], path.split("/").pop(), "NORMAL"); p.cursor(row || 0, cc); S.showCursor = true; }
+  async function typeCmd(p, prefix, str, ms) { for (var i = 1; i <= str.length; i++) { p.cmd(prefix + str.slice(0, i)); await p.w(ms || 90); } }
   var FIND = "\tn, err := s.repo.FindByID(ctx, id)";
   var SC = [
     { g: "type", name: "if err", go: async function (p) {
@@ -777,22 +1039,224 @@ footer a:hover{color:var(--fg)}
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
         await p.w(400); await p.seq(["␣", "G", "M"]);
         p.note("<b>Commit:</b> 2 files +4 −1 → claude/haiku is writing the message…"); await p.w(1200);
-        p.note("<b>✔ Committed</b> 9808147 feat(go): add go module and print greeting · 2 files +4 −1 · claude/haiku 2.4s · $0.0001"); await p.w(2800); p.note(null); } }
+        p.note("<b>✔ Committed</b> 9808147 feat(go): add go module and print greeting · 2 files +4 −1 · claude/haiku 2.4s · $0.0001"); await p.w(2800); p.note(null); } },
+
+    /* ── Edit ───────────────────────────────────────────────────────────────────────────────── */
+    { g: "edit", name: "Surround", go: async function (p) {
+        p.set(["func hello(name string) {", "\tfmt.Println(name)", "}"], "hello.go", "NORMAL"); p.cursor(1, 17); await p.w(700);
+        await p.key("s", 160); await p.key("a", 160); await p.key("i", 160); await p.key("w", 160); await p.key("\"", 300); p.line(1, "\tfmt.Println(\"name\")", "c"); await p.w(1100);
+        await p.key("s", 160); await p.key("r", 160); await p.key("\"", 160); await p.key("`", 300); p.line(1, "\tfmt.Println(`name`)", "c"); await p.w(1100);
+        await p.key("s", 160); await p.key("d", 160); await p.key("`", 300); p.line(1, "\tfmt.Println(name)", "c"); await p.w(1200); } },
+    { g: "edit", name: "Move lines", go: async function (p) {
+        p.set(["func (s *noteService) Rename(ctx context.Context, n *domain.Note, title string) error {", "\tn.Touch()", "\tn.Title = title", "\tvalidate(n)", "\treturn s.repo.Save(ctx, n)", "}"], "note_service.go", "NORMAL"); p.cursor(3); S.lines[3].cc = 1; await p.w(700);
+        await p.key("Alt+k", 380); p.swap(3, 2); p.cursor(2); await p.w(250);
+        await p.key("Alt+k", 380); p.swap(2, 1); p.cursor(1); await p.w(900);
+        await p.key("Alt+j", 380); p.swap(1, 2); p.cursor(2); await p.w(1200); } },
+    { g: "edit", name: "Textobjects", go: async function (p) {
+        load(p, "internal/application/note_service.go", 0); await p.w(600);
+        await p.key("]", 150); await p.key("f", 400); p.cursor(4); await p.w(300);
+        await p.key("]", 150); await p.key("f", 400); p.cursor(12); await p.w(700);
+        await p.key("v", 150); await p.key("a", 150); await p.key("f", 400); p.vsel(12, 19); await p.w(1100);
+        await p.seq(["␣", "d"]); p.removeLines(11, 19); p.mode("NORMAL"); S.lines.forEach(function (L) { delete L.k; }); p.cursor(10); await p.w(1400); } },
+    { g: "edit", name: "Comments", go: async function (p) {
+        var doc = ["// Rename changes the title of a note.", "//", "// It loads the note, validates the new title and", "// saves it back. When the note does not exist it", "// returns ErrNotFound. The title is trimmed and", "// must not be empty."];
+        p.set(doc.concat(["func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\treturn s.repo.Rename(ctx, id, title)", "}", "", "func (s *noteService) Delete(ctx context.Context, id string) error {", "\treturn s.repo.Delete(ctx, id)", "}"]), "note_service.go", "NORMAL"); p.cursor(6); S.showCursor = false;
+        await p.w(700); await p.seq(["␣", "C", "c"]);
+        p.removeLines(1, 5); p.vt(0, " ··· 6 lines", "fd"); S.lines[0].t = doc[0]; p.r(); await p.w(1500);
+        await p.seq(["␣", "C", "e"]); S.lines[0].vt = ""; S.lines.splice.apply(S.lines, [1, 0].concat(doc.slice(1).map(function (t) { return { t: t }; }))); p.r(); await p.w(900);
+        p.cursor(10); S.showCursor = true; p.r(); await p.w(500);
+        await p.seq(["␣", "C", "d"]); p.insertLines(10, ["// Delete "]); p.cursor(10, 10); p.mode("INSERT"); await p.w(400); await p.type("removes a note by id.", 40); await p.w(1200); } },
+    { g: "edit", name: "Format & save", go: async function (p) {
+        p.set(["func Rename( r Repo,id int,title string ) error{", "n,err:=r.Get(id)", "if err!=nil{return err}", "n.Title=title", "return r.Save(n)}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = true; await p.w(800);
+        await p.seq(["␣", "f", "m"]); await p.w(250);
+        S.lines = ["func Rename(r Repo, id int, title string) error {", "\tn, err := r.Get(id)", "\tif err != nil {", "\t\treturn err", "\t}", "\tn.Title = title", "\treturn r.Save(n)", "}"].map(function (t) { return { t: t, fresh: true }; }); p.cursor(0); await p.w(1200);
+        await p.key("Ctrl+s", 300); p.note("<b>✔ Saved</b> note_service.go · 8 lines"); await p.w(1800); p.note(null); } },
+
+    /* ── Go ─────────────────────────────────────────────────────────────────────────────────── */
+    { g: "go", name: "Struct tags", go: async function (p) {
+        var base = ["type Note struct {", "\tID        string", "\tTitle     string", "\tCreatedAt time.Time", "\tDoneAt    *time.Time", "}"];
+        p.set(base, "note.go", "NORMAL"); p.cursor(0); await p.w(700);
+        await p.seq(["␣", "g", "a"]);
+        S.lines = ["type Note struct {", "\tID        string     `json:\"id\"`", "\tTitle     string     `json:\"title\"`", "\tCreatedAt time.Time  `json:\"created_at\"`", "\tDoneAt    *time.Time `json:\"done_at\"`", "}"].map(function (t, i) { return { t: t, fresh: i > 0, gs: i > 0 ? "c" : "" }; }); p.cursor(0); await p.w(1300);
+        await p.seq(["␣", "g", "D"]); S.lines = base.map(function (t) { return { t: t }; }); p.cursor(0); await p.w(700);
+        await p.seq(["␣", "g", "A"]);
+        S.lines = ["type Note struct {", "\tID        string     `json:\"id,omitempty\"`", "\tTitle     string     `json:\"title,omitempty\"`", "\tCreatedAt time.Time  `json:\"created_at,omitempty\"`", "\tDoneAt    *time.Time `json:\"done_at,omitempty\"`", "}"].map(function (t, i) { return { t: t, fresh: i > 0, gs: i > 0 ? "c" : "" }; }); p.cursor(0); await p.w(1500); } },
+    { g: "go", name: "Fill struct", go: async function (p) {
+        p.set(["func newNote(title string) *domain.Note {", "\tn := domain.Note{}", "\treturn &n", "}"], "note.go", "NORMAL"); p.cursor(1, 18); await p.w(800);
+        await p.seq(["␣", "g", "s"]); await p.w(250);
+        S.lines.splice(1, 1, { t: "\tn := domain.Note{", fresh: true, gs: "c" }, { t: "\t\tID:     \"\",", fresh: true, gs: "a" }, { t: "\t\tTitle:  \"\",", fresh: true, gs: "a" }, { t: "\t\tStatus: \"\",", fresh: true, gs: "a" }, { t: "\t}", fresh: true, gs: "a" }); p.cursor(2, 8); await p.w(900);
+        await p.w(900); p.line(2, "\t\tID:     uuid.NewString(),", "c"); await p.w(500); p.line(3, "\t\tTitle:  title,", "c"); p.cursor(3); await p.w(1500); } },
+    { g: "go", name: "Run tests", go: async function (p) {
+        load(p, "internal/application/note_service_test.go", 2); await p.w(600);
+        await p.seq(["␣", "g", "m"]); await p.w(200);
+        var o = { kind: "term", lines: [["mu", "$ go test ./..."]], prompt: null }; p.ov(o); await p.w(900);
+        o.lines.push(["ok", "ok  \tnotesapi/internal/application\t0.014s"]); p.r(); await p.w(500);
+        o.lines.push(["mu", "?   \tnotesapi/cmd/api\t[no test files]"]); p.r(); await p.w(350);
+        o.lines.push(["ok", "ok  \tnotesapi/internal/domain\t0.003s"]); p.r(); await p.w(350);
+        o.lines.push(["ok", "ok  \tnotesapi/internal/infrastructure\t0.021s"]); p.r(); await p.w(1800);
+        await p.key("Esc", 250); p.ov(null); await p.w(500); } },
+
+    /* ── Find ───────────────────────────────────────────────────────────────────────────────── */
+    { g: "find", name: "Start screen", go: async function (p) {
+        load(p, "cmd/api/main.go", 0); S.file = ""; S.lines = [{ t: "" }]; S.cur = 0; S.showCursor = false;
+        var o = { kind: "dash", art: ARTS[1].join("\n"), repo: "notesapi (main)", user: "Omar", sel: 0, buttons: [["Restore Session", "rs"], ["Find File", "ff"], ["Recent Files", "fo"], ["Find Word", "fw"], ["Themes", "th"], ["Mappings", "ch"], ["Change Art", "ca"]] };
+        p.ov(o); await p.w(1600);
+        await p.key("j", 300); o.sel = 1; p.r(); await p.w(400); await p.key("k", 300); o.sel = 0; p.r(); await p.w(600);
+        await p.key("r", 150); await p.key("s", 400); p.open("internal/application/note_service.go", 5, 14); S.showCursor = true; p.r();
+        p.note("<b>Session restored</b> · 3 buffers · cursor where you left it"); await p.w(2200); p.note(null); } },
+    { g: "find", name: "Find files", go: async function (p) {
+        load(p, "cmd/api/main.go", 3); await p.w(500); await p.seq(["␣", "f", "f"]);
+        var o = { kind: "tel", title: "Find Files", q: "", pool: PATHS, sel: 0 }; p.ov(o); await p.w(900);
+        await p.typeInto(o, "q", "nsrv", 150); await p.w(900);
+        await p.key("Ctrl+p", 300); o.sel = 1; p.r(); await p.w(700); await p.key("Ctrl+n", 300); o.sel = 0; p.r(); await p.w(600);
+        await p.key("Enter", 250); p.open("internal/application/note_service.go", 0); await p.w(1500); } },
+    { g: "find", name: "Live grep", go: async function (p) {
+        load(p, "cmd/api/main.go", 3); await p.w(500); await p.seq(["␣", "f", "w"]);
+        var o = { kind: "tel", title: "Live Grep", grep: true, q: "", sel: 0 }; p.ov(o); await p.w(900);
+        await p.typeInto(o, "q", "FindByID", 110); await p.w(1000);
+        await p.key("Ctrl+p", 300); o.sel = 1; p.r(); await p.w(800); await p.key("Ctrl+p", 300); o.sel = 2; p.r(); await p.w(900);
+        await p.key("Enter", 250); p.open("internal/application/note_service.go", 5, 14); await p.w(1500); } },
+    { g: "find", name: "Replace in project", go: async function (p) {
+        load(p, "internal/domain/note.go", 4); await p.w(500); await p.seq(["␣", "f", "r"]);
+        var o = { kind: "grug", search: "", replace: "", filter: "", at: "s", done: false }; p.ov(o); await p.w(700);
+        await p.typeInto(o, "search", "Title", 130); await p.w(900);
+        o.at = "r"; p.r(); await p.typeInto(o, "replace", "Subject", 100); await p.w(1200);
+        o.at = "f"; p.r(); await p.typeInto(o, "filter", "*.go", 100); await p.w(900);
+        await p.key("\\", 160); await p.key("r", 350); o.done = true; o.at = ""; p.r(); await p.w(2200); } },
+    { g: "find", name: "Harpoon", go: async function (p) {
+        var F = ["cmd/api/main.go", "internal/application/note_service.go", "internal/transport/note_handler.go"], i;
+        for (i = 0; i < 3; i++) { load(p, F[i], 2); await p.w(450); await p.seq(["␣", "h", "a"]); await p.w(200); }
+        await p.seq(["␣", "h", "m"]);
+        var o = { kind: "modal", title: "Harpoon", lines: F.map(function (f, k) { return k === 1 ? '<span class="sel"> ' + esc(f) + " </span>" : " " + esc(f); }), hint: "j / k move · Enter jump · q close" }; p.ov(o); await p.w(1500);
+        await p.key("Esc", 250); p.ov(null); await p.w(400);
+        await p.seq(["␣", "h", "2"]); p.open(F[1], 5); await p.w(900);
+        await p.seq(["␣", "h", "1"]); p.open(F[0], 3); await p.w(1300); } },
+    { g: "find", name: "Flash jump", go: async function (p) {
+        load(p, "internal/application/note_service.go", 4); S.showCursor = false; await p.w(700);
+        await p.key("s", 250); await p.key("e", 200); await p.key("r", 300);
+        var where = p.flash("er"), lab = Object.keys(where).filter(function (k) { return where[k].row === 6; })[0]; await p.w(1500);
+        await p.key(lab, 300); var w = where[lab]; p.unflash(); S.showCursor = true; p.cursor(w.row, w.col); await p.w(900);
+        await p.key("S", 400); p.vsel(6, 8); await p.w(1500); p.unvsel(); await p.w(300); } },
+
+    /* ── Files (nvim-tree) ──────────────────────────────────────────────────────────────────── */
+    { g: "files", name: "File tree", go: async function (p) {
+        load(p, "internal/domain/note.go", 3, 6);
+        var paths = PATHS.slice(), open = [], rows, at = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
+        function rebuild(sel) { rows = treeRows(paths, open, "notesapi"); S.tree.rows = rows; S.tree.cur = sel == null ? S.tree.cur : at(sel); p.r(); }
+        await p.w(600); await p.key("Ctrl+n", 350); p.tree(treeRows(paths, open, "notesapi"), 1, true); rows = S.tree.rows; await p.w(700);
+        await p.key("j", 260); p.treeCur(at("internal")); await p.w(250);
+        await p.key("Enter", 300); open.push("internal"); rebuild(); await p.w(500);
+        await p.key("j", 220); p.treeCur(at("internal/application")); await p.w(150);
+        await p.key("j", 220); p.treeCur(at("internal/domain")); await p.w(250);
+        await p.key("Enter", 300); open.push("internal/domain"); rebuild(); await p.w(500);
+        await p.key("j", 220); p.treeCur(at("internal/domain/note.go")); await p.w(700);
+        await p.key("a", 300); p.cmd("Create file: notesapi/internal/domain/"); await p.w(400);
+        await typeCmd(p, "Create file: notesapi/internal/domain/", "event.go", 90); await p.w(400);
+        await p.key("Enter", 300); p.cmd(null); paths.push("internal/domain/event.go"); PROJ["internal/domain/event.go"] = ["package domain", ""]; rebuild("internal/domain/event.go"); rows[S.tree.cur].nw = true; p.r(); await p.w(1000);
+        await p.key("Enter", 300); S.tree = null; p.open("internal/domain/event.go", 1); p.mode("INSERT"); await p.w(1500); delete PROJ["internal/domain/event.go"]; } },
+    { g: "files", name: "New folders", go: async function (p) {
+        load(p, "internal/domain/note.go", 3, 6);
+        var paths = PATHS.slice(), open = ["internal"], rows = treeRows(paths, open, "notesapi");
+        p.tree(rows, rows.findIndex(function (r) { return r.path === "internal"; }), true); await p.w(800);
+        await p.seq(["␣", "n", "d"]);
+        var kids = ["application", "domain", "infrastructure", "transport"].map(function (k) { return '     ├── <span class="f">' + k + "/</span>"; });
+        var o = { kind: "modal", title: "New folder(s)", input: "", hint: "Enter confirm · Esc cancel",
+          lines: ["Location:", '  <span class="f">notesapi/</span>', '  └── <span class="f">internal/</span><span class="m">   &lt;- new folder(s) go here</span>'].concat(kids, ["", '<span class="mu">Separate several paths with \';\'</span>']) };
+        p.ov(o); await p.w(700); await p.typeInto(o, "input", "ports; events; testdata/fixtures", 70); await p.w(900);
+        await p.key("Enter", 300); p.ov(null);
+        paths.push("internal/ports/", "internal/events/", "internal/testdata/fixtures/"); rows = treeRows(paths, open.concat(["internal/testdata"]), "notesapi");
+        rows.forEach(function (r) { if (/^internal\/(ports|events|testdata)$/.test(r.path)) r.nw = true; });
+        p.tree(rows, rows.findIndex(function (r) { return r.path === "internal"; }), true); await p.w(2200); } },
+    { g: "files", name: "Delete folder", go: async function (p) {
+        load(p, "internal/domain/note.go", 3, 6);
+        var paths = PATHS.concat(["internal/events/event.go", "internal/events/bus.go", "internal/events/handlers/note_created.go"]), open = ["internal"], rows = treeRows(paths, open, "notesapi"), ix = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
+        p.tree(rows, ix("internal"), true); await p.w(700);
+        await p.key("j", 240); p.treeCur(ix("internal/application")); await p.w(150); await p.key("j", 240); p.treeCur(ix("internal/domain")); await p.w(150); await p.key("j", 240); p.treeCur(ix("internal/events")); await p.w(800);
+        await p.seq(["␣", "n", "x"]);
+        var o = { kind: "modal", title: "Delete folder", hint: '<span class="w">[y]</span> delete · any other key cancels',
+          lines: ["Delete folder:", '  <span class="f">internal/events/</span>', "", 'Contains: <span>3 files, 1 folders</span>', '<span class="w">This removes everything inside and cannot be undone.</span>'] };
+        p.ov(o); await p.w(2000); await p.key("y", 300); p.ov(null);
+        paths = PATHS.slice(); rows = treeRows(paths, open, "notesapi"); p.tree(rows, ix("internal/domain"), true); await p.w(1800); } },
+    { g: "files", name: "Select several", go: async function (p) {
+        load(p, "internal/domain/note.go", 3, 6);
+        var paths = PATHS.slice(), open = ["internal", "internal/domain", "internal/transport"], rows = treeRows(paths, open, "notesapi"), ix = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
+        p.tree(rows, ix("internal/domain/note.go"), true); await p.w(800);
+        await p.key("m", 300); S.tree.bm.push("internal/domain/note.go"); p.r(); await p.w(400);
+        await p.key("j", 220); p.treeCur(ix("internal/domain/status.go")); await p.w(150); await p.key("m", 300); S.tree.bm.push("internal/domain/status.go"); p.r(); await p.w(400);
+        await p.key("j", 220); p.treeCur(ix("internal/infrastructure")); await p.w(150); await p.key("j", 220); p.treeCur(ix("internal/transport")); await p.w(150);
+        await p.key("j", 220); p.treeCur(ix("internal/transport/dto.go")); await p.w(150); await p.key("m", 300); S.tree.bm.push("internal/transport/dto.go"); p.r(); await p.w(900);
+        await p.key("b", 150); await p.key("m", 150); await p.key("v", 300); p.cmd("Move bookmarked to: notesapi/internal/shared/"); await p.w(900);
+        await p.key("Enter", 300); p.cmd(null);
+        paths = paths.map(function (x) { return S.tree.bm.indexOf(x) >= 0 ? "internal/shared/" + x.split("/").pop() : x; }); open = ["internal", "internal/shared"];
+        paths.push("internal/domain/"); rows = treeRows(paths, open, "notesapi"); p.tree(rows, ix("internal/shared"), true); rows.forEach(function (r) { if (r.path === "internal/shared") r.nw = true; }); p.r(); await p.w(2000); } },
+
+    /* ── Inspect ────────────────────────────────────────────────────────────────────────────── */
+    { g: "inspect", name: "Project diagnostics", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 6); S.showCursor = false;
+        p.diag(5, "error", "compiler", "declared and not used: n"); p.diag(13, "warn", "golangci-lint", "ineffectual assignment to n"); p.blocks(false); await p.w(600);
+        await p.seq(["␣", "x", "x"]);
+        var o = { kind: "trouble", sel: 0, rows: [["e", "declared and not used: n", "note_service.go", "6:2"], ["w", "ineffectual assignment to n", "note_service.go", "14:2"], ["w", "field Status is never read", "dto.go", "6:2"]] }; p.ov(o); await p.w(1200);
+        await p.key("j", 280); o.sel = 1; p.r(); await p.w(700); await p.key("Enter", 300); p.ov(null); p.cursor(13); S.showCursor = true; p.r(); await p.w(1800); } },
+
+    /* ── Git ────────────────────────────────────────────────────────────────────────────────── */
+    { g: "git", name: "Blame", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 6); await p.w(500);
+        await p.seq(["␣", "G", "b"]); p.vt(5, "Omar • 2026-10-12 17:42 • feat(go): complete missing interface methods", "bl"); await p.w(1700);
+        await p.key("j", 260); S.lines[5].vt = ""; p.cursor(6); p.vt(6, "Omar • 2026-10-12 17:42 • feat(go): complete missing interface methods", "bl"); await p.w(1200);
+        await p.key("j", 260); S.lines[6].vt = ""; p.cursor(7); p.vt(7, "Ana • 2026-09-30 09:15 • fix(service): return ErrNotFound", "bl"); await p.w(1700); } },
+    { g: "git", name: "Diff view", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 6); await p.w(500);
+        await p.seq(["␣", "G", "d"]);
+        var o = { kind: "diff", sel: 0, files: [["M", "note_service.go"], ["A", "event.go"], ["M", "README.md"]],
+          left: [[0, "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", 5], [0, "\tn, err := s.repo.FindByID(ctx, id)", 6], ["rm", "\tif err != nil { return nil, err }", 7], ["ph", "", ""], [0, "\treturn n, nil", 8], [0, "}", 9]],
+          right: [[0, "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", 5], [0, "\tn, err := s.repo.FindByID(ctx, id)", 6], ["ad", "\tif err != nil {", 7], ["ad", "\t\treturn nil, fmt.Errorf(\"get note: %w\", err)", 8], ["ad", "\t}", 9], [0, "\treturn n, nil", 10], [0, "}", 11]] };
+        p.ov(o); await p.w(2300); await p.key("Tab", 300); o.sel = 1; p.r(); await p.w(1500);
+        await p.seq(["␣", "G", "q"]); p.ov(null); await p.w(800); } },
+    { g: "git", name: "Conflicts", go: async function (p) {
+        p.set(["func (s *noteService) Rename(ctx context.Context, id, title string) error {", "<<<<<<< HEAD", "\tn.Title = strings.TrimSpace(title)", "=======", "\tn.Title = title", "\tn.UpdatedAt = time.Now()", ">>>>>>> feature/updated-at", "\treturn s.repo.Save(ctx, n)", "}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = true;
+        [[1, "cfm"], [2, "cfo"], [3, "cfm"], [4, "cft"], [5, "cft"], [6, "cfm"]].forEach(function (x) { S.lines[x[0]].k = x[1]; });
+        S.lines[1].vt = "Current changes"; S.lines[1].vtk = "bl"; S.lines[6].vt = "Incoming changes"; S.lines[6].vtk = "bl"; p.r(); await p.w(1600);
+        await p.seq(["␣", "G", "n"]); p.cursor(1); await p.w(1100);
+        await p.seq(["␣", "G", "B"]); S.lines = ["func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tn.Title = strings.TrimSpace(title)", "\tn.Title = title", "\tn.UpdatedAt = time.Now()", "\treturn s.repo.Save(ctx, n)", "}"].map(function (t, i) { return { t: t, fresh: i > 0 && i < 4, gs: i > 0 && i < 4 ? "c" : "" }; }); p.cursor(1); await p.w(1800); } },
+
+    /* ── Workspace ──────────────────────────────────────────────────────────────────────────── */
+    { g: "work", name: "Terminal", go: async function (p) {
+        load(p, "cmd/api/main.go", 3); await p.w(600);
+        await p.key("Alt+i", 350); var o = { kind: "term", lines: [], prompt: "" }; p.ov(o); await p.w(500);
+        await p.typeInto(o, "prompt", "go build ./... && go run ./cmd/api", 45); await p.w(500);
+        await p.key("Enter", 250); o.lines.push(["", "~/notesapi $ go build ./... && go run ./cmd/api"]); o.prompt = null; p.r(); await p.w(1100);
+        o.lines.push(["mu", "2026/10/13 09:12:01 listening on :8080"]); p.r(); await p.w(1500);
+        await p.key("Esc", 250); p.ov(null); await p.w(500);
+        await p.key("Alt+i", 350); p.ov(o); await p.w(1500); await p.key("Esc", 250); p.ov(null); await p.w(400); } },
+    { g: "work", name: "Theme toggle", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 14); await p.w(900);
+        var other = root.dataset.theme === "dark" ? "light" : "dark";
+        await p.seq(["␣", "S", "t"]); p.theme(other); await p.w(2200);
+        await p.seq(["␣", "S", "t"]); p.theme(null); await p.w(1500); } }
   ];
 
-  /* the list on the left, grouped; click jumps to a scenario */
-  var GROUPS = { type: ["Complete", "0 tokens"], edit: ["Edit", ""], inspect: ["Inspect", "no agent"], ask: ["Ask the agent", "one shot"], git: ["Git", ""] };
-  var listEl = $("#list"), cur = 0, playing = false, visible = false;
-  (function buildList() {
-    var html = "", last = "";
-    SC.forEach(function (sc, i) {
-      if (sc.g !== last) { html += '<li class="grp"><span>' + GROUPS[sc.g][0] + "</span><span>" + GROUPS[sc.g][1] + "</span></li>"; last = sc.g; }
-      html += '<li><button data-i="' + i + '"><i>' + String(i + 1).padStart(2, "0") + "</i>" + sc.name + "</button></li>";
-    });
-    listEl.innerHTML = html;
-    listEl.addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) play(+b.dataset.i); });
-  })();
-  function mark() { [].forEach.call(listEl.querySelectorAll("button"), function (b) { b.classList.toggle("on", +b.dataset.i === cur); }); }
+  /* the list on the left: one tab per group, click a scenario to jump to it */
+  var GROUPS = [["type", "Complete"], ["edit", "Edit"], ["go", "Go"], ["find", "Find"], ["files", "Files"], ["inspect", "Inspect"], ["ask", "Agent"], ["git", "Git"], ["work", "Workspace"]];
+  var GI = {}; GROUPS.forEach(function (g, i) { GI[g[0]] = i; });
+  SC.forEach(function (sc, i) { sc.o = i; });
+  SC.sort(function (a, b) { return GI[a.g] - GI[b.g] || a.o - b.o; });
+  var listEl = $("#list"), tabsEl = $("#tabs"), cur = 0, group = "", playing = false, visible = false;
+  tabsEl.innerHTML = GROUPS.map(function (g) { return '<button data-g="' + g[0] + '">' + g[1] + "</button>"; }).join("");
+  function showGroup(g) {
+    if (g === group) return; group = g;
+    var n = 0;
+    listEl.innerHTML = SC.map(function (sc, i) {
+      if (sc.g !== g) return ""; n++;
+      return '<li><button data-i="' + i + '"><i>' + String(n).padStart(2, "0") + "</i>" + sc.name + "</button></li>";
+    }).join("");
+    [].forEach.call(tabsEl.children, function (b) { b.classList.toggle("on", b.dataset.g === g); });
+  }
+  listEl.addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) play(+b.dataset.i); });
+  tabsEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    for (var i = 0; i < SC.length; i++) if (SC[i].g === b.dataset.g) { play(i); return; }
+  });
+  function mark() { showGroup(SC[cur].g); [].forEach.call(listEl.querySelectorAll("button"), function (b) { b.classList.toggle("on", +b.dataset.i === cur); }); }
   function play(i) {
     cur = i; mark(); var me = ++run; playing = true;
     noteEl.classList.remove("on"); keysEl.innerHTML = "";
