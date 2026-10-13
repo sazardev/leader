@@ -2,18 +2,19 @@
 local M = {}
 
 -- ── Diagnósticos ─────────────────────────────────────────────────────────────
--- Errores y warnings por separado (el uno nunca tapa al otro), como etiquetas con el
--- color de la severidad de fondo y texto negro. Solo cuentan; el detalle está en el código.
+-- Errores y warnings por separado (el uno nunca tapa al otro), como etiquetas sólidas con el
+-- color de la severidad. Solo cuentan; el detalle está en el código. Los colores salen de
+-- ui/diagcolors.lua, los mismos del número de línea y de los bloques en línea.
 local SEVERITY = vim.diagnostic.severity
-local FALLBACK = { [SEVERITY.ERROR] = "#e06c75", [SEVERITY.WARN] = "#e5c07b" }
-local HL = { [SEVERITY.ERROR] = "DiagnosticError", [SEVERITY.WARN] = "DiagnosticWarn" }
 local LETTER = { [SEVERITY.ERROR] = "E", [SEVERITY.WARN] = "W" }
 
 ---@param severity integer
----@return table color de lualine: fondo = color del tema para esa severidad, texto negro
+---@return table color de lualine: fondo = acento de la severidad, texto legible encima
 local function pill_color(severity)
-  local fg = vim.api.nvim_get_hl(0, { name = HL[severity], link = false }).fg
-  return { fg = "#000000", bg = fg and ("#%06x"):format(fg) or FALLBACK[severity], gui = "bold" }
+  local diag = require "ui.diagcolors"
+  diag.sync() -- si el tema cambió, el número de línea y los bloques se recalculan con esta barra
+  local pill = diag.pill(severity)
+  return { fg = pill.fg, bg = pill.bg, gui = "bold" }
 end
 
 --- Etiqueta " E2 " / " W1 " (vacía si no hay de esa severidad; `cond` la oculta)

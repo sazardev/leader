@@ -250,9 +250,9 @@ local defaults = {
   -- vim.diagnostic.config(...): cómo se muestran los errores del LSP/linters
   diagnostics = {
     severity_sort = true, -- el error se ve antes que el aviso en la misma línea
-    update_in_insert = false, -- sin errores a medias mientras se escribe
+    update_in_insert = false, -- sin errores a medias mientras escribes: en modo insertar los bloques se ocultan y vuelven al salir
     virtual_text = false, -- el texto a la derecha se corta: lo reemplazan los bloques en línea (abajo)
-    signs = false, -- sin iconos junto al número: el fondo del número y los bloques ya lo dicen (diagnostic_blocks)
+    signs = false, -- sin iconos junto al número: lo dice el fondo del número (diagnostic_blocks.number)
   },
 
   -- Bloques de diagnóstico bajo su línea (utils/diagblocks.lua). `auto` y `mode` son el valor INICIAL: lo que
@@ -260,8 +260,7 @@ local defaults = {
   diagnostic_blocks = {
     auto = true, -- aparecen solos en cada buffer que tenga diagnósticos
     mode = "expanded", -- "expanded" todos abiertos | "compact" una línea cada uno (se abre el del cursor)
-    marker = true, -- con los bloques apagados: solo un icono de color (✖ ▲ ● ○) al final de la línea
-    number = true, -- el fondo del número de línea se tiñe con la severidad (el git es la barra de la signcolumn)
+    number = true, -- el número de línea se pinta con la píldora de la severidad (centrada en los dígitos), igual que la barra de estado (el git es la barra de la signcolumn)
   },
 
   -- vim.o.<clave> = valor
@@ -290,7 +289,9 @@ local defaults = {
     sidescrolloff = 8,
     cursorline = true,
     cursorlineopt = "number",
-    signcolumn = "yes:1",
+    signcolumn = "no", -- los signos (la barra del git) los dibuja el statuscolumn en UNA celda; "yes" les da dos
+    -- signos + número; el número lo pinta utils/diagblocks.lua (píldora centrada de la severidad)
+    statuscolumn = "%s%{%v:lua.require'utils.diagblocks'.statuscolumn()%}",
     jumpoptions = "view", -- <C-o>/<C-i> restauran también la vista (scroll), no solo el cursor
     undofile = true, -- el undo sobrevive a cerrar nvim (y a un corte de luz)
     exrc = true, -- carga .nvim.lua por proyecto (protegido por :trust)

@@ -1,7 +1,7 @@
 return {
   "lewis6991/gitsigns.nvim",
   opts = {
-    -- Git = barra fina en la signcolumn (┃ añadido/cambiado, ▁▔ borrado, ┆ sin seguir). El NÚMERO de línea
+    -- Git = barra fina junto al número (la dibuja el statuscolumn en una celda, ver core/settings.lua) (┃ añadido/cambiado, ▁▔ borrado, ┆ sin seguir). El NÚMERO de línea
     -- es de los diagnósticos (utils/diagblocks.lua), así que aquí no se tiñe
     signcolumn = true,
     numhl = false,

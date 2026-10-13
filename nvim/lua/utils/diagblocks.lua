@@ -2,7 +2,7 @@
 -- Muestra los diagnósticos del buffer como bloques bajo su línea (líneas virtuales: empujan el
 -- código, no tapan nada), con la barra de acento de la severidad igual que el bloque del agente.
 -- Aparece solo en cada buffer con diagnósticos (settings.diagnostic_blocks.auto); <leader>xa lo apaga
--- en ese buffer. Dos modos: "expanded" (todos desplegados) y "compact" (cada uno una línea; solo el de la línea
+-- en ese buffer. En modo insertar se oculta (salvo `diagnostics.update_in_insert = true`). Dos modos: "expanded" (todos desplegados) y "compact" (cada uno una línea; solo el de la línea
 -- del cursor se despliega, así que avanzar con ]/[ recorre uno por uno). Se actualiza solo al
 -- cambiar los diagnósticos, el cursor o el tema.
 -- También agrupa el popup de la línea (<leader>xd) para que Trouble y el atajo compartan código.
@@ -11,21 +11,23 @@ local color = require "appearance.color"
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "diagblocks"
-local MARK = vim.api.nvim_create_namespace "diagblocks.marker" -- icono al final de la línea (vista apagada)
-local NUM = vim.api.nvim_create_namespace "diagblocks.number" -- fondo del número de línea por severidad
+-- severidad más alta por línea (0-based) de cada buffer: la lee `M.statuscolumn` al pintar el número
+---@type table<integer, table<integer, integer>>
+local worst_by_buf = {}
 local SEV = vim.diagnostic.severity
 
--- severidad → icono, etiqueta, grupo del tema del que sale el color
+-- severidad → icono, etiqueta y nombre del grupo; el color sale de ui/diagcolors.lua (el mismo
+-- de la barra de estado)
 local KINDS = {
-  [SEV.ERROR] = { icon = "✖", label = "Error", name = "Error", from = "DiagnosticError" },
-  [SEV.WARN] = { icon = "▲", label = "Warning", name = "Warn", from = "DiagnosticWarn" },
-  [SEV.INFO] = { icon = "●", label = "Info", name = "Info", from = "DiagnosticInfo" },
-  [SEV.HINT] = { icon = "○", label = "Hint", name = "Hint", from = "DiagnosticHint" },
+  [SEV.ERROR] = { icon = "✖", label = "Error", name = "Error" },
+  [SEV.WARN] = { icon = "▲", label = "Warning", name = "Warn" },
+  [SEV.INFO] = { icon = "●", label = "Info", name = "Info" },
+  [SEV.HINT] = { icon = "○", label = "Hint", name = "Hint" },
 }
 
 local MAX_INDENT = 40
 
----@return { auto: boolean, mode: "expanded"|"compact", marker: boolean, number: boolean }
+---@return { auto: boolean, mode: "expanded"|"compact", number: boolean }
 local function settings()
   return require("core.settings").diagnostic_blocks
 end
@@ -104,31 +106,20 @@ local function apply_highlights()
   local dark = vim.o.background ~= "light"
   local bg = hex(get("Normal").bg) or (dark and "#1a1a1a" or "#fafafa")
   local fg = hex(get("Normal").fg) or (dark and "#dddddd" or "#222222")
-  local fallback = { Error = "#d75f5f", Warn = "#d7af5f", Info = "#5f87d7", Hint = "#5fafaf" }
+  local diag = require "ui.diagcolors"
 
-  for _, kind in pairs(KINDS) do
-    local accent = hex(get(kind.from).fg) or fallback[kind.name]
+  for severity, kind in pairs(KINDS) do
+    local accent = diag.accent(severity)
+    local pill = diag.pill(severity)
     local block_bg = color.blend(bg, accent, 0.10)
     local muted = color.ensure_contrast(color.blend(fg, block_bg, 0.45), block_bg, fg, 4.5)
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name, { fg = fg, bg = block_bg })
-    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Bar", {
-      fg = color.ensure_contrast(accent, block_bg, fg, 3.0),
-      bg = block_bg,
-    })
-    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Title", {
-      fg = color.ensure_contrast(accent, block_bg, fg, 4.5),
-      bg = block_bg,
-      bold = true,
-    })
+    -- barra y etiqueta: el acento EXACTO de la barra de estado (la etiqueta es la misma píldora)
+    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Bar", { fg = accent, bg = block_bg })
+    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Title", pill)
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Meta", { fg = muted, bg = block_bg, italic = true })
-    vim.api.nvim_set_hl(0, "DiagMarker" .. kind.name, { fg = color.ensure_contrast(accent, bg, fg, 3.0) })
-    -- número de línea: fondo teñido con la severidad y el texto siempre legible encima
-    local num_bg = color.blend(bg, accent, 0.40)
-    vim.api.nvim_set_hl(0, "DiagNumber" .. kind.name, {
-      fg = color.ensure_contrast(fg, num_bg, dark and "#ffffff" or "#000000", 4.5),
-      bg = num_bg,
-      bold = true,
-    })
+    -- número de línea: la misma píldora sólida de la barra de estado
+    vim.api.nvim_set_hl(0, "DiagNumber" .. kind.name, pill)
   end
 end
 
@@ -256,16 +247,17 @@ local function render(buf, win, mode)
     if mode == "compact" and d.lnum ~= cursor_lnum then
       local first = d.message:match "[^\n]*"
       local tail = src ~= "" and ("  " .. src) or ""
-      local room = inner - vim.fn.strdisplaywidth(kind.icon .. " " .. tail) - #counter[1] - 2
+      local room = inner - vim.fn.strdisplaywidth(" " .. kind.icon .. "  " .. tail) - #counter[1] - 2
       lines[#lines + 1] = row(indent, width, base .. "Bar", base, {
-        { kind.icon .. " ", base .. "Title" },
+        { " " .. kind.icon .. " ", base .. "Title" },
+        { " ", base },
         { truncate(first, math.max(room, 10)), base },
         { tail, base .. "Meta" },
       }, counter)
     else
-      local head = { { kind.icon .. " " .. kind.label, base .. "Title" } }
+      local head = { { " " .. kind.icon .. " " .. kind.label .. " ", base .. "Title" } }
       if src ~= "" then
-        head[#head + 1] = { " · " .. src, base .. "Meta" }
+        head[#head + 1] = { " " .. src, base .. "Meta" }
       end
       lines[#lines + 1] = row(indent, width, base .. "Bar", base, head, counter)
       for _, text in ipairs(wrap(d.message, inner)) do
@@ -282,71 +274,106 @@ local function render(buf, win, mode)
   end
 end
 
---- Con la vista apagada: solo un icono de color al final de cada línea con diagnósticos
---- (el de la severidad más alta), para saber que hay algo sin ocupar espacio
----@param buf integer
-local function markers(buf)
-  vim.api.nvim_buf_clear_namespace(buf, MARK, 0, -1)
-  if not settings().marker or vim.bo[buf].buftype ~= "" then
-    return
-  end
-  local worst = {}
-  for _, d in ipairs(vim.diagnostic.get(buf)) do
-    local sev = d.severity or SEV.HINT
-    if not worst[d.lnum] or sev < worst[d.lnum] then
-      worst[d.lnum] = sev
-    end
-  end
-  local line_count = vim.api.nvim_buf_line_count(buf)
-  for lnum, sev in pairs(worst) do
-    local kind = KINDS[sev]
-    if lnum < line_count then
-      vim.api.nvim_buf_set_extmark(buf, MARK, lnum, 0, {
-        virt_text = { { kind.icon, "DiagMarker" .. kind.name } },
-        virt_text_pos = "eol",
-        hl_mode = "combine",
-      })
-    end
-  end
-end
-
---- Pinta el fondo del número de cada línea con diagnósticos según la severidad más alta
+--- Guarda la severidad más alta de cada línea con diagnósticos y repinta la columna del número
 --- (el git va aparte: una barra fina en la signcolumn)
 ---@param buf integer
 local function numbers(buf)
-  vim.api.nvim_buf_clear_namespace(buf, NUM, 0, -1)
-  if not settings().number or vim.bo[buf].buftype ~= "" then
-    return
-  end
   local worst = {}
-  for _, d in ipairs(vim.diagnostic.get(buf)) do
-    local sev = d.severity or SEV.HINT
-    if not worst[d.lnum] or sev < worst[d.lnum] then
-      worst[d.lnum] = sev
+  if settings().number and vim.bo[buf].buftype == "" then
+    for _, d in ipairs(vim.diagnostic.get(buf)) do
+      local sev = d.severity or SEV.HINT
+      if not worst[d.lnum] or sev < worst[d.lnum] then
+        worst[d.lnum] = sev
+      end
     end
   end
-  local line_count = vim.api.nvim_buf_line_count(buf)
-  for lnum, sev in pairs(worst) do
-    if lnum < line_count then
-      vim.api.nvim_buf_set_extmark(buf, NUM, lnum, 0, {
-        number_hl_group = "DiagNumber" .. KINDS[sev].name,
-      })
+  worst_by_buf[buf] = next(worst) and worst or nil
+  if not pcall(vim.api.nvim__redraw, { buf = buf, statuscolumn = true }) then
+    vim.cmd.redraw()
+  end
+end
+
+--- Signo de la línea en UNA sola celda (el de mayor prioridad, de cualquier plugin; el git es la barra
+--- `┃`). Con `signcolumn=yes` cada signo ocupa dos celdas (el texto + un hueco), de ahí el espacio de más.
+---@param buf integer
+---@param lnum integer 1-based
+---@return string
+local function sign_cell(buf, lnum)
+  local best
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, -1, { lnum - 1, 0 }, { lnum - 1, -1 }, {
+    details = true,
+    type = "sign",
+  })) do
+    local d = m[4]
+    if d.sign_text and (not best or (d.priority or 0) > (best.priority or 0)) then
+      best = d
     end
   end
+  if not best then
+    return "%#LineNr# "
+  end
+  local char = vim.fn.strcharpart(vim.trim(best.sign_text), 0, 1)
+  return ("%%#%s#%s"):format(best.sign_hl_group or "LineNr", char == "" and " " or char:gsub("%%", "%%%%"))
+end
+
+--- Columna del número ('statuscolumn'): la píldora de la severidad se ajusta a los dígitos, con un
+--- espacio a cada lado, así el número queda centrado; el hueco que sobra para alinear a la derecha
+--- y el espacio hasta el código van sin fondo. Las líneas sin diagnóstico usan LineNr/CursorLineNr.
+---@return string
+function M.statuscolumn()
+  -- al evaluarse, la ventana "actual" es la que se está pintando; `actual_curwin` es la que tiene el foco
+  local win = vim.api.nvim_get_current_win()
+  local wo = vim.wo[win]
+  if not (wo.number or wo.relativenumber) then
+    return ""
+  end
+  local lnum, virt = vim.v.lnum, vim.v.virtnum
+  local buf = vim.api.nvim_win_get_buf(win)
+  local width = #tostring(vim.api.nvim_buf_line_count(buf))
+  -- con `signcolumn=no` el signo se dibuja aquí (una celda); con otro valor ya lo pone `%s`
+  local own = wo.signcolumn == "no"
+  -- línea partida por `wrap` o relleno virtual: solo el hueco, para no repetir el número
+  if virt ~= 0 then
+    return "%#LineNr#" .. (" "):rep(width + 2 + (own and 1 or 0))
+  end
+  local gutter = own and sign_cell(buf, lnum) or ""
+  local shown = (wo.relativenumber and vim.v.relnum > 0) and vim.v.relnum or lnum
+  local text = tostring(shown)
+  local sev = worst_by_buf[buf] and worst_by_buf[buf][lnum - 1]
+  local current = vim.v.relnum == 0 and tostring(win) == tostring(vim.g.actual_curwin)
+  local pad = (" "):rep(math.max(0, width - #text))
+  if sev then
+    return ("%s%%#LineNr#%s%%#DiagNumber%s# %s %%#LineNr# "):format(gutter, pad, KINDS[sev].name, text)
+  end
+  return ("%s%%#%s#%s %s  "):format(gutter, current and "CursorLineNr" or "LineNr", pad, text)
+end
+
+--- ¿Se está escribiendo en este buffer sin que `update_in_insert` pida diagnósticos en vivo?
+---@param buf integer
+---@return boolean
+local function typing(buf)
+  return vim.api.nvim_get_current_buf() == buf
+    and vim.fn.mode():find "^[iR]" ~= nil
+    and not vim.diagnostic.config().update_in_insert
 end
 
 local function redraw(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return
   end
+  require("ui.diagcolors").sync()
+  -- en modo insertar nada cambia ni empuja el código: los bloques se ocultan y el número se queda
+  -- como estaba; al salir (InsertLeave) se pinta todo con los diagnósticos ya asentados
+  if typing(buf) then
+    vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
+    return
+  end
   numbers(buf)
   local mode = active[buf]
   if not mode then
     vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
-    markers(buf)
     return
   end
-  vim.api.nvim_buf_clear_namespace(buf, MARK, 0, -1)
   local win = vim.fn.bufwinid(buf)
   if win ~= -1 then
     render(buf, win, mode)
@@ -361,6 +388,12 @@ local function ensure_autocmds()
   if group then
     return
   end
+  require("ui.diagcolors").on_change(function()
+    apply_highlights()
+    for buf in pairs(active) do
+      redraw(buf)
+    end
+  end)
   group = vim.api.nvim_create_augroup("DiagBlocks", { clear = true })
   local pending = {}
   local function schedule(buf)
@@ -384,6 +417,15 @@ local function ensure_autocmds()
         active[buf] = prefs.mode
       end
       schedule(buf)
+    end,
+  })
+  -- al empezar a escribir los bloques se ocultan; al salir se repintan con lo último del LSP
+  vim.api.nvim_create_autocmd({ "InsertEnter", "InsertLeave" }, {
+    group = group,
+    callback = function(ev)
+      if vim.bo[ev.buf].buftype == "" then
+        schedule(ev.buf)
+      end
     end,
   })
   -- un buffer oculto no se pinta: al volver a mostrarse se repinta
@@ -423,13 +465,24 @@ local function ensure_autocmds()
     group = group,
     callback = function(ev)
       active[ev.buf] = nil
+      worst_by_buf[ev.buf] = nil
     end,
   })
-  vim.api.nvim_create_autocmd("ColorScheme", { group = group, callback = apply_highlights })
-  vim.api.nvim_create_autocmd("User", { group = group, pattern = "NvThemeReload", callback = apply_highlights })
+  -- vim.schedule: al cambiar de tema, base46 termina de definir los `Diagnostic*` justo después del
+  -- evento; si se leyeran antes, el acento sería el del tema anterior y no coincidiría con la barra
+  local function reapply()
+    vim.schedule(function()
+      apply_highlights()
+      for buf in pairs(active) do
+        schedule(buf)
+      end
+    end)
+  end
+  vim.api.nvim_create_autocmd("ColorScheme", { group = group, callback = reapply })
+  vim.api.nvim_create_autocmd("User", { group = group, pattern = "NvThemeReload", callback = reapply })
 end
 
---- Aplica las preferencias a todos los buffers cargados (vista, modo y iconos)
+--- Aplica las preferencias a todos los buffers cargados (vista y modo)
 local function apply_all()
   ensure_autocmds()
   apply_highlights()
@@ -451,7 +504,7 @@ local function has_diagnostics(buf)
   return false
 end
 
---- Muestra/oculta los bloques (queda guardado para la próxima sesión; apagados = solo iconos)
+--- Muestra/oculta los bloques (queda guardado para la próxima sesión; apagados, solo se tiñe el número de línea)
 function M.toggle()
   local buf = vim.api.nvim_get_current_buf()
   if not active[buf] and not has_diagnostics(buf) then
