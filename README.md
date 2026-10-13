@@ -113,4 +113,4 @@ docs/cheatsheets/             documentación por lenguaje y agente
 
 - Actualizar: `git pull` (la config se recarga sola al abrir nvim) y `:Lazy sync` si cambian plugins (o `./install.sh`).
 - Comprobar: `scripts/gen-cheatsheet.sh --check` (cheatsheet al día) y `scripts/test-agent.sh` (agente; sin red ni tokens).
-- Commits: formato Conventional Commits (`feat(scope): asunto`); el hook `commit-msg` lo valida y `<leader>Gc` / `<leader>Gm` lo asisten.
+- Commits: formato Conventional Commits (`feat(scope): asunto`); el hook `commit-msg` lo valida y `<leader>Gc` / `<leader>Gm` lo asisten y `<leader>GM` commitea solo (mensaje de la IA en inglés).

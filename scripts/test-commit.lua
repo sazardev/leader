@@ -282,7 +282,7 @@ eq(
 eq(
   "IA: el mensaje del agente llena la ventana",
   vim.api.nvim_buf_get_lines(fb.gitcommit, 0, -1, false),
-  { "feat(editor): add the commit panel", "", "- shows what is committed" }
+  { "feat(editor): add the commit panel" } -- solo la cabecera: el modelo devuelve cuerpo y se ignora
 )
 eq(
   "IA: el título valida el borrador (✔ tipo(scope) y largo)",
@@ -294,10 +294,17 @@ eq(
   { ai_text():find("100→20 tok", 1, true) ~= nil, ai_text():find("$0.0004", 1, true) ~= nil },
   { true, true }
 )
-eq("IA: lo enviado incluye el diff preparado y la lista de tipos", {
-  FAKE.req.prompt:find("<diff>", 1, true) ~= nil,
-  FAKE.req.prompt:find("TWO", 1, true) ~= nil,
-  FAKE.req.system:find("feat, fix", 1, true) ~= nil,
+eq("IA: lo enviado lleva rama, archivos, diff compacto y la lista de tipos", {
+  FAKE.req.prompt:find("<branch>", 1, true) ~= nil,
+  FAKE.req.prompt:find("<files>", 1, true) ~= nil,
+  FAKE.req.prompt:find("<diff>\n## ", 1, true) ~= nil,
+  FAKE.req.prompt:find("diff --git", 1, true) == nil,
+  FAKE.req.system:find("feat | fix", 1, true) ~= nil,
+}, { true, true, true, true, true })
+eq("IA: instrucciones en inglés, una sola línea y siempre en inglés", {
+  FAKE.req.system:find("ALWAYS English", 1, true) ~= nil,
+  FAKE.req.system:find("header line only", 1, true) ~= nil,
+  FAKE.req.system:find("Spanish", 1, true) == nil and FAKE.req.system:find("Español", 1, true) == nil,
 }, { true, true, true })
 eq(
   "IA: el borrador usa el nivel ligero (commit)",
@@ -324,6 +331,10 @@ eq(
   "fix(editor): add the commit panel"
 )
 vim.ui.select = real_select
+
+-- el cuerpo que escribes tú viaja con el commit
+local msg_lines = vim.api.nvim_buf_get_lines(fb.gitcommit, 0, -1, false)
+vim.api.nvim_buf_set_lines(fb.gitcommit, 0, -1, false, vim.list_extend(msg_lines, { "", "- shows what is committed" }))
 
 -- commit
 eq("antes de commitear HEAD es el commit base", sh("log", "-1", "--format=%s"), "chore: base")
@@ -424,6 +435,136 @@ sh("reset", "-q", "--hard")
 sh("clean", "-fdq")
 panel.open()
 eq("árbol limpio: no abre nada", { wins_open(), last_note():find("Nothing to commit", 1, true) ~= nil }, { 0, true })
+
+-- ── diff compacto para el modelo ─────────────────────────────────────────────
+write("pkg/big.lua", vim.fn.map(vim.fn.range(1, 400), "'line ' . v:val . ' of a very long file'"))
+write("pkg/small.lua", { "local x = 1" })
+write("deps.lock", { "a", "b" })
+sh("add", "-A")
+local compact, total, cut = git.diff_for_ai(repo, 1500)
+eq("diff compacto: sin cabeceras de git, un `## ruta` por archivo", {
+  compact:find("diff --git", 1, true) == nil and compact:find("\nindex ", 1, true) == nil,
+  compact:find("## pkg/small.lua (new)", 1, true) ~= nil,
+  compact:find("## pkg/big.lua (new)", 1, true) ~= nil,
+}, { true, true, true })
+eq(
+  "diff compacto: lockfile listado pero sin su diff",
+  compact:find("## deps.lock (new) (generated, diff omitted)", 1, true) ~= nil,
+  true
+)
+eq(
+  "diff compacto: el archivo enorme se recorta y avisa",
+  { cut, total > 1500, compact:find("[… cut]", 1, true) ~= nil },
+  { true, true, true }
+)
+eq(
+  "diff compacto: el pequeño cabe entero aunque el grande se recorte",
+  compact:find("+local x = 1", 1, true) ~= nil,
+  true
+)
+eq("diff compacto: respeta el tope (con las cabeceras)", #compact < 1500 + 400, true)
+eq(
+  "numstat: una línea por archivo con +/−",
+  git.staged_numstat(repo):find("pkg/small.lua +1 -0", 1, true) ~= nil,
+  true
+)
+sh("reset", "-q", "--hard")
+sh("clean", "-fdq")
+
+-- ── commit automático (<leader>GM) ───────────────────────────────────────────
+local auto = require "commit.auto"
+local function head()
+  return sh("log", "-1", "--format=%s")
+end
+-- lanza el commit automático y espera su aviso final (el commit y el aviso van después de la IA)
+local function run_auto(final)
+  notes = {}
+  auto.run()
+  return wait(function()
+    return last_note():find(final, 1, true) ~= nil
+  end)
+end
+eq("auto: árbol limpio, no hace nada", run_auto "nothing to commit", true)
+
+-- sin nada preparado: prepara todo menos lo sensible, y SOLO la cabecera del mensaje
+FAKE.cmd = { "printf", "%s", "feat(core): add x\n\nbody that must be ignored" }
+write("a.lua", { "one", "TWO" })
+write("x.lua", { "new" })
+write(".env", { "SECRET=1" })
+eq(
+  "auto: commitea en segundo plano con el mensaje del agente",
+  run_auto "Committed" and head() == "feat(core): add x",
+  true
+)
+eq("auto: lo sensible se queda fuera, lo demás entra", {
+  sh("show", "--name-only", "--format=", "HEAD"),
+  sh("status", "--porcelain"),
+}, { "a.lua\nx.lua", "?? .env" })
+eq("auto: solo la cabecera (el cuerpo del modelo se ignora)", sh("log", "-1", "--format=%b"), "")
+eq("auto: el aviso trae hash, mensaje, archivos, modelo y coste, y lo que dejó fuera", {
+  last_note():find("Committed", 1, true) ~= nil,
+  last_note():find("feat(core): add x · 2 files", 1, true) ~= nil,
+  last_note():find("fakecommit", 1, true) ~= nil,
+  last_note():find("$0.0004", 1, true) ~= nil,
+  last_note():find("left out: .env", 1, true) ~= nil,
+}, { true, true, true, true, true })
+eq("auto: el prompt lleva la rama y las reglas en inglés", {
+  FAKE.req.prompt:find("<branch>main</branch>", 1, true) ~= nil,
+  FAKE.req.system:find("ALWAYS English", 1, true) ~= nil,
+}, { true, true })
+
+-- con algo preparado: solo eso
+FAKE.cmd = { "printf", "%s", "fix(core): staged only" }
+write("a.lua", { "one", "THREE" })
+write("x.lua", { "new", "more" })
+sh("add", "a.lua")
+eq(
+  "auto: con archivos preparados commitea solo esos",
+  run_auto "Committed" and head() == "fix(core): staged only",
+  true
+)
+eq(
+  "auto: lo no preparado sigue sin preparar",
+  { sh("show", "--name-only", "--format=", "HEAD"), sh("status", "--porcelain") },
+  {
+    "a.lua",
+    "M x.lua\n?? .env",
+  }
+)
+
+-- cabecera inválida: no commitea y devuelve el índice como estaba
+FAKE.cmd = { "printf", "%s", "wip: nope" }
+eq("auto: cabecera inválida, nada commiteado y archivos sin preparar otra vez", run_auto "is not valid", true)
+eq(
+  "auto: tras fallar, el índice queda vacío",
+  { head(), sh("diff", "--cached", "--name-only") },
+  { "fix(core): staged only", "" }
+)
+
+-- la IA falla
+FAKE.cmd = { "sh", "-c", "exit 3" }
+auto.run()
+eq("auto: si la IA falla, avisa y deja todo como estaba", wait(function()
+  return last_note():find("AI failed", 1, true) ~= nil
+end) and sh("diff", "--cached", "--name-only") == "", true)
+
+-- un hook rechaza el commit
+FAKE.cmd = { "printf", "%s", "feat(core): hook says no" }
+vim.fn.writefile({ "#!/bin/sh", "echo rejected by hook >&2", "exit 1" }, repo .. "/.git/hooks/pre-commit")
+vim.fn.setfperm(repo .. "/.git/hooks/pre-commit", "rwxr-xr-x")
+auto.run()
+eq("auto: si un hook rechaza, lo avisa y deshace lo que preparó", wait(function()
+  return last_note():find("rejected by hook", 1, true) ~= nil
+end) and sh("diff", "--cached", "--name-only") == "" and head() == "fix(core): staged only", true)
+os.remove(repo .. "/.git/hooks/pre-commit")
+
+-- solo hay archivos sensibles
+sh("checkout", "-q", "--", "x.lua")
+eq(
+  "auto: solo sensibles, avisa y no toca nada",
+  { run_auto "only sensitive files changed", sh("diff", "--cached", "--name-only") },
+  { true, "" }
+)
 
 state.get, state.set = real_get, real_set
 vim.fn.delete(repo, "rf")

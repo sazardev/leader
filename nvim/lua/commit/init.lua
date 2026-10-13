@@ -1,8 +1,9 @@
 -- ── Commits (menú <leader>G): fachada ────────────────────────────────────────
--- Una sola experiencia, el panel (commit/panel.lua), con tres entradas:
+-- Una sola experiencia, el panel (commit/panel.lua), con tres entradas, y un modo sin panel:
 --   open()   revisar lo que se commitea, escribir el mensaje (tipo/scope asistidos) y commitear
 --   ai()     igual, pidiendo ya el borrador al agente (lee solo lo preparado; el panel dice qué y con qué modelo)
 --   amend()  reescribir el mensaje del último commit (avisa si ya está en el remoto)
+--   auto()   sin panel y en segundo plano: prepara (si hace falta), la IA escribe UN mensaje y commitea (commit/auto.lua)
 --   commit/conventional.lua  validación y sugerencias (puro) · commit/git.lua  git · commit/ai.lua  el borrador
 local M = {}
 
@@ -12,6 +13,10 @@ end
 
 function M.ai()
   require("commit.panel").open { ai = true }
+end
+
+function M.auto()
+  require("commit.auto").run()
 end
 
 function M.amend()

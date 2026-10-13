@@ -140,6 +140,7 @@ _Dónde: archivos dentro de un repo git_
 |---|---|
 | `<leader>Gc` | commit |
 | `<leader>Gm` | commit + AI draft |
+| `<leader>GM` | commit auto |
 | `<leader>Ga` | amend |
 | `<leader>Gt` | status |
 | `<leader>Gb` | blame |

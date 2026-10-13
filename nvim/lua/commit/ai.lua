@@ -1,7 +1,9 @@
 -- ── Borrador del mensaje con el agente ───────────────────────────────────────
 -- Un disparo, sin buffer ni presentador (agent/oneshot): mismo backend y modelo que las acciones, nivel ligero
 -- (reasignable con agent.tiers.commit). Lo que se envía es exactamente lo que `describe` anuncia en el panel:
--- los archivos preparados (su diff, sin lockfiles, con tope), los últimos asuntos y la lista de tipos.
+-- los archivos preparados (diff compacto, sin ruido, con tope repartido), la rama y los tipos. NO se envían los asuntos
+-- de commits anteriores: el modelo copiaba su idioma (el vocabulario de scopes sale de ellos, en local).
+-- El mensaje sale SIEMPRE en inglés y de una sola línea (menos salida = menos espera).
 local conventional = require "commit.conventional"
 local git = require "commit.git"
 
@@ -21,32 +23,32 @@ function M.build(files, root)
   end, c.types)
   local scopes = conventional.suggest_scopes(files, conventional.history_scopes(git.recent_subjects(root, c.history)))
 
+  -- Todo en inglés y corto: el modelo devuelve SOLO la primera línea (menos salida = menos espera)
   local system = table.concat({
-    "You write git commit messages in the Conventional Commits format.",
-    "Output ONLY the commit message: no commentary, no code fences, no quotes.",
-    "Format: `type(scope): subject`, then optionally a blank line and a body.",
-    "- type: one of " .. table.concat(types, ", ") .. ".",
+    "Write ONE git commit message for the staged diff. Conventional Commits, header line only.",
+    "Output exactly one line: `type(scope): subject`. No body, no quotes, no code fences, no commentary.",
+    "- ALWAYS English, even if the diff, comments or recent commits are in another language. Keep identifiers and paths as they are.",
+    "- type: "
+      .. table.concat(types, " | ")
+      .. ". Pick by effect: feat = new capability, fix = bug, refactor = same behaviour, docs/test/chore/build/ci/style/perf as named.",
     #scopes > 0
-        and ("- scope: a short lowercase noun for the area touched; prefer one of: %s. Omit it when the change is cross-cutting."):format(
+        and ("- scope: lowercase noun of the area touched; prefer one of: %s. Omit it when the change is cross-cutting."):format(
           table.concat(scopes, ", ")
         )
-      or "- scope: a short lowercase noun for the area touched; omit it when the change is cross-cutting.",
-    ("- subject: imperative, lowercase first letter, no trailing period; the whole first line at most %d characters."):format(
+      or "- scope: lowercase noun of the area touched; omit it when the change is cross-cutting.",
+    ("- subject: imperative, lowercase first letter, no period, says WHAT changed (and why when it fits); the whole line at most %d characters."):format(
       c.subject_max
     ),
-    "- body: only when the change needs the WHY; wrap at 72 columns; plain sentences or `- ` bullets.",
-    "- Breaking change: `!` after the type/scope and a `BREAKING CHANGE:` footer.",
-    "- Exactly ONE commit message with a single header line: never list alternatives or a second header.",
-    "- Match the style of the recent commits shown.",
-    "- Write the message in " .. c.language .. ". Keep identifiers, paths and the type in their original form.",
+    "- Breaking change: `!` after the type/scope.",
+    "- Many files: describe the one purpose that ties them together, not a list.",
   }, "\n")
 
-  local diff, total, truncated = git.staged_diff(root, c.diff_max_chars)
+  local diff, total, truncated = git.diff_for_ai(root, c.diff_max_chars)
+  local branch = git.branch_name(root)
   local prompt = table.concat({
-    "<recent_commits>\n" .. git.recent_subjects(root, 15) .. "\n</recent_commits>",
-    "<staged_files>\n" .. git.staged_stat(root) .. "\n</staged_files>",
+    "<branch>" .. branch .. "</branch>",
+    "<files>\n" .. git.staged_numstat(root) .. "\n</files>",
     "<diff>\n" .. diff .. "\n</diff>",
-    "<task>\nWrite the commit message for the staged changes.\n</task>",
   }, "\n")
   return system, prompt, { diff_chars = total, truncated = truncated }
 end
@@ -63,7 +65,7 @@ end
 ---@param root string
 ---@return { model: string?, files: integer, diff_chars: integer, truncated: boolean, limit: integer }
 function M.describe(files, root)
-  local _, total, truncated = git.staged_diff(root, cfg().diff_max_chars)
+  local _, total, truncated = git.diff_for_ai(root, cfg().diff_max_chars)
   return { model = M.model(), files = #files, diff_chars = total, truncated = truncated, limit = cfg().diff_max_chars }
 end
 
@@ -78,11 +80,14 @@ function M.draft(files, root, cb)
     if not ok then
       return cb(false, out)
     end
-    local lines = conventional.clean_message(out)
-    if vim.trim(table.concat(lines, "")) == "" then
+    -- solo la primera línea no vacía: si el modelo añade cuerpo o alternativas, se ignoran
+    local header = vim.tbl_filter(function(l)
+      return vim.trim(l) ~= ""
+    end, conventional.clean_message(out))[1]
+    if not header then
       return cb(false, "the model returned an empty message")
     end
-    cb(true, lines, usage)
+    cb(true, { vim.trim(header) }, usage)
   end)
 end
 

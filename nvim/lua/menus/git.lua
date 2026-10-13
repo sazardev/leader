@@ -9,7 +9,7 @@ return {
 		return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" and vim.fs.root(buf, ".git") ~= nil
 	end,
 	maps = {
-		-- commits convencionales: UN panel (commit/panel.lua) con tres entradas
+		-- commits convencionales: UN panel (commit/panel.lua) con tres entradas, y `M` sin panel (commit/auto.lua)
 		{
 			"c",
 			"commit",
@@ -22,6 +22,13 @@ return {
 			"commit + AI draft",
 			function()
 				require("commit").ai()
+			end,
+		},
+		{
+			"M",
+			"commit auto",
+			function()
+				require("commit").auto()
 			end,
 		},
 		{

@@ -235,9 +235,11 @@ local defaults = {
         { "revert", "revert a previous commit" },
       },
       subject_max = 72, -- largo máximo de la primera línea ("tipo(scope): asunto")
-      language = "Spanish", -- idioma del mensaje que genera la IA (<leader>Gm)
       history = 300, -- commits recientes que se leen para sugerir scopes
-      diff_max_chars = 12000, -- tope del diff que se envía a la IA
+      diff_max_chars = 6000, -- tope del diff compacto que se envía a la IA (repartido entre los archivos); menos = más rápido y barato
+      -- <leader>GM (commit automático): si no hay nada preparado, prepara TODO lo modificado salvo lo que case con estos
+      -- patrones de Lua (secretos y llaves: eso lo preparas tú a mano). Lo que ya preparaste nunca se filtra.
+      sensitive = { "^%.env", "%.env%.", "%.pem$", "%.key$", "%.p12$", "%.pfx$", "id_rsa", "id_ed25519", "credentials", "secrets?%.", "%.kdbx$" },
     },
   },
 

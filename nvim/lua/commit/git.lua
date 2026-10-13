@@ -51,6 +51,12 @@ function M.branch(root)
 end
 
 ---@param root string
+---@return string
+function M.branch_name(root)
+  return out({ "rev-parse", "--abbrev-ref", "HEAD" }, root)
+end
+
+---@param root string
 ---@return boolean
 function M.has_head(root)
   local _, code = M.run({ "rev-parse", "--verify", "-q", "HEAD" }, root)
@@ -171,23 +177,96 @@ function M.recent_subjects(root, n)
   return out({ "log", "-n", tostring(n), "--format=%s" }, root)
 end
 
----@param root string
----@return string stat  `git diff --cached --stat`
-function M.staged_stat(root)
-  return out({ "diff", "--cached", "--stat" }, root)
+-- Archivos que no aportan al mensaje (se listan, pero su diff no se envía)
+local NOISE = { "lock", "%.sum$", "%.min%.", "%.snap$", "%.svg$", "%.map$", "%.lcov$", "CHEATSHEET%.md$" }
+
+---@param path string
+---@return boolean
+local function noisy(path)
+  for _, p in ipairs(NOISE) do
+    if path:find(p) then
+      return true
+    end
+  end
+  return false
 end
 
---- Diff preparado sin lockfiles, recortado a `max` caracteres
 ---@param root string
----@param max integer
----@return string diff, integer total_chars, boolean truncated
-function M.staged_diff(root, max)
-  local diff = out({ "diff", "--cached", "-U2", "--no-color", "--", ".", ":(exclude)*lock*", ":(exclude)*.sum" }, root)
-  local total = #diff
-  if total > max then
-    return diff:sub(1, max) .. "\n[diff truncated]", total, true
+---@return string stat  una línea por archivo: `path +adds -dels`
+function M.staged_numstat(root)
+  local lines = {}
+  for rec in (M.run({ "diff", "--cached", "--numstat", "--no-renames", "-z" }, root)):gmatch "[^%z]+" do
+    local adds, dels, path = rec:match "^(%S+)\t(%S+)\t(.+)$"
+    if path then
+      lines[#lines + 1] = adds == "-" and (path .. " (binary)") or ("%s +%s -%s"):format(path, adds, dels)
+    end
   end
-  return diff, total, false
+  return table.concat(lines, "\n")
+end
+
+--- Diff preparado COMPACTO para el modelo: sin cabeceras de git (`diff --git`, `index`, `---`/`+++`), un `## ruta`
+--- por archivo, poco contexto (-U1), sin ruido (lockfiles, mapas, snapshots) y con el tope repartido entre los
+--- archivos (uno enorme no deja a los demás sin diff).
+---@param root string
+---@param max integer tope de caracteres
+---@return string diff, integer total_chars, boolean truncated  total = lo que ocuparía sin recortar
+function M.diff_for_ai(root, max)
+  local raw = M.run({ "diff", "--cached", "-U1", "--no-color", "--no-ext-diff", "--no-renames" }, root)
+  local files = {}
+  for _, line in ipairs(vim.split(raw, "\n", { plain = true })) do
+    local path = line:match "^diff %-%-git a/.- b/(.+)$"
+    if path then
+      files[#files + 1] = { path = path, tag = "", body = {} }
+    elseif #files > 0 then
+      local f = files[#files]
+      if line:match "^new file mode" then
+        f.tag = " (new)"
+      elseif line:match "^deleted file mode" then
+        f.tag = " (deleted)"
+      elseif line:match "^Binary files" then
+        f.tag = " (binary)"
+      elseif
+        not (
+          line:match "^index "
+          or line:match "^%-%-%- "
+          or line:match "^%+%+%+ "
+          or line:match "^old mode"
+          or line:match "^new mode"
+        )
+      then
+        f.body[#f.body + 1] = line
+      end
+    end
+  end
+
+  local total, sized = 0, {}
+  for _, f in ipairs(files) do
+    f.text = noisy(f.path) and "" or table.concat(f.body, "\n")
+    f.noise = noisy(f.path)
+    f.size = #f.text
+    total = total + f.size
+    sized[#sized + 1] = f
+  end
+  -- reparto: los pequeños caben enteros y lo que sobra pasa a los grandes
+  table.sort(sized, function(a, b)
+    return a.size < b.size
+  end)
+  local left, truncated = max, false
+  for i, f in ipairs(sized) do
+    local share = math.max(300, math.floor(left / (#sized - i + 1)))
+    if f.size > share then
+      f.text = f.text:sub(1, share) .. "\n[… cut]"
+      truncated = true
+    end
+    left = left - math.min(f.size, share)
+  end
+
+  local parts = {}
+  for _, f in ipairs(files) do
+    local head = "## " .. f.path .. f.tag .. (f.noise and " (generated, diff omitted)" or "")
+    parts[#parts + 1] = f.text ~= "" and (head .. "\n" .. f.text) or head
+  end
+  return table.concat(parts, "\n"), total, truncated
 end
 
 ---@param root string
