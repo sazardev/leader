@@ -87,7 +87,7 @@ end
 --- Pide un texto a la IA sin buffer ni objetivo (mensajes de commit...): un disparo, modelo
 --- ligero por defecto. `cb(ok, texto | error)`. Devuelve el proceso, para poder cancelarlo.
 ---@param req { action: string, system: string, prompt: string, tier: "main"|"light"? }
----@param cb fun(ok: boolean, text: string)
+---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
 function M.complete(req, cb)
   return require("agent.oneshot").run(req, cb)

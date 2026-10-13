@@ -214,7 +214,7 @@ local defaults = {
     auto_collapse = false, -- true: los comentarios largos se abren ya plegados
   },
 
-  -- Git (lua/utils/commit.lua, menú <leader>G): commits con Conventional Commits
+  -- Git (lua/commit/, menú <leader>G): commits con Conventional Commits
   git = {
     commit = {
       -- { tipo, descripción }. El hook .githooks/commit-msg valida los mismos tipos: si cambias

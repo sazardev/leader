@@ -1,5 +1,5 @@
 -- ── Ajustes del buffer de commit ─────────────────────────────────────────────
--- Para `git commit` (COMMIT_EDITMSG) y para la ventana de mensaje de utils/commit.lua:
+-- Para `git commit` (COMMIT_EDITMSG) y para el panel de commit (commit/panel.lua):
 -- ortografía y guías en las columnas de Conventional Commits (asunto ≤ 72, cuerpo ≤ 72).
 local M = {}
 

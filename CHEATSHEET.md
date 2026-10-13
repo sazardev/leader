@@ -136,22 +136,22 @@ _Dónde: archivos dentro de un repo git_
 
 | Tecla | Acción |
 |---|---|
-| `<leader>Gc` | commit (type, scope, subject) |
-| `<leader>Gm` | commit message written by AI (review first) |
-| `<leader>Ga` | amend last commit message |
+| `<leader>Gc` | commit |
+| `<leader>Gm` | commit + AI draft |
+| `<leader>Ga` | amend |
 | `<leader>Gt` | status |
-| `<leader>Gb` | blame toggle |
-| `<leader>Gd` | diff of all changes (Diffview) |
-| `<leader>Gf` | history of this file |
-| `<leader>Gr` | history of the repo |
-| `<leader>Gq` | close Diffview |
-| `<leader>Go` | conflict: keep ours |
-| `<leader>GT` | conflict: keep theirs |
-| `<leader>GB` | conflict: keep both |
-| `<leader>GN` | conflict: keep none |
-| `<leader>Gn` | conflict: next |
-| `<leader>Gp` | conflict: previous |
-| `<leader>Gl` | conflicts of the repo (quickfix) |
+| `<leader>Gb` | blame |
+| `<leader>Gd` | diff |
+| `<leader>Gf` | file history |
+| `<leader>Gr` | repo history |
+| `<leader>Gq` | close diff |
+| `<leader>Go` | conflict ours |
+| `<leader>GT` | conflict theirs |
+| `<leader>GB` | conflict both |
+| `<leader>GN` | conflict none |
+| `<leader>Gn` | conflict next |
+| `<leader>Gp` | conflict previous |
+| `<leader>Gl` | conflict list |
 
 ### Go — `<leader>g`
 

@@ -9,41 +9,41 @@ return {
 		return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" and vim.fs.root(buf, ".git") ~= nil
 	end,
 	maps = {
-		-- commits convencionales (utils/commit.lua)
+		-- commits convencionales: UN panel (commit/panel.lua) con tres entradas
 		{
 			"c",
-			"commit (type, scope, subject)",
+			"commit",
 			function()
-				require("utils.commit").wizard()
+				require("commit").open()
 			end,
 		},
 		{
 			"m",
-			"commit message written by AI (review first)",
+			"commit + AI draft",
 			function()
-				require("utils.commit").ai()
+				require("commit").ai()
 			end,
 		},
 		{
 			"a",
-			"amend last commit message",
+			"amend",
 			function()
-				require("utils.commit").amend()
+				require("commit").amend()
 			end,
 		},
 		{ "t", "status", ex("Telescope git_status") },
-		{ "b", "blame toggle", ex("GitBlameToggle") },
-		{ "d", "diff of all changes (Diffview)", ex("DiffviewOpen") },
-		{ "f", "history of this file", ex("DiffviewFileHistory %") },
-		{ "r", "history of the repo", ex("DiffviewFileHistory") },
-		{ "q", "close Diffview", ex("DiffviewClose") },
+		{ "b", "blame", ex("GitBlameToggle") },
+		{ "d", "diff", ex("DiffviewOpen") },
+		{ "f", "file history", ex("DiffviewFileHistory %") },
+		{ "r", "repo history", ex("DiffviewFileHistory") },
+		{ "q", "close diff", ex("DiffviewClose") },
 		-- conflictos de merge (git-conflict.nvim)
-		{ "o", "conflict: keep ours", ex("GitConflictChooseOurs") },
-		{ "T", "conflict: keep theirs", ex("GitConflictChooseTheirs") },
-		{ "B", "conflict: keep both", ex("GitConflictChooseBoth") },
-		{ "N", "conflict: keep none", ex("GitConflictChooseNone") },
-		{ "n", "conflict: next", ex("GitConflictNextConflict") },
-		{ "p", "conflict: previous", ex("GitConflictPrevConflict") },
-		{ "l", "conflicts of the repo (quickfix)", ex("GitConflictListQf") },
+		{ "o", "conflict ours", ex("GitConflictChooseOurs") },
+		{ "T", "conflict theirs", ex("GitConflictChooseTheirs") },
+		{ "B", "conflict both", ex("GitConflictChooseBoth") },
+		{ "N", "conflict none", ex("GitConflictChooseNone") },
+		{ "n", "conflict next", ex("GitConflictNextConflict") },
+		{ "p", "conflict previous", ex("GitConflictPrevConflict") },
+		{ "l", "conflict list", ex("GitConflictListQf") },
 	},
 }

@@ -10,7 +10,7 @@ local text = require "agent.text"
 local M = {}
 
 ---@param req { action: string, system: string, prompt: string, tier: "main"|"light"? }
----@param cb fun(ok: boolean, text: string)
+---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
 function M.run(req, cb)
   -- `name` permite reasignar el tier desde settings.agent.tiers (p. ej. tiers = { commit = "main" })
@@ -51,7 +51,7 @@ function M.run(req, cb)
         return cb(false, ("timed out (%gs)"):format(settings.timeout_ms / 1000))
       end
       if result.ok then
-        cb(true, text.trim(result.text or ""))
+        cb(true, text.trim(result.text or ""), result.usage)
       else
         cb(false, result.err or "unknown error")
       end
