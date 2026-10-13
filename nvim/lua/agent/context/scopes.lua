@@ -279,6 +279,91 @@ function M.type_names(node, src, first, last)
   return found
 end
 
+local ACCESS = { "selector", "member", "field_expression", "attribute", "access", "dot_index", "navigation" }
+
+---@param t string
+---@return boolean
+local function is_access(t)
+  for _, p in ipairs(ACCESS) do
+    if t:find(p, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+--- El identificador del OBJETO de un acceso (`x.Titl` -> x; `a.b.c` -> b), si el nodo es la parte derecha de uno:
+--- un diagnóstico sobre el miembro (`no field Titl`) se explica con el tipo del objeto, no con el del miembro.
+---@param n TSNode
+---@param src integer
+---@return { name: string, row: integer, col: integer }?
+local function operand_of(n, src)
+  local parent = n:parent()
+  if not (parent and is_access(parent:type())) then
+    return nil
+  end
+  local first = parent:named_child(0)
+  if not first or first:id() == n:id() then
+    return nil
+  end
+  while first and is_access(first:type()) and first:named_child_count() > 0 do
+    first = first:named_child(first:named_child_count() - 1)
+  end
+  if first and first:type():find "identifier" and first:named_child_count() == 0 then
+    local row, col = first:start()
+    return { name = vim.treesitter.get_node_text(first, src), row = row, col = col }
+  end
+  return nil
+end
+
+--- Identificadores dentro de un rango (0-based; `ecol` exclusivo), y el objeto de cada acceso (`x.Titl` -> también x).
+--- Con rango vacío, el que hay en ese punto. Sirve para preguntar al LSP por los objetos a los que apunta un diagnóstico.
+---@param buf integer
+---@param srow integer
+---@param scol integer
+---@param erow integer
+---@param ecol integer
+---@return { name: string, row: integer, col: integer }[]
+function M.identifiers_in(buf, srow, scol, erow, ecol)
+  local root = M.parse(buf)
+  if not root then
+    return {}
+  end
+  if erow == srow and ecol <= scol then
+    ecol = scol + 1
+  end
+  local out, seen = {}, {}
+  local function add(id)
+    local key = id.row .. ":" .. id.col
+    if not seen[key] then
+      seen[key] = true
+      out[#out + 1] = id
+    end
+  end
+  local function walk(n)
+    local nsr, nsc, ner, nec = n:range()
+    if ner < srow or (ner == srow and nec <= scol) or nsr > erow or (nsr == erow and nsc >= ecol) then
+      return
+    end
+    if n:type():find "identifier" and n:named_child_count() == 0 then
+      -- primero el objeto (es lo que explica el diagnóstico), luego el propio identificador
+      local operand = operand_of(n, buf)
+      if operand then
+        add(operand)
+      end
+      add { name = vim.treesitter.get_node_text(n, buf), row = nsr, col = nsc }
+    end
+    for child in n:iter_children() do
+      walk(child)
+    end
+  end
+  local node = root:named_descendant_for_range(srow, scol, erow, ecol)
+  if node then
+    walk(node)
+  end
+  return out
+end
+
 --- Bloques de constantes de primer nivel que mencionan el tipo (el "enum" de Go: `const ( Pending Status = ... )`)
 ---@param src integer|string buffer o texto
 ---@param lang string? obligatorio con texto

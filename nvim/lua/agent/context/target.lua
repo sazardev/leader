@@ -11,7 +11,7 @@ local M = {}
 ---@field buf integer
 ---@field path string
 ---@field lang string
----@field kind string  "selection" | "function" | "class" | "file" | "lines"
+---@field kind string  "selection" | "function" | "class" | "file" | "lines" | "diagnostic"
 ---@field name string?
 ---@field first integer 1-based
 ---@field last integer 1-based, inclusivo
@@ -67,8 +67,46 @@ local function paragraph(buf, row)
   return first + 1, last + 1
 end
 
+--- Líneas (1-based) que cubren los diagnósticos de la línea del cursor (LSP, linters y hallazgos del agente).
+--- Si abarcan demasiado (un bloque entero), solo los que empiezan en esa línea.
 ---@param buf integer
----@param scope string "function" | "class" | "file" | "lines"
+---@param line integer 1-based
+---@return integer?, integer?
+function M.diagnostic_range(buf, line)
+  local function span(only_start)
+    local first, last
+    for _, d in ipairs(vim.diagnostic.get(buf)) do
+      local d_first, d_last = d.lnum + 1, (d.end_lnum or d.lnum) + 1
+      if d_first <= line and line <= d_last and (not only_start or d_first == line) then
+        first = math.min(first or d_first, d_first)
+        last = math.max(last or d_last, d_last)
+      end
+    end
+    return first, last
+  end
+  local first, last = span(false)
+  if first and last - first + 1 > settings.diagnostic_lines then
+    first, last = span(true)
+    last = first and math.min(last, first + settings.diagnostic_lines - 1) or nil
+  end
+  return first, last
+end
+
+--- ¿Hay algún diagnóstico (LSP o del agente) dentro del objetivo?
+---@param target AgentTarget
+---@return boolean
+function M.has_diagnostics(target)
+  for _, d in ipairs(vim.diagnostic.get(target.buf)) do
+    local line = d.lnum + 1
+    if line >= target.first and line <= target.last then
+      return true
+    end
+  end
+  return false
+end
+
+---@param buf integer
+---@param scope string "function" | "class" | "file" | "lines" | "diagnostic" (las líneas del diagnóstico bajo el cursor)
 ---@param range integer[]? selección visual (1-based)
 ---@return AgentTarget?, string? error
 function M.resolve(buf, scope, range)
@@ -77,6 +115,12 @@ function M.resolve(buf, scope, range)
     target = make(buf, "selection", range[1], range[2])
   elseif scope == "file" then
     target = make(buf, "file", 1, vim.api.nvim_buf_line_count(buf))
+  elseif scope == "diagnostic" then
+    local first, last = M.diagnostic_range(buf, vim.api.nvim_win_get_cursor(0)[1])
+    if not first then
+      return nil, "no diagnostic on this line (<leader>aF fixes the whole function)"
+    end
+    target = make(buf, "diagnostic", first, last)
   else
     local row = vim.api.nvim_win_get_cursor(0)[1] - 1
     local found, kind

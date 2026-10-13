@@ -16,7 +16,8 @@ así que es predecible y barata. Teclas: [`CHEATSHEET.md`](../../CHEATSHEET.md) 
 | `r` review | función o selección | hallazgos reales como **diagnósticos** en su línea (`◆`); `<leader>xd` muestra el detalle |
 | `e` explain | función o selección | ventana junto al código, con streaming; se cierra sola al mover el cursor |
 | `a` ask | tu pregunta (campo de texto) | ventana, igual que explain |
-| `f` fix | los diagnósticos del LSP dentro del objetivo + pista opcional | diff con el cambio mínimo; sin diagnósticos, no hace nada |
+| `f` fix inline | el diagnóstico (LSP, linter o hallazgo del agente) de la línea del cursor + pista opcional | diff con el cambio mínimo sobre **solo esas líneas**; el código de alrededor y los objetos a los que apunta (tipo de la variable, firma de lo llamado) van de contexto de solo lectura; sin diagnóstico en la línea, no hace nada |
+| `F` fix block | todos los diagnósticos de la función (o selección) + pista opcional | diff con el cambio mínimo que deja el bloque coherente (varios diagnósticos con la misma causa se arreglan juntos) |
 | `d` docs | función + enfoque opcional | diff que solo añade/actualiza el comentario de documentación |
 | `R` refactor | tu instrucción (campo de texto) | diff que aplica exactamente esa instrucción |
 | `g` handoff | tu instrucción | manda `archivo:rango` + instrucción a un agente que ya corre en Herdr |
@@ -32,7 +33,7 @@ al prompt y manda sobre el comportamiento por defecto. Sirve para una `func main
 3"), para una función poco clara ("esto valida pedidos antes de cobrar; falta el caso de cupones") o para guiar un arreglo.
 `a` ask y `R` refactor exigen el texto; `r` review y `e` explain corren al instante.
 
-**Menú corto**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix, `R` refactor, `g` hand off (solo dentro de
+**Menú corto**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (solo dentro de
 Herdr), `h` history, `m` model (principal, ligero y esfuerzo en un solo selector), `c` clear (descarta el hallazgo de la línea, o los de la selección en visual), `C` clear file (los de este archivo), `x` stop (cancela lo que corre y descarta las propuestas
 pendientes; **no** toca los hallazgos) y `l` last answer (reabre la última respuesta o propuesta rechazada). Aceptar y rechazar una propuesta no tienen
 entrada de menú: son `⏎` y `⎋` sobre la propuesta.
@@ -76,7 +77,8 @@ Cada acción pide lo que necesita, **en orden de prioridad** (si el presupuesto 
 | implement | rules, contracts, schema, types, callees, outline, diagnostics |
 | port | rules, contracts, schema, types, diagnostics |
 | review | rules, diagnostics, contracts, schema, types, callees |
-| fix | rules, **diagnostics**, findings, contracts, types, callees |
+| fix (inline) | rules, **diagnostics**, findings, contracts, **around** (código de alrededor), types, callees |
+| fix block | rules, **diagnostics**, findings, contracts, types, callees |
 | refactor | rules, types, callees, outline |
 | ask | rules, types, callees, outline, diagnostics |
 | explain | rules, types, callees |
@@ -203,7 +205,7 @@ código actual. Úsalo cuando la tarea ya no cabe en un disparo.
 
 ## Niveles de la arquitectura hexagonal (un menú por nivel)
 
-`<leader>a` se queda con lo genérico (implement, review, explain, ask, fix, docs, refactor, hand off, model, history, clear, stop, last).
+`<leader>a` se queda con lo genérico (implement, review, explain, ask, fix inline, fix block, docs, refactor, hand off, model, history, clear, stop, last).
 Cada **nivel** de la arquitectura tiene su carpeta (`lua/agent/<nivel>/`), su registro de acciones y su menú propio, con su contexto y,
 en cada uno, un **análisis local de 0 tokens**. Las acciones de cada nivel corren por el mismo pipeline (diff en línea, hallazgos,
 historial y coste), y en el historial aparecen con su nombre (`repo_port`, `service_review`, `ddd_fix`...).
@@ -277,7 +279,7 @@ Los hallazgos de `review` y `ddd review`, y las violaciones de `ddd diagnose`, s
 - **Limpiarlos** (de la memoria y del disco; review y ddd por igual): `<leader>ac` clear descarta el de la línea del cursor (en
   visual, los de la selección) → de uno en uno; `<leader>aC` clear file, todos los de este archivo; `:AgentClear [file|all]`
   (con rango: `:'<,'>AgentClear`), `all` = todos los archivos. `<leader>aDc` ddd clear, el diagnóstico de DDD de todo el proyecto. **`<leader>ax` stop no los borra**: solo cancela lo que corre y descarta propuestas pendientes.
-- **Arreglarlos**: `<leader>af` (fix) y `<leader>aDf` (**ddd fix**) leen los hallazgos que caen en la función o selección,
+- **Arreglarlos**: `<leader>af` (fix inline, el de la línea), `<leader>aF` (fix block, toda la función) y `<leader>aDf` (**ddd fix**) leen los hallazgos que caen en la función o selección,
   junto con los diagnósticos del LSP, y proponen el cambio mínimo (en `ddd fix`, respetando las capas de `<ddd>`; si el arreglo
   necesita un puerto, tipo o archivo que no existe, lo dice en `note:` y no inventa su contenido). Al **aceptar** la propuesta, los
   hallazgos de ese rango se dan por resueltos y desaparecen también de lo guardado. `review` y `ddd review` **no** leen hallazgos
@@ -384,3 +386,15 @@ parser: las reglas del prompt y su lectura cambian siempre juntas.
 - Un modelo puede devolver el bloque vacío: significa borrar ese rango (p. ej. `fix` quitando imports sin usar).
 - `needs-import:` tras el bloque se muestra en la pista; los imports no se añaden solos.
 - `scripts/test-agent.sh` corre las pruebas de parsers, objetivo, backends locales y setup (sin red ni tokens: los servidores de Ollama/OpenAI son falsos, `scripts/fake-llm.py`).
+
+## Fix: dos niveles
+
+- **`<leader>af` fix inline**: pon el cursor en la línea con el diagnóstico (el subrayado/bloque de LSP, linter o review). El objetivo
+  son **solo las líneas del diagnóstico** (si abarca más de `agent.context.diagnostic_lines`, solo lo que empieza ahí). Lleva de
+  contexto: el diagnóstico completo, las `agent.context.around` líneas de antes y después dentro de su función (`<around>`, solo
+  lectura), la firma de lo que llama (`<callees>`) y las definiciones de los **objetos a los que apunta**: de cada identificador del
+  diagnóstico (y del objeto de un acceso `x.Campo`) se pide al LSP su `typeDefinition`, así el modelo ve `type Note struct` aunque
+  el código no nombre el tipo (`n := load(); n.Titl`). Si el arreglo real vive fuera (un import, una declaración que falta) lo dice en
+  `needs-import:` / `note:` en vez de editar fuera de las líneas. En visual, la selección manda como objetivo.
+- **`<leader>aF` fix block**: el objetivo es la función entera (o la selección) y arregla todos sus diagnósticos a la vez, con las
+  mismas definiciones de tipos. Úsalo cuando varios diagnósticos comparten causa o el arreglo toca varias líneas.

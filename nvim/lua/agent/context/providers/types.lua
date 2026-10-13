@@ -82,11 +82,35 @@ local function location_of(location)
   return vim.uri_to_fname(uri), range.start.line
 end
 
-return {
+local M = {}
+
+--- Identificadores a los que apuntan los diagnósticos del LSP dentro del objetivo (máx. 4): de ahí se pide el tipo
+--- de cada uno. Los hallazgos del agente cubren la línea entera (nada concreto que resolver): no cuentan.
+---@param target AgentTarget
+---@return { name: string, row: integer, col: integer }[]
+function M.diagnostic_identifiers(target)
+  local agent_ns = require("agent.output.findings").namespace()
+  local out, seen = {}, {}
+  for _, d in ipairs(vim.diagnostic.get(target.buf)) do
+    if d.namespace ~= agent_ns and d.lnum + 1 >= target.first and d.lnum + 1 <= target.last then
+      for _, id in ipairs(scopes.identifiers_in(target.buf, d.lnum, d.col, d.end_lnum or d.lnum, d.end_col or d.col)) do
+        local key = id.row .. ":" .. id.col
+        if not seen[key] and #out < 4 then
+          seen[key] = true
+          out[#out + 1] = id
+        end
+      end
+    end
+  end
+  return out
+end
+
+return vim.tbl_extend("error", M, {
   cap = 3500,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
-  collect = function(target, done)
+  ---@param ctx { action: table }?
+  collect = function(target, done, ctx)
     local root_node = scopes.parse(target.buf)
     if not root_node then
       return done(nil)
@@ -98,6 +122,10 @@ return {
 
     local decls = scopes.type_declarations(target.buf)
     local entries, included = {}, {}
+    -- fix: los objetos a los que apunta un diagnóstico (el tipo de una variable que no se nombra en el código)
+    -- se resuelven con `typeDefinition` y pueden pasarse del tope de tipos
+    local typedefs = (ctx and ctx.action and ctx.action.fixes) and M.diagnostic_identifiers(target) or {}
+    local extra = math.min(#typedefs, 2)
     local function overlaps_target(first, last)
       return first <= target.last and target.first <= last
     end
@@ -106,7 +134,7 @@ return {
     ---@param header string
     ---@param lines string[]
     local function push(name, header, lines)
-      if #entries < settings.types and not included[name] then
+      if #entries < settings.types + extra and not included[name] then
         included[name] = true
         entries[#entries + 1] = { name = name, header = header, lines = clip(lines, settings.type_lines) }
       end
@@ -194,17 +222,31 @@ return {
       done(table.concat(blocks, "\n\n"))
     end
 
-    -- 2b. tipos de otros archivos: LSP (definición) + treesitter sobre el archivo de destino
-    local clients = vim.lsp.get_clients { bufnr = target.buf, method = "textDocument/definition" }
-    local budget = settings.types - #entries
-    if #clients == 0 or budget <= 0 or #pending_lsp == 0 then
+    -- 2b. tipos de otros archivos: LSP (definición) + treesitter sobre el archivo de destino.
+    -- Las peticiones de `typedefs` (typeDefinition) van primero: son lo que el diagnóstico señala.
+    local requests = {}
+    local method_ok = function(method)
+      return #vim.lsp.get_clients { bufnr = target.buf, method = method } > 0
+    end
+    if method_ok "textDocument/typeDefinition" then
+      for _, n in ipairs(typedefs) do
+        requests[#requests + 1] = { name = n.name, row = n.row, col = n.col, method = "textDocument/typeDefinition" }
+      end
+    end
+    if method_ok "textDocument/definition" then
+      for _, n in ipairs(vim.list_slice(pending_lsp, 1, math.max(settings.types - #entries, 0) + 2)) do
+        requests[#requests + 1] = { name = n.name, row = n.row, col = n.col, method = "textDocument/definition" }
+      end
+    end
+    if #requests == 0 or #entries >= settings.types + extra then
       return finish()
     end
-    pending_lsp = vim.list_slice(pending_lsp, 1, budget + 2)
 
+    local clients = vim.lsp.get_clients { bufnr = target.buf }
     local project = vim.fs.root(target.buf, { ".git" }) or vim.fn.getcwd()
     local encoding = clients[1].offset_encoding or "utf-16"
-    local remaining, finished = #pending_lsp, false
+    local self_path = vim.api.nvim_buf_get_name(target.buf)
+    local remaining, finished = #requests, false
     local function settle()
       remaining = remaining - 1
       if remaining == 0 and not finished then
@@ -219,10 +261,10 @@ return {
       end
     end, settings.hover_timeout_ms)
 
-    for _, n in ipairs(pending_lsp) do
+    for _, n in ipairs(requests) do
       local line = vim.api.nvim_buf_get_lines(target.buf, n.row, n.row + 1, false)[1] or ""
       local ok, character = pcall(vim.str_utfindex, line, encoding, n.col)
-      vim.lsp.buf_request(target.buf, "textDocument/definition", {
+      vim.lsp.buf_request(target.buf, n.method, {
         textDocument = vim.lsp.util.make_text_document_params(target.buf),
         position = { line = n.row, character = ok and character or n.col },
       }, function(_, result)
@@ -233,12 +275,21 @@ return {
           local list = (result.uri or result.targetUri) and { result } or result
           for _, location in ipairs(list) do
             local path, row = location_of(location)
-            if
-              path
-              and path ~= vim.api.nvim_buf_get_name(target.buf)
-              and in_project(path, project)
-              and vim.fn.getfsize(path) < 400000
-            then
+            if path == self_path and n.method == "textDocument/typeDefinition" then
+              -- la variable es de un tipo de ESTE archivo: ya está leído (el definition no lo pide: lo nombra el código)
+              local best
+              for _, d in ipairs(decls) do
+                if d.first - 1 <= row and row <= d.last - 1 and d.name and not d.kind:find("impl", 1, true) then
+                  if not best or (d.last - d.first) < (best.last - best.first) then
+                    best = d
+                  end
+                end
+              end
+              if best then
+                push_local(best)
+              end
+              break
+            elseif path and path ~= self_path and in_project(path, project) and vim.fn.getfsize(path) < 400000 then
               local ft = vim.filetype.match { filename = path }
               local lang = ft and vim.treesitter.language.get_lang(ft)
               local text = table.concat(vim.fn.readfile(path), "\n")
@@ -253,9 +304,10 @@ return {
                 end
                 if best then
                   local all = vim.split(text, "\n", { plain = true })
+                  local name = best.name or n.name
                   push(
-                    n.name,
-                    ("%s (%s:%d)"):format(n.name, vim.fn.fnamemodify(path, ":."), best.first),
+                    name,
+                    ("%s (%s:%d)"):format(name, vim.fn.fnamemodify(path, ":."), best.first),
                     vim.list_slice(all, best.first, best.last)
                   )
                 end
@@ -268,4 +320,4 @@ return {
       end)
     end
   end,
-}
+})

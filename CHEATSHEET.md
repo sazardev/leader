@@ -41,7 +41,8 @@ _Dónde: global_
 | `<leader>ar` | review |
 | `<leader>ae` | explain |
 | `<leader>aa` | ask |
-| `<leader>af` | fix |
+| `<leader>af` | fix inline |
+| `<leader>aF` | fix block |
 | `<leader>ad` | docs |
 | `<leader>aR` | refactor |
 | `<leader>ag` | hand off |
@@ -402,6 +403,7 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 | `<leader>aDi` | n,x | Ddd implement |
 | `<leader>aDm` | n,x | Ddd missing |
 | `<leader>aDr` | n,x | Ddd review |
+| `<leader>aF` | n,x | Fix block |
 | `<leader>aPc` | n | Repo check |
 | `<leader>aPi` | n,x | Repo implement |
 | `<leader>aPp` | n,x | Repo port |
@@ -414,7 +416,7 @@ Secciones = primera palabra del `desc` (igual que el botón **Mappings** del das
 | `<leader>ac` | n,x | Clear |
 | `<leader>ad` | n,x | Docs |
 | `<leader>ae` | n,x | Explain |
-| `<leader>af` | n,x | Fix |
+| `<leader>af` | n,x | Fix inline |
 | `<leader>ag` | n,x | Hand off |
 | `<leader>ah` | n | History |
 | `<leader>ai` | n,x | Implement |

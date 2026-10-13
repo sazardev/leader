@@ -6,7 +6,7 @@
 --   desc       string        texto del menú del leader
 --   key        string        tecla bajo <leader>a
 --   modes      string[]?     modos del mapeo (por defecto n y x)
---   scope      string        "function" | "class" | "type" | "file" | "lines" (la selección visual manda;
+--   scope      string        "function" | "class" | "type" | "file" | "lines" | "diagnostic" (la selección visual manda;
 --                            "type" = el tipo bajo el cursor, o el de su receptor si estás en un método de Go)
 --   context    string[]?     proveedores de agent/context/providers
 --   output     string        presentador: "replace" | "findings" | "text" (agent/output)
@@ -25,7 +25,7 @@
 -- el cheatsheet salen solos.
 local M = {}
 
-local NAMES = { "implement", "review", "explain", "ask", "fix", "docs", "refactor", "handoff" }
+local NAMES = { "implement", "review", "explain", "ask", "fix", "fix_block", "docs", "refactor", "handoff" }
 
 ---@type table<string, table>
 local cache = {}
