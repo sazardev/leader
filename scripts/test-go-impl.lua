@@ -172,8 +172,8 @@ local top = gi.declaration_items({ start = { line = 0, character = 0 }, ["end"] 
 eq("al empezar una declaración: para el struct del archivo, con receptor y cabecera", {
   top[1].label,
   top[2].label,
-  plain(top[3]):match "^func %(n %*noteService%) Get%(",
-}, { "func (n *noteService) …all missing (6)", "func (n *noteService) Create", "func (n *noteService) Get(" })
+  plain(top[3]):match "^func %(s %*noteService%) Get%(",
+}, { "func (s *noteService) …all missing (6)", "func (s *noteService) Create", "func (s *noteService) Get(" })
 
 -- lo ya implementado no se vuelve a ofrecer, y sirve para reconocer la interfaz
 vim.cmd "silent bwipeout!"

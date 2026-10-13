@@ -184,7 +184,7 @@ interfaz y un cuerpo útil (0 tokens, sin LLM). Dos sitios:
 
 - **Tras escribir el receptor**: `func (s *noteService) ` abre el menú solo (sin teclear nada) con `…all missing (6)` y cada método
   que falta (`Create`, `Get`, ...). Filtra al teclear (`Se` → `SetDone`). El receptor se usa como lo escribiste (`s`).
-- **Al empezar la declaración** (`func ` en columna 0): lo mismo para cada struct del archivo, con la cabecera `func (n *noteService)` ya puesta.
+- **Al empezar la declaración** (`func ` en columna 0): lo mismo para cada struct del archivo, con la cabecera `func (s *noteService)` ya puesta.
 
 Cómo sabe qué interfaz implementa (la primera que encaje): `var _ NoteService = (*noteService)(nil)`; un constructor que la
 devuelve (`func NewNoteService(...) NoteService { return &noteService{...} }`); el nombre (`noteService` ~ `NoteService`,
@@ -200,6 +200,38 @@ Las interfaces de **otro paquete del módulo** se leen del disco (módulo de `go
 `domain.Note`); los imports que falten los añade `goimports` al guardar. Las de la librería estándar o de dependencias no se leen:
 para esas, gopls ya ofrece `<leader>ca` → "Declare missing methods of …" sobre el error del constructor (rellena todo con
 `panic("unimplemented")`).
+
+### Más ayudas sin LLM (0 tokens, leen tu código y tu `go.mod`)
+Salen en el mismo menú de `func ` / `New…`, encima del resto. Comparten un índice (`utils/goindex.lua`: interfaces, structs, métodos,
+funciones y constantes de cada archivo, paquete y del módulo entero, en caché por fecha).
+
+- **`if err != nil` que sabe qué devolver** (`utils/goiferr.lua`): tras `n, err := s.repo.FindByID(ctx, id)` y **Enter**, el menú se abre solo
+  con el bloque ya hecho y **Enter lo acepta** (se apaga con `vim.g.goiferr_preselect = false`): los valores cero salen de los
+  RETORNOS de la función que contiene el cursor (`return nil, fmt.Errorf("find by id: %w", err)`), y el mensaje, del nombre de lo que
+  llamaste (editable; `FindByID` → "find by id"). Segunda variante: `return nil, err`. En `main` → `log.Fatalf`. Dentro de un `func`
+  literal usa SUS retornos. En una función que no devuelve error no ofrece nada. `fmt` lo añade goimports al guardar.
+- **Mapeadores entre capas** (`utils/gomap.lua`): para cada struct del archivo que acaba en `Response`/`Request`/`DTO`/`Model`/`Entity`/
+  `Record`/`Input`/`Output`... busca su par en el módulo (`NoteResponse` → `Note`; `CreateNoteRequest` → `Note`) y en `func ` ofrece
+  `func toNoteResponse(n *domain.Note) NoteResponse`, `toNoteResponses` (lista) y `func (r NoteResponse) toNote() *domain.Note`. Campos
+  por nombre (sin distinguir mayúsculas ni `_`); si el origen tiene el campo privado y un getter (`ID()`), usa el getter; tipos definidos
+  sobre un básico se convierten (`string(n.Status)` / `domain.Status(r.Status)`); lo que no encaja o no tiene origen sale como `// TODO`
+  (nada inventado). Los archivos `*_model.go` siguen con `toDomain`/`fromDomain` de gomodel.
+- **Cablear constructores** (`utils/gowire.lua`): en una función (típicamente `main`) teclea `New…` o el nombre de la variable
+  (`noteSer`): ofrece `noteService := application.NewNoteService(noteRepo)` con los argumentos ya puestos, para TODOS los paquetes del
+  módulo (aunque aún no los hayas importado; goimports lo añade). Cada argumento: una variable del mismo tipo → una variable cuyo tipo
+  concreto **implementa** la interfaz que pide el parámetro → una variable con el nombre del parámetro → `context.Background()` → un
+  hueco. Los tipos de las variables salen de los parámetros, `var x T`, `&T{}` y los retornos de los constructores ya llamados.
+- **Helpers de un enum** (`utils/goenum.lua`): con `type Status string` + su `const (...)`, `func ` ofrece `IsValid`, `ParseStatus`,
+  `UnmarshalText` y, en enums numéricos (iota), `String` y `MarshalText`; más "…enum helpers" con todos. Solo lo que falta.
+- **Interfaz desde un struct y `var _`** (`utils/goport.lua`): dentro de `type NoteService interface { }` ofrece los métodos exportados de
+  `noteService` que aún no declara (con su firma); y `var ` en columna 0 ofrece `var _ NoteService = (*noteService)(nil)` para los
+  structs cuya interfaz se reconoce (esa línea es la que hace que el compilador avise y la que goimpl reconoce con certeza).
+- **Handlers HTTP desde un servicio** (`utils/gohttp.lua`): en un struct `NoteHandler { svc application.NoteService }`, `func (h *NoteHandler) `
+  (o `func `) ofrece un handler por cada método del servicio que falta, `Routes` y "todos". Framework por `go.mod`: net/http (Go ≥ 1.22,
+  `PathValue`), chi, gin o echo (fiber: nada). Verbo por el nombre (Get/List → GET, Create → POST, Update → PUT, Set*/Patch* → PATCH,
+  Delete → DELETE); `id` → parámetro de ruta; un struct en un GET (`filter ListFilter`) → query string campo a campo
+  (`strconv.Atoi`/`ParseBool`); el resto → cuerpo JSON (struct anónimo con tags snake_case); `(T, error)` → 200 con el JSON (201 en
+  POST), solo `error` → 204. Para net/http y chi, un ítem aparte con `writeJSON`/`writeError` si no existen.
 
 ### Después de `type Envelope `
 Ofrece `struct`, `interface` y `func(…)`. Si ya escribiste `struct`, no sale nada.
@@ -318,6 +350,8 @@ Los de declaración de friendly (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `
 | `lua/servers/gopls.lua` | ajustes de gopls |
 | `lua/utils/gotags.lua` | fuente blink: tags de struct |
 | `lua/utils/gosmart.lua` | fuente blink: func/type/métodos/constructor/interface + filtros |
+| `lua/utils/goindex.lua` | índice compartido (treesitter sobre texto, por archivo/paquete/módulo) de las ayudas siguientes |
+| `lua/utils/goiferr.lua` · `gomap.lua` · `gowire.lua` · `goenum.lua` · `goport.lua` · `gohttp.lua` | `if err` con retornos, mapeadores, cableado, enums, interfaz desde un struct, handlers HTTP |
 | `lua/utils/goimpl.lua` | métodos que faltan para cumplir una interfaz (receptor y declaración), cuerpos que llaman a la dependencia |
 | `lua/utils/gomodel.lua` | atajos solo de `*_model.go`: `functable`, `funcdomain`, `functodomain`, `funcfromdomain` |
 | `lua/utils/goerrors.lua` | texto fantasma de errores centinela (`ErrX` → `ErrX = errors.New("x")`); Tab/Enter se cablean en `blink.lua` |

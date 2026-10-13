@@ -492,6 +492,21 @@ local function starts(word, frag)
   return frag == "" or word:lower():sub(1, #frag) == frag:lower()
 end
 
+--- Ayudas con el código ya escrito para una declaración nueva (0 tokens): goimpl, goenum, gomap, gohttp
+---@param range table
+---@param frag string
+---@return table[]
+function M.extra_declaration_items(range, frag)
+  local items = {}
+  for _, name in ipairs { "goimpl", "goenum", "gomap", "gohttp" } do
+    vim.list_extend(items, require("utils." .. name).declaration_items(range, frag))
+  end
+  for _, item in ipairs(items) do
+    item.sortText = "!" .. (item.sortText or "") -- "!" ordena antes que los dígitos: encima de las plantillas y constructores
+  end
+  return items
+end
+
 -- Filtro ESTRICTO por prefijo (no fuzzy): `pac` no debe traer nada de `type`.
 --   func family  → `f`, `fu`, `func`, o tras `func ` sin nada más
 --   type family  → `t`, `ty`, `type`, o tras `type ` sin nada más
@@ -519,9 +534,16 @@ local function declaration_items(ctx, mode, frag)
   end
   -- Archivos *_model.go: functable, funcdomain, functodomain, funcfromdomain (ver utils/gomodel.lua).
   -- Van ANTES que el resto de `func…` para no tener que bajar hasta la última opción.
-  -- métodos que le faltan a un struct para cumplir su interfaz (utils/goimpl.lua): también AL PRINCIPIO
+  -- ayudas con el código ya escrito (0 tokens), también AL PRINCIPIO: métodos que faltan para una interfaz (goimpl), helpers
+  -- de un enum (goenum), mapeadores entre structs (gomap) y handlers de un servicio (gohttp)
   if want_funcs then
-    for i, item in ipairs(require("utils.goimpl").declaration_items(range, mode == "func" and "" or frag)) do
+    for i, item in ipairs(M.extra_declaration_items(range, mode == "func" and "" or frag)) do
+      table.insert(items, i, item)
+    end
+  end
+  -- `var _ I = (*T)(nil)` de los structs que ya se reconocen como implementación (goport)
+  if mode == "any" and frag ~= "" and starts("var", frag) then
+    for i, item in ipairs(require("utils.goport").declaration_items(range, frag)) do
       table.insert(items, i, item)
     end
   end
@@ -1042,8 +1064,8 @@ function M.filter_snippets(ctx, items)
   if vim.bo.filetype ~= "go" then
     return items
   end
-  if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
-    return {} -- tras `func (s *T) ` solo se nombra un método: ningún snippet de sentencia o declaración
+  if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) or require("utils.goiferr").fresh(ctx) then
+    return {} -- tras `func (s *T) ` solo se nombra un método; tras `x, err := …`, solo el `if err != nil`
   end
   local scope = M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line)
   return vim.tbl_filter(function(it)
@@ -1072,6 +1094,7 @@ function M.quiet_buffer(ctx, items)
     or M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "interface"
     or literal_info(ctx)
     or require("utils.goimpl").method_position(ctx.line, ctx.cursor[2])
+    or require("utils.goiferr").fresh(ctx)
   then
     return {}
   end
@@ -1099,6 +1122,9 @@ function M.quiet_lsp(ctx, items)
   end
   if require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
     return {} -- los nombres salen de goimpl (lo que falta de la interfaz), no de gopls
+  end
+  if require("utils.goiferr").fresh(ctx) then
+    return {} -- línea nueva tras `x, err := …`: solo el bloque `if err != nil`
   end
   if literal_info(ctx) then -- los campos ya salen de gosmart (con valores por defecto)
     return vim.tbl_filter(function(it)
@@ -1133,7 +1159,19 @@ function M.autotrigger()
       local inline = line:sub(1, col):match "{$" ~= nil and line:sub(col + 1):match "^}" ~= nil
       -- `Envelope{|}`, o línea en blanco recién abierta tras `{` o tras `campo: valor,`
       local fresh = line:match "^%s*$" ~= nil and prev:match "[{,]%s*$" ~= nil
-      if impl and line:sub(1, col):match "%)%s$" then
+      -- `func ` recién escrito en columna 0: si hay algo que ofrecer con el código ya escrito (métodos que faltan, helpers de
+      -- un enum, mapeadores, handlers), abre el menú
+      if line == "func " and col == 5 then
+        local range = { start = { line = row - 1, character = 0 }, ["end"] = { line = row - 1, character = col } }
+        if #M.extra_declaration_items(range, "") > 0 then
+          impl = true
+        end
+      end
+      -- línea nueva tras `x, err := …`: abre el menú con el `if err != nil` ya hecho
+      if not impl and not line:match "%S" and require("utils.goiferr").fresh { line = line, cursor = { row, col } } then
+        impl = true
+      end
+      if impl and (line:sub(1, col):match "%)%s$" or not line:match "%S" or line == "func ") then
         return vim.defer_fn(function()
           local ok, cmp = pcall(require, "blink.cmp")
           local now = vim.api.nvim_win_get_cursor(0)
@@ -1181,11 +1219,10 @@ function Source:get_completions(ctx, callback)
   local items = type_body_items(before)
   -- `func (s *noteService) |`: los métodos que faltan para cumplir su interfaz
   if #items == 0 and require("utils.goimpl").method_position(ctx.line, ctx.cursor[2]) then
-    return callback {
-      is_incomplete_forward = false,
-      is_incomplete_backward = false,
-      items = require("utils.goimpl").method_items(ctx),
-    }
+    -- lo que falta de una interfaz (goimpl) y los handlers de un servicio (gohttp)
+    local method_items = require("utils.goimpl").method_items(ctx)
+    vim.list_extend(method_items, require("utils.gohttp").method_items(ctx))
+    return callback { is_incomplete_forward = false, is_incomplete_backward = false, items = method_items }
   end
   local lit = #items == 0 and literal_info(ctx)
   local value = #items == 0 and not lit and value_info(ctx)
@@ -1201,6 +1238,14 @@ function Source:get_completions(ctx, callback)
       incomplete = mode == "any" and #frag < FUNCNEW_MIN and starts("funcnew", frag)
     elseif M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "interface" then
       items = interface_items(ctx)
+      -- los métodos que ya tiene el struct relacionado (goport) van antes
+      for i, item in ipairs(require("utils.goport").interface_items(ctx)) do
+        table.insert(items, i, item)
+      end
+    elseif M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "func" then
+      -- `if err != nil` con los retornos de la función (goiferr) y constructores ya cableados (gowire)
+      items = require("utils.goiferr").items(ctx)
+      vim.list_extend(items, require("utils.gowire").items(ctx))
     end
   end
   callback { is_incomplete_forward = incomplete, is_incomplete_backward = false, items = items }

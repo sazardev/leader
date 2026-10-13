@@ -84,11 +84,11 @@ return {
           return not require("utils.goerrors").active()
         end,
       },
-      -- sin preselección, salvo dentro de un struct tag de Go (Enter acepta la sugerencia)
+      -- sin preselección, salvo dentro de un struct tag de Go y en la línea nueva tras `x, err := …` (Enter acepta la sugerencia)
       list = {
         selection = {
           preselect = function()
-            return require("utils.gotags").active()
+            return require("utils.gotags").active() or require("utils.goiferr").active()
           end,
         },
       },
