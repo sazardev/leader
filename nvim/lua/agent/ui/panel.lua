@@ -1,12 +1,19 @@
 -- ── Reading panel (markdown, centered) ───────────────────────────────────────
--- For what is read calmly: a run's detail or the spend report. q/Esc close.
+-- For what is read calmly: a run's detail or the spend report. q/Esc close; with `on_back`, BS goes back to where it
+-- was opened from (the run history).
 require("agent.ui.highlights").ensure()
 
 local M = {}
 
 ---@param lines string[]
 ---@param title string
-function M.open(lines, title)
+---@param opts? { on_back?: fun() }
+function M.open(lines, title, opts)
+  opts = opts or {}
+  -- the "checking…" note that announced this report would sit over it
+  pcall(function()
+    require("ui.flat.notify").close_progress()
+  end)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].filetype = "markdown"
@@ -24,7 +31,7 @@ function M.open(lines, title)
     height = height,
     style = "minimal",
     border = require("ui.flat").border(),
-    title = (" %s · Y copy all · q close "):format(title),
+    title = (" %s · Y copy all ·%s q close "):format(title, opts.on_back and " BS back ·" or ""),
     title_pos = "left",
   })
   local wo = vim.wo[win]
@@ -42,6 +49,12 @@ function M.open(lines, title)
   end, { buffer = buf, nowait = true, desc = "Agent copy panel" })
   for _, key in ipairs { "q", "<Esc>" } do
     vim.keymap.set("n", key, close, { buffer = buf, nowait = true, desc = "Agent close panel" })
+  end
+  if opts.on_back then
+    vim.keymap.set("n", "<BS>", function()
+      close()
+      opts.on_back()
+    end, { buffer = buf, nowait = true, desc = "Agent back to the list" })
   end
 end
 

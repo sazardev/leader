@@ -67,17 +67,30 @@ local function placement(width, height)
   }
 end
 
---- Width = the longest line (capped), height = lines already wrapped to that width
+--- Width = the longest line or the title (capped), height = lines already wrapped to that width
 ---@param lines string[]
 ---@return integer width, integer height
 local function fit(lines)
-  local longest = 0
+  local longest = vim.fn.strdisplaywidth(state.title) + 2
   for _, l in ipairs(lines) do
     longest = math.max(longest, vim.fn.strdisplaywidth(l))
   end
   local cap = math.min(MAX_WIDTH, math.max(30, vim.api.nvim_win_get_width(0) - 8))
   local width = math.min(cap, math.max(30, longest + 2))
   return width, wrapped_height(lines, width)
+end
+
+--- The title as it fits on the window's top row: cut at the END with `…` (Neovim would cut it from the start,
+--- leaving `<plain · model…` instead of the action name)
+---@param title string
+---@param width integer
+---@return string
+local function shown_title(title, width)
+  local room = width - 2
+  if vim.fn.strdisplaywidth(title) > room then
+    title = vim.fn.strcharpart(title, 0, math.max(room - 1, 1)) .. "…"
+  end
+  return (" %s "):format(title)
 end
 
 ---@param enter boolean
@@ -90,7 +103,7 @@ local function open_window(enter)
     vim.tbl_extend("force", cfg, {
       style = "minimal",
       border = require("ui.flat").border(),
-      title = (" %s "):format(state.title),
+      title = shown_title(state.title, cfg.width),
       title_pos = "left",
       focusable = true,
     })
@@ -136,7 +149,7 @@ function M.show(job, body, title)
     vim.api.nvim_win_set_config(state.win, {
       width = cfg.width,
       height = cfg.height,
-      title = (" %s "):format(title),
+      title = shown_title(title, cfg.width),
       title_pos = "left",
     })
   end

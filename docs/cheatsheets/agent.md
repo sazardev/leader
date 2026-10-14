@@ -342,11 +342,16 @@ time and **what you did with the result** (accepted, rejected, discarded, N find
 asked and what was paid.
 
 - `<leader>ah` opens a selector with one row per run (date, outcome, action, model, cost, target); the title
-  adds up the total spent. The preview shows the full detail; `⏎` opens it large.
-- `⌃S` opens the **spending report**: by period (today, 7 days, total), by action, by model, by day, **cost per applied
+  adds up the total spent. The preview shows the full detail rendered as markdown, including **the code sent** (the
+  target and the code around it, highlighted in its language); `⏎` opens it large and `⌫` (BS) comes back to the
+  list with the same filters, search text and run selected.
+- `⌃F` **filters** the history by agent (claude, opencode, ollama…), provider (who serves the model: anthropic,
+  openai, local…), model, action, outcome or project: pick the dimension, then the value (each with its runs and
+  cost). Filters stack and show in the title with the runs and spend that match; `⌃X` clears them.
+- `⌃S` opens the **spending report** (`⌫` comes back to the list): by period (today, 7 days, total), by action, by model, by day, **cost per applied
   change**, what was spent on proposals you did not apply, errors, cache hits, **where the prompt goes** (system,
   context per provider, target) and the 5 most expensive runs. It is the basis for deciding what to cut.
-- `⌃Y` **copies EVERYTHING about the run** (the same text you see in the detail): outcome and event line (accepted at
+- `⌃Y` **copies EVERYTHING about the run** as markdown (the same text you see in the detail): outcome and event line (accepted at
   09:38:27...), target, time, tokens, cost, your instruction, the response, the system prompt and the exact message
   sent. `⌃P` copies only the prompt (system + message) to reproduce or tweak it. In the detail panel and in
   the report panel, `Y` copies the whole panel. Everything goes to the clipboard (`+`) and the unnamed register.
