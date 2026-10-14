@@ -27,17 +27,24 @@ end
 
 ---@param run AgentTestRun
 ---@param cb fun(ok: boolean, output: string, err: string?)  ok = the tests PASS
-function M.exec(run, cb)
+---@param opts { raw: boolean?, timeout_ms: integer? }? `raw`: the output as it came (to parse it), not cleaned and cut for a prompt
+function M.exec(run, cb, opts)
+  opts = opts or {}
+  local timeout = opts.timeout_ms or TIMEOUT_MS
   if vim.fn.executable(run.cmd[1]) ~= 1 then
     return cb(false, "", ("`%s` is not installed"):format(run.cmd[1]))
   end
-  vim.system(run.cmd, { cwd = run.cwd, text = true, timeout = TIMEOUT_MS }, function(res)
+  vim.system(run.cmd, { cwd = run.cwd, text = true, timeout = timeout }, function(res)
     vim.schedule(function()
       local timed_out = res.signal == 15 or res.code == 124
       if timed_out then
-        return cb(false, "", ("timed out (%ds)"):format(TIMEOUT_MS / 1000))
+        return cb(false, "", ("timed out (%ds)"):format(timeout / 1000))
       end
-      cb(res.code == 0, M.clean((res.stdout or "") .. "\n" .. (res.stderr or "")))
+      local raw = (res.stdout or "") .. "\n" .. (res.stderr or "")
+      if opts.raw then
+        return cb(res.code == 0, raw)
+      end
+      cb(res.code == 0, M.clean(raw))
     end)
   end)
 end

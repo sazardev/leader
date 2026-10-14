@@ -6,7 +6,7 @@ return {
   desc = "refactor",
   key = "R",
   scope = "function",
-  context = { "rules", "types", "callees", "outline" },
+  context = { "rules", "types", "callees", "callers", "outline", "gitlog" },
   output = "replace",
   input = "what should change?",
   system = function()

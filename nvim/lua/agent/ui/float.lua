@@ -16,6 +16,8 @@ local MAX_HEIGHT = 20
 ---@field buf integer?
 ---@field win integer?
 ---@field job_id integer?
+---@field job AgentJob?
+---@field body string  the answer as shown (what a follow-up question carries)
 ---@field from integer  code buffer
 ---@field first integer  1-based
 ---@field last integer  1-based
@@ -122,6 +124,15 @@ local function new_buffer()
   for _, key in ipairs { "q", "<Esc>" } do
     vim.keymap.set("n", key, M.close, { buffer = state.buf, nowait = true, desc = "Agent close answer" })
   end
+  -- ask the next question about the same code, with this answer as the conversation so far
+  local follow = require("core.settings").agent.keys.refine
+  if follow then
+    vim.keymap.set("n", follow, function()
+      if state.job then
+        require("agent.refine").answer(state.job, state.body)
+      end
+    end, { buffer = state.buf, nowait = true, desc = "Agent ask more" })
+  end
 end
 
 --- Shows (or updates) a job's text
@@ -139,6 +150,7 @@ function M.show(job, body, title)
     new_buffer()
   end
   state.title = title
+  state.job, state.body = job, body
 
   local lines = vim.split(body, "\n", { plain = true })
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)

@@ -9,17 +9,11 @@ local text = require "agent.text"
 
 local M = {}
 
----@param req { action: string, system: string, prompt: string, tier: "main"|"light"? }
+---@param sel AgentSelection
+---@param req { action: string, system: string, prompt: string }
 ---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
-function M.run(req, cb)
-  -- `name` lets the tier be reassigned from settings.agent.tiers (e.g. tiers = { commit = "main" })
-  local sel = selection.current { name = req.action, tier = req.tier or "light" }
-  if not sel then
-    cb(false, "no agent backend found (install claude or opencode)")
-    return nil
-  end
-
+local function launch(sel, req, cb)
   local backend = backends.get(sel.backend)
   local spec = backend.build {
     system = req.system,
@@ -29,6 +23,7 @@ function M.run(req, cb)
     action = req.action,
   }
   local parser = backend.parser()
+  local t0 = vim.uv.hrtime()
 
   local ok, handle = pcall(vim.system, spec.cmd, {
     stdin = spec.stdin,
@@ -47,12 +42,15 @@ function M.run(req, cb)
     vim.schedule(function()
       local result = parser.finish(out.code, out.stderr or "")
       local killed = out.code == 124 or out.code == 143 or out.signal == 15
+      local ms = math.floor((vim.uv.hrtime() - t0) / 1e6)
       if killed and not result.ok then
         return cb(false, ("timed out (%gs)"):format(settings.timeout_ms / 1000))
       end
       if result.ok then
+        require("agent.runs").call(req, sel, "done", result.usage, ms, result.text)
         cb(true, text.trim(result.text or ""), result.usage)
       else
+        require("agent.runs").call(req, sel, "error", result.usage, ms, result.err)
         cb(false, result.err or "unknown error")
       end
     end)
@@ -63,6 +61,36 @@ function M.run(req, cb)
     return nil
   end
   return handle
+end
+
+--- Every one-shot call goes through the guards (the spend budget) before anything is sent, so the commit draft, the staged
+--- review and plans are covered without each of them asking. Returns the process when the request starts at once; when a guard
+--- has to ask first it returns nil (the answer arrives through `cb`).
+---@param req { action: string, system: string, prompt: string, tier: "main"|"light"? }
+---@param cb fun(ok: boolean, text: string, usage: table?)
+---@return vim.SystemObj?
+function M.run(req, cb)
+  -- `name` lets the tier be reassigned from settings.agent.tiers (e.g. tiers = { commit = "main" })
+  local sel = selection.current { name = req.action, tier = req.tier or "light" }
+  if not sel then
+    cb(false, "no agent backend found (install claude or opencode)")
+    return nil
+  end
+  local handle
+  local settled = false
+  require("agent.guards").check({
+    action = req.action,
+    backend = sel.backend,
+    model = sel.model,
+    chars = #req.system + #req.prompt,
+  }, function()
+    handle = launch(sel, req, cb)
+    settled = true
+  end, function()
+    settled = true
+    cb(false, "stopped by the spend budget")
+  end)
+  return settled and handle or nil
 end
 
 return M

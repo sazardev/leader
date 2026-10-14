@@ -21,6 +21,10 @@ M.FINDINGS_RULES = [[
 OUTPUT, one finding per line, nothing else: L<line>|<error|warn|info>|<problem and fix, max 140 chars>
 <line> = the absolute line number shown in <target>. At most 8, worst first. Real defects only (bugs, wrong edge cases, unhandled errors, races, leaks, security): no style, no praise. Nothing real: OK]]
 
+M.REVIEW_FILES_RULES = [[
+OUTPUT, one finding per line, nothing else: <path>:<line>|<error|warn|info>|<problem and fix, max 140 chars>
+<path> is the `## path` of the file; <line> is the number after `+L` of an ADDED line (or ` L` of a context line). At most 10, worst first. Real defects in the CHANGED code only (bugs, wrong edge cases, unhandled errors, races, leaks, security, a change that breaks what calls it): no style, no praise. Nothing real: OK]]
+
 ---@param lines string[]
 ---@return boolean
 local function has_fence(lines)
@@ -152,6 +156,43 @@ function M.parse_findings(response)
     local n, sev, msg = line:match "^%s*[Ll](%d+)%s*|%s*(%a+)%s*|%s*(.-)%s*$"
     if n and msg ~= "" then
       list[#list + 1] = { line = tonumber(n), severity = SEVERITY[sev:lower()] or SEVERITY.info, message = msg }
+    end
+  end
+  return list
+end
+
+M.PLAN_RULES = [[
+OUTPUT, one step per line, nothing else: <n>|<path>|<symbol>|<what to change, max 20 words>
+<path> and <symbol> exactly as listed in <sites> (symbol = the function, method or type name). Order the steps so that what other steps depend on comes first (types and signatures before the code that uses them). Only steps that need a change; at most 12. Nothing needs to change: OK]]
+
+--- A plan: `n|path|symbol|what` per line
+---@param response string
+---@return { n: integer, path: string, symbol: string, what: string }[]
+function M.parse_plan(response)
+  local list = {}
+  for line in response:gmatch "[^\r\n]+" do
+    local n, path, symbol, what = line:match "^%s*(%d+)%s*|%s*([^|]-)%s*|%s*([^|]-)%s*|%s*(.-)%s*$"
+    if n and path ~= "" and symbol ~= "" and what ~= "" then
+      list[#list + 1] = { n = tonumber(n), path = path, symbol = symbol, what = what }
+    end
+  end
+  return list
+end
+
+--- Findings across files: `path:line|sev|message` per line
+---@param response string
+---@return { path: string, line: integer, severity: integer, message: string }[]
+function M.parse_file_findings(response)
+  local list = {}
+  for line in response:gmatch "[^\r\n]+" do
+    local path, n, sev, msg = line:match "^%s*([^|]-):(%d+)%s*|%s*(%a+)%s*|%s*(.-)%s*$"
+    if path and msg ~= "" then
+      list[#list + 1] = {
+        path = vim.trim(path),
+        line = tonumber(n),
+        severity = SEVERITY[sev:lower()] or SEVERITY.info,
+        message = msg,
+      }
     end
   end
   return list

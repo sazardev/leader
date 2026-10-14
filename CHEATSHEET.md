@@ -14,6 +14,7 @@ which-key only shows what belongs to the current buffer.
 | Letter | Menu | Where it exists |
 |---|---|---|
 | `<leader>a` | Agent | global |
+| `<leader>aA` | Agent Advanced | global |
 | `<leader>aD` | Agent DDD | global |
 | `<leader>aL` | Agent Lenses | global |
 | `<leader>aP` | Agent Repository | global |
@@ -54,6 +55,21 @@ _Where: global_
 | `<leader>aC` | clear file |
 | `<leader>ax` | stop |
 | `<leader>al` | last answer |
+
+### Agent Advanced — `<leader>aA`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>aAa` | fix all |
+| `<leader>aAo` | fix from output |
+| `<leader>aAO` | fix from a command |
+| `<leader>aAp` | plan across files |
+| `<leader>aA]` | next proposal |
+| `<leader>aA[` | previous proposal |
+| `<leader>aAy` | accept all |
+| `<leader>aAl` | proposals list |
 
 ### Agent DDD — `<leader>aD`
 
@@ -167,6 +183,7 @@ _Where: files inside a git repo_
 | `<leader>Gm` | commit + AI draft |
 | `<leader>GM` | commit auto |
 | `<leader>Ga` | amend |
+| `<leader>Gv` | review staged |
 | `<leader>Gt` | status |
 | `<leader>Gb` | blame |
 | `<leader>Gd` | diff |
@@ -421,6 +438,14 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 
 | Key | Mode | Action |
 |---|---|---|
+| `<leader>aAO` | n | Fix from a command |
+| `<leader>aA[` | n | Previous proposal |
+| `<leader>aA]` | n | Next proposal |
+| `<leader>aAa` | n | Fix all |
+| `<leader>aAl` | n | Proposals list |
+| `<leader>aAo` | n | Fix from output |
+| `<leader>aAp` | n | Plan across files |
+| `<leader>aAy` | n | Accept all |
 | `<leader>aC` | n | Clear file |
 | `<leader>aDa` | n,x | Ddd ask |
 | `<leader>aDc` | n | Ddd clear |

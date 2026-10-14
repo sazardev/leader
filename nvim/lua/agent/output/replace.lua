@@ -3,6 +3,7 @@
 -- you wait for your decision. Accept = a single set_lines (one `u` undoes it all). If
 -- the code changed while the agent was working, it is discarded instead of overwritten.
 local anchor = require "agent.anchor"
+local events = require "agent.events"
 local log = require "utils.log"
 local preview = require "agent.ui.preview"
 local protocol = require "agent.protocol"
@@ -14,7 +15,8 @@ local M = {}
 
 ---@class AgentProposal
 ---@field job AgentJob
----@field lines string[]
+---@field lines string[]     what accepting writes (after `merge`)
+---@field raw string[]       what the model returned (before `merge`): what a refinement starts from
 ---@field ids integer[]
 
 ---@type table<integer, AgentProposal[]>
@@ -34,6 +36,9 @@ local function bind(buf)
   local keys = settings.keys
   vim.keymap.set("n", keys.accept, M.accept, { buffer = buf, nowait = true, desc = "Agent accept proposal" })
   vim.keymap.set("n", keys.reject, M.reject, { buffer = buf, nowait = true, desc = "Agent reject proposal" })
+  if keys.refine then
+    vim.keymap.set("n", keys.refine, M.refine, { buffer = buf, nowait = true, desc = "Agent refine proposal" })
+  end
 end
 
 ---@param buf integer
@@ -62,7 +67,8 @@ local function current(buf)
 end
 
 ---@param p AgentProposal
-local function drop(p)
+---@param how "rejected"|"refined"|"discarded"|"accepted"
+local function drop(p, how)
   local buf = p.job.buf
   preview.clear(buf, p.ids)
   anchor.delete(buf, p.job.anchor)
@@ -78,6 +84,9 @@ local function drop(p)
     if vim.api.nvim_buf_is_valid(buf) then
       unbind(buf)
     end
+  end
+  if how and how ~= "accepted" then
+    events.emit("proposal.dropped", { job = p.job, how = how })
   end
 end
 
@@ -132,6 +141,7 @@ function M.done(job, result)
     log.warn("Agent: " .. err .. " (showing the raw response)")
     return require("agent.output.text").done(job, result)
   end
+  local raw = vim.deepcopy(code)
   -- `merge`: the model returned only what is NEW (adding tests at the end of a file): it is joined to what is already there
   if job.action.merge then
     code = job.action.merge(code, job.target)
@@ -162,13 +172,21 @@ function M.done(job, result)
     pcall(vim.api.nvim_win_set_cursor, 0, { math.min(first, vim.api.nvim_buf_line_count(job.buf)), 0 })
     vim.cmd "normal! zz"
   end
-  local proposal = { job = job, lines = code, ids = {} }
+  local proposal = { job = job, lines = code, raw = raw, ids = {} }
+  job.proposal = proposal
   proposal.ids = preview.render(job.buf, first, job.target.lines, code, function(hunks)
     local keys = settings.keys
     -- parts by priority (1 = essential): if the window is narrow the least
     -- important ones are dropped instead of cutting the line in half
     local parts = {
-      { ("%s accept · %s reject"):format(label(keys.accept), label(keys.reject)), 1 },
+      {
+        ("%s accept · %s reject%s"):format(
+          label(keys.accept),
+          label(keys.reject),
+          keys.refine and (" · %s refine"):format(label(keys.refine)) or ""
+        ),
+        1,
+      },
       { ("%d change%s"):format(hunks, hunks == 1 and "" or "s"), 2 },
     }
     if blocks and blocks > 1 then
@@ -181,6 +199,9 @@ function M.done(job, result)
       parts[#parts + 1] = { "import: " .. needs, 2 }
     end
     parts[#parts + 1] = { stats.line(job, result), 3 }
+    if job.meta and job.meta.hint then
+      parts[#parts + 1] = { job.meta.hint, 2 } -- "2/4 · <leader>aA] next" when it comes from a batch
+    end
     return fit_hint(parts, vim.api.nvim_win_get_width(0) - 8)
   end)
   proposals[job.buf] = proposals[job.buf] or {}
@@ -188,19 +209,25 @@ function M.done(job, result)
   bind(job.buf)
 end
 
-function M.accept()
-  local buf = vim.api.nvim_get_current_buf()
-  local p = current(buf)
-  if not p then
-    return
-  end
+---@class AgentAcceptOpts
+---@field keep_cursor boolean? do not move the cursor to the new code (accepting a whole queue)
+
+--- Writes a proposal into its buffer. One set_lines: a single `u` undoes it
+---@param p AgentProposal
+---@param opts AgentAcceptOpts?
+---@return boolean accepted
+function M.accept_proposal(p, opts)
+  opts = opts or {}
+  local buf = p.job.buf
   if not anchor.unchanged(p.job) then
-    drop(p)
+    drop(p, "discarded")
     runs.event(p.job, "discarded", "code changed since the proposal")
-    return log.warn "Agent: the code changed since the proposal; discarded"
+    log.warn "Agent: the code changed since the proposal; discarded"
+    return false
   end
   local first, last = anchor.range(buf, p.job.anchor)
-  drop(p)
+  events.emit("proposal.accepting", { job = p.job, buf = buf, first = first, last = last, lines = p.lines })
+  drop(p, "accepted")
   runs.event(p.job, "accepted")
   -- the code in that range is rewritten: what the review flagged there no longer applies (and if it was a fix, neither
   -- do its local DDD violations)
@@ -214,7 +241,7 @@ function M.accept()
   pcall(function()
     require("ui.flat.fresh").lines(buf, first - 1, first - 1 + #p.lines) -- what you just accepted glows and fades (ui/flat)
   end)
-  if vim.api.nvim_win_get_buf(0) == buf then
+  if not opts.keep_cursor and vim.api.nvim_win_get_buf(0) == buf then
     pcall(vim.api.nvim_win_set_cursor, 0, { first, 0 })
   end
 
@@ -231,14 +258,54 @@ function M.accept()
       }
     end
   end
+  events.emit(
+    "proposal.accepted",
+    { job = p.job, buf = buf, first = first, last = first + #p.lines - 1, lines = p.lines }
+  )
+  return true
+end
+
+function M.accept()
+  local p = current(vim.api.nvim_get_current_buf())
+  if p then
+    M.accept_proposal(p)
+  end
 end
 
 function M.reject()
   local p = current(vim.api.nvim_get_current_buf())
   if p then
-    drop(p)
+    drop(p, "rejected")
     runs.event(p.job, "rejected")
   end
+end
+
+--- Asks for a change to the proposal under the cursor (agent/refine.lua): it replaces this proposal with a new one
+function M.refine()
+  local p = current(vim.api.nvim_get_current_buf())
+  if p then
+    require("agent.refine").proposal(p)
+  end
+end
+
+--- The proposal gives way to a refinement: its preview goes, its code stays untouched, the history says why
+---@param p AgentProposal
+function M.supersede(p)
+  drop(p, "refined")
+  runs.event(p.job, "refined")
+end
+
+--- Every proposal waiting for a decision, in the order the agent produced them (across buffers)
+---@return AgentProposal[]
+function M.pending()
+  local all = {}
+  for _, list in pairs(proposals) do
+    vim.list_extend(all, list)
+  end
+  table.sort(all, function(a, b)
+    return a.job.id < b.job.id
+  end)
+  return all
 end
 
 --- Discards all pending proposals (from one buffer, or all of them)
@@ -247,7 +314,7 @@ function M.discard_all(buf)
   for b, list in pairs(proposals) do
     if not buf or b == buf then
       for _, p in ipairs(vim.list_slice(list)) do
-        drop(p)
+        drop(p, "discarded")
         runs.event(p.job, "discarded", "cleared")
       end
     end

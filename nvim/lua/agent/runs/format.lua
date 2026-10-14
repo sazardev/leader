@@ -56,6 +56,9 @@ end
 ---@param run table
 ---@return string "orders.go:5-12 Total"
 function M.target(run)
+  if run.output == "oneshot" then
+    return run.name or run.action -- a call with no code of its own: the commit draft, the staged review, a plan
+  end
   local range = run.first == run.last and tostring(run.first) or ("%d-%d"):format(run.first or 0, run.last or 0)
   return ("%s:%s%s"):format(vim.fn.fnamemodify(run.file or "?", ":t"), range, run.name and (" " .. run.name) or "")
 end

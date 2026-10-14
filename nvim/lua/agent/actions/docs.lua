@@ -3,6 +3,7 @@ local protocol = require "agent.protocol"
 
 return {
   label = "docs",
+  verify = false, -- only comments change: nothing to verify
   desc = "docs",
   key = "d",
   scope = "function",

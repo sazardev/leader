@@ -76,9 +76,11 @@ end
 
 ---@param runs table[]
 ---@param now integer?
+---@param opts { budget: table? }? the settings the report should weigh (`settings.agent.budget`)
 ---@return string[]
-function M.build(runs, now)
+function M.build(runs, now, opts)
   now = now or os.time()
+  opts = opts or {}
   local lines = { "# Agent usage", "" }
   if #runs == 0 then
     return vim.list_extend(lines, { "_No runs recorded yet._" })
@@ -244,6 +246,19 @@ function M.build(runs, now)
       "",
       "_About 4 chars ≈ 1 token. The CLI adds ~560 fixed input tokens on top (Claude Code overhead)._",
     })
+  end
+
+  -- ── budget and suggestions (agent/runs/advice) ──
+  local advice = require "agent.runs.advice"
+  local budget_lines = advice.budget_lines(runs, opts.budget, now)
+  if #budget_lines > 0 then
+    vim.list_extend(lines, { "", "## Budget", "" })
+    vim.list_extend(lines, budget_lines)
+  end
+  local tips = advice.build(runs, { budget = opts.budget, now = now })
+  if #tips > 0 then
+    vim.list_extend(lines, { "", "## Suggestions", "" })
+    vim.list_extend(lines, tips)
   end
 
   -- ── the most expensive ──

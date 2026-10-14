@@ -105,6 +105,20 @@ function M.has_diagnostics(target)
   return false
 end
 
+--- Rejects what cannot be replaced safely: too large, or empty
+---@param target AgentTarget
+---@return AgentTarget?, string? error
+local function validated(target)
+  if #target.lines > settings.max_target_lines then
+    return nil,
+      ("target has %d lines (max %d): select a smaller range"):format(#target.lines, settings.max_target_lines)
+  end
+  if not table.concat(target.lines):match "%S" then
+    return nil, "no code under the cursor"
+  end
+  return target
+end
+
 ---@param buf integer
 ---@param scope string "function" | "class" | "file" | "lines" | "diagnostic" (the lines of the diagnostic under the cursor)
 ---@param range integer[]? visual selection (1-based)
@@ -156,14 +170,36 @@ function M.resolve(buf, scope, range)
     end
   end
 
-  if #target.lines > settings.max_target_lines then
-    return nil,
-      ("target has %d lines (max %d): select a smaller range"):format(#target.lines, settings.max_target_lines)
+  return validated(target)
+end
+
+--- Where the target's NAME is (row 0-based, col 0-based): what an LSP request about the symbol needs
+---@param target AgentTarget
+---@return integer? row, integer? col
+function M.name_position(target)
+  if not target.name then
+    return nil
   end
-  if not table.concat(target.lines):match "%S" then
-    return nil, "no code under the cursor"
+  for row = target.first - 1, math.min(target.first + 2, target.last) - 1 do
+    local line = vim.api.nvim_buf_get_lines(target.buf, row, row + 1, false)[1] or ""
+    local col = line:find(target.name, 1, true)
+    if col then
+      return row, col - 1
+    end
   end
-  return target
+end
+
+--- A target over a known range of a buffer (a batch groups diagnostics by function, a plan names its symbols): the same
+--- limits as one resolved from the cursor
+---@param buf integer
+---@param kind string "function" | "class" | "selection" | "lines" | "diagnostic"
+---@param first integer 1-based
+---@param last integer 1-based, inclusive
+---@param name string?
+---@return AgentTarget?, string? error
+function M.of_range(buf, kind, first, last, name)
+  last = math.min(last, vim.api.nvim_buf_line_count(buf))
+  return validated(make(buf, kind, first, last, name))
 end
 
 --- Short text to display: `function ParseConfig (12-40)`

@@ -157,8 +157,12 @@ local function chrome()
   end
   files_cfg.title = title
   files_cfg.title_pos = "left"
-  files_cfg.footer =
-    { { " Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · q cancel ", "CommitHint" } }
+  files_cfg.footer = {
+    {
+      " Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · Ctrl-r review · q cancel ",
+      "CommitHint",
+    },
+  }
   files_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.files_win, files_cfg)
 
@@ -199,8 +203,12 @@ local function chrome()
   end
   msg_cfg.title = mtitle
   msg_cfg.title_pos = "left"
-  msg_cfg.footer =
-    { { " Ctrl-s commit · Ctrl-g AI draft · Ctrl-t type · Ctrl-o scope · Tab files · q cancel ", "CommitHint" } }
+  msg_cfg.footer = {
+    {
+      " Ctrl-s commit · Ctrl-g AI draft · Ctrl-r review · Ctrl-t type · Ctrl-o scope · Tab files · q cancel ",
+      "CommitHint",
+    },
+  }
   msg_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.msg_win, msg_cfg)
   vim.api.nvim_win_set_config(S.status_win, status_cfg)
@@ -256,6 +264,22 @@ local function ai_line()
         d.truncated and "CommitWarn" or "AgentHint",
       },
     }
+  end
+  -- the staged review (agent/review): the hint (first to go when the panel is narrow), running, or what it found
+  local rv = S.review
+  if rv and rv.state == "idle" and #paths > 0 and a.state ~= "running" and a.state ~= "error" and a.state ~= "done" then
+    chunks[#chunks + 1] = { "· Ctrl-r review ", "AgentHint" }
+  end
+  -- its result goes right after the model (the chunks that are never trimmed): the "reads N files" estimate gives way first
+  if rv and rv.state == "running" then
+    table.insert(chunks, 3, { "· reviewing what is staged… ", "AgentStatus" })
+  elseif rv and rv.state == "done" then
+    table.insert(
+      chunks,
+      3,
+      rv.n == 0 and { "· ✔ review: nothing found ", "CommitOk" }
+        or { ("· review: %d finding%s (quickfix) "):format(rv.n, rv.n == 1 and "" or "s"), "CommitWarn" }
+    )
   end
   fit(chunks, width, 3)
   -- written as text with one highlight per chunk
@@ -680,6 +704,26 @@ local function pick_scope()
   end)
 end
 
+-- ── review of what is staged ─────────────────────────────────────────────────
+
+local function review()
+  if not alive() or S.review.state == "running" then
+    return
+  end
+  if #staged_paths() == 0 then
+    return log.warn "Nothing staged: Space stages the file under the cursor, a stages everything"
+  end
+  S.review = { state = "running" }
+  ai_line()
+  require("agent.review").run(S.root, function(result)
+    if not alive() then
+      return
+    end
+    S.review = result and { state = "done", n = #result.findings } or { state = "idle" }
+    ai_line()
+  end)
+end
+
 -- ── commit ───────────────────────────────────────────────────────────────────
 
 local function submit()
@@ -758,6 +802,7 @@ local function bind_common(map)
   map("n", "q", M.close, "cancel")
   map("n", "<Esc>", M.close, "cancel")
   map({ "n", "i" }, "<C-g>", draft, "AI draft")
+  map({ "n", "i" }, "<C-r>", review, "review staged")
   map({ "n", "i" }, "<C-s>", submit, "commit")
 end
 
@@ -790,6 +835,7 @@ function M.open(opts)
     nlines = 3,
     branch = git.branch(root),
     ai = { state = "idle" },
+    review = { state = "idle" },
   } --[[@as CommitState]]
 
   local files_cfg, msg_cfg, status_cfg = layout()

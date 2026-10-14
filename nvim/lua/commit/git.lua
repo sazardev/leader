@@ -191,6 +191,13 @@ local function noisy(path)
   return false
 end
 
+--- Does this path add nothing worth reading in a diff (lockfiles, maps, snapshots)?
+---@param path string
+---@return boolean
+function M.is_noise(path)
+  return noisy(path)
+end
+
 ---@param root string
 ---@return string stat  one line per file: `path +adds -dels`
 function M.staged_numstat(root)

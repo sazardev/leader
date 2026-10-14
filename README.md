@@ -108,8 +108,12 @@ A short generic menu and one menu per **level**, each with its own folder and ac
 | `aT` **tests** | `w` writes only the missing tests at the end of the test file · `m` mock · `f` fixes a test by running it first (if it already passes, 0 tokens) · `g` gaps (local) |
 | `aL` **lenses** | security, performance, concurrency, errors, API compatibility: single-focus reviews as diagnostics; each one first discards what is not its concern |
 | `aD` / `aP` / `aS` | hexagonal architecture: domain, repositories and services, with local 0-token analysis |
+| `aA` **advanced** | **several at once** (`a` fix all, `o` / `O` fix from output, `p` plan; kept out of the everyday `<leader>a`): fix all the file's findings (one request per function), fix what a build printed (the last terminal, the quickfix or a command), a plan across files you edit before it runs; the proposals wait in a queue (`]` `[` `y` `l`) |
+| `Gv` | **review what is staged** before committing: secrets and leftovers for free, the code once, findings as diagnostics |
 
-Also: clear findings one at a time, per file or all of them (`<leader>ac`, `aC`, `:AgentClear`), history with prompt, response, tokens and cost
+Around the proposals: **`Tab` refines** one instead of starting over, accepted code is **verified** for free (the LSP's new errors are compared with the old ones and
+it offers one more attempt with them), and a **spend guard** checks every request against your own history (it asks above a size, blocks at the caps you set).
+Also: clear findings one at a time, per file or all of them (`<leader>ac`, `aC`, `:AgentClear`), history in markdown with the code sent, filters and back navigation
 (`<leader>ah`), models per tier (cheap where it is enough). Details in [docs/cheatsheets/agent.md](docs/cheatsheets/agent.md).
 
 ### Go without an LLM (smart completion, 0 tokens)
@@ -155,7 +159,8 @@ The principles (the same across the whole repo) and where they show:
 - **One responsibility per module**: the pure parts (`commit/conventional.lua`, `utils/goindex.lua`, `agent/protocol.lua`) kept apart from what touches
   git, the LSP or the UI (`commit/git.lua`, `commit/panel.lua`); one presenter per output kind (`agent/output/`).
 - **Open for extension, closed for modification**: discovered registries (`languages/`, `agent/actions/`, `agent/backends/`, `agent/lenses/`);
-  adding one doesn't force editing the others. The agent pipeline is extended with action hooks (`retarget`, `merge`, `reveal`, `prepare`).
+  adding one doesn't force editing the others. The agent pipeline is extended with action hooks (`retarget`, `merge`, `reveal`, `prepare`), with
+  guards (`agent/guards/`) and with events (`agent/events.lua`: verification, batches and the proposal queue subscribe; the presenter that accepts a proposal knows none of them).
 - **Dependencies point to abstractions**: each piece talks to a small contract (a backend's `build`/`parser`, a context provider's `collect(target, done)`,
   a Go helper's `declaration_items(range, frag)`), not to its neighbor's implementation.
 - **Configurable things in a single place**: `core/settings.lua`; the scripts (`install.sh`, `install.ps1`) share the same settings logic

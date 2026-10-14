@@ -1,14 +1,15 @@
 -- ── Agent context (global): <leader>a ────────────────────────────────────────
 -- The actions come from the registry (agent/actions): adding one does not require touching this
 -- file. They work in normal mode (function under the cursor) and in visual mode (the selection).
--- Accepting/rejecting a proposal has NO entry here: it is Enter/Esc on the proposal.
+-- Accepting/rejecting a proposal has NO entry here: it is Enter/Esc on the proposal. Batch and multi-step work (fix all, plans,
+-- the proposal queue) is not everyday: it lives in the Advanced menu, <leader>aA (menus/agent_advanced.lua).
 local function agent()
   return require "agent"
 end
 
 local maps = {}
 for _, action in ipairs(require("agent.actions").list()) do
-  if not action.enabled or action.enabled() then
+  if not action.advanced and (not action.enabled or action.enabled()) then
     maps[#maps + 1] = {
       action.key,
       action.desc,

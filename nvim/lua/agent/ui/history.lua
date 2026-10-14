@@ -34,11 +34,15 @@ local OUTCOME_HL = {
 
 ---@param back? AgentHistoryState reopen the history like this on BS
 function M.report(back)
-  panel.open(report.build(store.read()), "Agent usage", back and {
-    on_back = function()
-      M.open(back)
-    end,
-  } or nil)
+  panel.open(
+    report.build(store.read(), nil, { budget = require("core.settings").agent.budget }),
+    "Agent usage",
+    back and {
+      on_back = function()
+        M.open(back)
+      end,
+    } or nil
+  )
 end
 
 --- Two short lists: which dimension, then which value (with runs and cost each); the history reopens filtered.

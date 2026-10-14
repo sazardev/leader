@@ -26,6 +26,13 @@ return {
         border = { " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " " },
         alignment_indicator = " ",
       }
+      -- headings and checkboxes in plain Unicode, not Nerd Font glyphs (the landing page's demo draws the same ones): the
+      -- flat design needs no patched font
+      opts.heading = { icons = { "▣ ", "◎ ", "◎ ", "◎ ", "◎ ", "◎ " } }
+      opts.checkbox = {
+        unchecked = { icon = "☐ " },
+        checked = { icon = "☑ " },
+      }
     end
     require("render-markdown").setup(opts)
   end,

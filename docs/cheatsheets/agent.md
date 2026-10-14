@@ -21,6 +21,9 @@ predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** m
 | `d` docs | function + optional focus | diff that only adds/updates the documentation comment |
 | `R` refactor | your instruction (text field) | diff that applies exactly that instruction |
 | `g` handoff | your instruction | sends `file:range` + instruction to an agent already running in Herdr |
+| `aA` + `a` fix all | none (the file's findings and diagnostics) | one proposal per function that holds any, asked **once** with the total estimate; they wait in a queue ([Several proposals at once](#several-proposals-at-once)) |
+| `aA` + `o` / `O` fix from output | none / a command | the errors a build printed (last terminal, quickfix, or a command you run), one proposal per function they point into |
+| `aA` + `p` plan across files | your instruction (text field) on a type or function | an editable plan of steps, then one proposal per step ([Multi-file plans](#multi-file-plans)) |
 
 **The instruction field is inline** (like the inline chat in Zed or VS Code): it opens right ABOVE the target code and
 **pushes the code down** instead of covering it, with an accent bar, a header (`✦ implement · claude/sonnet`) and
@@ -35,8 +38,10 @@ to the prompt and takes precedence over the default behaviour. Useful for an emp
 
 **Short menu**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
 Herdr), `h` history, `m` model (main, light and effort in a single selector), `c` clear (discards the finding on the line, or those in the selection in visual mode), `C` clear file (those in this file), `x` stop (cancels what is running and discards the
-pending proposals; it does **not** touch findings) and `l` last answer (reopens the last answer or rejected proposal). Accepting and rejecting a proposal have no
-menu entry: they are `⏎` and `⎋` on the proposal.
+pending proposals; it does **not** touch findings) and `l` last answer (reopens the last answer or rejected proposal). Everything that works on many pieces at once lives
+in its own **Advanced menu, `<leader>aA`**, so the everyday one stays short: `a` fix all, `o` / `O` fix from output / from a command, `p` plan across
+files, and for the proposals they leave waiting `]` / `[` next / previous, `y` accept all, `l` list. Accepting and
+rejecting a proposal have no menu entry: they are `⏎` and `⎋` on the proposal (and `Tab` refines it).
 
 **Accepting is a single change**: `u` undoes it entirely. If you edit the code while the agent is working, the proposal
 is **discarded** instead of overwriting your change. Several actions can run at once (not on the same block).
@@ -367,6 +372,104 @@ asked and what was paid.
   the report panel, `Y` copies the whole panel. Everything goes to the clipboard (`+`) and the unnamed register.
 - Privacy: the history includes your code (it goes inside the prompt). `agent.history.store_text = false` stores only metrics;
   `enabled = false` turns it off. It compacts itself to the `max_entries` (1000) most recent.
+
+## Refine: change a proposal without starting over
+
+A proposal is on screen and almost right? **`Tab`** (`settings.agent.keys.refine`) opens the instruction field again ("how should it
+change?") and replaces the proposal with a new one that **starts from the previous code**: the model sees the original target,
+the proposal and only what you ask to change. The old proposal never touched your buffer; the history links the new run to it.
+Cost: about one ordinary run per round (your instruction is ~30 tokens, the previous proposal 100-300), instead of rejecting and
+describing everything again.
+
+The same key on an **answer** (explain / ask window, enter it with `<leader>al`) asks the next question about the same code with the
+earlier questions and answers as the conversation (the oldest turns are dropped past ~4k characters).
+
+## After accepting: verification
+
+Accepting a proposal is no longer the end. `agent/verify` listens to the replace presenter's events and, for free:
+
+1. remembers the buffer's **LSP and linter diagnostics before** the code is written (the agent's own findings do not count: accepting resolves those);
+2. waits until the language server settles (`verify.settle_ms`, never more than `verify.max_wait_ms`) and compares: a diagnostic is
+   identified by what it says (source, code, message), not by its line, so the same old warning one line lower is not new;
+3. nothing new → one quiet line `✓ verified · no new problems`; something new → a question
+   `fix regression 1/2`: it names the problems, the attempt, the model and the estimate. **Yes** launches a `fix regression` proposal
+   over the function that holds them (same experience as any proposal, and verified again if you accept it); `verify.max_retries`
+   (2) bounds the chain, `verify.auto_retry = true` skips the question (still bounded and still behind the spend guard);
+4. a **build check** (`verify.command = "auto"`: `go build ./...`, `cargo check`, `py_compile`; or your own per language) runs when
+   you **save** the accepted code, because a compiler reads the disk. Only the errors on or next to that code are blamed on it; the rest
+   of the project's errors are counted, not guessed at.
+
+Tokens: 0 unless you answer yes; then about 1.8 runs per attempt (the original prompt plus the errors). `docs` is excluded
+(`verify = false`: only comments change).
+
+## Several proposals at once
+
+`fix all`, `fix from output` and multi-file plans share one engine (`agent/batch`):
+
+- **One confirmation** with the total (`3 proposals · claude/sonnet · ~2.3k tokens · ~$0.0012`, the files and how many problems each
+  holds). The budget guard is not asked again per piece, but a hard cap still stops the rest.
+- The pieces run **one by one**; the statusline says `⠋ agent fix all 2/3`. If you cancel (`<leader>ax`) or the budget blocks one, the rest does not go on.
+- Each piece is anchored (an extmark), so accepting something above it while it runs does not misplace it.
+- The proposals wait in a **queue**: `<leader>aA]` / `<leader>aA[` jump between them across files, `<leader>aAl` lists them in the quickfix,
+  `<leader>aAy` accepts them all after one question (each is its own `u`). Each proposal's hint ends with `2/4 · <leader>aA] next`.
+
+**Fix all (`<leader>aAa`)** groups the file's diagnostics by the function (else the type) that contains them: three findings in one function
+are **one** request. Sources and severity: `settings.agent.fixall` (agent findings, DDD violations, LSP/linters; `warn` and up by default).
+Tokens: about one `fix block` run per affected function (5 findings in 3 functions ≈ 3 runs).
+
+**Fix from output (`<leader>aAo`)**: the errors come from the last terminal buffer, else the quickfix list; `<leader>aAO` asks for a command
+(the project's build by default), runs it and uses what it prints. They are parsed by Neovim's own `errorformat`
+(go, tsc, cargo, python, javac and the generic `file:line:col: message`), **0 tokens**; each piece sends only the errors of its function
+(`<build_errors>`), not the whole output. At most `settings.agent.errors.max_errors` (20) errors are read.
+
+## Multi-file plans
+
+`<leader>aAp` on a type or function, then what should change ("add a Done flag to notes, through every layer"):
+
+1. **Free**: where it reaches. Language-server references (completed with `git grep` when the server never leaves the starting
+   file), collapsed to the **declarations** that hold the symbol (function or type, with its first line as the signature), capped by
+   `settings.agent.plan` (`max_files`, `max_sites`).
+2. **One request**: the instruction and only those signatures (never bodies; ~40 tokens per site) go to the model, which answers ordered
+   steps `n|path|symbol|what`. Steps that name a file or symbol that is not in the list are dropped (the model inventing them).
+3. **You**: the plan panel (`☑ 1. path · Symbol — what`). `Space` unchecks a step, `a` all/none, `Enter` runs the checked ones, `q`
+   cancels. Its first line keeps the estimate up to date as you toggle.
+4. **One request per step, in order**: each is a proposal for its declaration, with the overall plan (this step marked) and **what the steps
+   before it proposed** as context, so step 3 uses the field that step 1 adds. They land in the queue above and are verified as you accept.
+
+A snapshot (`git stash create`, nothing in your work tree changes) is taken first: `git diff <ref>` shows everything the plan changed and
+`git checkout <ref> -- <file>` restores a file. Renames are better done with LSP rename (deterministic, 0 tokens); the plan is for semantic
+changes. Tokens: plan ≈ 1-2.5k in, 300 out; each step ≈ 1 run; a 5-step plan is about 6 runs in total.
+
+## Spend guard
+
+Before every request (actions, batches, the staged review, plans) the **budget guard** (`agent/guards/budget.lua`, pure core in
+`agent/budget.lua`) checks the size of what is about to be sent (characters ÷ 3.5 ≈ tokens) against `settings.agent.budget` and what
+the history says you already spent. The price of a token is learned from **your own history with that model** (no price table).
+Above `confirm_tokens` / `confirm_usd`, or near a cap, it **asks** (modal with the reasons); a used-up `day_usd` / `session_usd` **blocks**.
+Every one-shot call (commit draft, staged review, plan) is recorded in the history too, so the spend is complete. The usage report
+(`<leader>ah` → `⌃S`) gains a **Budget** line and **Suggestions**: actions you accept rarely (and what they cost), the share of the spend
+that went to proposals nobody applied, and how often the verifier had to retry.
+
+## Review before committing
+
+`<leader>Gv` (or `⌃R` in the commit panel) reviews **what is staged**:
+
+1. **Free checks** on the added lines: secrets (AWS/GitHub/Slack/OpenAI-style keys, private keys, `password = "…"` literals), merge-conflict
+   markers, debugger/print leftovers per language (not in tests) and sensitive files (`settings.git.commit.sensitive`).
+2. If there is real code to read (not only lockfiles, generated files, deletions or binaries) **one request** goes out with the staged
+   diff **numbered by its lines in the new file** (`+L13` added, ` L12` context), within `git.commit.review_max_chars`. A finding must
+   point at one of those lines or it is dropped as invented.
+3. Findings land as **diagnostics** on their lines (open files at once; the others when you open them: they persist like any finding) with source
+   `staged review`, and as a quickfix list. The panel's agent line says `review: 2 findings (quickfix)`.
+
+Tokens: a typical commit (40-200 changed lines) is ~1.5-6k in and 100-600 out; a docs-only or lockfile-only commit costs nothing.
+
+## Context for refactors and explanations
+
+Two providers that are opt-in per action (they cost tokens): **`callers`** (refactor, the `api` lens): who calls the target, from the LSP
+references, one short line each (`path:line  code`), at most `context.callers` (6) and two per file, so a refactor sees how the function
+is really used before it changes a signature (~60 tokens each). **`gitlog`** (explain, review, refactor): the last `context.gitlog` (3)
+commits that touched those lines (`git log -L`), one line each (~40 tokens): the "why is it like this" and "this was fixed before".
 
 ## Project conventions: `.agent.md`
 

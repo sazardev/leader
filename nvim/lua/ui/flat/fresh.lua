@@ -35,6 +35,10 @@ function M.range(buf, srow, scol, erow, ecol)
     math.floor(ms / groups.FRESH_STEPS),
     math.floor(ms / groups.FRESH_STEPS),
     vim.schedule_wrap(function()
+      -- several ticks can be queued before the first one closes the timer (a busy editor, many flashes at once)
+      if timer:is_closing() then
+        return
+      end
       frame = frame + 1
       if frame > groups.FRESH_STEPS or not vim.api.nvim_buf_is_valid(buf) then
         timer:stop()

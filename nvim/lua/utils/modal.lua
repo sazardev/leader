@@ -128,16 +128,17 @@ local function open(lines, opts)
 end
 
 ---@param lines (string|table[])[]
----@param opts { title?: string }
+---@param opts { title?: string, default?: string } `default` pre-fills the field
 ---@param on_submit fun(text: string)
 function M.input(lines, opts, on_submit)
   local prompt = FLAT and " " or "> " -- flat: the field is a bar with a cell of air, like the demo's
-  vim.list_extend(lines, FLAT and { { { prompt } } } or { "", { { prompt, M.hl.key } } })
+  local default = opts.default or ""
+  vim.list_extend(lines, FLAT and { { { prompt .. default } } } or { "", { { prompt, M.hl.key }, { default } } })
   local last = #lines
   vim.list_extend(lines, { { { "Enter confirm · Esc cancel", M.hl.muted } } }) -- the key hints, faint, under the field
   local buf, win, close = open(lines, { title = opts.title, editable = true })
 
-  vim.api.nvim_win_set_cursor(win, { last, #prompt })
+  vim.api.nvim_win_set_cursor(win, { last, #prompt + #default })
   vim.api.nvim_buf_set_extmark(buf, NS, last - 1, 0, { line_hl_group = "FlatInput" }) -- the field: one step darker than the block
   vim.b[buf].completion = false -- blink must not suggest anything in a free-text field
   vim.cmd "startinsert!"
@@ -159,17 +160,32 @@ function M.input(lines, opts, on_submit)
 end
 
 ---@param lines (string|table[])[]
----@param opts { title?: string }
+---@param opts { title?: string, on_cancel?: fun() } `on_cancel` runs when it closes without a yes (n, q, Esc)
 ---@param on_yes fun()
 function M.confirm(lines, opts, on_yes)
   if not FLAT then
     lines[#lines + 1] = ""
   end
   lines[#lines + 1] = { { "[y]", M.hl.key }, { " yes    " }, { "[n / q / <Esc>]", M.hl.key }, { " no", M.hl.muted } }
-  local buf, _, close = open(lines, { title = opts.title })
+  local buf, win, close = open(lines, { title = opts.title })
 
+  local answered = false
+  if opts.on_cancel then
+    -- whichever way it closes (n, q, Esc, another window taking over), the caller hears about a no
+    vim.api.nvim_create_autocmd("WinClosed", {
+      pattern = tostring(win),
+      once = true,
+      callback = function()
+        if not answered then
+          answered = true
+          vim.schedule(opts.on_cancel)
+        end
+      end,
+    })
+  end
   vim.keymap.set("n", "n", close, { buffer = buf, nowait = true, desc = "Cancel" })
   vim.keymap.set("n", "y", function()
+    answered = true
     close()
     on_yes()
   end, { buffer = buf, nowait = true, desc = "Confirm" })

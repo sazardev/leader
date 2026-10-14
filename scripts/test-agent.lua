@@ -290,10 +290,27 @@ eq(
 )
 local keys, seen = {}, true
 for _, a in ipairs(actions.list()) do
-  seen = seen and not keys[a.key]
-  keys[a.key] = true
+  local menu = a.advanced and "aA" or "a" -- each menu has its own keys: everyday <leader>a, Advanced <leader>aA
+  keys[menu] = keys[menu] or {}
+  seen = seen and not keys[menu][a.key]
+  keys[menu][a.key] = true
 end
-eq("action keys are not repeated", seen, true)
+eq("action keys are not repeated within a menu", seen, true)
+local adv = require "menus.agent_advanced"
+eq(
+  "Advanced menu (<leader>aA): the batch actions and the queue",
+  { adv.prefix, vim.tbl_map(function(m)
+    return m[1]
+  end, adv.maps) },
+  { "aA", { "a", "o", "O", "p", "]", "[", "y", "l" } }
+)
+eq(
+  "the everyday menu does not carry them",
+  vim.tbl_filter(function(m)
+    return vim.tbl_contains({ "A", "o", "O", "M", "]", "[", "Y", "Q" }, m[1])
+  end, require("menus.agent").maps),
+  {}
+)
 eq("handoff is only offered inside Herdr", actions.get("handoff").enabled ~= nil, true)
 
 -- instruction recall (with a fake state: does not touch the real agent.json)

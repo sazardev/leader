@@ -49,6 +49,33 @@ function M.resolve(buf, first, last)
   return #all - #kept
 end
 
+--- Puts findings from `source` into an open buffer: they replace what that source said there before (the whole file), and
+--- what other sources said stays. `items` = { line (1-based), severity, message }
+---@param buf integer
+---@param items { line: integer, severity: integer, message: string }[]
+---@param source string
+function M.put(buf, items, source)
+  local kept = vim.tbl_filter(function(d)
+    return (d.source or "agent") ~= source
+  end, vim.diagnostic.get(buf, { namespace = NS }))
+  local total = vim.api.nvim_buf_line_count(buf)
+  for _, f in ipairs(items) do
+    local line = math.min(math.max(f.line, 1), total)
+    local content = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
+    kept[#kept + 1] = {
+      lnum = line - 1,
+      end_lnum = line - 1,
+      col = (content:find "%S" or 1) - 1,
+      end_col = #content,
+      severity = f.severity,
+      message = f.message,
+      source = source,
+    }
+  end
+  vim.diagnostic.set(NS, buf, kept)
+  persist.sync(buf, "findings")
+end
+
 ---@param job AgentJob
 ---@param result table
 ---@return string? summary

@@ -148,6 +148,8 @@ local defaults = {
       max_target_lines = 400, -- a larger target is rejected (trimming it would break the replacement)
       window = 40, -- max lines if there is no function/class: paragraph around the cursor
       callees = 6, -- max called symbols whose signature is requested from the LSP
+      callers = 6, -- max places that call the target (`callers` provider: refactor, api lens), one short line each
+      gitlog = 3, -- commits that touched the target's lines (`gitlog` provider: explain, review, refactor)
       diagnostic_lines = 12, -- inline fix: max lines the diagnostic under the cursor covers (if it spans more, only what starts there)
       around = 25, -- inline fix: lines of surrounding code (before and after) shown as context
       types = 4, -- max type definitions (struct/class/interface...) the target uses
@@ -155,7 +157,49 @@ local defaults = {
       hover_timeout_ms = 700, -- max wait for the LSP; whatever did not arrive in time is omitted
     },
     apply = { format = false }, -- when accepting a replacement, formats that range with conform
-    keys = { accept = "<CR>", reject = "<Esc>" }, -- only while a proposal is visible in the buffer
+    keys = { accept = "<CR>", reject = "<Esc>", refine = "<Tab>" }, -- only while a proposal is visible in the buffer
+    -- Spend guard (agent/budget.lua, agent/guards): checked BEFORE every request from the size of what is about to be
+    -- sent, and from what the history says you already spent. It costs nothing: no model, only the history.
+    --   confirm_tokens / confirm_usd  above this estimate it asks first        day_usd / session_usd  hard caps (nil = none)
+    budget = {
+      enabled = true,
+      confirm_tokens = 24000, -- estimated input tokens of ONE request (a typical action is 1.2-1.7k)
+      confirm_usd = 0.05, -- estimated cost of one request or one batch
+      day_usd = nil, -- e.g. 2.00: no request starts once today's spend plus the estimate reaches it
+      session_usd = nil, -- the same, since Neovim started
+      warn_ratio = 0.8, -- from this share of a cap it asks before each request
+    },
+    -- What happens after you accept a proposal (agent/verify): the LSP diagnostics are compared before and after (free);
+    -- if the change introduced errors, it offers ONE more attempt with those errors as context.
+    verify = {
+      enabled = true,
+      settle_ms = 700, -- quiet time of the LSP before judging
+      max_wait_ms = 3500, -- never waits longer than this for the LSP
+      severity = "error", -- "error" | "warn": what counts as a regression
+      max_retries = 2, -- attempts per proposal chain
+      auto_retry = false, -- true = retries without asking (still bounded by max_retries and the spend guard)
+      -- Build check, run when you SAVE the accepted code (a build reads the disk): "auto" = per language
+      -- (go build, py_compile, cargo check), false = off, or { go = { "go", "vet", "./..." } }
+      command = "auto",
+      timeout_ms = 60000,
+    },
+    -- Several proposals in a row (fix all, fix from output, multi-file plans): one confirmation with the total estimate,
+    -- then they run one by one; the proposals wait in a queue to review (`]`, `[`, accept all)
+    batch = { max_items = 12 },
+    fixall = {
+      sources = { "findings", "ddd", "lsp" }, -- diagnostics to fix: agent findings, DDD violations, LSP/linters
+      min_severity = "warn", -- "error" | "warn" | "info"
+    },
+    errors = {
+      max_errors = 20, -- errors read from the output (the rest is ignored)
+      terminal_lines = 600, -- lines of the last terminal that are read
+    },
+    -- Multi-file changes (agent/plan): one plan call (signatures only), you edit the plan, then one proposal per step
+    plan = {
+      max_files = 10,
+      max_sites = 40, -- places in the project that mention the symbol and go into the plan prompt
+      snapshot = true, -- remember the commit/stash to go back to (`git stash create`: nothing in the work tree changes)
+    },
     claude = {
       models = { "haiku", "sonnet", "opus" },
       model = "sonnet", -- main model (implement, fix, refactor, review, ask)
@@ -264,6 +308,7 @@ local defaults = {
       subject_max = 72, -- max length of the first line ("type(scope): subject")
       history = 300, -- recent commits read to suggest scopes
       diff_max_chars = 6000, -- cap of the compact diff sent to the AI (split across files); less = faster and cheaper
+      review_max_chars = 12000, -- cap of the numbered diff `review staged` sends (<leader>Gv, Ctrl-r in the commit panel)
       -- <leader>GM (automatic commit): if nothing is staged, stages EVERYTHING modified except what matches these
       -- Lua patterns (secrets and keys: you stage those by hand). Whatever you already staged is never filtered.
       sensitive = {

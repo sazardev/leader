@@ -7,7 +7,8 @@ local M = {}
 
 ---@param lines string[]
 ---@param title string
----@param opts? { on_back?: fun() }
+---@param opts? { on_back?: fun(), hint?: string, on_open?: fun(buf: integer, win: integer, close: fun()) }
+---  hint: replaces "Y copy all · q close" in the title; on_open: bind more keys (the plan panel toggles steps with them)
 function M.open(lines, title, opts)
   opts = opts or {}
   -- the "checking…" note that announced this report would sit over it
@@ -31,7 +32,8 @@ function M.open(lines, title, opts)
     height = height,
     style = "minimal",
     border = require("ui.flat").border(),
-    title = (" %s · Y copy all ·%s q close "):format(title, opts.on_back and " BS back ·" or ""),
+    title = opts.hint and (" %s · %s "):format(title, opts.hint)
+      or (" %s · Y copy all ·%s q close "):format(title, opts.on_back and " BS back ·" or ""),
     title_pos = "left",
   })
   local wo = vim.wo[win]
@@ -49,6 +51,9 @@ function M.open(lines, title, opts)
   end, { buffer = buf, nowait = true, desc = "Agent copy panel" })
   for _, key in ipairs { "q", "<Esc>" } do
     vim.keymap.set("n", key, close, { buffer = buf, nowait = true, desc = "Agent close panel" })
+  end
+  if opts.on_open then
+    opts.on_open(buf, win, close)
   end
   if opts.on_back then
     vim.keymap.set("n", "<BS>", function()

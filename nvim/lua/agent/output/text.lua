@@ -23,7 +23,12 @@ end
 ---@param job AgentJob
 ---@param result table
 function M.done(job, result)
-  float.show(job, text.trim(result.text), title(job, stats.line(job, result)))
+  local follow = require("agent.refine").key_label()
+  float.show(
+    job,
+    text.trim(result.text),
+    title(job, stats.line(job, result) .. (follow and (" · %s ask more"):format(follow) or ""))
+  )
   float.autoclose(job)
   anchor.delete(job.buf, job.anchor)
   runs.event(job, "shown")

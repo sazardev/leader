@@ -16,8 +16,9 @@ function M.ask(action, target, model_label, on_submit)
     row = target.first,
     title = action.label,
     meta = action.handler and "Herdr agent" or model_label, -- handing off to Herdr uses no model
-    placeholder = action.input_optional and (action.input .. " (Enter to skip)") or action.input,
-    optional = action.input_optional,
+    placeholder = (action.input_optional and not action.input_needed) and (action.input .. " (Enter to skip)")
+      or action.input,
+    optional = action.input_optional and not action.input_needed,
     history = recall.list(action.name),
   }, function(text)
     if text ~= "" then

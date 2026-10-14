@@ -6,7 +6,7 @@ return {
   desc = "review",
   key = "r",
   scope = "function",
-  context = { "rules", "diagnostics", "contracts", "schema", "types", "callees" },
+  context = { "rules", "diagnostics", "contracts", "schema", "types", "callees", "gitlog" },
   output = "findings",
   numbered = true,
   system = function(env)

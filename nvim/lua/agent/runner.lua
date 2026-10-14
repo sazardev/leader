@@ -4,6 +4,7 @@
 -- Claude or OpenCode: only the agent/backends contract.
 local anchor = require "agent.anchor"
 local backends = require "agent.backends"
+local events = require "agent.events"
 local jobs = require "agent.jobs"
 local log = require "utils.log"
 local runs = require "agent.runs"
@@ -27,6 +28,7 @@ local function fail(job, err)
     anchor.delete(job.buf, job.anchor)
   end
   log.error(("Agent %s: %s"):format(job.action.label, text.clip(err or "unknown error", 400)))
+  events.emit("job.settled", { job = job, outcome = "error" })
 end
 
 ---@param job AgentJob
@@ -76,6 +78,7 @@ local function on_exit(job, parser, out)
   if summary then
     status.summary(job, ("✓ %s · %s"):format(summary, stats.line(job, result)))
   end
+  events.emit("job.settled", { job = job, outcome = "done" })
 end
 
 ---@param job AgentJob
@@ -135,6 +138,24 @@ function M.cancel(job)
   else
     anchor.delete(job.buf, job.anchor)
   end
+  events.emit("job.settled", { job = job, outcome = "cancelled" })
+end
+
+--- A guard stopped it before anything was sent (the budget, or you said no to a question): nothing to record, nothing spent
+---@param job AgentJob
+function M.deny(job)
+  if job.state ~= "running" then
+    return
+  end
+  job.state = "cancelled"
+  jobs.finish(job)
+  status.clear(job)
+  if job.presenter.release then
+    job.presenter.release(job)
+  else
+    anchor.delete(job.buf, job.anchor)
+  end
+  events.emit("job.settled", { job = job, outcome = "denied" })
 end
 
 return M

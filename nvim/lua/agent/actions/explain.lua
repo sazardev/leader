@@ -4,7 +4,7 @@ return {
   desc = "explain",
   key = "e",
   scope = "function",
-  context = { "rules", "types", "callees" },
+  context = { "rules", "types", "callees", "gitlog" },
   output = "text",
   tier = "light",
   system = function(env)

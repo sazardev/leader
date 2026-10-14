@@ -149,6 +149,34 @@ function M.replace_all(key, by_path)
   write(data)
 end
 
+--- Adds findings for a file that is not open (a review of what is staged touches many): what `source` said there before is
+--- replaced, what other sources said stays. They become diagnostics when the file is opened.
+---@param key "findings"|"ddd"
+---@param path string absolute
+---@param list { line: integer, severity: integer, message: string, source: string? }[]
+---@param source string
+function M.merge(key, path, list, source)
+  local data = read()
+  local ok, lines = pcall(vim.fn.readfile, path)
+  lines = ok and lines or {}
+  local kept = vim.tbl_filter(function(e)
+    return not (e.ns == key and e.source == source)
+  end, data.files[path] or {})
+  for _, v in ipairs(list) do
+    table.insert(kept, {
+      ns = key,
+      line = v.line,
+      text = trim(lines[v.line]),
+      severity = v.severity,
+      message = v.message,
+      source = source,
+      ts = os.time(),
+    })
+  end
+  data.files[path] = #kept > 0 and kept or nil
+  write(data)
+end
+
 --- Forgets what is stored for a file (everything, or just one key)
 ---@param path string
 ---@param key string?

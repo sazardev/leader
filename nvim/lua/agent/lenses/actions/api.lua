@@ -2,7 +2,7 @@ return {
   key = "a",
   title = "api",
   tier = "light",
-  context = { "rules", "changes", "types" },
+  context = { "rules", "changes", "callers", "types" },
   -- with no uncommitted changes in the target there is nothing to compare against: the model is not called
   check = function(target)
     if not require("agent.context.providers.changes").diff(target) then

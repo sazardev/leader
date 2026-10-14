@@ -34,7 +34,8 @@ eq("both read diagnostics, findings, types and callees", {
 }, { true, true })
 local keys = {}
 for _, a in ipairs(actions.list()) do
-  keys[a.key] = (keys[a.key] or 0) + 1
+  local k = (a.advanced and "A" or "") .. a.key -- the Advanced menu (<leader>aA) has its own keys
+  keys[k] = (keys[k] or 0) + 1
 end
 eq(
   "no repeated key in <leader>a",
