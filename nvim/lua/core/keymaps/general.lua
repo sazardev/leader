@@ -79,6 +79,12 @@ function M.setup()
   map("n", "<leader>xp", function()
     diag.step(-1)
   end, { desc = "Diagnostics previous block" })
+  -- copy them as text (utils/diagcopy.lua): the cursor line, this file, every open file
+  for key, scope in pairs { l = "line", f = "file", e = "all" } do
+    map("n", "<leader>x" .. key, function()
+      require("utils.diagcopy").copy(scope)
+    end, { desc = "Diagnostics copy " .. scope })
+  end
 
   -- <Esc>: first closes the diagnostic popup if open; then, after
   -- gd / grr / Ctrl+click goes back to where you were (if you did not edit there);
