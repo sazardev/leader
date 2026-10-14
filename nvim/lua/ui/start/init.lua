@@ -7,7 +7,22 @@ local layout = require "ui.start.layout"
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "NvStart"
-local state = { buf = nil, win = nil, sel = 1, actions = {}, rows = {}, guicursor = nil }
+local state = { buf = nil, win = nil, sel = 1, actions = {}, rows = {}, guicursor = nil, saved = nil }
+
+-- window options the start screen changes: they are window-local, so they would stay on the window and the file opened
+-- from the screen (ff, fo, Enter…) would come out without line numbers
+local WINDOW_OPTIONS = {
+  "number",
+  "relativenumber",
+  "signcolumn",
+  "statuscolumn",
+  "cursorline",
+  "list",
+  "wrap",
+  "foldenable",
+  "colorcolumn",
+  "winhighlight",
+}
 
 ---@return boolean
 local function alive()
@@ -72,6 +87,17 @@ local function hide_cursor()
     state.guicursor = vim.o.guicursor
   end
   vim.o.guicursor = "a:NvStartCursor"
+end
+
+--- Gives the window its own options back (called when the start screen leaves it)
+local function restore_window()
+  if not (state.saved and state.win and vim.api.nvim_win_is_valid(state.win)) then
+    return
+  end
+  for name, value in pairs(state.saved) do
+    vim.wo[state.win][name] = value
+  end
+  state.saved = nil
 end
 
 local function restore_cursor()
@@ -148,6 +174,10 @@ function M.open()
   vim.bo[buf].filetype = "nvdash" -- what the rest of the config (close, illuminate…) already recognizes
   vim.api.nvim_win_set_buf(state.win, buf)
   local wo = vim.wo[state.win]
+  state.saved = {}
+  for _, name in ipairs(WINDOW_OPTIONS) do
+    state.saved[name] = wo[name]
+  end
   wo.number, wo.relativenumber, wo.signcolumn, wo.statuscolumn = false, false, "no", ""
   wo.cursorline, wo.list, wo.wrap, wo.foldenable, wo.colorcolumn = false, false, false, false, ""
   wo.winhighlight = "Normal:NvStartNormal,NormalNC:NvStartNormal,EndOfBuffer:NvStartNormal"
@@ -167,6 +197,7 @@ function M.open()
     end,
   })
   vim.api.nvim_create_autocmd({ "BufLeave", "BufWipeout" }, { group = group, buffer = buf, callback = restore_cursor })
+  vim.api.nvim_create_autocmd("BufWinLeave", { group = group, buffer = buf, callback = restore_window })
   M.render()
 end
 
