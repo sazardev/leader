@@ -33,7 +33,7 @@ local REQUIRED = {
   "WhichKey", "WhichKeyGroup", "WhichKeyDesc", "WhichKeyNormal",
   "TelescopeSelection", "TelescopePromptNormal", "TelescopeResultsNormal", "TelescopePreviewNormal", "TelescopeMatching",
   "NvimTreeNormal", "NvimTreeRootFolder", "Visual", "CursorLineNr", "DiffAdd", "DiffDelete", "GitConflictCurrent",
-  "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "NvDashAscii", "FlatNotify", "FlatNotifyError", "FlatKey",
+  "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "FlatNotify", "FlatNotifyError", "FlatKey", "NvStartNormal", "NvStartSel", "NvStartBtn",
   "AgentInput", "AgentStatus", "AgentFloat", "CommitHeader", "CommitAI", "FlatFresh1", "FlatFresh" .. groups.FRESH_STEPS,
 }
 
@@ -83,6 +83,39 @@ require("ui.flat.notify").setup()
 vim.notify("hello", vim.log.levels.INFO)
 check(seen == "hello", "notify without a UI must reach the original vim.notify")
 vim.notify = original
+
+-- start screen layout (ui/start/layout.lua): pure
+local start = require "ui.start.layout"
+local ACTIONS = { { label = "Find File", key = "ff" }, { label = "Recent Files", key = "fo" }, { label = "Find Word", key = "fw" }, { label = "Themes", key = "th" }, { label = "Mappings", key = "ch" }, { label = "Change Art", key = "ca" } }
+local ART = {}
+for i = 1, 10 do
+  ART[i] = "⠀⠀⠀⣿⣿⣿⠀⠀"
+end
+local function screen(w, h, extra)
+  local opts = vim.tbl_extend("force", { width = w, height = h, art = ART, repo = "proj (main)", user = "Omar", actions = ACTIONS, sel = 2 }, extra or {})
+  return start.compute(opts)
+end
+local lines, spans, rows = screen(110, 40)
+check(#rows == #ACTIONS, "start: one row per button")
+for i = 2, #rows do
+  check(rows[i] - rows[i - 1] == 2, "start: a blank row between buttons when there is room")
+end
+check(#lines <= 40, "start: fits the window")
+local sel_spans = vim.tbl_filter(function(s) return s.hl == "NvStartSel" end, spans)
+check(#sel_spans == 1 and sel_spans[1].row == rows[2], "start: exactly the selected button is NvStartSel")
+local widths = {}
+for i, r in ipairs(rows) do
+  widths[i] = vim.fn.strdisplaywidth(lines[r + 1])
+end
+check(widths[1] == widths[2] and widths[2] == widths[6], "start: every button has the same width")
+local _, _, rows_small, compact = screen(80, 24)
+check(compact and rows_small[2] - rows_small[1] == 1, "start: short window drops the gaps between buttons")
+local lines_tiny = screen(40, 10)
+check(#lines_tiny <= 10, "start: a tiny window drops the art and still fits (" .. #lines_tiny .. " rows)")
+local lines_narrow = screen(20, 30)
+for _, l in ipairs(lines_narrow) do
+  check(vim.fn.strdisplaywidth(l) <= 20, "start: nothing wider than a narrow window")
+end
 
 print(fails == 0 and ("ALL OK (" .. total .. " checks)") or ("FAILURES: " .. fails .. " of " .. total))
 vim.cmd(fails == 0 and "qa!" or "cquit 1")

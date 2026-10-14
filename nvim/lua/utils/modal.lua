@@ -116,8 +116,9 @@ end
 function M.input(lines, opts, on_submit)
   local prompt = "> "
   vim.list_extend(lines, { "", { { prompt, M.hl.key } } })
-  local buf, win, close = open(lines, { title = opts.title, editable = true })
   local last = #lines
+  vim.list_extend(lines, { { { "Enter confirm · Esc cancel", M.hl.muted } } }) -- the key hints, faint, under the field
+  local buf, win, close = open(lines, { title = opts.title, editable = true })
 
   vim.api.nvim_win_set_cursor(win, { last, #prompt })
   vim.api.nvim_buf_set_extmark(buf, NS, last - 1, 0, { line_hl_group = "FlatInput" }) -- the field: one step darker than the block

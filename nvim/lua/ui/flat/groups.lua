@@ -236,9 +236,15 @@ function M.build(t)
   g.TroublePos = { fg = t.faint }
 
   -- ── start screen ──────────────────────────────────────────────────────────
-  g.NvDashAscii = { fg = t.aqua }
-  g.NvDashFooter = { fg = t.yellow }
-  g.NvDashButtons = { fg = t.dim, bg = t.soft }
+  g.NvStartNormal = { fg = t.fg, bg = t.deep } -- the whole screen sits one step below the editor background
+  g.NvStartArt = { fg = t.aqua }
+  g.NvStartRepo = { fg = t.yellow }
+  g.NvStartUser = { fg = t.faint }
+  g.NvStartBtn = { fg = t.dim, bg = t.soft }
+  g.NvStartBtnKey = { fg = t.faint, bg = t.soft }
+  g.NvStartSel = { fg = t.on, bg = t.blue }
+  g.NvStartSelKey = { fg = t.on, bg = t.blue }
+  g.NvStartCursor = { blend = 100, nocombine = true } -- hides the cursor while the start screen is shown
 
   -- ── agent (<leader>a) and commit panel ───────────────────────────────────
   for name, def in pairs(M.agent(t)) do

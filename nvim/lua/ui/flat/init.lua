@@ -12,10 +12,19 @@ local M = {}
 --- `solid` = one blank cell of padding around the content; with `FloatBorder` painted like the block it is air, not a line
 M.BORDER = "solid"
 
---- Border for a window: invisible padding when flat, the usual line otherwise (what plugins pass as `border`)
----@return string
-function M.border()
-  return M.enabled() and M.BORDER or "single"
+--- Compact popups (hover, diagnostics, signature, docs) only get air on the left and right, like the demo's floats
+--- (6px above and below the text, not a whole row): `{ topleft, top, topright, right, botright, bottom, botleft, left }`
+M.SIDE = { "", "", "", " ", "", "", "", " " }
+
+--- Border for a window: invisible padding when flat, the usual line otherwise (what plugins pass as `border`).
+--- `kind` = "float" for small popups next to the text, nothing (or "panel") for modals and panels.
+---@param kind? "float"|"panel"
+---@return string|string[]
+function M.border(kind)
+  if not M.enabled() then
+    return "single"
+  end
+  return kind == "float" and M.SIDE or M.BORDER
 end
 
 ---@return boolean
@@ -84,6 +93,16 @@ function M.setup()
       require("ui.flat.fresh").on_yank()
     end,
   })
+
+  -- LSP floats (hover, signature help) open with the compact border unless the caller asks for another one
+  for _, name in ipairs { "hover", "signature_help" } do
+    local original = vim.lsp.buf[name]
+    vim.lsp.buf[name] = function(opts)
+      opts = opts or {}
+      opts.border = opts.border or M.SIDE
+      return original(opts)
+    end
+  end
 
   if ui.notify then
     require("ui.flat.notify").setup()

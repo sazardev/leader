@@ -11,20 +11,8 @@ function M.setup()
     end,
   })
 
-  -- The dashboard (nvdash) is redrawn on resize setting `modifiable = true` and
-  -- never locks it again (NvChad bug): text could be typed into it. It is
-  -- re-locked right after its redraw.
-  vim.api.nvim_create_autocmd({ "WinResized", "VimResized" }, {
-    group = vim.api.nvim_create_augroup("RelockNvdash", { clear = true }),
-    callback = function()
-      vim.schedule(function()
-        local buf = vim.g.nvdash_buf
-        if buf and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == "nvdash" then
-          vim.bo[buf].modifiable = false
-        end
-      end)
-    end,
-  })
+  -- the start screen (ui/start): at startup with no file, and `:Nvdash`
+  require("ui.start").setup()
 end
 
 return M

@@ -98,20 +98,11 @@ function M.lines()
   return M.load(M.current())
 end
 
---- Redraws the dashboard if visible. nvdash replaces `header` with its
---- result on the first draw, so the function must be put back.
+--- Redraws the start screen if visible
 local function redraw()
-  local buf = vim.g.nvdash_buf
-  local win = buf and vim.api.nvim_buf_is_valid(buf) and vim.fn.bufwinid(buf) or -1
-  if win == -1 then
-    return
-  end
-  require("nvconfig").nvdash.header = M.lines
-  vim.api.nvim_buf_clear_namespace(buf, vim.api.nvim_create_namespace "nvdash", 0, -1)
-  local modifiable = vim.bo[buf].modifiable
-  vim.bo[buf].modifiable = true
-  require("nvchad.nvdash").open(buf, win, "redraw")
-  vim.bo[buf].modifiable = modifiable
+  pcall(function()
+    require("ui.start").redraw()
+  end)
 end
 
 ---@param name string

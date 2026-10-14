@@ -1202,6 +1202,7 @@ footer a:hover{color:var(--fg)}
         load(p, "cmd/api/main.go", 0); S.file = ""; S.lines = [{ t: "" }]; S.cur = 0; S.showCursor = false;
         var o = { kind: "dash", art: ARTS[1].join("\n"), repo: "notesapi (main)", user: "Omar", sel: 0, buttons: [["Restore Session", "rs"], ["Find File", "ff"], ["Recent Files", "fo"], ["Find Word", "fw"], ["Themes", "th"], ["Mappings", "ch"], ["Change Art", "ca"]] };
         p.ov(o); await p.w(1600);
+        await p.key("j", 300); o.sel = 1; p.r(); await p.w(400); await p.key("k", 300); o.sel = 0; p.r(); await p.w(600);
         await p.key("r", 150); await p.key("s", 400); p.open("internal/application/note_service.go", 5, 14); S.showCursor = true; p.r();
         p.note("<b>Session restored</b> · 3 buffers · cursor where you left it"); await p.w(2200); p.note(null); } },
     { g: "find", name: "Find files", go: async function (p) {
@@ -1273,7 +1274,7 @@ footer a:hover{color:var(--fg)}
         p.tree(rows, ix("internal"), true); await p.w(700);
         await p.key("j", 240); p.treeCur(ix("internal/application")); await p.w(150); await p.key("j", 240); p.treeCur(ix("internal/domain")); await p.w(150); await p.key("j", 240); p.treeCur(ix("internal/events")); await p.w(800);
         await p.seq(["␣", "n", "x"]);
-        var o = { kind: "modal", title: "Delete folder", hint: '<span class="w">[y]</span> delete · any other key cancels',
+        var o = { kind: "modal", title: "Delete folder", hint: '<span class="m">[y]</span> yes    <span class="mu"><span class="m">[n / q / &lt;Esc&gt;]</span> no</span>',
           lines: ["Delete folder:", '  <span class="f">internal/events/</span>', "", 'Contains: <span>3 files, 1 folders</span>', '<span class="w">This removes everything inside and cannot be undone.</span>'] };
         p.ov(o); await p.w(2000); await p.key("y", 300); p.ov(null);
         paths = PATHS.slice(); rows = treeRows(paths, open, "notesapi"); p.tree(rows, ix("internal/domain"), true); await p.w(1800); } },

@@ -97,12 +97,12 @@ return {
       documentation = {
         auto_show = true,
         auto_show_delay_ms = 0, -- no wait on select (default is 500 ms)
-        window = { border = require("ui.flat").border() },
+        window = { border = require("ui.flat").border "float" },
       },
     },
     signature = {
       enabled = true,
-      window = { border = require("ui.flat").border() },
+      window = { border = require("ui.flat").border "float" },
     },
   },
   config = function(_, opts)
