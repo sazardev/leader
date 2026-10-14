@@ -120,29 +120,31 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .n.w{background:var(--yellow);color:var(--on);font-weight:700}
 .ed .n.d{background:var(--blue);color:var(--on);font-weight:700}
 .ed .t{flex:1;min-width:0;padding-right:16px;overflow:hidden;text-overflow:clip}
-.ed .vt{margin-left:auto;padding:0 14px;color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent)}
+.ed .vt{margin-left:auto;white-space:pre;color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent);font-weight:700}
+.ed .vt.dn{color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent);font-weight:400}
+.ed .tg .t,.ed .tg .vt.dn{background:color-mix(in srgb,var(--fg) 5%,transparent)}
 .ed .cur{display:inline-block;width:.6em;margin-right:-.6em;height:1.25em;background:color-mix(in srgb,var(--fg) 78%,transparent);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
 .ed.ins .cur{width:2px;margin-right:-2px;background:var(--green)}
 .ed .cur.m{background:var(--purple)}
 .ed.ins .cur.m{background:var(--purple)}
 .ed .mk{background:color-mix(in srgb,var(--blue) 38%,transparent)}
 @keyframes blink{50%{opacity:0}}
-.ed .rm{background:color-mix(in srgb,var(--red) 16%,transparent)} .ed .rm .n{color:var(--red)}
-.ed .ad{background:color-mix(in srgb,var(--green) 16%,transparent)} .ed .ad .n{color:var(--green)}
+.ed .rm .t{background:color-mix(in srgb,var(--red) 16%,transparent)}
+.ed .ad .t{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--fg)}
 .ed .ga::before,.ed .gc::before{content:"";position:absolute;left:3px;top:1px;bottom:1px;width:2px;background:var(--green)}
 .ed .gc::before{background:var(--yellow)}
 .ed .fresh{animation:fresh 1.4s ease-out}
 @keyframes fresh{from{background:color-mix(in srgb,var(--yellow) 28%,transparent)}to{background:transparent}}
-.ed .ah{white-space:pre;color:var(--faint);padding-left:var(--gut);font-size:12px}
-.ed .ah b{color:var(--green);font-weight:500}
-.ed .blk{display:flex;justify-content:space-between;gap:16px;margin:2px 16px 4px var(--gut);padding:4px 14px;border-left:3px solid var(--red);background:color-mix(in srgb,var(--red) 12%,transparent);font-size:12px;line-height:1.6;white-space:normal}
+.ed .ah{white-space:pre;color:var(--dim);font-style:italic;padding-left:var(--gut);min-height:1.75em}
+.ed .blk{display:flex;justify-content:space-between;gap:2ch;margin:0 2ch 0 var(--gut);padding:0 1ch 0 calc(2ch - 3px);border-left:3px solid var(--red);background:color-mix(in srgb,var(--red) 12%,transparent);white-space:pre;min-height:1.75em;overflow:hidden}
 .ed .blk.w{border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
-.ed .blk.i{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,transparent)}
-.ed .blk b{color:var(--red)} .ed .blk.w b{color:var(--yellow)} .ed .blk.i b{color:var(--blue)}
+.ed .blk.i{border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)}
+.ed .blk>span{overflow:hidden;text-overflow:ellipsis}
 .ed .blk i,.ed .blk em{font-style:normal;color:var(--faint)} .ed .blk em{flex:none}
-.ed .inp{margin:2px 16px 4px var(--gut);background:var(--soft);padding:6px 14px;border-left:3px solid var(--purple);white-space:normal;line-height:1.6;font-size:12px}
-.ed .inp>div{display:flex;justify-content:space-between;gap:16px}
-.ed .inp b{color:var(--purple)} .ed .inp i{font-style:normal;color:var(--faint)}
+.ed .inp{margin-left:calc(var(--gut) - 1ch);background:var(--soft);padding-left:calc(1ch - 3px);border-left:3px solid var(--purple);white-space:pre}
+.ed .inp>div{display:flex;gap:1ch;min-height:1.75em;overflow:hidden}
+.ed .inp b{color:var(--purple);font-weight:700} .ed .inp u{text-decoration:none;color:var(--faint)}
+.ed .inp i{color:var(--faint);font-style:italic} .ed .inp>div:first-child i{margin-left:auto;padding-right:1ch}
 .ed .pop{position:absolute;top:100%;z-index:5;display:flex;align-items:flex-start;gap:2px;font-size:12px;line-height:1.6}
 .ed .pl{background:var(--soft);min-width:300px}
 .ed .pl div{display:flex;justify-content:space-between;gap:28px;padding:2px 12px;color:var(--dim);white-space:pre}
@@ -166,9 +168,9 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .wk li s{text-decoration:none;color:var(--purple)}
 .ed .wk li.p{background:var(--yellow);color:var(--on)} .ed .wk li.p b,.ed .wk li.p u,.ed .wk li.p s{color:var(--on)}
 .ed .wk .crumb{display:flex;justify-content:space-between;margin-top:6px;color:var(--faint);font-size:11.5px}
-.ed .note{position:absolute;bottom:34px;right:12px;max-width:min(560px,80%);background:var(--soft);padding:8px 14px;border-left:3px solid var(--green);z-index:7;font-size:12px;line-height:1.55;white-space:normal;opacity:0;transform:translateX(16px);transition:opacity .25s,transform .25s}
-.ed .note.on{opacity:1;transform:none}
-.ed .note b{color:var(--green);font-weight:600}
+.ed .note{position:absolute;bottom:calc(24px + 1.75em);right:0;max-width:min(560px,80%);background:var(--soft);padding:1.75em 2ch 1.75em calc(1ch - 3px);border-left:3px solid var(--green);z-index:7;white-space:normal;opacity:0;transition:opacity .11s cubic-bezier(.2,.7,.1,1)}
+.ed .note.on{opacity:1}
+.ed .note b{color:var(--green);font-weight:700}
 .ed .keys{position:absolute;right:12px;top:10px;display:flex;gap:4px;z-index:9;pointer-events:none}
 .ed .keys span{background:var(--fg);color:var(--on);font-weight:600;font-size:12px;line-height:1;min-width:2.1em;text-align:center;padding:6px 9px;animation:keyin .16s ease-out,keyout .25s ease-in .95s forwards}
 @keyframes keyin{from{transform:translateY(6px);opacity:0}}
@@ -196,7 +198,7 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed.ins .sl .m,.ed.ins .sl .z{background:var(--green)}
 .ed.vis .sl .m,.ed.vis .sl .z{background:var(--yellow)}
 .ed .sl .sp{flex:1;padding:0}
-.ed .sl .ag{color:var(--purple)}
+.ed .sl .ag{color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent);font-weight:700;white-space:pre;padding:0}
 .ed .sl .dg{font-weight:700;color:var(--on);margin:0 2px;padding:0 8px;height:16px;line-height:16px;align-self:center}
 .ed .sl .dg.e{background:var(--red)} .ed .sl .dg.w{background:var(--yellow)}
 .side{min-width:0}
@@ -241,6 +243,13 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .gr .gl{color:var(--dim)} .ed .gr .gl i{font-style:normal;color:var(--faint);display:inline-block;width:4ch}
 .ed .gr .rm{text-decoration:line-through;background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red)}
 .ed .gr .ad{font-weight:400;background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green)}
+.ed .rp{position:absolute;left:3ch;right:3ch;top:50%;transform:translateY(calc(-50% - .9em));min-height:calc(14 * 1.75em);max-height:calc(100% - 3.5em);background:var(--soft);padding:0 1ch 1.75em;white-space:pre;overflow:hidden;color:var(--fg)}
+.ed .rp>div{min-height:1.75em}
+.ed .rp .tt{color:var(--faint);font-weight:700;margin:0 -1ch}
+.ed .rp .h1{color:var(--blue);font-weight:700}
+.ed .rp .h2{color:var(--blue);background:color-mix(in srgb,var(--green) 10%,transparent);padding-left:1ch}
+.ed .rp .it{font-style:italic} .ed .rp b{font-weight:700} .ed .rp code{font:inherit;color:var(--orange)}
+.ed .rp .th{color:var(--blue)} .ed .rp .mu{color:var(--faint)}
 .ed .tm{position:absolute;left:5%;right:5%;top:14%;bottom:12%;background:var(--bg);padding:8px 14px;white-space:pre;line-height:1.55;overflow:hidden;color:var(--fg)}
 .ed .tm .ok{color:var(--green)} .ed .tm .no{color:var(--red)} .ed .tm .mu{color:var(--faint)} .ed .tm .ye{color:var(--yellow)}
 .ed .ds{position:absolute;inset:0;background:var(--deep);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;pointer-events:none}
@@ -610,11 +619,14 @@ footer a:hover{color:var(--fg)}
   function rowsHtml(lines, o, tally) {
     var out = [], num = 0;
     lines.forEach(function (L, i) {
+      /* the agent's instruction field (agent/ui/inline.lua): title + model on its top row, keys on the right, placeholder */
       if (L.kind === "input") {
-        out.push('<div class="inp"><div><span><b>✦ ' + L.label + '</b></span><i>Enter run · Ctrl-J newline · Up history · Esc cancel</i></div><i>' + L.ph + "</i></div>"); return;
+        var lb = L.label.split(" · ");
+        out.push('<div class="inp"><div><b>✦ ' + esc(lb[0]) + "</b>" + (lb[1] ? "<u>· " + esc(lb[1]) + "</u>" : "") + "<i>Enter run · Ctrl-J newline · Up history · Esc cancel</i></div><div><i>" + esc(L.ph) + "</i></div></div>"); return;
       }
-      if (L.kind === "hint") { out.push('<div class="ah"><b>Enter accept · Esc reject</b> · ' + L.n + " change" + (L.n > 1 ? "s" : "") + "</div>"); return; }
-      var sign = L.cls === "rm" ? "-" : L.cls === "ad" ? "+" : null;
+      /* the proposal's hint (agent/output/replace.lua): its own virtual row ABOVE the change, dim italic */
+      if (L.kind === "hint") { out.push('<div class="ah"> Enter accept · Esc reject · ' + L.n + " change" + (L.n > 1 ? "s" : "") + (L.stats ? " · " + L.stats : "") + "</div>"); return; }
+      var sign = L.cls === "ad" ? " " : null; /* added lines are virtual rows: no number */
       if (!sign) num++;
       var isCur = o.cur === i, nc = "";
       if (L.diag) {
@@ -632,10 +644,11 @@ footer a:hover{color:var(--fg)}
       }
       if (o.fl && isCur) pop += '<div class="fl2 ' + (o.fl.up ? "up" : "dn") + '" style="left:calc(var(--gut) + ' + o.fl.col + 'ch)">' + o.fl.html + "</div>";
       var vt = L.vt ? '<span class="vt' + (L.vtk ? " " + L.vtk : "") + '">' + esc(L.vt) + "</span>" : "";
-      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.gs ? " g" + L.gs : "") + (L.fresh ? " fresh" : "") + (L.k ? " " + L.k : "") + (isCur ? " foc" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + hl(text) + "</span>" + vt + pop + "</div>");
+      out.push('<div class="r' + (L.cls ? " " + L.cls : "") + (L.gs ? " g" + L.gs : "") + (L.fresh ? " fresh" : "") + (L.k ? " " + L.k : "") + (L.tg ? " tg" : "") + (isCur ? " foc" : "") + '"><span class="n' + nc + '">' + (sign || num) + '</span><span class="t">' + (L.cls === "ad" ? esc(text) : hl(text)) + "</span>" + vt + pop + "</div>");
+      /* diagnostics block (utils/diagblocks.lua): the bar and the veil say the severity; message, source, counter */
       if (L.diag && o.blocks !== false) {
         var d = L.diag, cls = d.sev === "warn" ? " w" : d.sev === "info" ? " i" : "";
-        out.push('<div class="blk' + cls + '"><span><b>' + (d.icon || (d.sev === "error" ? "✖ Error" : "▲ Warn")) + "</b> <i>" + esc(d.src) + "</i><br>" + esc(d.msg) + "</span><em>1/" + (d.of || 1) + "</em></div>");
+        out.push('<div class="blk' + cls + '"><span>' + esc(d.msg) + "  <i>" + esc(d.src) + "</i></span><em>" + (d.at || 1) + "/" + (d.of || 1) + "</em></div>");
       }
     });
     return out.join("");
@@ -669,7 +682,7 @@ footer a:hover{color:var(--fg)}
     slEl.classList.toggle("cmd", !!S.cmd);
     if (S.cmd) slEl.innerHTML = "<span>" + esc(S.cmd) + '<span class="cur"></span></span>';
     else slEl.innerHTML = '<span class="m">' + S.mode + '</span><span class="b">' + (tf ? "NvimTree_1" : S.split ? S.split.file : S.file) + '</span><span class="c">⎇ main</span><span class="sp"></span>' +
-      (S.agent ? '<span class="ag">' + FR[Math.floor(Date.now() / 90) % FR.length] + " " + S.agent + "</span>" : "") +
+      (S.agent ? '<span class="ag"> ' + FR[Math.floor(Date.now() / 100) % FR.length] + " " + esc(S.agent) + " </span>" : "") +
       (tally.e ? '<span class="dg e">E' + tally.e + "</span>" : "") + (tally.w ? '<span class="dg w">W' + tally.w + "</span>" : "") +
       '<span class="b">notesapi</span><span class="z">' + (tf ? S.tree.cur + 1 + ":1" : nr + ":" + colN) + "</span>";
 
@@ -836,6 +849,12 @@ footer a:hover{color:var(--fg)}
         '<div class="gi"><span>Flags:</span></div><div class="gi"><span>Paths:</span></div>' +
         '<div class="gs">' + (o.done ? "Replaced " + total + " matches in " + nf + " files" : (q ? total + " matches in " + nf + " files" : "Type a search")) + "</div>" + res + "</div>";
     },
+    /* the agent's report panel: markdown rendered flat (a title row, ▣ heading, ◎ sections on a veil, aligned columns) */
+    report: function (o) {
+      return '<div class="rp"><div class="tt"> ' + esc(o.title) + " · Y copy all · q close </div>" + o.lines.map(function (l) {
+        return '<div class="' + (l[0] || "") + '">' + (l[0] === "h1" ? "▣ " : l[0] === "h2" ? "◎ " : "") + (l[1] || "") + "</div>";
+      }).join("") + "</div>";
+    },
     term: function (o) {
       return '<div class="tm">' + o.lines.map(function (l) { return '<div class="' + (l[0] || "") + '">' + esc(l[1]) + "</div>"; }).join("") + (o.prompt != null ? '<div><span class="ok">~/notesapi</span> $ ' + esc(o.prompt) + '<span class="cur"></span></div>' : "") + "</div>";
     },
@@ -948,34 +967,48 @@ footer a:hover{color:var(--fg)}
         var at = S.lines.findIndex(function (L) { return L.kind === "input"; });
         if (at >= 0) { S.lines.splice(at, 1); if (at <= S.cur) S.cur--; } render();
       },
+      /* running (agent/ui/status.lua): the target gets a faint veil, the chip sits at the right edge of its first line,
+         the statusline says `⠋ agent <action>` */
       spin: function (i, label, ms, statusLabel) {
-        var t0 = Date.now(), n = 0; S.agent = statusLabel || label.split(" · ")[0];
+        var t0 = Date.now(), n = 0; S.agent = "agent " + (statusLabel || label.split(" · ")[0]);
         return (function step() {
-          var el = Date.now() - t0; if (el >= ms) { if (S.lines[i]) delete S.lines[i].vt; S.agent = null; render(); return Promise.resolve(); }
-          if (S.lines[i]) S.lines[i].vt = " " + FR[n++ % FR.length] + " " + label + " · " + (el / 1000).toFixed(1) + "s ";
-          render(); return sleep(90).then(gone).then(step);
+          var el = Date.now() - t0;
+          if (el >= ms) { if (S.lines[i]) { delete S.lines[i].vt; delete S.lines[i].tg; } S.agent = null; render(); return Promise.resolve(); }
+          if (S.lines[i]) { S.lines[i].vt = " " + FR[n++ % FR.length] + " " + label + " · " + (el / 1000).toFixed(1) + "s "; S.lines[i].vtk = ""; S.lines[i].tg = true; }
+          render(); return sleep(100).then(gone).then(step);
         })();
       },
-      diff: function (i, added, removed) {
-        var n = removed || 1;
-        for (var k = 0; k < n; k++) { S.lines[i + k].cls = "rm"; delete S.lines[i + k].diag; }
-        var ad = added.map(function (t) { return { t: t, cls: "ad" }; });
-        S.lines.splice.apply(S.lines, [i + n, 0].concat(ad, [{ kind: "hint", n: 1 }])); render();
+      /* the summary chip that follows a run with a result in place (findings): green, fades by itself */
+      done: function (i, text, ms) {
+        S.lines[i].vt = " ✓ " + text + " "; S.lines[i].vtk = "dn"; render();
+        setTimeout(function () { if (S.lines[i] && S.lines[i].vtk === "dn") { delete S.lines[i].vt; render(); } }, ms || 2600);
       },
-      /* a proposal that only deletes lines (non-contiguous): marked in place, one hint after the last */
-      rmLines: function (idxs) {
-        idxs.forEach(function (i) { S.lines[i].cls = "rm"; delete S.lines[i].diag; });
-        S.lines.splice(Math.max.apply(null, idxs) + 1, 0, { kind: "hint", n: idxs.length }); render();
+      /* a proposal (agent/ui/preview.lua): the old lines tinted red in place (their numbers and diagnostics stay), the new
+         ones right below as virtual rows tinted green, the hint on its own row above with the run's numbers */
+      diff: function (i, added, removed, stats) {
+        var n = removed || 1;
+        for (var k = 0; k < n; k++) S.lines[i + k].cls = "rm";
+        var ad = added.map(function (t) { return { t: t, cls: "ad" }; });
+        S.lines.splice.apply(S.lines, [i + n, 0].concat(ad));
+        S.lines.splice(i, 0, { kind: "hint", n: 1, stats: stats || STATS }); if (S.cur >= i) S.cur++; render();
+      },
+      /* a proposal that only deletes lines (non-contiguous): marked in place, one hint above the first */
+      rmLines: function (idxs, stats) {
+        idxs.forEach(function (i) { S.lines[i].cls = "rm"; });
+        var at = Math.min.apply(null, idxs);
+        S.lines.splice(at, 0, { kind: "hint", n: idxs.length, stats: stats || STATS }); if (S.cur >= at) S.cur++; render();
       },
       acceptDiff: function () {
+        var before = S.lines.length;
         S.lines = S.lines.filter(function (L) { return L.cls !== "rm" && L.kind !== "hint"; });
+        S.cur = Math.max(0, Math.min(S.cur - (before - S.lines.length), S.lines.length - 1));
         S.lines.forEach(function (L) { if (L.cls === "ad") { delete L.cls; L.fresh = true; L.gs = "c"; } }); render();
       },
       note: function (html) { noteEl.innerHTML = html || ""; noteEl.classList.toggle("on", !!html); },
       panel: function (title, lines) { S.panel = title ? { title: title, lines: lines } : null; render(); },
       split: function (file, lines) { S.split = { file: file, lines: lines.map(function (t) { return { t: t }; }), cur: lines.length - 1 }; render(); },
-      splitDiff: function (added) {
-        S.split.lines = S.split.lines.concat(added.map(function (t) { return { t: t, cls: "ad" }; }), [{ kind: "hint", n: 1 }]); S.split.cur = S.split.lines.length - 2; render();
+      splitDiff: function (added, stats) {
+        S.split.lines = S.split.lines.concat([{ kind: "hint", n: 1, stats: stats || STATS }], added.map(function (t) { return { t: t, cls: "ad" }; })); S.split.cur = S.split.lines.length - 1; render();
       },
       splitAccept: function () {
         S.split.lines = S.split.lines.filter(function (L) { return L.kind !== "hint"; });
@@ -1047,6 +1080,9 @@ footer a:hover{color:var(--fg)}
   function load(p, path, row, cc) { p.set(PROJ[path], path.split("/").pop(), "NORMAL"); p.cursor(row || 0, cc); S.showCursor = true; }
   async function typeCmd(p, prefix, str, ms) { for (var i = 1; i <= str.length; i++) { p.cmd(prefix + str.slice(0, i)); await p.w(ms || 90); } }
   var FIND = "\tn, err := s.repo.FindByID(ctx, id)";
+  /* columns of a flat markdown table: each cell padded to its width (render-markdown `padded`, no rules) */
+  function cols(cells, widths) { return " " + cells.map(function (c, i) { var plain = c.replace(/<[^>]+>/g, ""); return c + " ".repeat(Math.max(1, widths[i] - plain.length)); }).join(" "); }
+  var STATS = "1.4s · 2.1k→58 tok · $0.0071"; /* what agent/stats.lua prints after a run: time, tokens in→out, cost */
   var SC = [
     { g: "type", name: "if err", go: async function (p) {
         p.set(["package application", "", "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\t", "}"], "note_service.go", "INSERT"); p.cursor(3);
@@ -1127,8 +1163,8 @@ footer a:hover{color:var(--fg)}
     { g: "ask", name: "Lens → fix", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = '\" + name + \"'\")", "\tn := &Note{}", "\tif err := row.Scan(&n.ID, &n.Title); err != nil {", "\t\treturn nil, err", "\t}", "\treturn n, nil", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
         await p.w(450); await p.seq(["␣", "a", "L", "s"]);
-        await p.spin(1, "lens security · claude/sonnet", 1100); p.diag(1, "warn", "security", "SQL injection: `name` is concatenated into the query. Use a placeholder."); await p.w(1000);
-        await p.seq(["␣", "a", "f"]); await p.spin(1, "fix inline · claude/sonnet", 950);
+        await p.spin(1, "lens security · claude/sonnet", 1100); p.diag(1, "warn", "security", "SQL injection: `name` is concatenated into the query. Use a placeholder."); p.done(1, "1 finding · " + STATS); await p.w(1200);
+        await p.seq(["␣", "a", "f"]); p.input(1, "fix inline · claude/sonnet"); await p.w(600); await p.key("⏎", 220); p.dropInput(); await p.spin(1, "fix inline · claude/sonnet", 950);
         p.diff(1, ["\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)"]); await p.w(1000); await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(1300); } },
     { g: "ask", name: "Tests", go: async function (p) {
         p.set(["func Rename(r Repo, id int, title string) error {", "\tn, err := r.Get(id)", "\tif err != nil {", "\t\treturn err", "\t}", "\tif title == \"\" {", "\t\treturn ErrEmpty", "\t}", "\tn.Title = title", "\treturn r.Save(n)", "}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = false;
@@ -1138,19 +1174,52 @@ footer a:hover{color:var(--fg)}
         p.splitDiff(["func TestRename(t *testing.T) {", "\tcases := []struct {", "\t\tname, title string", "\t\twant        error", "\t}{", "\t\t{\"ok\", \"new\", nil},", "\t\t{\"empty\", \"\", ErrEmpty},", "\t}", "\tfor _, c := range cases {", "\t\tt.Run(c.name, func(t *testing.T) {", "\t\t\tif err := Rename(fakeRepo(), 1, c.title); !errors.Is(err, c.want) {", "\t\t\t\tt.Fatalf(\"got %v, want %v\", err, c.want)", "\t\t\t}", "\t\t})", "\t}", "}"]);
         await p.w(1700); await p.key("⏎", 220); p.splitAccept(); await p.w(1400); } },
     { g: "ask", name: "DDD diagnose → fix", go: async function (p) {
-        p.set(["package domain", "", "import (", "\t\"context\"", "\t\"database/sql\"", "", "\t\"notesapi/internal/infrastructure\"", ")", "", "type Note struct {", "\tID    string", "\tTitle string", "\tdb    *sql.DB", "}"], "internal/domain/note.go", "NORMAL"); p.cursor(0); S.showCursor = false;
-        await p.w(450); await p.seq(["␣", "a", "D", "d"]); await p.w(350);
-        p.diag(4, "error", "ddd · domain", "domain must not depend on a framework: \"database/sql\"", "◈ DDD", 2);
-        p.diag(6, "error", "ddd · domain", "outward dependency: domain → infrastructure (\"notesapi/internal/infrastructure\")", "◈ DDD", 2);
-        p.note("<b>DDD diagnosis</b> · 2 violations in 1 file · 0 tokens"); await p.w(1700); p.note(null);
+        p.set(["package domain", "", "import (", "\t\"context\"", "\t\"database/sql\"", "", "\t\"notesapi/internal/infrastructure\"", ")", "", "type Note struct {", "\tID    string", "\tTitle string", "\tdb    *sql.DB", "}"], "note.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        await p.w(450); await p.seq(["␣", "a", "D", "d"]);
+        p.note("<b>DDD: analysing the project…</b>"); await p.w(700); p.note(null);
+        var W1 = [16, 6, 30], W2 = [26, 11, 52];
+        p.ov({ kind: "report", title: "DDD diagnosis · 2 violations · 1 missing", lines: [
+          ["h1", "DDD diagnosis · notesapi"], [""],
+          ["it", "Static analysis, <b>0 tokens</b>: 6 layer files analysed (of 11 source files)."], [""],
+          ["h2", "Layers"], [""],
+          ["th", cols(["Layer", "Files", "Directories"], W1)], [""],
+          ["", cols(["domain", "2", "<code>internal/domain</code>"], W1)],
+          ["", cols(["application", "2", "<code>internal/application</code>"], W1)],
+          ["", cols(["infrastructure", "1", "<code>internal/infrastructure</code>"], W1)],
+          ["", cols(["interface", "3", "<code>cmd/api</code>, <code>internal/transport</code>"], W1)], [""],
+          ["", "Dependency rule: <b>domain ← application ← infrastructure / interface</b> (arrows point inward)."], [""],
+          ["h2", "Violations (2)"], [""],
+          ["th", cols(["Where", "Rule", "Detail"], W2)], [""],
+          ["", cols(["<code>internal/domain/note.go:5</code>", "framework", "domain imports the framework \"database/sql\"…"], W2)],
+          ["", cols(["<code>internal/domain/note.go:7</code>", "dependency", "domain must not depend on infrastructure…"], W2)]
+        ] }); await p.w(2600);
+        await p.key("q", 300); p.ov(null);
+        p.diag(4, "error", "ddd", "domain imports the framework \"database/sql\": define a port (interface) and implement it in infrastructure"); S.lines[4].diag.at = 1; S.lines[4].diag.of = 2;
+        p.diag(6, "error", "ddd", "domain must not depend on infrastructure (imports \"notesapi/internal/infrastructure\"): dependencies point inward"); S.lines[6].diag.at = 2; S.lines[6].diag.of = 2; p.r();
+        await p.w(1500);
         await p.seq(["␣", "a", "D", "f"]); await p.spin(4, "ddd fix · claude/sonnet", 1000, "ddd fix");
         p.rmLines([4, 6, 12]);
-        await p.w(1000); await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(1300); } },
+        await p.w(1300); await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(1300); } },
     { g: "ask", name: "Repo check", go: async function (p) {
-        p.set(["type PostgresNoteRepository struct{ db *sql.DB }", "", "func NewPostgresNoteRepository(db *sql.DB) *PostgresNoteRepository {", "\treturn &PostgresNoteRepository{db: db}", "}", "", "func (r *PostgresNoteRepository) Save(ctx context.Context, n *domain.Note) error {", "\t// …", "}"], "internal/infrastructure/note_repo.go", "NORMAL"); p.cursor(0); S.showCursor = false;
-        await p.w(450); await p.seq(["␣", "a", "P", "c"]); await p.w(250);
-        p.panel("Repository check · PostgresNoteRepository", [["h", "Port"], ["", "domain.NoteRepository  internal/domain/note.go:21"], ["ok", "  Save       ✓"], ["no", "  FindByID   ✗ missing"], ["no", "  FindAll    ✗ missing"], ["no", "  Delete     ✗ missing"], ["ok", "  constructor NewPostgresNoteRepository  ✓"], ["h", "Entity vs table · Note"], ["no", "  Entity fields without a column (1): Done"], ["ok", "  Columns without an entity field (0): none ✓"], ["dd", "Static analysis, 0 tokens."]]);
-        await p.w(3600); await p.key("Esc", 200); p.panel(null); await p.w(500); } },
+        load(p, "internal/infrastructure/note_repo.go", 2, 5); S.showCursor = false;
+        await p.w(450); await p.seq(["␣", "a", "P", "c"]);
+        p.note("<b>Repository: checking…</b>"); await p.w(600); p.note(null);
+        var W = [38, 14];
+        p.ov({ kind: "report", title: "Repository check · PostgresNoteRepository", lines: [
+          ["h1", "Repository check · PostgresNoteRepository"], [""],
+          ["it", "Static analysis, <b>0 tokens</b>."], [""],
+          ["h2", "Port"], [""],
+          ["", "<code>NoteRepository</code> in <code>internal/domain/note.go:9</code>"], [""],
+          ["th", cols(["Method", "Implemented"], W)], [""],
+          ["", cols(["FindByID", "✓"], W)],
+          ["", cols(["Save", "✗ missing"], W)],
+          ["", cols(["constructor <code>NewPostgresNoteRepository</code>", "✗ missing"], W)], [""],
+          ["h2", "Entity vs table · Note"], [""],
+          ["", "Table in <code>migrations/001_notes.sql:1</code> · entity in <code>internal/domain/note.go:3</code>"], [""],
+          ["", "● <b>Entity fields without a column (0)</b>: none ✓"],
+          ["", "● <b>Columns without an entity field (0)</b>: none ✓"]
+        ] }); await p.w(3600);
+        await p.key("q", 250); p.ov(null); S.showCursor = true; p.r(); await p.w(600); } },
 
     { g: "git", name: "Commit panel", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
