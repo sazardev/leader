@@ -109,7 +109,7 @@ local function layout()
   local total = list_h + MSG_HEIGHT + 5
   local top = math.max(0, math.floor((rows - total) / 2) - 1)
   local left = math.floor((vim.o.columns - (width + 2)) / 2)
-  local base = { relative = "editor", width = width, col = left, style = "minimal", border = "rounded" }
+  local base = { relative = "editor", width = width, col = left, style = "minimal", border = require("ui.flat").border() }
   local msg_row = top + list_h + 2
   return vim.tbl_extend("force", base, { height = list_h, row = top }),
     vim.tbl_extend("force", base, { height = MSG_HEIGHT, row = msg_row }),
@@ -509,7 +509,7 @@ local function preview()
     row = math.floor((vim.o.lines - height) / 2) - 1,
     col = math.floor((vim.o.columns - width) / 2),
     style = "minimal",
-    border = "rounded",
+    border = require("ui.flat").border(),
     zindex = 60,
     title = (" %s · %s "):format(e.path, e.staged and "staged" or (e.untracked and "new file" or "not staged")),
     title_pos = "left",

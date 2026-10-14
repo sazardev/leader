@@ -93,6 +93,10 @@ end
 
 ---@return table<string, table>
 local function derive()
+  local flat = require "ui.flat"
+  if flat.enabled() then
+    return require("ui.flat.groups").agent(require("ui.flat.palette").current()) -- the flat design (ui/flat) owns these colors
+  end
   local dark = vim.o.background ~= "light"
   local normal = get "Normal"
   local bg = hex(normal.bg) or (dark and "#1a1a1a" or "#fafafa")

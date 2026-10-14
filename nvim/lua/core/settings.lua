@@ -20,6 +20,15 @@ local defaults = {
     },
   },
 
+  -- Flat design (lua/ui/flat): filled blocks instead of boxed windows, every color derived from the active theme
+  -- (also the terminal one). Same look as the landing page's demo editor.
+  ui = {
+    flat = true, -- false = the plugins' own look (single borders, their colors)
+    notify = true, -- flat notifications (bottom right, colored bar) instead of the default vim.notify
+    fresh_ms = 450, -- fade of the "just changed" flash on yank and on what the agent writes (0 = off)
+    blink_cursor = true, -- blinking cursor: block in normal mode, bar in insert
+  },
+
   -- Dashboard: initial ASCII art (see lua/ui/arts/): a name from the catalog.
   -- The one picked from the dashboard ("Change Art") takes priority.
   dashboard = {

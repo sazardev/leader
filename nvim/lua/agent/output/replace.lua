@@ -211,6 +211,9 @@ function M.accept()
     end
   end)
   vim.api.nvim_buf_set_lines(buf, first - 1, last, false, p.lines)
+  pcall(function()
+    require("ui.flat.fresh").lines(buf, first - 1, first - 1 + #p.lines) -- what you just accepted glows and fades (ui/flat)
+  end)
   if vim.api.nvim_win_get_buf(0) == buf then
     pcall(vim.api.nvim_win_set_cursor, 0, { first, 0 })
   end

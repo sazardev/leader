@@ -5,6 +5,7 @@ local M = {}
 function M.setup()
   require("core.theme").load()
   require("core.options").setup()
+  require("ui.flat").setup()
   require("core.clipboard").setup()
   require("core.autocmds").setup()
 

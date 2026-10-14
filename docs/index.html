@@ -459,7 +459,8 @@ footer a:hover{color:var(--fg)}
     function accent(h) { return Col.ensure(h, bg, fg, 3.0); }
     var red = accent(t.ansi[1]), green = accent(t.ansi[2]), yellow = accent(t.ansi[3]), blue = accent(t.ansi[4]), magenta = accent(t.ansi[5]), cyan = accent(t.ansi[6]);
     return { dark: dark, vars: {
-      "--bg": bg, "--deep": bl(bg, "#000000", dark ? 0.25 : 0.05), "--soft": tint(0.07), "--fg": fg, "--dim": tint(0.62), "--faint": tint(0.34),
+      "--bg": bg, "--deep": bl(bg, "#000000", dark ? 0.25 : 0.05), "--soft": tint(0.07), "--fg": fg,
+      "--dim": Col.ensure(tint(0.62), tint(0.07), fg, 4.0), "--faint": Col.ensure(tint(0.34), tint(0.07), fg, 2.0),
       "--green": green, "--yellow": yellow, "--aqua": cyan, "--blue": blue, "--red": red, "--purple": magenta, "--orange": bl(red, yellow, 0.5),
       "--on": dark ? bl(bg, "#000000", 0.45) : bl(bg, "#ffffff", 0.65)
     } };

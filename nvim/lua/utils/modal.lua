@@ -1,5 +1,5 @@
 -- ── Floating modals ─────────────────────────────────────────────────────────
--- Same style as the floating terminal ("single" border, centered, with title).
+-- Same flat style as the rest of the UI (ui/flat): a filled block, centered, with a small faint title.
 -- Colors: theme groups (base46), so they change with the active theme.
 --
 -- Each line is a string, or a list of { text, hl } segments to paint
@@ -22,7 +22,15 @@ local GROUPS = {
 for name, def in pairs(GROUPS) do
   vim.api.nvim_set_hl(0, name, { link = def.link, default = true })
 end
-M.hl = { folder = "NvModalFolder", file = "NvModalFile", tree = "NvModalTree", mark = "NvModalMark", warn = "NvModalWarn", key = "NvModalKey", muted = "NvModalMuted" }
+M.hl = {
+  folder = "NvModalFolder",
+  file = "NvModalFile",
+  tree = "NvModalTree",
+  mark = "NvModalMark",
+  warn = "NvModalWarn",
+  key = "NvModalKey",
+  muted = "NvModalMuted",
+}
 
 local NS = vim.api.nvim_create_namespace "NvModal"
 
@@ -86,9 +94,9 @@ local function open(lines, opts)
     width = width,
     height = height,
     style = "minimal",
-    border = "single",
-    title = opts.title and (" %s "):format(opts.title) or nil,
-    title_pos = "center",
+    border = require("ui.flat").border(),
+    title = opts.title and (" %s "):format(opts.title:upper()) or nil,
+    title_pos = "left",
   })
 
   local function close()
@@ -112,6 +120,7 @@ function M.input(lines, opts, on_submit)
   local last = #lines
 
   vim.api.nvim_win_set_cursor(win, { last, #prompt })
+  vim.api.nvim_buf_set_extmark(buf, NS, last - 1, 0, { line_hl_group = "FlatInput" }) -- the field: one step darker than the block
   vim.b[buf].completion = false -- blink must not suggest anything in a free-text field
   vim.cmd "startinsert!"
 

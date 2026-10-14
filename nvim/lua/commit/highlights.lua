@@ -21,6 +21,13 @@ end
 
 function M.apply()
   require("agent.ui.highlights").apply()
+  local flat = require "ui.flat"
+  if flat.enabled() then
+    for name, def in pairs(require("ui.flat.groups").commit(require("ui.flat.palette").current())) do
+      vim.api.nvim_set_hl(0, name, def)
+    end
+    return
+  end
   local float = vim.api.nvim_get_hl(0, { name = "AgentFloat", link = false })
   local bg = float.bg and ("#%06x"):format(float.bg) or "#1a1a1a"
   local fg = float.fg and ("#%06x"):format(float.fg) or "#dddddd"

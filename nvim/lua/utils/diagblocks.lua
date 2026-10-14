@@ -77,7 +77,7 @@ local popup_win ---@type integer?
 
 --- Popup with the line's diagnostics; calling it again enters the popup (copy, scroll)
 function M.popup()
-  local _, win = vim.diagnostic.open_float { border = "single", source = true }
+  local _, win = vim.diagnostic.open_float { border = require("ui.flat").border(), source = true }
   popup_win = win
 end
 

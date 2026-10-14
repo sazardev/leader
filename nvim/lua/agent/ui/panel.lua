@@ -23,7 +23,7 @@ function M.open(lines, title)
     width = width,
     height = height,
     style = "minimal",
-    border = "single",
+    border = require("ui.flat").border(),
     title = (" %s · Y copy all · q close "):format(title),
     title_pos = "left",
   })

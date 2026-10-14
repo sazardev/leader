@@ -4,8 +4,13 @@ return {
   config = function()
     require("which-key").setup {
       delay = 0,
+      -- flat bottom panel: air around the content, `key ➜ description`, `+Group` (see ui/flat)
+      win = { border = "none", padding = { 1, 2 }, title = true, title_pos = "left" },
+      layout = { width = { min = 24 }, spacing = 4 },
       icons = {
         mappings = false,
+        separator = "➜",
+        group = "+",
       },
       spec = {
         { "<leader>f", group = "Find" },

@@ -14,7 +14,10 @@ local keys = {
   {
     "<leader>hm",
     function()
-      require("harpoon").ui:toggle_quick_menu(list())
+      require("harpoon").ui:toggle_quick_menu(
+        list(),
+        { border = require("ui.flat").border(), title = " HARPOON ", title_pos = "left" }
+      )
     end,
     desc = "Harpoon menu",
   },

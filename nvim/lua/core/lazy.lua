@@ -13,6 +13,7 @@ local OPTIONS = {
   rocks = { enabled = false },
 
   ui = {
+    border = require("ui.flat").border(), -- flat (ui/flat): a filled block, no lines
     icons = {
       ft = ">>",
       lazy = "~",

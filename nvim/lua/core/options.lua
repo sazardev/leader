@@ -15,8 +15,10 @@ function M.setup()
 
   vim.opt.shortmess:append "c" -- silences completion messages
 
-  -- Clean floats (no loud borders)
-  vim.o.winhighlight = "NormalFloat:Normal,FloatBorder:Comment,FloatTitle:Comment"
+  -- Clean floats (no loud borders). With the flat design (ui/flat) floats are filled blocks instead: no remapping needed
+  if not require("ui.flat").enabled() then
+    vim.o.winhighlight = "NormalFloat:Normal,FloatBorder:Comment,FloatTitle:Comment"
+  end
 end
 
 return M

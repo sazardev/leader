@@ -134,6 +134,9 @@ return {
       git_ignored = true,
     },
     renderer = {
+      root_folder_label = function(path)
+        return vim.fn.fnamemodify(path, ":t") -- the project name, like the demo (not the full path)
+      end,
       icons = {
         show = {
           file = false,

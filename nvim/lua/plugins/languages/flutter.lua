@@ -37,7 +37,7 @@ return {
 
     require("flutter-tools").setup {
       ui = {
-        border = "single",
+        border = require("ui.flat").border(),
         notification_style = "native",
       },
 

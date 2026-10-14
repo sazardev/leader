@@ -14,7 +14,7 @@ return {
       shade_terminals = false,
       persist_size = false, -- recompute the size on every open
       float_opts = {
-        border = "single",
+        border = require("ui.flat").border(),
         width = function()
           return math.floor(vim.o.columns * scale)
         end,

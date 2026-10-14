@@ -89,7 +89,7 @@ local function open_window(enter)
     enter,
     vim.tbl_extend("force", cfg, {
       style = "minimal",
-      border = "single",
+      border = require("ui.flat").border(),
       title = (" %s "):format(state.title),
       title_pos = "left",
       focusable = true,

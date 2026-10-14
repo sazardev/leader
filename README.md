@@ -83,7 +83,7 @@ junction at `%LOCALAPPDATA%\nvim` and does the same steps (written but not teste
 | Navigation | Telescope (+fzf), nvim-tree, harpoon, aerial (symbols), grug-far (global replace), file history |
 | Git | gitsigns, diffview, git-conflict, git-blame (off by default) and **conventional commits** (see below) |
 | Diagnostics | inline blocks under their line, line number colored by severity, unique colors across the whole UI, line popup, Trouble |
-| UI | lualine, gruvbox ↔ light theme **or live-inherited from the terminal** (Alacritty), dashboard with braille art, render-markdown, inline colors |
+| UI | **flat design** (floats, menus and pickers are filled blocks, no boxes; every color derived from the theme, notifications, yank/accept flash), lualine, gruvbox ↔ light theme **or live-inherited from the terminal** (Alacritty), dashboard with braille art, render-markdown, inline colors |
 | Sessions | one per folder and branch, periodic autosave |
 | **Go without an LLM** | completion helpers that read your code and your `go.mod` (see below) |
 | **AI agent** (optional) | `<leader>a`: one-shot actions on the function under the cursor, with an inline diff (see below) |
