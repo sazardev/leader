@@ -59,6 +59,13 @@ for name, p in pairs(PALETTES) do
   -- readability: selection text over the blue, keys and matches over the block, hints over the block
   check(color.contrast(t.on, t.blue) >= 3.0, name .. ": selected text unreadable (" .. color.contrast(t.on, t.blue) .. ")")
   check(color.contrast(t.yellow, t.soft) >= 2.5, name .. ": yellow keys unreadable over the block")
+  check(color.contrast(g.NvimTreeHiddenFileHL.fg, t.deep) >= 3.0, name .. ": hidden files unreadable in the tree")
+  check(g.NvimTreeHiddenFileHL.fg ~= g.NvimTreeFolderName.fg and g.NvimTreeHiddenFileHL.fg ~= t.fg, name .. ": hidden files must have a color of their own")
+  -- the modal's buttons: their text readable on the chip, and each chip visible over the block it sits on
+  check(color.contrast(g.FlatButton.fg, g.FlatButton.bg) >= 3.0, name .. ": primary button text unreadable")
+  check(color.contrast(g.FlatButtonDanger.fg, g.FlatButtonDanger.bg) >= 2.5, name .. ": danger button text unreadable")
+  check(color.contrast(g.FlatButtonSoft.fg, g.FlatButtonSoft.bg) >= 3.0, name .. ": soft button text unreadable")
+  check(color.contrast(g.FlatButtonSoft.bg, t.soft) >= 1.05, name .. ": the soft button vanishes into the block")
   check(color.contrast(t.dim, t.soft) >= 3.5, name .. ": dim text unreadable over the block")
   check(color.contrast(t.faint, t.soft) >= 1.9, name .. ": faint hints vanish over the block")
 
@@ -217,6 +224,16 @@ local LABELS = {
 }
 for _, c in ipairs(LABELS) do
   check(labels.trim(c[1], c[2]) == c[3], ("labels: %s | %s -> %s (got %s)"):format(tostring(c[1]), c[2], c[3], labels.trim(c[1], c[2])))
+end
+
+-- a float painted as a soft block has to paint the rows past its last line (EndOfBuffer) and its sign column like the
+-- block, or the window reads as a soft frame around a dark hole (the "thick border over the border" look)
+for _, file in ipairs { "agent/ui/panel.lua", "agent/ui/float.lua", "agent/ui/inline.lua", "commit/panel.lua" } do
+  local f = assert(io.open(root .. "/nvim/lua/" .. file, "r"))
+  local src = f:read "*a"
+  f:close()
+  check(src:find("EndOfBuffer:Agent", 1, true) ~= nil, file .. ": EndOfBuffer follows the block")
+  check(src:find("SignColumn:Agent", 1, true) ~= nil, file .. ": SignColumn follows the block")
 end
 
 print(fails == 0 and ("ALL OK (" .. total .. " checks)") or ("FAILURES: " .. fails .. " of " .. total))

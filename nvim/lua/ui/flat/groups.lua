@@ -5,6 +5,7 @@
 --   · the border cells (`solid` = one blank cell of padding) are painted with the SAME color as the block;
 --   · selection = solid blue with `on` text; matches = yellow; keys = yellow; groups = purple; hints = faint;
 --   · additions/deletions/selections are VEILS of an accent over the background, never solid colors.
+local color = require "appearance.color"
 local palette = require "ui.flat.palette"
 
 local M = {}
@@ -186,6 +187,10 @@ function M.build(t)
   g.NvimTreeFolderName = { fg = t.blue }
   g.NvimTreeOpenedFolderName = { fg = t.blue }
   g.NvimTreeEmptyFolderName = { fg = t.faint }
+  -- what starts with a dot (shown with `H` in the tree): purple, so it reads as "not part of the project proper" at a glance
+  local hidden = color.ensure_contrast(t.purple, t.deep, t.fg, 3.0)
+  g.NvimTreeHiddenFileHL = { fg = hidden }
+  g.NvimTreeHiddenFolderHL = { fg = hidden }
   g.NvimTreeIndentMarker = { fg = t.deep }
   g.NvimTreeBookmark = { fg = t.yellow }
   g.NvimTreeBookmarkIcon = { fg = t.yellow }
@@ -213,6 +218,8 @@ function M.build(t)
   -- markdown tables (render-markdown): flat columns, the heading row bold
   g.RenderMarkdownTableHead = { fg = t.faint, bold = true }
   g.RenderMarkdownTableRow = { fg = t.faint }
+  -- the list bullet takes the color of the block it sits in (its default group is `Normal`: a dark square on any float)
+  g.RenderMarkdownBullet = { fg = t.faint }
   g.LineNr = { fg = t.faint }
   g.CursorLineNr = { fg = t.yellow, bold = true }
   g.Folded = { fg = t.faint, italic = true }
@@ -344,10 +351,18 @@ function M.build(t)
   g.MasonMutedBlock = { fg = t.dim, bg = veil(t.fg, 0.10) }
 
   -- ── modals (utils/modal.lua, harpoon): a soft block, title in capitals, input on a `deep` bar ──
-  g.FlatInput = { fg = t.fg, bg = t.deep } -- text fields inside a block (modal input)
+  -- text fields inside a block (modal input): one step darker than the block, halfway to `deep`. On a terminal theme `deep`
+  -- is nearly black, and a bar of it inside the block reads as a hole
+  g.FlatInput = { fg = t.fg, bg = color.blend(t.soft, t.deep, 0.5) }
   g.FlatModalTitle = { fg = t.fg, bg = t.soft, bold = true }
   g.FlatModalHint = { fg = t.faint, bg = t.soft }
+  g.FlatModalRow = { bg = t.soft } -- under every modal row: the block's color, nothing else (the text keeps its own)
   g.FlatModalSel = selected -- the chosen row: a chip as wide as its text
+  -- buttons under a modal (utils/modal.lua): small chips. Primary = blue like the chosen row, soft = a step over the block,
+  -- danger = red for what cannot be taken back
+  g.FlatButton = { fg = t.on, bg = t.blue, bold = true }
+  g.FlatButtonSoft = { fg = t.fg, bg = color.blend(t.soft, t.fg, 0.12) }
+  g.FlatButtonDanger = { fg = t.on, bg = t.red, bold = true }
   g.FlatFolder = { fg = t.blue, bg = t.soft }
   g.FlatMark = { fg = t.yellow, bg = t.soft }
   g.FlatWarn = { fg = t.yellow, bg = t.soft }

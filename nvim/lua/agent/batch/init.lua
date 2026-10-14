@@ -268,7 +268,7 @@ function M.run(spec)
   if spec.confirm == false then
     return start(batch)
   end
-  require("utils.modal").confirm(summary_lines(spec, verdict, sel), { title = spec.title }, function()
+  require("utils.modal").confirm(summary_lines(spec, verdict, sel), { title = spec.title, confirm = "Run" }, function()
     start(batch)
   end)
 end

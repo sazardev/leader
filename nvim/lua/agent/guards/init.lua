@@ -51,6 +51,7 @@ function M.check(req, proceed, deny)
   end
   require("utils.modal").confirm(lines, {
     title = asks[1].title,
+    confirm = "Continue",
     on_cancel = function()
       deny "cancelled"
     end,

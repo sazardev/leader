@@ -107,31 +107,6 @@ local function normalize(code, target)
   return code
 end
 
---- Joins the parts with " · " dropping the lowest-priority ones (higher number) until it fits
----@param parts { [1]: string, [2]: integer }[]
----@param width integer
----@return string
-local function fit_hint(parts, width)
-  local function joined()
-    return table.concat(
-      vim.tbl_map(function(p)
-        return p[1]
-      end, parts),
-      " · "
-    )
-  end
-  while vim.fn.strdisplaywidth(joined()) > width and #parts > 1 do
-    local worst = 1
-    for i, p in ipairs(parts) do
-      if p[2] >= parts[worst][2] then
-        worst = i
-      end
-    end
-    table.remove(parts, worst)
-  end
-  return joined()
-end
-
 ---@param job AgentJob
 ---@param result table
 ---@return string? summary
@@ -202,7 +177,7 @@ function M.done(job, result)
     if job.meta and job.meta.hint then
       parts[#parts + 1] = { job.meta.hint, 2 } -- "2/4 · <leader>aA] next" when it comes from a batch
     end
-    return fit_hint(parts, vim.api.nvim_win_get_width(0) - 8)
+    return require("utils.hints").fit(parts, vim.api.nvim_win_get_width(0) - 8)
   end)
   proposals[job.buf] = proposals[job.buf] or {}
   table.insert(proposals[job.buf], proposal)

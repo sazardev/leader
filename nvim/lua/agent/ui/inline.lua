@@ -237,6 +237,8 @@ function M.open(opts, on_submit)
     "FloatBorder:AgentInputBar",
     "WinBar:AgentInput",
     "WinBarNC:AgentInput",
+    "EndOfBuffer:AgentInput",
+    "SignColumn:AgentInput",
   }, ",")
 
   relayout(st)

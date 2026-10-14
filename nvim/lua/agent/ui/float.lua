@@ -113,7 +113,8 @@ local function open_window(enter)
   local wo = vim.wo[state.win]
   wo.wrap = true
   wo.linebreak = true
-  wo.winhighlight = "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTitle"
+  wo.winhighlight =
+    "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTitle,EndOfBuffer:AgentFloat,SignColumn:AgentFloat"
 end
 
 local function new_buffer()

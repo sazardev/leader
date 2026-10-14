@@ -10,6 +10,7 @@
 local ai = require "commit.ai"
 local conventional = require "commit.conventional"
 local git = require "commit.git"
+local hints = require "utils.hints"
 local log = require "utils.log"
 local text = require "agent.text"
 
@@ -20,7 +21,8 @@ local M = {}
 local NS = vim.api.nvim_create_namespace "commit.panel"
 local FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
 local MSG_HEIGHT = 8
-local WINHL = "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTitle,FloatFooter:AgentHint"
+local WINHL =
+  "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTitle,FloatFooter:AgentHint,EndOfBuffer:AgentFloat,SignColumn:AgentFloat"
 
 ---@class CommitState
 ---@field root string
@@ -159,7 +161,16 @@ local function chrome()
   files_cfg.title_pos = "left"
   files_cfg.footer = {
     {
-      " Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · Ctrl-r review · q cancel ",
+      " " .. hints.fit({
+        { "Space stage", 1 },
+        { "a all", 5 },
+        { "u none", 6 },
+        { "p diff", 4 },
+        { "Tab message", 2 },
+        { "Ctrl-g AI", 3 },
+        { "Ctrl-r review", 4 },
+        { "q cancel", 1 },
+      }, files_cfg.width - 4) .. " ",
       "CommitHint",
     },
   }
@@ -205,7 +216,15 @@ local function chrome()
   msg_cfg.title_pos = "left"
   msg_cfg.footer = {
     {
-      " Ctrl-s commit · Ctrl-g AI draft · Ctrl-r review · Ctrl-t type · Ctrl-o scope · Tab files · q cancel ",
+      " " .. hints.fit({
+        { "Ctrl-s commit", 1 },
+        { "Ctrl-g AI draft", 2 },
+        { "Ctrl-r review", 3 },
+        { "Ctrl-t type", 4 },
+        { "Ctrl-o scope", 5 },
+        { "Tab files", 2 },
+        { "q cancel", 1 },
+      }, msg_cfg.width - 4) .. " ",
       "CommitHint",
     },
   }
@@ -246,7 +265,7 @@ local function ai_line()
   elseif #paths == 0 then
     chunks = {
       { " ✦ AI ", "CommitAI" },
-      { "· stage files first (Space in the list); the draft reads only what is staged ", "AgentHint" },
+      { "· stage files first (Space): the draft reads only what is staged ", "AgentHint" },
     }
   else
     local d = ai.describe(paths, S.root)

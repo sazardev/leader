@@ -42,14 +42,14 @@ function M.grid(items, width)
   return rows, n
 end
 
---- `Space » +Find » +Agent`: where you are, like the demo's breadcrumb
+--- `Space » Find » Agent`: where you are, like the demo's breadcrumb
 ---@param node table which-key node
 ---@return string
 function M.crumb(node)
   local view = require "which-key.view"
   local parts = {}
   while node and node.parent do
-    local label = node.desc and ("+" .. node.desc) or vim.trim(view.format(node.key))
+    local label = node.desc and node.desc or vim.trim(view.format(node.key))
     table.insert(parts, 1, label)
     node = node.parent
   end

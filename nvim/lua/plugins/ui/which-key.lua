@@ -4,13 +4,13 @@ return {
   config = function()
     require("which-key").setup {
       delay = 0,
-      -- flat bottom panel: air around the content, `key ➜ description`, `+Group` (see ui/flat)
+      -- flat bottom panel: air around the content, `key ➜ description`, groups in purple (see ui/flat)
       win = { border = "none", padding = { 1, 2 }, title = true, title_pos = "left" },
       layout = { width = { min = 22, max = 26 }, spacing = 4 }, -- columns of the same width, long labels cut: like the demo's grid
       icons = {
         mappings = false,
         separator = "➜",
-        group = "+",
+        group = "",
         breadcrumb = "»",
         -- keys as words (Space, Esc, BS), like the demo: no Nerd Font glyphs in the footer
         keys = {
@@ -36,7 +36,6 @@ return {
         { "<leader>f", group = "Find" },
         { "<leader>x", group = "Diagnostics" },
         { "<leader>h", group = "Harpoon" },
-        { "<leader>n", group = "Nvim-tree folders" },
 
         -- NvChad prefixes we do not want to see in the popup
         { "<leader>v", hidden = true },

@@ -97,7 +97,7 @@ function M.accept_all()
   for name, n in pairs(files) do
     lines[#lines + 1] = { { "  " }, { name, hl.folder }, { ("  %d"):format(n), hl.muted } }
   end
-  require("utils.modal").confirm(lines, { title = "Accept all" }, function()
+  require("utils.modal").confirm(lines, { title = "Accept all", confirm = "Accept all" }, function()
     local accepted = 0
     for _, p in ipairs(list) do
       if replace().accept_proposal(p, { keep_cursor = true }) then

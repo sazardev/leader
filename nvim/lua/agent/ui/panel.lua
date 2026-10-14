@@ -39,7 +39,8 @@ function M.open(lines, title, opts)
   local wo = vim.wo[win]
   wo.wrap = true
   wo.linebreak = true
-  wo.winhighlight = "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTitle"
+  wo.winhighlight =
+    "NormalFloat:AgentFloat,FloatBorder:AgentBorder,FloatTitle:AgentTitle,EndOfBuffer:AgentFloat,SignColumn:AgentFloat"
 
   local function close()
     if vim.api.nvim_win_is_valid(win) then

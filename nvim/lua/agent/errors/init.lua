@@ -85,6 +85,7 @@ function M.run_command()
   local hl = require("utils.modal").hl
   require("utils.modal").input({ { { "Command to run in the project:", hl.muted } } }, {
     title = "Fix output",
+    confirm = "Run",
     default = guess and guess.label or "",
   }, function(text)
     if text == "" then
