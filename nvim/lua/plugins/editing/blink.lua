@@ -80,8 +80,10 @@ return {
     completion = {
       -- no menu while there is an `ErrX` with ghost text (utils/goerrors.lua)
       menu = {
-        -- flat: `label  detail` only, no kind-icon column (the detail says what it is); padding is the block's own
-        draw = { columns = { { "label", "label_description", gap = 2 } }, padding = { 1, 1 } },
+        -- flat: `label … detail` only, no kind-icon column (the detail says what it is), detail pushed right; no blank
+        -- rows above/below and the selection spans the whole block, like the demo's list
+        border = "none",
+        draw = { columns = { { "label", "label_description", gap = 3 } }, padding = { 1, 1 } },
         auto_show = function()
           return not require("utils.goerrors").active()
         end,
@@ -97,7 +99,7 @@ return {
       documentation = {
         auto_show = true,
         auto_show_delay_ms = 0, -- no wait on select (default is 500 ms)
-        window = { border = require("ui.flat").border "float" },
+        window = { border = require("ui.flat").border "beside" },
       },
     },
     signature = {

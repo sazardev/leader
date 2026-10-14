@@ -2,7 +2,9 @@
 -- Pure: window size + content in, lines and highlight spans out (no buffers, no Neovim state), so it is tested
 -- headless. The design is the landing page's start screen: the art in aqua, the repo in yellow, the user faint,
 -- then buttons of a fixed width (label left, shortcut right), a soft block each, the selected one solid blue.
--- It is responsive: when the window is short it drops the gaps between buttons, then the art, then centers what is left.
+-- Each button is its row plus the upper half of the next one (`▀`): a block 1.5 cells tall over half a cell of gap,
+-- the closest a terminal gets to the demo's buttons and their 4px gaps.
+-- It is responsive: when the window is short it drops those edges, then the art, then centers what is left.
 local M = {}
 
 M.BUTTON_WIDTH = 38
@@ -32,7 +34,7 @@ end
 ---@param n_info integer
 ---@return integer
 local function height_of(art_rows, n_buttons, gaps, n_info)
-  local rows = n_buttons + (gaps and n_buttons - 1 or 0)
+  local rows = n_buttons * (gaps and 2 or 1)
   if art_rows > 0 then
     rows = rows + art_rows + 1 -- the art and one blank row under it
   end
@@ -42,7 +44,8 @@ local function height_of(art_rows, n_buttons, gaps, n_info)
   return rows
 end
 
----@param opts { width: integer, height: integer, art: string[], repo: string?, user: string?, actions: StartAction[], sel: integer }
+--- `edges = false` (no flat design) leaves a blank row under each button instead of the half-cell edge.
+---@param opts { width: integer, height: integer, art: string[], repo: string?, user: string?, actions: StartAction[], sel: integer, edges?: boolean }
 ---@return string[] lines, StartSpan[] spans, integer[] button_rows (0-based row of each button), boolean compact
 function M.compute(opts)
   local w, h = opts.width, opts.height
@@ -111,8 +114,13 @@ function M.compute(opts)
     local base, keyhl = selected and "NvStartSel" or "NvStartBtn", selected and "NvStartSelKey" or "NvStartBtnKey"
     spans[#spans + 1] = { row = #lines - 1, col = #left, end_col = #text, hl = base }
     spans[#spans + 1] = { row = #lines - 1, col = #text - #key, end_col = #text, hl = keyhl }
-    if gaps and i < #actions then
+    if gaps and opts.edges == false then
       push ""
+    elseif gaps then
+      local edge = left .. string.rep("▀", bw)
+      lines[#lines + 1] = edge
+      spans[#spans + 1] =
+        { row = #lines - 1, col = #left, end_col = #edge, hl = selected and "NvStartSelEdge" or "NvStartEdge" }
     end
   end
   return lines, spans, rows, compact

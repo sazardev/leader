@@ -65,4 +65,25 @@ function M.is_wide()
   return vim.o.columns > 85
 end
 
+--- `line:col`, like the demo's position chip
+---@return string
+function M.position()
+  local pos = vim.api.nvim_win_get_cursor(0)
+  return ("%d:%d"):format(pos[1], vim.fn.virtcol ".")
+end
+
+--- A `fmt` that centers the text in `width` columns: chips that keep their size while the text changes
+---@param width integer
+---@return fun(text: string): string
+function M.centered(width)
+  return function(text)
+    local pad = width - vim.fn.strdisplaywidth(text)
+    if pad <= 0 then
+      return text
+    end
+    local left = math.floor(pad / 2)
+    return (" "):rep(left) .. text .. (" "):rep(pad - left)
+  end
+end
+
 return M

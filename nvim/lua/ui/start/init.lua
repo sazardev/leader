@@ -48,6 +48,7 @@ function M.render()
     user = info.user,
     actions = state.actions,
     sel = state.sel,
+    edges = require("ui.flat").enabled(),
   }
   state.rows = rows
   vim.bo[state.buf].modifiable = true
@@ -127,7 +128,7 @@ local function bind(buf)
   map("<LeftMouse>", function()
     local pos = vim.fn.getmousepos()
     for i, row in ipairs(state.rows) do
-      if row + 1 == pos.line then
+      if row + 1 == pos.line or (row + 2 == pos.line and not vim.tbl_contains(state.rows, row + 1)) then
         state.sel = i
         M.render()
         return activate(i)

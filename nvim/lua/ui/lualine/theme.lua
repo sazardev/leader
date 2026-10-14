@@ -1,5 +1,5 @@
--- ── lualine theme derived from base46 (NvChad) ───────────────────────────────
--- Changes with theme_toggle (gruvbox <-> gruvbox_light).
+-- ── lualine theme derived from the flat tokens (or base46 without the flat design) ──
+-- Changes with theme_toggle (gruvbox <-> gruvbox_light) and every theme switch.
 local M = {}
 
 ---@param mode_color string
@@ -12,8 +12,38 @@ local function section(mode_color, p)
   }
 end
 
+--- The landing page's statusline: a soft bar, the mode chip (blue normal, green insert, yellow visual) with `on` text,
+--- file and project chips one step lighter than the bar (`soft` 90% + `fg` 10%), the branch dim
+---@return table
+local function flat()
+  local t = require("ui.flat.palette").current()
+  local p = {
+    mode_fg = t.on,
+    c_bg = t.soft,
+    c_fg = t.dim,
+    b_bg = require("appearance.color").blend(t.soft, t.fg, 0.10),
+    b_fg = t.fg,
+  }
+  return {
+    normal = section(t.blue, p),
+    insert = section(t.green, p),
+    visual = section(t.yellow, p),
+    replace = section(t.red, p),
+    command = section(t.purple, p),
+    terminal = section(t.orange, p),
+    inactive = {
+      a = { bg = p.b_bg, fg = p.c_fg, gui = "bold" },
+      b = { bg = p.b_bg, fg = p.c_fg },
+      c = { bg = p.c_bg, fg = p.c_fg },
+    },
+  }
+end
+
 ---@return table theme for lualine
 function M.build()
+  if require("ui.flat").enabled() then
+    return flat()
+  end
   local ok, base46 = pcall(require, "base46")
   if not ok then
     return require "lualine.themes.gruvbox_dark"

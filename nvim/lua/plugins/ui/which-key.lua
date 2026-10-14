@@ -42,6 +42,10 @@ return {
         { "<leader>v", hidden = true },
         { "<leader>wK", hidden = true },
         { "<leader>wk", hidden = true },
+        -- LSP workspace folders: they still work, but Space w reads as "save" (like the demo's menu)
+        { "<leader>wa", hidden = true },
+        { "<leader>wr", hidden = true },
+        { "<leader>wl", hidden = true },
         { "<leader>c", hidden = true },
         { "<leader>o", hidden = true },
         { "<leader>b", hidden = true },
@@ -55,5 +59,8 @@ return {
       },
     }
     require("ui.flat.labels").install() -- "Go run" inside Go reads "run"
+    if require("ui.flat").enabled() then
+      require("ui.flat.whichkey").install() -- the demo's panel: 4-column grid by rows, breadcrumb footer
+    end
   end,
 }

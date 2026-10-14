@@ -8,6 +8,9 @@ return {
     overrides = {
       buftype = {
         nofile = {
+          -- read-only views (hover, agent answers, the agent history preview): rendered in every mode, also while a
+          -- picker keeps you in insert mode in its prompt
+          render_modes = true,
           code = { style = "normal", language = false, border = "hide", left_pad = 0, right_pad = 0, sign = false },
           dash = { enabled = false },
           heading = { sign = false },
@@ -16,6 +19,14 @@ return {
     },
   },
   config = function(_, opts)
+    if require("ui.flat").enabled() then
+      -- flat: tables are aligned columns, never a drawn box (no top/bottom rules, the separators are air)
+      opts.pipe_table = {
+        style = "normal",
+        border = { " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " " },
+        alignment_indicator = " ",
+      }
+    end
     require("render-markdown").setup(opts)
   end,
 }

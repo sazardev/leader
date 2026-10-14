@@ -1,6 +1,7 @@
 -- ── Floating modals ─────────────────────────────────────────────────────────
--- Same flat style as the rest of the UI (ui/flat): a filled block, centered, with a small faint title.
--- Colors: theme groups (base46), so they change with the active theme.
+-- Same flat style as the rest of the UI (ui/flat), the landing page's modal: a filled block, centered, the title in
+-- capitals as its first row, folders blue, marks and keys yellow, hints faint, the input a `deep` bar.
+-- Colors: the flat groups (ui/flat/groups.lua), or theme groups (base46) with `settings.ui.flat = false`.
 --
 -- Each line is a string, or a list of { text, hl } segments to paint
 -- different parts of the same line (e.g. folder in one color, mark in another).
@@ -9,16 +10,28 @@
 -- M.confirm → text + [y] / [n] (only y confirms, any other key cancels)
 local M = {}
 
--- Modal groups → theme groups (see base46/integrations/nvimtree.lua)
-local GROUPS = {
-  NvModalFolder = { link = "NvimTreeFolderName" },
-  NvModalFile = { link = "Normal" },
-  NvModalTree = { link = "NvimTreeIndentMarker" },
-  NvModalMark = { link = "NvimTreeSpecialFile" },
-  NvModalWarn = { link = "DiagnosticWarn" },
-  NvModalKey = { link = "Special" },
-  NvModalMuted = { link = "Comment" },
-}
+local FLAT = require("ui.flat").enabled()
+
+-- Modal groups → flat groups, or theme groups (see base46/integrations/nvimtree.lua)
+local GROUPS = FLAT
+    and {
+      NvModalFolder = { link = "FlatFolder" },
+      NvModalFile = { link = "NormalFloat" },
+      NvModalTree = { link = "NormalFloat" },
+      NvModalMark = { link = "FlatMark" },
+      NvModalWarn = { link = "FlatWarn" },
+      NvModalKey = { link = "FlatMark" },
+      NvModalMuted = { link = "FlatModalHint" },
+    }
+  or {
+    NvModalFolder = { link = "NvimTreeFolderName" },
+    NvModalFile = { link = "Normal" },
+    NvModalTree = { link = "NvimTreeIndentMarker" },
+    NvModalMark = { link = "NvimTreeSpecialFile" },
+    NvModalWarn = { link = "DiagnosticWarn" },
+    NvModalKey = { link = "Special" },
+    NvModalMuted = { link = "Comment" },
+  }
 for name, def in pairs(GROUPS) do
   vim.api.nvim_set_hl(0, name, { link = def.link, default = true })
 end
@@ -95,9 +108,13 @@ local function open(lines, opts)
     height = height,
     style = "minimal",
     border = require("ui.flat").border(),
-    title = opts.title and (" %s "):format(opts.title:upper()) or nil,
+    title = opts.title and { { opts.title:upper() .. " ", "FlatModalTitle" } } or nil,
     title_pos = "left",
   })
+
+  if FLAT then
+    require("ui.flat.motion").enter { win }
+  end
 
   local function close()
     if vim.api.nvim_win_is_valid(win) then
@@ -114,8 +131,8 @@ end
 ---@param opts { title?: string }
 ---@param on_submit fun(text: string)
 function M.input(lines, opts, on_submit)
-  local prompt = "> "
-  vim.list_extend(lines, { "", { { prompt, M.hl.key } } })
+  local prompt = FLAT and " " or "> " -- flat: the field is a bar with a cell of air, like the demo's
+  vim.list_extend(lines, FLAT and { { { prompt } } } or { "", { { prompt, M.hl.key } } })
   local last = #lines
   vim.list_extend(lines, { { { "Enter confirm · Esc cancel", M.hl.muted } } }) -- the key hints, faint, under the field
   local buf, win, close = open(lines, { title = opts.title, editable = true })
@@ -145,10 +162,10 @@ end
 ---@param opts { title?: string }
 ---@param on_yes fun()
 function M.confirm(lines, opts, on_yes)
-  vim.list_extend(lines, {
-    "",
-    { { "[y]", M.hl.key }, { " yes    " }, { "[n / q / <Esc>]", M.hl.key }, { " no", M.hl.muted } },
-  })
+  if not FLAT then
+    lines[#lines + 1] = ""
+  end
+  lines[#lines + 1] = { { "[y]", M.hl.key }, { " yes    " }, { "[n / q / <Esc>]", M.hl.key }, { " no", M.hl.muted } }
   local buf, _, close = open(lines, { title = opts.title })
 
   vim.keymap.set("n", "n", close, { buffer = buf, nowait = true, desc = "Cancel" })

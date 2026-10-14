@@ -16,16 +16,14 @@ local NS = vim.api.nvim_create_namespace "diagblocks"
 local worst_by_buf = {}
 local SEV = vim.diagnostic.severity
 
--- severity → icon, label and group name; the color comes from ui/diagcolors.lua (the same
--- as the status bar's)
+-- severity → group name; the color comes from ui/diagcolors.lua (the same as the status bar's). The blocks carry no
+-- icon or label: the severity reads from the bar and the veil
 local KINDS = {
-  [SEV.ERROR] = { icon = "✖", label = "Error", name = "Error" },
-  [SEV.WARN] = { icon = "▲", label = "Warning", name = "Warn" },
-  [SEV.INFO] = { icon = "●", label = "Info", name = "Info" },
-  [SEV.HINT] = { icon = "○", label = "Hint", name = "Hint" },
+  [SEV.ERROR] = { name = "Error" },
+  [SEV.WARN] = { name = "Warn" },
+  [SEV.INFO] = { name = "Info" },
+  [SEV.HINT] = { name = "Hint" },
 }
-
-local MAX_INDENT = 40
 
 ---@return { auto: boolean, mode: "expanded"|"compact", number: boolean }
 local function settings()
@@ -73,11 +71,44 @@ local function save_prefs()
 end
 local popup_win ---@type integer?
 
+---@param d vim.Diagnostic
+---@return string
+local function source_of(d)
+  local parts = {}
+  if d.source and d.source ~= "" then
+    parts[#parts + 1] = (d.source:gsub(":$", ""))
+  end
+  if d.code and d.code ~= "" then
+    parts[#parts + 1] = tostring(d.code)
+  end
+  return table.concat(parts, " · ")
+end
+
 -- ── Line popup (<leader>xd) ───────────────────────────────────────────────────
 
 --- Popup with the line's diagnostics; calling it again enters the popup (copy, scroll)
 function M.popup()
-  local _, win = vim.diagnostic.open_float { border = require("ui.flat").border "float", source = true }
+  local opts = { border = require("ui.flat").border "float", source = true }
+  if require("ui.flat").enabled() then
+    -- the demo's popup: `Diagnostics:` bold, then `1. message [source]` in the severity's color, the source faint
+    local SEV_HL = { "DiagnosticError", "DiagnosticWarn", "DiagnosticInfo", "DiagnosticHint" }
+    opts = {
+      border = require("ui.flat").border "float",
+      source = false,
+      header = { "Diagnostics:", "FlatFloatHeader" },
+      prefix = function(d, i)
+        return ("%d. "):format(i), SEV_HL[d.severity] or "DiagnosticInfo"
+      end,
+      suffix = function(d)
+        local src = source_of(d)
+        return src ~= "" and (" [%s]"):format(src) or "", "FlatFloatSource"
+      end,
+      format = function(d)
+        return d.message
+      end,
+    }
+  end
+  local _, win = vim.diagnostic.open_float(opts)
   popup_win = win
 end
 
@@ -111,13 +142,13 @@ local function apply_highlights()
   for severity, kind in pairs(KINDS) do
     local accent = diag.accent(severity)
     local pill = diag.pill(severity)
-    local block_bg = color.blend(bg, accent, 0.10)
-    local muted = color.ensure_contrast(color.blend(fg, block_bg, 0.45), block_bg, fg, 4.5)
+    -- the demo's block: a 12% veil of the accent, a bar of it, `✖ Error` in the accent and the source faint
+    local block_bg = color.blend(bg, accent, 0.12)
+    local muted = color.ensure_contrast(color.blend(fg, block_bg, 0.55), block_bg, fg, 3.0)
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name, { fg = fg, bg = block_bg })
-    -- bar and label: the EXACT accent of the status bar (the label is the same pill)
+    -- bar and label: the EXACT accent of the status bar
     vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Bar", { fg = accent, bg = block_bg })
-    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Title", pill)
-    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Meta", { fg = muted, bg = block_bg, italic = true })
+    vim.api.nvim_set_hl(0, "DiagBlock" .. kind.name .. "Meta", { fg = muted, bg = block_bg })
     -- line number: the same solid pill as the status bar
     vim.api.nvim_set_hl(0, "DiagNumber" .. kind.name, pill)
   end
@@ -176,7 +207,9 @@ local function text_width(win)
   return vim.api.nvim_win_get_width(win) - vim.fn.getwininfo(win)[1].textoff
 end
 
---- One row of the block: indent (code gap) + bar + content padded to the edge
+local MARGIN = 2 -- columns left free at the right of a block (the demo's 16px)
+
+--- One row of the block: indent + bar + content padded up to MARGIN columns before the edge
 ---@param indent integer
 ---@param width integer usable window width
 ---@param bar string bar group
@@ -192,24 +225,11 @@ local function row(indent, width, bar, base, segments, right)
     used = used + vim.fn.strdisplaywidth(seg[1])
   end
   local right_w = right and vim.fn.strdisplaywidth(right[1]) + 1 or 0
-  chunks[#chunks + 1] = { (" "):rep(math.max(width - used - right_w, 0)), base }
+  chunks[#chunks + 1] = { (" "):rep(math.max(width - MARGIN - used - right_w, 0)), base }
   if right then
     chunks[#chunks + 1] = { right[1] .. " ", right[2] or base }
   end
   return chunks
-end
-
----@param d vim.Diagnostic
----@return string
-local function source_of(d)
-  local parts = {}
-  if d.source and d.source ~= "" then
-    parts[#parts + 1] = (d.source:gsub(":$", ""))
-  end
-  if d.code and d.code ~= "" then
-    parts[#parts + 1] = tostring(d.code)
-  end
-  return table.concat(parts, " · ")
 end
 
 ---@param buf integer
@@ -237,31 +257,32 @@ local function render(buf, win, mode)
   for i, d in ipairs(all) do
     local kind = KINDS[d.severity or SEV.HINT]
     local base = "DiagBlock" .. kind.name
-    local indent = math.min(vim.fn.indent(math.min(d.lnum + 1, line_count)), MAX_INDENT)
-    local inner = math.max(width - indent - 4, 20)
+    -- the block starts where the text starts (the demo's), whatever the code's indentation
+    local indent = 0
+    local inner = math.max(width - indent - 4 - MARGIN, 20)
     local counter = { ("%d/%d"):format(i, #all), base .. "Meta" }
     local src = source_of(d)
     local lines = by_line[d.lnum] or {}
     by_line[d.lnum] = lines
 
+    -- no icon or "Error" label: the bar and the veil already say the severity by color
+    local tail = src ~= "" and ("  " .. src) or ""
+    local room = inner - vim.fn.strdisplaywidth(tail) - #counter[1] - 2
     if mode == "compact" and d.lnum ~= cursor_lnum then
       local first = d.message:match "[^\n]*"
-      local tail = src ~= "" and ("  " .. src) or ""
-      local room = inner - vim.fn.strdisplaywidth(" " .. kind.icon .. "  " .. tail) - #counter[1] - 2
       lines[#lines + 1] = row(indent, width, base .. "Bar", base, {
-        { " " .. kind.icon .. " ", base .. "Title" },
-        { " ", base },
         { truncate(first, math.max(room, 10)), base },
         { tail, base .. "Meta" },
       }, counter)
     else
-      local head = { { " " .. kind.icon .. " " .. kind.label .. " ", base .. "Title" } }
-      if src ~= "" then
-        head[#head + 1] = { " " .. src, base .. "Meta" }
-      end
-      lines[#lines + 1] = row(indent, width, base .. "Bar", base, head, counter)
-      for _, text in ipairs(wrap(d.message, inner)) do
-        lines[#lines + 1] = row(indent, width, base .. "Bar", base, { { text, base } })
+      -- the message (wrapped), the source after its first row, the counter at the right of it
+      local rows = wrap(d.message, math.max(room, 20))
+      for i, text in ipairs(rows) do
+        local segs = { { text, base } }
+        if i == 1 and tail ~= "" then
+          segs[2] = { tail, base .. "Meta" }
+        end
+        lines[#lines + 1] = row(indent, width, base .. "Bar", base, segs, i == 1 and counter or nil)
       end
     end
   end
@@ -300,10 +321,12 @@ end
 ---@return string
 local function sign_cell(buf, lnum)
   local best
-  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, -1, { lnum - 1, 0 }, { lnum - 1, -1 }, {
-    details = true,
-    type = "sign",
-  })) do
+  for _, m in
+    ipairs(vim.api.nvim_buf_get_extmarks(buf, -1, { lnum - 1, 0 }, { lnum - 1, -1 }, {
+      details = true,
+      type = "sign",
+    }))
+  do
     local d = m[4]
     if d.sign_text and (not best or (d.priority or 0) > (best.priority or 0)) then
       best = d
@@ -375,7 +398,9 @@ local function redraw(buf)
     return
   end
   local win = vim.fn.bufwinid(buf)
-  if win ~= -1 then
+  if win ~= -1 and vim.wo[win].diff then
+    vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1) -- a diff reads clean: the blocks would misalign its two sides
+  elseif win ~= -1 then
     render(buf, win, mode)
   end
 end

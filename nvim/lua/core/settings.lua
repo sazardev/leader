@@ -28,6 +28,10 @@ local defaults = {
     fresh_ms = 450, -- fade of the "just changed" flash on yank and on what the agent writes (0 = off)
     blink_cursor = true, -- blinking cursor: block in normal mode, bar in insert
     keys = false, -- show every shortcut you press as a small chip at the top right (screencasts); `:FlatKeys` toggles it
+    motion = true, -- menus, pickers and panels fade (and slide) in like the landing page's demo (false = appear at once)
+    -- Neovim's own messages (errors, `:!` output, long `print`s) in a flat block above the statusline instead of the
+    -- full-width "Press ENTER" screen (Neovim's built-in message UI, 0.12+); false = the classic behavior
+    messages = true,
   },
 
   -- Dashboard: initial ASCII art (see lua/ui/arts/): a name from the catalog.
@@ -249,7 +253,19 @@ local defaults = {
       diff_max_chars = 6000, -- cap of the compact diff sent to the AI (split across files); less = faster and cheaper
       -- <leader>GM (automatic commit): if nothing is staged, stages EVERYTHING modified except what matches these
       -- Lua patterns (secrets and keys: you stage those by hand). Whatever you already staged is never filtered.
-      sensitive = { "^%.env", "%.env%.", "%.pem$", "%.key$", "%.p12$", "%.pfx$", "id_rsa", "id_ed25519", "credentials", "secrets?%.", "%.kdbx$" },
+      sensitive = {
+        "^%.env",
+        "%.env%.",
+        "%.pem$",
+        "%.key$",
+        "%.p12$",
+        "%.pfx$",
+        "id_rsa",
+        "id_ed25519",
+        "credentials",
+        "secrets?%.",
+        "%.kdbx$",
+      },
     },
   },
 

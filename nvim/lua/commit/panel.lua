@@ -91,7 +91,8 @@ end
 
 ---@return integer
 local function inner_width()
-  return math.max(40, math.min(100, vim.o.columns - 6) - 2)
+  -- flat: the demo's panel width (660px)
+  return math.max(40, math.min(require("ui.flat").enabled() and 82 or 100, vim.o.columns - 6) - 2)
 end
 
 ---@return boolean
@@ -108,6 +109,9 @@ local function layout()
   local list_h = math.max(3, math.min(S.nlines, 14, rows - MSG_HEIGHT - 10))
   local total = list_h + MSG_HEIGHT + 5
   local top = math.max(0, math.floor((rows - total) / 2) - 1)
+  if require("ui.flat").enabled() then
+    top = math.min(top, 2) -- the demo's panel opens near the top, under the code it talks about
+  end
   local left = math.floor((vim.o.columns - (width + 2)) / 2)
   local base =
     { relative = "editor", width = width, col = left, style = "minimal", border = require("ui.flat").border() }
@@ -138,19 +142,23 @@ local function chrome()
   -- top: what and where
   local b = S.branch
   local where = b.upstream and ("%s → %s"):format(b.name, b.upstream) or ("%s (no upstream)"):format(b.name)
+  -- flat: the whole title is one blue chip (`◆ Commit · main → origin/main ↑1`), like the demo's
+  local flat = require("ui.flat").enabled()
+  local sub = flat and "CommitHeader" or "AgentHint"
   local title = {
     { S.amend and (" ◆ Amend %s "):format(S.head and S.head.hash or "") or " ◆ Commit ", "CommitHeader" },
-    { "· " .. where .. " ", "AgentHint" },
+    { "· " .. where .. " ", sub },
   }
   if b.ahead > 0 then
-    title[#title + 1] = { ("↑%d "):format(b.ahead), "CommitWarn" }
+    title[#title + 1] = { ("↑%d "):format(b.ahead), flat and sub or "CommitWarn" }
   end
   if b.behind > 0 then
-    title[#title + 1] = { ("↓%d "):format(b.behind), "CommitWarn" }
+    title[#title + 1] = { ("↓%d "):format(b.behind), flat and sub or "CommitWarn" }
   end
   files_cfg.title = title
   files_cfg.title_pos = "left"
-  files_cfg.footer = " Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · q cancel "
+  files_cfg.footer =
+    { { " Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · q cancel ", "CommitHint" } }
   files_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.files_win, files_cfg)
 
@@ -164,7 +172,15 @@ local function chrome()
     local suggest = conventional.suggest_type(staged_paths())
     mtitle = {
       { " Message ", "CommitHeader" },
-      { suggest and ("· suggested type: %s "):format(suggest) or "· type(scope): subject ", "AgentHint" },
+      { suggest and ("· suggested type: %s "):format(suggest) or "· type(scope): subject ", sub },
+    }
+  elseif c.state == "ok" and flat then
+    -- the demo's: `Message` and the validation chip `✔ feat(go) · 44/72`, both on the blue bar
+    local h = c.header
+    local label = h.type .. (h.scope and ("(" .. h.scope .. ")") or "") .. (h.breaking and "!" or "")
+    mtitle = {
+      { " Message ", "CommitHeader" },
+      { (" ✔ %s · %d/%d "):format(label, c.len, c.max), c.len > c.max - 8 and "CommitHeaderWarn" or "CommitHeader" },
     }
   elseif c.state == "ok" then
     local h = c.header
@@ -183,7 +199,8 @@ local function chrome()
   end
   msg_cfg.title = mtitle
   msg_cfg.title_pos = "left"
-  msg_cfg.footer = " Ctrl-s commit · Ctrl-g AI draft · Ctrl-t type · Ctrl-o scope · Tab files · q cancel "
+  msg_cfg.footer =
+    { { " Ctrl-s commit · Ctrl-g AI draft · Ctrl-t type · Ctrl-o scope · Tab files · q cancel ", "CommitHint" } }
   msg_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.msg_win, msg_cfg)
   vim.api.nvim_win_set_config(S.status_win, status_cfg)

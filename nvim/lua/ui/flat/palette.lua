@@ -11,8 +11,8 @@ local DARK_LUMINANCE = 0.179 -- point where white and black contrast equally
 
 ---@class FlatTokens
 ---@field dark boolean
----@field bg string      editor background (Normal)
----@field deep string    one step below the background (tree, dashboard, input fields)
+---@field bg string      the theme's background: the terminal float (the demo's page color)
+---@field deep string    one step below it: the editor itself, tree, start screen, input fields (the demo's editor)
 ---@field soft string    one step above the background (every float, menu and panel)
 ---@field fg string
 ---@field dim string     secondary text
@@ -100,13 +100,14 @@ function M.current()
   return ok and tokens or M.from_highlights()
 end
 
---- `base` tinted `amount` (0..1) toward `toward`: the veil behind added lines, selections, matches
+--- The editor surface tinted `amount` (0..1) toward `toward`: the veil behind added lines, selections, matches.
+--- The editor is painted `deep` (like the demo's), so veils start from it.
 ---@param t FlatTokens
 ---@param toward string
 ---@param amount number
 ---@return string
 function M.veil(t, toward, amount)
-  return color.blend(t.bg, toward, amount)
+  return color.blend(t.deep, toward, amount)
 end
 
 return M

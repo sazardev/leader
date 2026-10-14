@@ -18,9 +18,10 @@ return {
       },
     },
     sections = {
-      lualine_a = { "mode" },
+      -- the mode and position chips keep a fixed width, the text centered (the demo's 76px / 64px chips)
+      lualine_a = { { "mode", fmt = components.centered(8) } },
       lualine_b = { "filename" },
-      lualine_c = { { "branch", icon = "" } },
+      lualine_c = { { "branch", icon = "⎇" } },
       lualine_x = {
         components.agent_status(),
         components.diagnostic_count(vim.diagnostic.severity.ERROR),
@@ -29,7 +30,7 @@ return {
       lualine_y = {
         { components.project_name, cond = components.is_wide },
       },
-      lualine_z = { "location" },
+      lualine_z = { { components.position, fmt = components.centered(6) } },
     },
     inactive_sections = {
       lualine_a = {},

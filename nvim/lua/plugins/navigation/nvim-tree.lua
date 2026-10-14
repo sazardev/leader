@@ -137,7 +137,14 @@ return {
       root_folder_label = function(path)
         return vim.fn.fnamemodify(path, ":t") -- the project name, like the demo (not the full path)
       end,
+      -- like the demo's tree: names only, indentation without guides, no special colors for README & co.
+      indent_markers = { enable = false },
+      special_files = {},
+      highlight_opened_files = "none",
+      highlight_git = "none",
       icons = {
+        bookmarks_placement = "signcolumn",
+        glyphs = { bookmark = "▎" }, -- a marked file gets a yellow bar at the very left
         show = {
           file = false,
           folder = false,

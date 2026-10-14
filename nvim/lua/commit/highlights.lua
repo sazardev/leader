@@ -53,6 +53,8 @@ function M.apply()
     CommitUnstaged = { fg = dim, bg = bg },
     CommitDim = { fg = dim, bg = bg },
     CommitHeader = { fg = strong(blue), bg = bg, bold = true },
+    CommitHeaderWarn = { fg = strong(yellow), bg = bg, bold = true },
+    CommitHint = { fg = dim, bg = bg, italic = true },
     CommitAI = { fg = strong(blue), bg = bg, bold = true },
     CommitCursor = { bg = color.blend(bg, blue, 0.16) },
   }

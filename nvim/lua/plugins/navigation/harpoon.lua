@@ -16,7 +16,7 @@ local keys = {
     function()
       require("harpoon").ui:toggle_quick_menu(
         list(),
-        { border = require("ui.flat").border(), title = " HARPOON ", title_pos = "left" }
+        { border = require("ui.flat").border(), title = { { "HARPOON ", "FlatModalTitle" } }, title_pos = "left" }
       )
     end,
     desc = "Harpoon menu",
@@ -37,6 +37,18 @@ return {
   branch = "harpoon2",
   keys = keys,
   config = function()
-    require("harpoon").setup {}
+    local harpoon = require "harpoon"
+    harpoon:setup {}
+    if require("ui.flat").enabled() then
+      -- the demo's modal: no line numbers, the chosen file a blue chip as wide as its name
+      harpoon:extend {
+        UI_CREATE = function(cx)
+          vim.wo[cx.win_id].number = false
+          vim.wo[cx.win_id].statuscolumn = ""
+          require("ui.flat.chips").follow(cx.bufnr, cx.win_id)
+          require("ui.flat.motion").enter { cx.win_id }
+        end,
+      }
+    end
   end,
 }
