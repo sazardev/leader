@@ -209,7 +209,7 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .tabs button.on{background:var(--fg);color:var(--on)}
 .ed .tree{flex:none;width:208px;background:var(--deep);padding:12px 0;overflow:hidden;white-space:pre}
 .ed .tn{color:var(--fg);padding-right:8px;position:relative}
-.ed .tn.d{color:var(--blue)} .ed .tn.rt{color:var(--yellow);font-weight:600}
+.ed .tn.d{color:var(--blue)} .ed .tn.dot,.ed .tn.d.dot{color:var(--purple)}
 .ed .tn.s{background:var(--soft)}
 .ed .tn.bm::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:3px;background:var(--yellow)}
 .ed .tn.nw{animation:fresh 1.6s ease-out}
@@ -235,6 +235,10 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .md h6{padding:2px 0 6px;color:var(--fg)}
 .ed .md .in{background:var(--deep);padding:2px 10px;margin-top:8px}
 .ed .md .ft2{color:var(--faint);margin-top:6px;font-size:11.5px}
+.ed .md .bts{display:flex;gap:2ch;margin-top:10px}
+.ed .md .bt{padding:1px 1ch;white-space:pre;color:var(--fg);background:color-mix(in srgb,var(--soft) 88%,var(--fg))}
+.ed .md .bt.p{background:var(--blue);color:var(--on);font-weight:700}
+.ed .md .bt.d{background:var(--red);color:var(--on);font-weight:700}
 .ed .md .f{color:var(--blue)} .ed .md .m{color:var(--yellow)} .ed .md .w{color:var(--yellow)} .ed .md .mu{color:var(--faint)} .ed .md .sel{background:var(--blue);color:var(--on)} .ed .md .e{color:var(--red)}
 .ed .gr{position:absolute;top:0;bottom:0;left:50%;right:0;background:var(--soft);padding:6px 16px;overflow:hidden;white-space:pre;line-height:1.65}
 .ed .gr .gh{font-weight:600;color:var(--fg);padding-bottom:4px} .ed .gr .gh em{float:right;font-style:normal;font-weight:400;color:var(--faint)}
@@ -689,8 +693,8 @@ footer a:hover{color:var(--fg)}
 
     if (S.wk) {
       wkEl.innerHTML = "<ul>" + S.wk.items.map(function (it) {
-        return '<li class="' + (S.wk.press === it[0] ? "p" : "") + '"><b>' + esc(it[0]) + "</b><u>➜</u>" + (it[2] ? "<s>+" + esc(it[1]) + "</s>" : esc(it[1])) + "</li>";
-      }).join("") + '</ul><div class="crumb"><span>Space' + S.wk.path.map(function (x) { return " » +" + esc(x); }).join("") + "</span><span>Esc close · BS back</span></div>";
+        return '<li class="' + (S.wk.press === it[0] ? "p" : "") + '"><b>' + esc(it[0]) + "</b><u>➜</u>" + (it[2] ? "<s>" + esc(it[1]) + "</s>" : esc(it[1])) + "</li>";
+      }).join("") + '</ul><div class="crumb"><span>Space' + S.wk.path.map(function (x) { return " » " + esc(x); }).join("") + "</span><span>Esc close · BS back</span></div>";
       wkEl.classList.add("on");
     } else wkEl.classList.remove("on");
 
@@ -779,8 +783,9 @@ footer a:hover{color:var(--fg)}
   function pathHtml(p) { var i = p.lastIndexOf("/"); return i < 0 ? esc(p) : '<span class="dd">' + esc(p.slice(0, i + 1)) + "</span>" + esc(p.slice(i + 1)); }
 
   /* nvim-tree rows from a list of paths (a trailing "/" is an empty folder); folders first, like the real one */
-  function treeRows(paths, open, root) {
-    var node = { n: root, d: {}, f: [] };
+  var HIDDEN = [".env", ".gitignore", ".github/workflows/ci.yml"]; /* dotfiles: not part of PROJ (search stays as is), only the tree shows them on `H` */
+  function treeRows(paths, open) {
+    var node = { n: "", d: {}, f: [] };
     paths.forEach(function (p) {
       var parts = p.split("/").filter(Boolean), cur = node, empty = /\/$/.test(p);
       parts.forEach(function (x, i) {
@@ -788,19 +793,19 @@ footer a:hover{color:var(--fg)}
         else { cur.d[x] = cur.d[x] || { n: x, d: {}, f: [] }; cur = cur.d[x]; }
       });
     });
-    var rows = [{ name: root, dir: true, depth: 0, path: "", root: true }];
+    var rows = [];
     (function walk(nd, pre, depth) {
       Object.keys(nd.d).sort().forEach(function (k) {
-        var path = pre + k; rows.push({ name: k, dir: true, depth: depth, path: path, open: open.indexOf(path) >= 0 });
+        var path = pre + k; rows.push({ name: k, dir: true, depth: depth, path: path, open: open.indexOf(path) >= 0, dot: k[0] === "." });
         if (open.indexOf(path) >= 0) walk(nd.d[k], path + "/", depth + 1);
       });
-      nd.f.sort().forEach(function (f) { rows.push({ name: f, dir: false, depth: depth, path: pre + f }); });
-    })(node, "", 1);
+      nd.f.sort().forEach(function (f) { rows.push({ name: f, dir: false, depth: depth, path: pre + f, dot: f[0] === "." }); });
+    })(node, "", 0);
     return rows;
   }
   function treeHtml(T) {
     return T.rows.map(function (r, i) {
-      return '<div class="tn' + (r.dir ? " d" : "") + (r.root ? " rt" : "") + (i === T.cur && T.focus ? " s" : "") + (T.bm && T.bm.indexOf(r.path) >= 0 ? " bm" : "") + (r.nw ? " nw" : "") + '" style="padding-left:' + (12 + r.depth * 12) + 'px">' + esc(r.name) + "</div>";
+      return '<div class="tn' + (r.dir ? " d" : "") + (r.dot ? " dot" : "") + (i === T.cur && T.focus ? " s" : "") + (T.bm && T.bm.indexOf(r.path) >= 0 ? " bm" : "") + (r.nw ? " nw" : "") + '" style="padding-left:calc(12px + ' + r.depth * 2 + 'ch)">' + esc(r.name) + "</div>";
     }).join("");
   }
 
@@ -822,9 +827,20 @@ footer a:hover{color:var(--fg)}
         '<div class="bx pr"><h6>' + esc(o.title) + '</h6><div class="pq">&gt; ' + esc(o.q) + '<span class="cur"></span><em>' + (rows.length ? sel + 1 : 0) + " / " + (grep ? rows.length : rows.length) + "</em></div></div></div>" +
         '<div class="bx pv"><h6>Preview</h6>' + pv + "</div></div>";
     },
+    dd: function (o) {
+      var w = [0, 0];
+      o.rows.forEach(function (r) { w[0] = Math.max(w[0], r[0].length); w[1] = Math.max(w[1], r[1].length); });
+      /* like telescope: the window of rows only moves when the selection leaves it */
+      var H = 12; o.top = Math.max(0, Math.min(o.top || 0, o.sel, o.rows.length - H)); if (o.sel >= o.top + H) o.top = o.sel - H + 1;
+      var items = o.rows.slice(o.top, o.top + H).map(function (r, j) {
+        return '<div class="it' + (o.top + j === o.sel ? " s" : "") + '">' + esc(r[0].padEnd(w[0]) + "  " + r[1].padEnd(w[1]) + "  " + r[2]) + "</div>";
+      }).join("");
+      return '<div class="tel" style="inset:8px 12% 8px"><div class="lf" style="flex:1"><div class="bx rs" style="justify-content:flex-start;padding:2px 0"><div class="rl" style="justify-content:flex-start">' + items + "</div></div>" +
+        '<div class="bx pr"><h6>' + esc(o.title.toUpperCase()) + '</h6><div class="pq">&gt; <span class="cur"></span><em>' + o.rows.length + " / " + o.rows.length + "</em></div></div></div></div>";
+    },
     modal: function (o) {
       return '<div class="md"><h6>' + esc(o.title.toUpperCase()) + "</h6>" + o.lines.map(function (l) { return "<div>" + (l || "&nbsp;") + "</div>"; }).join("") +
-        (o.input != null ? '<div class="in">' + esc(o.input) + '<span class="cur"></span></div>' : "") + (o.hint ? '<div class="ft2">' + o.hint + "</div>" : "") + "</div>";
+        (o.input != null ? '<div class="in">' + esc(o.input) + '<span class="cur"></span></div>' : "") + (o.hint ? (o.hint.indexOf('class="bts"') >= 0 ? o.hint : '<div class="ft2">' + o.hint + "</div>") : "") + "</div>";
     },
     grug: function (o) {
       var q = o.search, rep = o.replace, files = {}, total = 0, nf = 0;
@@ -875,8 +891,8 @@ footer a:hover{color:var(--fg)}
     }
   };
 
-  /* which-key menus, as the real config shows them (key ➜ description, "+" for groups) */
-  var GN = {"a": "Agent", "aA": "Agent Advanced", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Service", "aT": "Agent Tests", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "h": "Harpoon", "P": "Session", "S": "Settings", "x": "Diagnostics", "n": "Nvim-tree folders"};
+  /* which-key menus, as the real config shows them (key ➜ description, groups in purple) */
+  var GN = {"a": "Agent", "aA": "Agent Advanced", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Service", "aT": "Agent Tests", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "h": "Harpoon", "P": "Session", "S": "Settings", "x": "Diagnostics", "F": "File"};
   var MENU = {
     "a": [["A", "Agent Advanced", 1], ["D", "Agent DDD", 1], ["L", "Agent Lenses", 1], ["P", "Agent Repository", 1], ["S", "Agent Service", 1], ["T", "Agent Tests", 1], ["a", "Agent ask"], ["c", "Agent clear"], ["C", "Agent clear file"], ["d", "Agent docs"], ["e", "Agent explain"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["g", "Agent hand off"], ["h", "Agent history"], ["i", "Agent implement"], ["l", "Agent last answer"], ["m", "Agent model"], ["r", "Agent review"], ["R", "Agent refactor"], ["x", "Agent stop"]],
     "aA": [["[", "Agent Advanced previous proposal"], ["]", "Agent Advanced next proposal"], ["a", "Agent Advanced fix all"], ["l", "Agent Advanced proposals list"], ["o", "Agent Advanced fix from output"], ["O", "Agent Advanced fix from a command"], ["p", "Agent Advanced plan across files"], ["y", "Agent Advanced accept all"]],
@@ -887,14 +903,14 @@ footer a:hover{color:var(--fg)}
     "aT": [["f", "Agent test fix"], ["g", "Agent test gaps"], ["m", "Agent test mock"], ["w", "Agent test write"]],
     "C": [["c", "Comments collapse long comments"], ["d", "Comments doc comment template for this function/type"], ["e", "Comments expand comments"], ["m", "Comments public functions missing a doc comment (quickfix)"], ["t", "Comments toggle comment under cursor"]],
     "f": [["b", "telescope find buffers"], ["f", "telescope find files"], ["m", "general format file"], ["o", "telescope find oldfiles"], ["r", "Find replace in project"], ["w", "telescope live grep"]],
+    "F": [["c", "File duplicate"], ["m", "File move"], ["n", "File new file"], ["N", "File new folder"], ["o", "File open file"], ["r", "File rename"], ["t", "File show in tree"], ["u", "File undo delete"], ["x", "File delete"], ["y", "File copy path"], ["Y", "File copy full path"]],
     "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["t", "Git status"], ["T", "Git conflict theirs"], ["v", "Git review staged"]],
     "g": [["a", "Go struct: add json tags (snake_case)"], ["A", "Go struct: add json tags + omitempty"], ["b", "Go build"], ["c", "Go go test -cover ./..."], ["D", "Go struct: remove json tags"], ["e", "Go if err != nil for the call under the cursor"], ["f", "Go format"], ["g", "Go go generate ./..."], ["i", "Go go fix (apply modernizers)"], ["m", "Go go test ./..."], ["p", "Go go fix -diff (modernizers preview)"], ["r", "Go run"], ["R", "Go go test -race ./..."], ["s", "Go struct: fill literal"], ["t", "Go go mod tidy"], ["T", "Go add test for the function under the cursor"], ["u", "Go go get -u + go mod tidy"], ["v", "Go lint (golangci-lint, or go vet if missing)"], ["x", "Go golangci-lint --fix"]],
     "h": [["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"], ["a", "Harpoon add file"], ["m", "Harpoon menu"]],
     "P": [["l", "Session restore last session"], ["r", "Session restore session (this folder)"], ["s", "Session select session (any project)"], ["w", "Session save session now"], ["x", "Session don't save on exit"]],
-    "S": [["a", "Settings terminal theme (Alacritty)"], ["d", "Settings default theme (gruvbox)"], ["i", "Settings theme info"], ["p", "Settings theme picker"], ["r", "Settings re-sync terminal theme"], ["t", "Settings toggle theme"]],
-    "x": [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list"]],
-    "n": [["d", "nvim-tree: New folder(s)"], ["x", "nvim-tree: Delete folder with contents"]],
-    "": [["a", "Agent", 1], ["C", "Comments", 1], ["f", "Find", 1], ["g", "Go", 1], ["G", "Git", 1], ["h", "Harpoon", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1], ["/", "toggle comment"], ["d", "General delete without copying"], ["D", "LSP Go to type definition"], ["e", "nvimtree focus window"], ["H", "Find file history (session)"], ["q", "General close buffer / quit"], ["w", "General save"]]
+    "S": [["f", "Settings format on save"], ["i", "Settings info"], ["l", "Settings plugins"], ["M", "Settings tools"], ["p", "Settings panel"], ["t", "Settings toggle theme"], ["u", "Settings update config"]],
+    "x": [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["e", "Diagnostics copy all"], ["f", "Diagnostics copy file"], ["l", "Diagnostics copy line"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list"]],
+    "": [["a", "Agent", 1], ["C", "Comments", 1], ["f", "Find", 1], ["F", "File", 1], ["g", "Go", 1], ["G", "Git", 1], ["h", "Harpoon", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1], ["/", "toggle comment"], ["d", "General delete without copying"], ["D", "LSP Go to type definition"], ["e", "nvimtree focus window"], ["H", "Find file history (session)"], ["q", "General close buffer / quit"], ["w", "General save"]]
   };
   /* labels without what the menu already says ("Agent ask" inside Agent reads "ask"): port of ui/flat/labels.lua */
   function trimLabel(parent, desc) {
@@ -1101,8 +1117,29 @@ footer a:hover{color:var(--fg)}
   /* columns of a flat markdown table: each cell padded to its width (render-markdown `padded`, no rules) */
   function cols(cells, widths) { return " " + cells.map(function (c, i) { var plain = c.replace(/<[^>]+>/g, ""); return c + " ".repeat(Math.max(1, widths[i] - plain.length)); }).join(" "); }
   /* the confirmation modal's last line (utils/modal.lua confirm) */
-  var YES = '<span class="m">[y]</span> yes    <span class="m">[n / q / &lt;Esc&gt;]</span> <span class="mu">no</span>';
+  /* the buttons under a modal (utils/modal.lua buttons): a key and its word, chunky chips: primary (blue), danger (red), soft */
+  function BTNS(key, label, kind, cancelKey) {
+    return '<div class="bts"><span class="bt ' + (kind || "p") + '">' + key + " " + label + '</span><span class="bt">' + (cancelKey || "n") + " Cancel</span></div>";
+  }
+  var YES = function (label, kind) { return BTNS("y", label || "Yes", kind || "p", "n"); };
   var MU = function (t) { return '<span class="mu">' + t + "</span>"; };
+  /* the destination picture of the file modals (files/location.lua): project → … → folder, then the folders already in it */
+  function locLines(dir, mark) {
+    var parts = dir ? dir.split("/") : [], m = '<span class="m">' + mark + "</span>", lines = ["Location:", '  <span class="f">notesapi/</span>' + (parts.length ? "" : m)];
+    parts.forEach(function (x, i) { lines.push("  " + "   ".repeat(i) + '└── <span class="f">' + x + "/</span>" + (i === parts.length - 1 ? m : "")); });
+    var pre = dir ? dir + "/" : "", kids = [];
+    PATHS.forEach(function (f) { if (f.indexOf(pre) === 0) { var r = f.slice(pre.length); if (r.indexOf("/") > 0 && kids.indexOf(r.split("/")[0]) < 0) kids.push(r.split("/")[0]); } });
+    kids.sort().slice(0, 6).forEach(function (k) { lines.push("  " + "   ".repeat(parts.length) + '├── <span class="f">' + k + "/</span>"); });
+    return lines;
+  }
+  /* <leader>F n / `a` in the tree (files/init.lua new) */
+  function newModal(dir) { return { kind: "modal", title: "New file", input: "", hint: BTNS("Enter", "Create", "p", "Esc"), lines: locLines(dir, "   &lt;- new here").concat(["", MU("e.g. main.go; docs/; src/ui/menu.go")]) }; }
+  /* the project's folders, shallowest first, as the move picker lists them (files/ops.lua folders) */
+  function projDirs(skip) {
+    var set = {};
+    PATHS.forEach(function (f) { var a = f.split("/"); for (var i = 1; i < a.length; i++) set[a.slice(0, i).join("/")] = 1; });
+    return Object.keys(set).filter(function (d) { return d !== skip; }).sort(function (a, b) { var da = a.split("/").length, db = b.split("/").length; return da - db || (a < b ? -1 : 1); });
+  }
   var FILE = function (f, t) { return '  <span class="f">' + f + "</span>  " + t; };
   /* an inline diagnostic block with its counter (`at/of`) */
   function dg(p, i, sev, src, msg, at, of) { p.diag(i, sev, src, msg, null, of); S.lines[i].diag.at = at; p.r(); }
@@ -1262,7 +1299,7 @@ footer a:hover{color:var(--fg)}
         p.diff(1, ["\tnote, err := s.repo.Find(ctx, id)"], 1); await p.w(900);
         await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(500);
         dg(p, 1, "error", "gopls", "undefined: s.repo.Find", 1, 1); await p.w(1000);
-        p.ov({ kind: "modal", title: "fix regression 1/2", lines: ['<span class="w">1 new problem in the code you accepted</span>', MU("  L2 undefined: s.repo.Find"), MU("attempt 1 of 2"), "", "1 proposal · claude/sonnet", MU("~805 tokens · ~$0.0004"), "", FILE("note_service.go", "Rename"), YES] }); await p.w(2300);
+        p.ov({ kind: "modal", title: "fix regression 1/2", lines: ['<span class="w">1 new problem in the code you accepted</span>', MU("  L2 undefined: s.repo.Find"), MU("attempt 1 of 2"), "", "1 proposal · claude/sonnet", MU("~805 tokens · ~$0.0004"), "", FILE("note_service.go", "Rename"), YES("Run")] }); await p.w(2300);
         await p.key("y", 260); p.ov(null);
         await p.spin(1, "fix regression 1/2 · claude/sonnet", 900, "fix regression 1/2");
         p.diff(1, ["\tnote, err := s.repo.FindByID(ctx, id)"], 1); await p.w(900);
@@ -1274,7 +1311,7 @@ footer a:hover{color:var(--fg)}
         dg(p, 4, "error", "gopls", "declared and not used: n", 2, 4); dg(p, 5, "warn", "agent", "returning nil, nil hides a missing note", 3, 4);
         dg(p, 8, "error", "gopls", "not enough arguments in call to s.repo.Save", 4, 4); await p.w(600);
         await p.seq(["␣", "a", "A", "a"]);
-        p.ov({ kind: "modal", title: "fix all", lines: ["3 proposals · claude/sonnet", MU("~2.3k tokens · ~$0.0012"), "", FILE("note_service.go", "Rename"), FILE("note_service.go", "Get · 2 problems"), FILE("note_service.go", "Count"), YES] }); await p.w(2000);
+        p.ov({ kind: "modal", title: "fix all", lines: ["3 proposals · claude/sonnet", MU("~2.3k tokens · ~$0.0012"), "", FILE("note_service.go", "Rename"), FILE("note_service.go", "Get · 2 problems"), FILE("note_service.go", "Count"), YES("Run")] }); await p.w(2000);
         await p.key("y", 260); p.ov(null);
         await p.spin(7, "fix all 1/3 · claude/sonnet", 700, "fix all 1/3");
         p.diff(8, ["\treturn s.repo.Save(ctx, &domain.Note{ID: id, Title: title})"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 7, q: "1/3 · &lt;leader&gt;aA] next" });
@@ -1285,7 +1322,7 @@ footer a:hover{color:var(--fg)}
         p.note("<b>Agent fix all: 3 proposals ready</b> · &lt;leader&gt;aA] next · &lt;leader&gt;aAy accept all"); p.cursor(S.lines.findIndex(function (L) { return L.t && L.t.indexOf("Rename(") >= 0; })); await p.w(1700); p.note(null);
         await p.seq(["␣", "a", "A", "]"]); p.cursor(S.lines.findIndex(function (L) { return L.t && L.t.indexOf(" Get(") >= 0; })); p.note("<b>Agent: proposal 2 of 3</b> · fix all 2/3"); await p.w(1500); p.note(null);
         await p.seq(["␣", "a", "A", "y"]);
-        p.ov({ kind: "modal", title: "accept all", lines: ["Accept 3 proposals?", "", FILE("note_service.go", MU("3")), YES] }); await p.w(1500);
+        p.ov({ kind: "modal", title: "accept all", lines: ["Accept 3 proposals?", "", FILE("note_service.go", MU("3")), YES("Accept all")] }); await p.w(1500);
         await p.key("y", 260); p.ov(null); p.acceptDiff(); p.clearDiag(); p.note("<b>Agent: 3 of 3 accepted</b> (u undoes each one)"); await p.w(2000); p.note(null); } },
     { g: "ask", name: "Fix from output", go: async function (p) {
         p.set(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\tn, err := s.repo.FindByID(ctx, id)", "\treturn nil, err", "}", "", "func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tif title == \"\" {", "\t\treturn ErrEmpty", "\t}", "\treturn s.repo.Save(ctx, id, title)", "}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = false;
@@ -1295,7 +1332,7 @@ footer a:hover{color:var(--fg)}
         o.lines.push(["", "~/notesapi $ go build ./..."], ["mu", "# notesapi/internal/application"], ["no", "internal/application/note_service.go:2:2: declared and not used: n"], ["no", "internal/application/note_service.go:8:10: undefined: ErrEmpty"]); o.prompt = ""; p.r(); await p.w(1500);
         await p.key("Esc", 250); p.ov(null); await p.w(400);
         await p.seq(["␣", "a", "A", "o"]);
-        p.ov({ kind: "modal", title: "fix output", lines: ['<span class="w">2 errors from the last terminal</span>', "", "2 proposals · claude/sonnet", MU("~1.6k tokens · ~$0.0008"), "", FILE("note_service.go", "Rename"), FILE("note_service.go", "Get"), YES] }); await p.w(2000);
+        p.ov({ kind: "modal", title: "fix output", lines: ['<span class="w">2 errors from the last terminal</span>', "", "2 proposals · claude/sonnet", MU("~1.6k tokens · ~$0.0008"), "", FILE("note_service.go", "Rename"), FILE("note_service.go", "Get"), YES("Run")] }); await p.w(2000);
         await p.key("y", 260); p.ov(null);
         await p.spin(5, "fix output 1/2 · claude/sonnet", 700, "fix output 1/2");
         p.diff(7, ["\t\treturn errors.New(\"title is empty\")"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 5, q: "1/2 · &lt;leader&gt;aA] next", imp: "errors" });
@@ -1473,44 +1510,45 @@ footer a:hover{color:var(--fg)}
     { g: "files", name: "File tree", go: async function (p) {
         load(p, "internal/domain/note.go", 3, 6);
         var paths = PATHS.slice(), open = [], rows, at = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
-        function rebuild(sel) { rows = treeRows(paths, open, "notesapi"); S.tree.rows = rows; S.tree.cur = sel == null ? S.tree.cur : at(sel); p.r(); }
-        await p.w(600); await p.key("Ctrl+n", 350); p.tree(treeRows(paths, open, "notesapi"), 1, true); rows = S.tree.rows; await p.w(700);
+        function rebuild(sel) { rows = treeRows(paths, open); S.tree.rows = rows; S.tree.cur = sel == null ? S.tree.cur : at(sel); p.r(); }
+        await p.w(600); await p.key("Ctrl+n", 350); p.tree(treeRows(paths, open), 0, true); rows = S.tree.rows; await p.w(700);
+        /* H: the dotfiles show up (purple), H again hides them */
+        await p.key("H", 300); var here = rows[S.tree.cur].path; paths = PATHS.concat(HIDDEN); rebuild(here); await p.w(1500);
+        await p.key("H", 300); paths = PATHS.slice(); rebuild(here); await p.w(500);
         await p.key("j", 260); p.treeCur(at("internal")); await p.w(250);
         await p.key("Enter", 300); open.push("internal"); rebuild(); await p.w(500);
         await p.key("j", 220); p.treeCur(at("internal/application")); await p.w(150);
         await p.key("j", 220); p.treeCur(at("internal/domain")); await p.w(250);
         await p.key("Enter", 300); open.push("internal/domain"); rebuild(); await p.w(500);
         await p.key("j", 220); p.treeCur(at("internal/domain/note.go")); await p.w(700);
-        await p.key("a", 300); p.cmd("Create file: notesapi/internal/domain/"); await p.w(400);
-        await typeCmd(p, "Create file: notesapi/internal/domain/", "event.go", 90); await p.w(400);
-        await p.key("Enter", 300); p.cmd(null); paths.push("internal/domain/event.go"); PROJ["internal/domain/event.go"] = ["package domain", ""]; rebuild("internal/domain/event.go"); rows[S.tree.cur].nw = true; p.r(); await p.w(1000);
-        await p.key("Enter", 300); S.tree = null; p.open("internal/domain/event.go", 1); p.mode("INSERT"); await p.w(1500); delete PROJ["internal/domain/event.go"]; } },
-    { g: "files", name: "New folders", go: async function (p) {
+        await p.key("a", 300); var nm = newModal("internal/domain"); p.ov(nm); await p.w(700); await p.typeInto(nm, "input", "event.go", 90); await p.w(500);
+        await p.key("Enter", 300); p.ov(null); PROJ["internal/domain/event.go"] = ["package domain", ""]; S.tree = null; p.open("internal/domain/event.go", 0);
+        p.note("<b>Created internal/domain/event.go</b>"); await p.w(1800); p.note(null); delete PROJ["internal/domain/event.go"]; } },
+    { g: "files", name: "New file or folder", go: async function (p) {
         load(p, "internal/domain/note.go", 3, 6);
-        var paths = PATHS.slice(), open = ["internal"], rows = treeRows(paths, open, "notesapi");
+        var paths = PATHS.slice(), open = ["internal"], rows = treeRows(paths, open);
         p.tree(rows, rows.findIndex(function (r) { return r.path === "internal"; }), true); await p.w(800);
-        await p.seq(["␣", "n", "d"]);
-        var kids = ["application", "domain", "infrastructure", "transport"].map(function (k) { return '     ├── <span class="f">' + k + "/</span>"; });
-        var o = { kind: "modal", title: "New folder(s)", input: "", hint: "Enter confirm · Esc cancel",
-          lines: ["Location:", '  <span class="f">notesapi/</span>', '  └── <span class="f">internal/</span><span class="m">   &lt;- new folder(s) go here</span>'].concat(kids, ["", '<span class="mu">Separate several paths with \';\'</span>']) };
-        p.ov(o); await p.w(700); await p.typeInto(o, "input", "ports; events; testdata/fixtures", 70); await p.w(900);
+        await p.key("a", 300);
+        var o = newModal("internal");
+        p.ov(o); await p.w(700); await p.typeInto(o, "input", "ports/; events/; testdata/fixtures/", 70); await p.w(900);
         await p.key("Enter", 300); p.ov(null);
-        paths.push("internal/ports/", "internal/events/", "internal/testdata/fixtures/"); rows = treeRows(paths, open.concat(["internal/testdata"]), "notesapi");
+        paths.push("internal/ports/", "internal/events/", "internal/testdata/fixtures/"); rows = treeRows(paths, open.concat(["internal/testdata"]));
         rows.forEach(function (r) { if (/^internal\/(ports|events|testdata)$/.test(r.path)) r.nw = true; });
-        p.tree(rows, rows.findIndex(function (r) { return r.path === "internal"; }), true); await p.w(2200); } },
+        p.tree(rows, rows.findIndex(function (r) { return r.path === "internal"; }), true);
+        p.note("<b>Created internal/ports, internal/events, internal/testdata/fixtures</b>"); await p.w(2200); p.note(null); } },
     { g: "files", name: "Delete folder", go: async function (p) {
         load(p, "internal/domain/note.go", 3, 6);
-        var paths = PATHS.concat(["internal/events/event.go", "internal/events/bus.go", "internal/events/handlers/note_created.go"]), open = ["internal"], rows = treeRows(paths, open, "notesapi"), ix = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
+        var paths = PATHS.concat(["internal/events/event.go", "internal/events/bus.go", "internal/events/handlers/note_created.go"]), open = ["internal"], rows = treeRows(paths, open), ix = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
         p.tree(rows, ix("internal"), true); await p.w(700);
         await p.key("j", 240); p.treeCur(ix("internal/application")); await p.w(150); await p.key("j", 240); p.treeCur(ix("internal/domain")); await p.w(150); await p.key("j", 240); p.treeCur(ix("internal/events")); await p.w(800);
-        await p.seq(["␣", "n", "x"]);
-        var o = { kind: "modal", title: "Delete folder", hint: '<span class="m">[y]</span> yes    <span class="mu"><span class="m">[n / q / &lt;Esc&gt;]</span> no</span>',
-          lines: ["Delete folder:", '  <span class="f">internal/events/</span>', "", 'Contains: <span>3 files, 1 folders</span>', '<span class="w">This removes everything inside and cannot be undone.</span>'] };
+        await p.key("d", 300);
+        var o = { kind: "modal", title: "Delete", hint: YES("Delete", "d"), lines: ["Delete folder:", '  <span class="f">internal/events/</span>', "", 'Contains: <span>3 files, 1 folder</span>', MU("Goes to the trash · &lt;leader&gt;Fu undoes it")] };
         p.ov(o); await p.w(2000); await p.key("y", 300); p.ov(null);
-        paths = PATHS.slice(); rows = treeRows(paths, open, "notesapi"); p.tree(rows, ix("internal/domain"), true); await p.w(1800); } },
+        paths = PATHS.slice(); rows = treeRows(paths, open); p.tree(rows, ix("internal/domain"), true);
+        p.note("<b>Deleted internal/events/ · &lt;leader&gt;Fu undoes it</b>"); await p.w(1800); p.note(null); } },
     { g: "files", name: "Select several", go: async function (p) {
         load(p, "internal/domain/note.go", 3, 6);
-        var paths = PATHS.slice(), open = ["internal", "internal/domain", "internal/transport"], rows = treeRows(paths, open, "notesapi"), ix = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
+        var paths = PATHS.slice(), open = ["internal", "internal/domain", "internal/transport"], rows = treeRows(paths, open), ix = function (x) { return rows.findIndex(function (r) { return r.path === x; }); };
         p.tree(rows, ix("internal/domain/note.go"), true); await p.w(800);
         await p.key("m", 300); S.tree.bm.push("internal/domain/note.go"); p.r(); await p.w(400);
         await p.key("j", 220); p.treeCur(ix("internal/domain/status.go")); await p.w(150); await p.key("m", 300); S.tree.bm.push("internal/domain/status.go"); p.r(); await p.w(400);
@@ -1519,7 +1557,39 @@ footer a:hover{color:var(--fg)}
         await p.key("b", 150); await p.key("m", 150); await p.key("v", 300); p.cmd("Move bookmarked to: notesapi/internal/shared/"); await p.w(900);
         await p.key("Enter", 300); p.cmd(null);
         paths = paths.map(function (x) { return S.tree.bm.indexOf(x) >= 0 ? "internal/shared/" + x.split("/").pop() : x; }); open = ["internal", "internal/shared"];
-        paths.push("internal/domain/"); rows = treeRows(paths, open, "notesapi"); p.tree(rows, ix("internal/shared"), true); rows.forEach(function (r) { if (r.path === "internal/shared") r.nw = true; }); p.r(); await p.w(2000); } },
+        paths.push("internal/domain/"); rows = treeRows(paths, open); p.tree(rows, ix("internal/shared"), true); rows.forEach(function (r) { if (r.path === "internal/shared") r.nw = true; }); p.r(); await p.w(2000); } },
+    { g: "files", name: "Rename, move, delete", go: async function (p) {
+        var D = "internal/domain/", T = "internal/transport/";
+        load(p, D + "note.go", 3, 6); await p.w(800);
+        try {
+          await p.seq(["␣", "F", "n"]);
+          var nm = newModal("internal/domain"); p.ov(nm); await p.w(500); await p.typeInto(nm, "input", "scratch.go", 70); await p.w(400);
+          await p.key("Enter", 300); p.ov(null); PROJ[D + "scratch.go"] = ["package domain", ""]; p.open(D + "scratch.go", 0);
+          p.note("<b>Created internal/domain/scratch.go</b>"); await p.w(1300); p.note(null);
+          /* rename: the field comes pre-filled with the name */
+          await p.seq(["␣", "F", "r"]);
+          var rn = { kind: "modal", title: "Rename file", input: "scratch.go", hint: BTNS("Enter", "Rename", "p", "Esc"), lines: ["Rename:", "  internal/domain/scratch.go", "", MU("A / in the name moves it too")] };
+          p.ov(rn); await p.w(800); while (rn.input) { rn.input = rn.input.slice(0, -1); p.r(); await p.w(30); }
+          await p.typeInto(rn, "input", "draft.go", 80); await p.w(500);
+          await p.key("Enter", 300); p.ov(null); PROJ[D + "draft.go"] = PROJ[D + "scratch.go"]; delete PROJ[D + "scratch.go"]; p.open(D + "draft.go", 0);
+          p.note("<b>internal/domain/scratch.go → internal/domain/draft.go</b>"); await p.w(1500); p.note(null);
+          /* move: a picker of the project's folders */
+          await p.seq(["␣", "F", "m"]);
+          var dirs = projDirs("internal/domain"), rows = [["", "· project root", ""]].concat(dirs.map(function (d) { return ["", d + "/", ""]; }), [["", "+ new folder…", ""]]);
+          var mv = { kind: "dd", title: "Move draft.go to", sel: 0, rows: rows }; p.ov(mv); await p.w(1200);
+          var to = rows.findIndex(function (r) { return r[1] === T; });
+          while (mv.sel < to) { await p.key("Ctrl+n", 170); mv.sel++; p.r(); } await p.w(700);
+          await p.key("Enter", 300); p.ov(null); PROJ[T + "draft.go"] = PROJ[D + "draft.go"]; delete PROJ[D + "draft.go"]; p.open(T + "draft.go", 0);
+          p.note("<b>internal/domain/draft.go → internal/transport/draft.go</b>"); await p.w(1500); p.note(null);
+          /* delete goes to a trash, and comes back */
+          await p.seq(["␣", "F", "x"]);
+          var dl = { kind: "modal", title: "Delete", hint: YES("Delete", "d"), lines: ["Delete file:", "  internal/transport/draft.go", "", MU("Goes to the trash · &lt;leader&gt;Fu undoes it")] };
+          p.ov(dl); await p.w(1600); await p.key("y", 300); p.ov(null);
+          var kept = PROJ[T + "draft.go"]; delete PROJ[T + "draft.go"]; load(p, D + "note.go", 3, 6);
+          p.note("<b>Deleted internal/transport/draft.go · &lt;leader&gt;Fu undoes it</b>"); await p.w(1500); p.note(null);
+          await p.seq(["␣", "F", "u"]); PROJ[T + "draft.go"] = kept;
+          p.note("<b>Restored internal/transport/draft.go</b>"); await p.w(1800); p.note(null);
+        } finally { delete PROJ[D + "scratch.go"]; delete PROJ[D + "draft.go"]; delete PROJ[T + "draft.go"]; } } },
 
     /* ── Inspect ────────────────────────────────────────────────────────────────────────────── */
     { g: "inspect", name: "Project diagnostics", go: async function (p) {
@@ -1569,7 +1639,24 @@ footer a:hover{color:var(--fg)}
         load(p, "internal/application/note_service.go", 5, 14); await p.w(900);
         var other = root.dataset.theme === "dark" ? "light" : "dark";
         await p.seq(["␣", "S", "t"]); p.theme(other); await p.w(2200);
-        await p.seq(["␣", "S", "t"]); p.theme(null); await p.w(1500); } }
+        await p.seq(["␣", "S", "t"]); p.theme(null); await p.w(1500); } },
+    { g: "work", name: "Settings", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 14); await p.w(900);
+        await p.seq(["␣", "S", "p"]);
+        var o = { kind: "dd", title: "Settings", sel: 0, rows: [
+          ["Appearance", "Theme", "gruvbox"], ["Appearance", "Motion", "on"], ["Appearance", "Blinking cursor", "on"], ["Appearance", "Flash on change", "on"], ["Appearance", "Show keys", "off"], ["Appearance", "Flat design", "on"],
+          ["Editing", "Format on save", "on"], ["Editing", "Reload outside changes", "on"], ["Editing", "Session autosave", "every minute"],
+          ["Diagnostics", "Inline blocks", "on"], ["Diagnostics", "Blocks layout", "all open"], ["Diagnostics", "While typing", "off"],
+          ["Agent", "Model", "›"], ["Agent", "Answer language", "English"], ["Agent", "Verify after accepting", "on"], ["Agent", "Spend guard", "on"],
+          ["System", "Light mode", "auto"], ["System", "Plugins", "›"], ["System", "Tools", "›"], ["System", "Info", "›"], ["System", "Update config", "›"], ["System", "Reset my choices", "›"]] };
+        p.ov(o); await p.w(1500);
+        function flip(i, to) { o.rows[i][2] = to; p.r(); }
+        await p.key("Ctrl+n", 300); o.sel = 1; p.r(); await p.w(500);
+        await p.key("Enter", 250); flip(1, "off"); p.note("<b>Motion: off</b>"); await p.w(1500); p.note(null);
+        await p.key("Enter", 250); flip(1, "on"); p.note("<b>Motion: on</b>"); await p.w(1200); p.note(null);
+        for (var k = 0; k < 5; k++) { await p.key("Ctrl+n", 160); o.sel++; p.r(); }
+        await p.w(500); await p.key("Enter", 250); flip(6, "off"); p.note("<b>Format on save: off</b>"); await p.w(1800); p.note(null);
+        await p.key("Esc", 250); p.ov(null); await p.w(600); } }
   ];
 
   /* the list on the left: one tab per group, click a scenario to jump to it */

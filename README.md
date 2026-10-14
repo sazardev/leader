@@ -82,7 +82,7 @@ junction at `%LOCALAPPDATA%\nvim` and does the same steps (written but not teste
 | Editing | blink.cmp, mini.pairs/surround/move, multicursor, flash (jumps), treesitter textobjects, folds (ufo) with foldable long comments, custom snippets |
 | Navigation | Telescope (+fzf), nvim-tree, harpoon, aerial (symbols), grug-far (global replace), file history |
 | Git | gitsigns, diffview, git-conflict, git-blame (off by default) and **conventional commits** (see below) |
-| Diagnostics | inline blocks under their line, line number colored by severity, unique colors across the whole UI, line popup, Trouble |
+| Diagnostics | inline blocks under their line, line number colored by severity, unique colors across the whole UI, line popup, copy as text (line, file or project), Trouble |
 | UI | **flat design** (floats, menus and pickers are filled blocks, no boxes; every color derived from the theme, notifications, yank/accept flash), lualine, gruvbox ↔ light theme **or live-inherited from the terminal** (Alacritty), dashboard with braille art, render-markdown, inline colors |
 | Sessions | one per folder and branch, periodic autosave |
 | **Go without an LLM** | completion helpers that read your code and your `go.mod` (see below) |
@@ -142,6 +142,17 @@ return {
 }
 ```
 
+You do not have to edit a file for the everyday ones: **`<leader>Sp` opens the settings panel** (theme, motion, cursor,
+format on save, diagnostics layout, answer language, light mode, plugins, tools, update…). `Enter` flips a value and applies it
+at once when it can (the few that need a restart say so); your choices are kept apart (`stdpath("state")/prefs.json`),
+win over `local.lua`, and "Reset my choices" forgets them. Keys of their own: `St` theme, `Sf` format on save, `Sl`
+plugins, `SM` tools, `Si` info, `Su` update the config.
+
+Files have the same treatment: **`<leader>F`** (and `a` / `r` / `d` inside the tree) creates, renames, moves, duplicates and
+deletes in flat modals that show where the file will land. Several files at once (`a.go; b/c.go; d/`), a name with `/`
+moves it, the move is a folder picker, and **delete goes to a trash** (`<leader>Fu` brings the last one back). Open buffers,
+language servers and the tree follow a rename; your unsaved changes survive it.
+
 To add (each one is **a single file** and, at most, a name in its `NAMES` list):
 
 - **a language**: `nvim/lua/languages/<name>.lua` (contract at the top of `languages/init.lua`);
@@ -187,6 +198,8 @@ nvim/                         the config (what gets linked)
   lua/commit/                 commits: validation (pure), git, AI draft, panel
   lua/utils/                  utilities; go*.lua = Go completion helpers on top of goindex
   lua/ui/ appearance/ themes/ dashboard, theme, colors
+  lua/prefs/                  settings panel (<leader>S): one file per group of toggles in items/
+  lua/files/                  file operations (<leader>F): paths, file system, buffers, modals
   snippets/ ftdetect/ syntax/ custom snippets and filetypes
 scripts/                      installation (install-*.lua), cheatsheet, agent setup and tests
 docs/cheatsheets/             per-language and agent documentation
