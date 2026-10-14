@@ -189,7 +189,8 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .ed .cp .chip{color:var(--on)}
 .ed .cp .kh{text-align:center;color:var(--faint);font-style:italic;padding:2px 14px}
 .ed .cp .ttl.t0,.ed .cp .ttl.t1{width:max-content;gap:6px} .ed .cp .ttl.t0 i,.ed .cp .ttl.t1 i{font-style:normal;color:var(--on)}
-.ed .cp .ai{background:var(--soft);padding:3px 14px;color:var(--dim)} .ed .cp .ai b{color:var(--purple)}
+.ed .cp .ai{background:var(--soft);padding:3px 14px;color:var(--dim)} .ed .cp .ai b{color:var(--purple)} .ed .cp .ai .wr{color:var(--yellow)} .ed .cp .ai .st{color:var(--purple);font-weight:700}
+.ed .rp .ck{color:var(--green)} .ed .rp .ck.off{color:var(--faint)}
 .ed .sl{display:flex;align-items:stretch;background:var(--soft);font-size:12px;height:24px;line-height:24px}
 .ed .sl>span{display:flex;align-items:center;padding:0 10px;color:var(--dim)}
 .ed .sl .m{background:var(--blue);color:var(--on);font-weight:700;min-width:76px;justify-content:center;transition:background .15s}
@@ -621,11 +622,11 @@ footer a:hover{color:var(--fg)}
     lines.forEach(function (L, i) {
       /* the agent's instruction field (agent/ui/inline.lua): title + model on its top row, keys on the right, placeholder */
       if (L.kind === "input") {
-        var lb = L.label.split(" · ");
-        out.push('<div class="inp"><div><b>✦ ' + esc(lb[0]) + "</b>" + (lb[1] ? "<u>· " + esc(lb[1]) + "</u>" : "") + "<i>Enter run · Ctrl-J newline · Up history · Esc cancel</i></div><div><i>" + esc(L.ph) + "</i></div></div>"); return;
+        var lb = L.label.split(" · "), meta = lb.length > 1 ? lb.pop() : "";
+        out.push('<div class="inp"><div><b>✦ ' + esc(lb.join(" · ")) + "</b>" + (meta ? "<u>· " + esc(meta) + "</u>" : "") + "<i>Enter run · Ctrl-J newline · Up history · Esc cancel</i></div><div>" + (L.val ? esc(L.val) + '<span class="cur"></span>' : "<i>" + esc(L.ph) + "</i>") + "</div></div>"); return;
       }
       /* the proposal's hint (agent/output/replace.lua): its own virtual row ABOVE the change, dim italic */
-      if (L.kind === "hint") { out.push('<div class="ah"> Enter accept · Esc reject · ' + L.n + " change" + (L.n > 1 ? "s" : "") + (L.stats ? " · " + L.stats : "") + "</div>"); return; }
+      if (L.kind === "hint") { out.push('<div class="ah"> Enter accept · Esc reject · Tab refine · ' + L.n + " change" + (L.n > 1 ? "s" : "") + (L.imp ? " · import: " + L.imp : "") + (L.stats ? " · " + L.stats : "") + (L.q ? " · " + L.q : "") + "</div>"); return; }
       var sign = L.cls === "ad" ? " " : null; /* added lines are virtual rows: no number */
       if (!sign) num++;
       var isCur = o.cur === i, nc = "";
@@ -705,9 +706,9 @@ footer a:hover{color:var(--fg)}
         '<div class="ttl"><span>Staged · 2 files — goes in the commit</span><span></span></div><div class="bd">' +
         '<div class="rw"><b>●</b>M  nvim/lua/utils/gosmart.lua<em>+38 −3</em></div><div class="rw"><b>●</b>A  nvim/lua/utils/goiferr.lua<em>+302</em></div></div>' +
         '<div class="ttl"><span>Not staged · 1 — NOT included</span><span></span></div><div class="bd"><div class="rw off"><b>○</b>M  README.md<em>+12 −4</em></div></div>' +
-        '<div class="kh">Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · q cancel</div></div>' +
+        '<div class="kh">Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · Ctrl-r review · q cancel</div></div>' +
         '<div class="fl"><div class="ttl t1"><span><b>Message</b>' + (c.msg ? "" : " · type(scope): subject") + "</span>" + (c.msg ? '<span class="chip">✔ ' + esc(c.chip) + "</span>" : "") + '</div><div class="bd">' + (c.msg ? esc(c.msg) : "&nbsp;") + "</div>" +
-        '<div class="kh">Ctrl-s commit · Ctrl-g AI draft · Ctrl-t type · Ctrl-o scope · Tab files · q cancel</div></div>' +
+        '<div class="kh">Ctrl-s commit · Ctrl-g AI draft · Ctrl-r review · Ctrl-t type · Ctrl-o scope · Tab files · q cancel</div></div>' +
         '<div class="ai"><b>✦ AI</b> ' + c.ai + "</div>";
       cpEl.classList.add("on");
     } else cpEl.classList.remove("on");
@@ -822,8 +823,8 @@ footer a:hover{color:var(--fg)}
         '<div class="bx pv"><h6>Preview</h6>' + pv + "</div></div>";
     },
     modal: function (o) {
-      return '<div class="md"><h6>' + esc(o.title) + "</h6>" + o.lines.map(function (l) { return "<div>" + (l || "&nbsp;") + "</div>"; }).join("") +
-        (o.input != null ? '<div class="in">' + esc(o.input) + '<span class="cur"></span></div>' : "") + '<div class="ft2">' + (o.hint || "") + "</div></div>";
+      return '<div class="md"><h6>' + esc(o.title.toUpperCase()) + "</h6>" + o.lines.map(function (l) { return "<div>" + (l || "&nbsp;") + "</div>"; }).join("") +
+        (o.input != null ? '<div class="in">' + esc(o.input) + '<span class="cur"></span></div>' : "") + (o.hint ? '<div class="ft2">' + o.hint + "</div>" : "") + "</div>";
     },
     grug: function (o) {
       var q = o.search, rep = o.replace, files = {}, total = 0, nf = 0;
@@ -851,7 +852,7 @@ footer a:hover{color:var(--fg)}
     },
     /* the agent's report panel: markdown rendered flat (a title row, ▣ heading, ◎ sections on a veil, aligned columns) */
     report: function (o) {
-      return '<div class="rp"><div class="tt"> ' + esc(o.title) + " · Y copy all · q close </div>" + o.lines.map(function (l) {
+      return '<div class="rp"><div class="tt"> ' + esc(o.title) + (o.hint || " · Y copy all · q close ") + "</div>" + o.lines.map(function (l) {
         return '<div class="' + (l[0] || "") + '">' + (l[0] === "h1" ? "▣ " : l[0] === "h2" ? "◎ " : "") + (l[1] || "") + "</div>";
       }).join("") + "</div>";
     },
@@ -875,9 +876,10 @@ footer a:hover{color:var(--fg)}
   };
 
   /* which-key menus, as the real config shows them (key ➜ description, "+" for groups) */
-  var GN = {"a": "Agent", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Service", "aT": "Agent Tests", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "h": "Harpoon", "P": "Session", "S": "Settings", "x": "Diagnostics", "n": "Nvim-tree folders"};
+  var GN = {"a": "Agent", "aA": "Agent Advanced", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Service", "aT": "Agent Tests", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "h": "Harpoon", "P": "Session", "S": "Settings", "x": "Diagnostics", "n": "Nvim-tree folders"};
   var MENU = {
-    "a": [["a", "Agent ask"], ["c", "Agent clear"], ["C", "Agent clear file"], ["d", "Agent docs"], ["D", "Agent DDD", 1], ["e", "Agent explain"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["g", "Agent hand off"], ["h", "Agent history"], ["i", "Agent implement"], ["l", "Agent last answer"], ["L", "Agent Lenses", 1], ["m", "Agent model"], ["P", "Agent Repository", 1], ["r", "Agent review"], ["R", "Agent refactor"], ["S", "Agent Service", 1], ["T", "Agent Tests", 1], ["x", "Agent stop"]],
+    "a": [["A", "Agent Advanced", 1], ["D", "Agent DDD", 1], ["L", "Agent Lenses", 1], ["P", "Agent Repository", 1], ["S", "Agent Service", 1], ["T", "Agent Tests", 1], ["a", "Agent ask"], ["c", "Agent clear"], ["C", "Agent clear file"], ["d", "Agent docs"], ["e", "Agent explain"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["g", "Agent hand off"], ["h", "Agent history"], ["i", "Agent implement"], ["l", "Agent last answer"], ["m", "Agent model"], ["r", "Agent review"], ["R", "Agent refactor"], ["x", "Agent stop"]],
+    "aA": [["[", "Agent Advanced previous proposal"], ["]", "Agent Advanced next proposal"], ["a", "Agent Advanced fix all"], ["l", "Agent Advanced proposals list"], ["o", "Agent Advanced fix from output"], ["O", "Agent Advanced fix from a command"], ["p", "Agent Advanced plan across files"], ["y", "Agent Advanced accept all"]],
     "aD": [["a", "Agent ddd ask"], ["c", "Agent ddd clear"], ["d", "Agent ddd diagnose"], ["f", "Agent ddd fix"], ["i", "Agent ddd implement"], ["m", "Agent ddd missing"], ["r", "Agent ddd review"]],
     "aL": [["a", "Agent lens api"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["p", "Agent lens performance"], ["s", "Agent lens security"]],
     "aP": [["c", "Agent repo check"], ["i", "Agent repo implement"], ["p", "Agent repo port"], ["r", "Agent repo review"]],
@@ -885,7 +887,7 @@ footer a:hover{color:var(--fg)}
     "aT": [["f", "Agent test fix"], ["g", "Agent test gaps"], ["m", "Agent test mock"], ["w", "Agent test write"]],
     "C": [["c", "Comments collapse long comments"], ["d", "Comments doc comment template for this function/type"], ["e", "Comments expand comments"], ["m", "Comments public functions missing a doc comment (quickfix)"], ["t", "Comments toggle comment under cursor"]],
     "f": [["b", "telescope find buffers"], ["f", "telescope find files"], ["m", "general format file"], ["o", "telescope find oldfiles"], ["r", "Find replace in project"], ["w", "telescope live grep"]],
-    "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["t", "Git status"], ["T", "Git conflict theirs"]],
+    "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["t", "Git status"], ["T", "Git conflict theirs"], ["v", "Git review staged"]],
     "g": [["a", "Go struct: add json tags (snake_case)"], ["A", "Go struct: add json tags + omitempty"], ["b", "Go build"], ["c", "Go go test -cover ./..."], ["D", "Go struct: remove json tags"], ["e", "Go if err != nil for the call under the cursor"], ["f", "Go format"], ["g", "Go go generate ./..."], ["i", "Go go fix (apply modernizers)"], ["m", "Go go test ./..."], ["p", "Go go fix -diff (modernizers preview)"], ["r", "Go run"], ["R", "Go go test -race ./..."], ["s", "Go struct: fill literal"], ["t", "Go go mod tidy"], ["T", "Go add test for the function under the cursor"], ["u", "Go go get -u + go mod tidy"], ["v", "Go lint (golangci-lint, or go vet if missing)"], ["x", "Go golangci-lint --fix"]],
     "h": [["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"], ["a", "Harpoon add file"], ["m", "Harpoon menu"]],
     "P": [["l", "Session restore last session"], ["r", "Session restore session (this folder)"], ["s", "Session select session (any project)"], ["w", "Session save session now"], ["x", "Session don't save on exit"]],
@@ -985,12 +987,28 @@ footer a:hover{color:var(--fg)}
       },
       /* a proposal (agent/ui/preview.lua): the old lines tinted red in place (their numbers and diagnostics stay), the new
          ones right below as virtual rows tinted green, the hint on its own row above with the run's numbers */
-      diff: function (i, added, removed, stats) {
-        var n = removed || 1;
+      diff: function (i, added, removed, stats, o) {
+        o = o || {};
+        var n = removed == null ? 1 : removed, at = o.at == null ? i : o.at;
         for (var k = 0; k < n; k++) S.lines[i + k].cls = "rm";
         var ad = added.map(function (t) { return { t: t, cls: "ad" }; });
         S.lines.splice.apply(S.lines, [i + n, 0].concat(ad));
-        S.lines.splice(i, 0, { kind: "hint", n: 1, stats: stats || STATS }); if (S.cur >= i) S.cur++; render();
+        /* the hint sits above the TARGET's first line (the function, for fix block); `at` says where that is */
+        S.lines.splice(at, 0, { kind: "hint", n: o.n || 1, stats: stats || STATS, q: o.q, imp: o.imp }); if (S.cur >= at) S.cur++; render();
+      },
+      /* a proposal gives way to a refinement: its hint and added rows go, the old lines stop being tinted */
+      undiff: function () {
+        S.lines = S.lines.filter(function (L) { return L.kind !== "hint" && L.cls !== "ad"; });
+        S.lines.forEach(function (L) { delete L.cls; }); S.cur = Math.min(S.cur, S.lines.length - 1); render();
+      },
+      /* text typed into the instruction block */
+      typeInput: function (str, ms) {
+        var at = S.lines.findIndex(function (L) { return L.kind === "input"; }), i = 0; ms = ms || 40;
+        if (at < 0) return Promise.resolve(); S.lines[at].val = "";
+        return (function step() {
+          if (i >= str.length) return Promise.resolve();
+          S.lines[at].val += str[i++]; render(); return sleep(ms + Math.random() * 20).then(gone).then(step);
+        })();
       },
       /* a proposal that only deletes lines (non-contiguous): marked in place, one hint above the first */
       rmLines: function (idxs, stats) {
@@ -1082,6 +1100,12 @@ footer a:hover{color:var(--fg)}
   var FIND = "\tn, err := s.repo.FindByID(ctx, id)";
   /* columns of a flat markdown table: each cell padded to its width (render-markdown `padded`, no rules) */
   function cols(cells, widths) { return " " + cells.map(function (c, i) { var plain = c.replace(/<[^>]+>/g, ""); return c + " ".repeat(Math.max(1, widths[i] - plain.length)); }).join(" "); }
+  /* the confirmation modal's last line (utils/modal.lua confirm) */
+  var YES = '<span class="m">[y]</span> yes    <span class="m">[n / q / &lt;Esc&gt;]</span> <span class="mu">no</span>';
+  var MU = function (t) { return '<span class="mu">' + t + "</span>"; };
+  var FILE = function (f, t) { return '  <span class="f">' + f + "</span>  " + t; };
+  /* an inline diagnostic block with its counter (`at/of`) */
+  function dg(p, i, sev, src, msg, at, of) { p.diag(i, sev, src, msg, null, of); S.lines[i].diag.at = at; p.r(); }
   var STATS = "1.4s · 2.1k→58 tok · $0.0071"; /* what agent/stats.lua prints after a run: time, tokens in→out, cost */
   var SC = [
     { g: "type", name: "if err", go: async function (p) {
@@ -1221,6 +1245,109 @@ footer a:hover{color:var(--fg)}
         ] }); await p.w(3600);
         await p.key("q", 250); p.ov(null); S.showCursor = true; p.r(); await p.w(600); } },
 
+    { g: "ask", name: "Refine", go: async function (p) {
+        p.set(["func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tn, err := s.repo.FindByID(ctx, id)", "\tif err == nil {", "\t\tn.Title = title", "\t\terr = s.repo.Save(ctx, n)", "\t}", "\treturn err", "}"], "note_service.go", "NORMAL"); p.cursor(1); S.showCursor = false; await p.w(500);
+        await p.seq(["␣", "a", "R"]); p.input(1, "refactor · claude/sonnet", "what should change?"); await p.w(350); await p.typeInput("wrap the errors with context", 34); await p.w(200); await p.key("⏎", 220); p.dropInput();
+        await p.spin(0, "refactor · claude/sonnet", 800, "refactor");
+        p.diff(6, ["\treturn fmt.Errorf(\"rename note: %w\", err)"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 0 }); await p.w(1100);
+        await p.key("⇥", 260); p.input(0, "refactor · refine · claude/sonnet", "how should it change?"); await p.w(400); await p.typeInput("use an early return", 38); await p.w(200); await p.key("⏎", 220); p.dropInput(); p.undiff();
+        await p.spin(0, "refactor · refine · claude/sonnet", 900, "refactor · refine");
+        p.diff(2, ["\tif err != nil {", "\t\treturn fmt.Errorf(\"rename note: %w\", err)", "\t}", "\tn.Title = title", "\treturn s.repo.Save(ctx, n)"], 5, "0.9s · 1.2k→60 tok · $0.0004", { at: 0 }); await p.w(1200);
+        await p.key("⏎", 220); p.acceptDiff(); await p.w(1400); } },
+    { g: "ask", name: "Verify", go: async function (p) {
+        p.set(["func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tnote, err := s.repo.Get(ctx, id)", "\tif err != nil {", "\t\treturn err", "\t}", "\tnote.Title = title", "\treturn s.repo.Save(ctx, note)", "}"], "note_service.go", "NORMAL"); p.cursor(1); S.showCursor = false;
+        dg(p, 1, "error", "gopls", "s.repo.Get undefined (type domain.NoteRepository has no method Get)", 1, 1); await p.w(500);
+        await p.seq(["␣", "a", "f"]); p.input(1, "fix inline · claude/sonnet"); await p.w(350); await p.key("⏎", 220); p.dropInput();
+        await p.spin(1, "fix inline · claude/sonnet", 800);
+        p.diff(1, ["\tnote, err := s.repo.Find(ctx, id)"], 1); await p.w(900);
+        await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(500);
+        dg(p, 1, "error", "gopls", "undefined: s.repo.Find", 1, 1); await p.w(1000);
+        p.ov({ kind: "modal", title: "fix regression 1/2", lines: ['<span class="w">1 new problem in the code you accepted</span>', MU("  L2 undefined: s.repo.Find"), MU("attempt 1 of 2"), "", "1 proposal · claude/sonnet", MU("~805 tokens · ~$0.0004"), "", FILE("note_service.go", "Rename"), YES] }); await p.w(2300);
+        await p.key("y", 260); p.ov(null);
+        await p.spin(1, "fix regression 1/2 · claude/sonnet", 900, "fix regression 1/2");
+        p.diff(1, ["\tnote, err := s.repo.FindByID(ctx, id)"], 1); await p.w(900);
+        await p.key("⏎", 220); p.acceptDiff(); p.clearDiag(); await p.w(900);
+        p.note("<b>Agent: ✓ verified</b> · no new problems"); await p.w(2200); p.note(null); } },
+    { g: "ask", name: "Fix all", go: async function (p) {
+        p.set(["func (s *noteService) Count(ctx context.Context) int {", "\treturn s.repo.Total(ctx)", "}", "func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\tn, err := s.repo.FindByID(ctx, id)", "\treturn nil, nil", "}", "func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\treturn s.repo.Save(ctx, id, title)", "}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        dg(p, 1, "error", "gopls", "s.repo.Total undefined (type domain.NoteRepository has no method Total)", 1, 4);
+        dg(p, 4, "error", "gopls", "declared and not used: n", 2, 4); dg(p, 5, "warn", "agent", "returning nil, nil hides a missing note", 3, 4);
+        dg(p, 8, "error", "gopls", "not enough arguments in call to s.repo.Save", 4, 4); await p.w(600);
+        await p.seq(["␣", "a", "A", "a"]);
+        p.ov({ kind: "modal", title: "fix all", lines: ["3 proposals · claude/sonnet", MU("~2.3k tokens · ~$0.0012"), "", FILE("note_service.go", "Rename"), FILE("note_service.go", "Get · 2 problems"), FILE("note_service.go", "Count"), YES] }); await p.w(2000);
+        await p.key("y", 260); p.ov(null);
+        await p.spin(7, "fix all 1/3 · claude/sonnet", 700, "fix all 1/3");
+        p.diff(8, ["\treturn s.repo.Save(ctx, &domain.Note{ID: id, Title: title})"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 7, q: "1/3 · &lt;leader&gt;aA] next" });
+        await p.spin(3, "fix all 2/3 · claude/sonnet", 700, "fix all 2/3");
+        p.diff(4, ["\treturn s.repo.FindByID(ctx, id)"], 2, "0.9s · 1.2k→60 tok · $0.0004", { at: 3, q: "2/3 · &lt;leader&gt;aA] next" });
+        await p.spin(0, "fix all 3/3 · claude/sonnet", 700, "fix all 3/3");
+        p.diff(1, ["\treturn s.repo.Count(ctx)"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 0, q: "3/3 · &lt;leader&gt;aA] next" });
+        p.note("<b>Agent fix all: 3 proposals ready</b> · &lt;leader&gt;aA] next · &lt;leader&gt;aAy accept all"); p.cursor(S.lines.findIndex(function (L) { return L.t && L.t.indexOf("Rename(") >= 0; })); await p.w(1700); p.note(null);
+        await p.seq(["␣", "a", "A", "]"]); p.cursor(S.lines.findIndex(function (L) { return L.t && L.t.indexOf(" Get(") >= 0; })); p.note("<b>Agent: proposal 2 of 3</b> · fix all 2/3"); await p.w(1500); p.note(null);
+        await p.seq(["␣", "a", "A", "y"]);
+        p.ov({ kind: "modal", title: "accept all", lines: ["Accept 3 proposals?", "", FILE("note_service.go", MU("3")), YES] }); await p.w(1500);
+        await p.key("y", 260); p.ov(null); p.acceptDiff(); p.clearDiag(); p.note("<b>Agent: 3 of 3 accepted</b> (u undoes each one)"); await p.w(2000); p.note(null); } },
+    { g: "ask", name: "Fix from output", go: async function (p) {
+        p.set(["func (s *noteService) Get(ctx context.Context, id string) (*domain.Note, error) {", "\tn, err := s.repo.FindByID(ctx, id)", "\treturn nil, err", "}", "", "func (s *noteService) Rename(ctx context.Context, id, title string) error {", "\tif title == \"\" {", "\t\treturn ErrEmpty", "\t}", "\treturn s.repo.Save(ctx, id, title)", "}"], "note_service.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        dg(p, 1, "error", "gopls", "declared and not used: n", 1, 2); dg(p, 7, "error", "gopls", "undefined: ErrEmpty", 2, 2); await p.w(500);
+        await p.key("Alt+i", 350); var o = { kind: "term", lines: [], prompt: "" }; p.ov(o); await p.w(400);
+        await p.typeInto(o, "prompt", "go build ./...", 38); await p.w(300); await p.key("Enter", 250);
+        o.lines.push(["", "~/notesapi $ go build ./..."], ["mu", "# notesapi/internal/application"], ["no", "internal/application/note_service.go:2:2: declared and not used: n"], ["no", "internal/application/note_service.go:8:10: undefined: ErrEmpty"]); o.prompt = ""; p.r(); await p.w(1500);
+        await p.key("Esc", 250); p.ov(null); await p.w(400);
+        await p.seq(["␣", "a", "A", "o"]);
+        p.ov({ kind: "modal", title: "fix output", lines: ['<span class="w">2 errors from the last terminal</span>', "", "2 proposals · claude/sonnet", MU("~1.6k tokens · ~$0.0008"), "", FILE("note_service.go", "Rename"), FILE("note_service.go", "Get"), YES] }); await p.w(2000);
+        await p.key("y", 260); p.ov(null);
+        await p.spin(5, "fix output 1/2 · claude/sonnet", 700, "fix output 1/2");
+        p.diff(7, ["\t\treturn errors.New(\"title is empty\")"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 5, q: "1/2 · &lt;leader&gt;aA] next", imp: "errors" });
+        await p.spin(0, "fix output 2/2 · claude/sonnet", 700, "fix output 2/2");
+        p.diff(1, ["\t_, err := s.repo.FindByID(ctx, id)"], 1, "0.9s · 1.2k→60 tok · $0.0004", { at: 0, q: "2/2 · &lt;leader&gt;aA] next" });
+        p.note("<b>Agent fix output: 2 proposals ready</b> · &lt;leader&gt;aA] next · &lt;leader&gt;aAy accept all"); p.cursor(S.lines.findIndex(function (L) { return L.t && L.t.indexOf("Rename(") >= 0; })); await p.w(2400); p.note(null); } },
+    { g: "ask", name: "Plan across files", go: async function (p) {
+        load(p, "internal/domain/note.go", 2); S.showCursor = false; await p.w(500);
+        await p.seq(["␣", "a", "A", "p"]); p.input(2, "plan · claude/sonnet", "what should change across files?"); await p.w(350); await p.typeInput("add a Done flag to notes", 34); await p.w(200); await p.key("⏎", 220); p.dropInput();
+        p.note("<b>Agent plan: looking for where it reaches…</b>"); await p.w(650);
+        p.note("<b>Agent plan: asking claude/sonnet for the steps (4 declarations, signatures only)…</b>"); await p.w(900); p.note(null);
+        var steps = [
+          { on: true, path: "internal/domain/note.go", sym: "Note", what: "add the Done bool field" },
+          { on: true, path: "internal/transport/dto.go", sym: "NoteResponse", what: "add the Done field to the response" },
+          { on: true, path: "internal/infrastructure/note_repo.go", sym: "FindByID", what: "select and scan the done column" },
+          { on: true, path: "internal/transport/note_handler.go", sym: "Get", what: "map Done into the response" }
+        ];
+        var po = { kind: "report", title: "Plan · 4 steps", hint: " · Space toggle · a all/none · Enter run · q cancel ", lines: [] };
+        function planLines() {
+          var n = steps.filter(function (x) { return x.on; }).length;
+          var rows = [["h1", "Plan"], [""], ["it", n + " step" + (n === 1 ? "" : "s") + " · claude/sonnet · ~" + (n * 0.8).toFixed(1) + "k tokens"], [""], ["", "<b>add a Done flag to notes</b>"], [""]];
+          steps.forEach(function (x, i) { rows.push(["", '<span class="ck' + (x.on ? "" : " off") + '">' + (x.on ? "☑" : "☐") + "</span> " + (i + 1) + ". <code>" + x.path + "</code> · <b>" + x.sym + "</b> — " + x.what]); });
+          return rows;
+        }
+        po.lines = planLines(); p.ov(po); await p.w(2000);
+        for (var k = 0; k < 3; k++) await p.key("j", 130);
+        await p.key("␣", 260); steps[3].on = false; po.lines = planLines(); p.r(); await p.w(1300);
+        await p.key("⏎", 240); p.ov(null);
+        p.note("<b>Agent plan: snapshot 9f3c2a1b: `git diff 9f3c2a1b` shows what the plan changed, `git checkout 9f3c2a1b -- &lt;file&gt;` restores a file</b>"); await p.w(1500); p.note(null);
+        await p.spin(2, "plan 1/3 · claude/sonnet", 700, "plan 1/3");
+        p.diff(6, ["\tDone   bool"], 0, "0.9s · 1.2k→60 tok · $0.0004", { at: 2, q: "1/3 · &lt;leader&gt;aA] next" });
+        S.agent = "agent plan 2/3"; p.r(); await p.w(700); S.agent = "agent plan 3/3"; p.r(); await p.w(700); S.agent = null; p.r();
+        p.note("<b>Agent plan: 3 proposals ready</b> · &lt;leader&gt;aA] next · &lt;leader&gt;aAy accept all"); await p.w(1600); p.note(null);
+        await p.seq(["␣", "a", "A", "]"]); p.open("internal/transport/dto.go", 2); p.diff(6, ["\tDone   bool"], 0, "0.9s · 1.2k→60 tok · $0.0004", { at: 2, q: "2/3 · &lt;leader&gt;aA] next" });
+        p.note("<b>Agent: proposal 2 of 3</b> · plan 2/3"); await p.w(2000); p.note(null); } },
+    { g: "ask", name: "Usage & budget", go: async function (p) {
+        load(p, "internal/application/note_service.go", 5, 14); S.showCursor = false; await p.w(500);
+        await p.seq(["␣", "a", "h"]); await p.w(300); await p.key("Ctrl+s", 280);
+        p.ov({ kind: "report", title: "Agent usage", hint: " · Y copy all · BS back · q close ", lines: [
+          ["h2", "Where the prompt goes (average chars per run)"], [""],
+          ["", "system <b>911</b> · message <b>549</b> = target 86 + context 205 (around 34, callees 33, diagnostics 53, types 84)"], [""],
+          ["h2", "Budget"], [""], ["", "● <b>Today:</b> $0.1274 of $1.00 (12%)"], [""],
+          ["h2", "Suggestions"], [""],
+          ["", "● <code>refactor</code> on claude/sonnet: 1 of 7 proposals accepted (14%), $0.1274 spent. A more specific instruction"],
+          ["", "  usually helps; if it keeps missing, <code>settings.agent.tiers = { refactor = \"light\" }</code> makes it cheaper to be"],
+          ["", "  wrong."],
+          ["", "● 85% of what you spent ($0.1092) went to proposals that were not applied: <code>refine</code> (Tab) corrects one in"],
+          ["", "  place for about the price of a single run."],
+          ["", "● The verifier asked for 1 retry after accepted code broke something; 0 ended accepted."]
+        ] }); await p.w(4200);
+        await p.key("q", 250); p.ov(null); await p.w(500); } },
+
     { g: "git", name: "Commit panel", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
         await p.w(400); await p.seq(["␣", "G", "c"]);
@@ -1229,6 +1356,16 @@ footer a:hover{color:var(--fg)}
         var t0 = Date.now(); while (Date.now() - t0 < 800) { S.cp.ai = FR[Math.floor((Date.now() - t0) / 90) % FR.length] + " drafting…"; render(); await p.w(90); }
         S.cp = { msg: "feat(go): complete missing interface methods", chip: "feat(go) · 44/72", ai: "drafted by claude/haiku · 2.1s · u undo · Ctrl-g redo" }; render(); await p.w(1100);
         await p.key("Ctrl+s", 260); p.commitPanel(null); p.note("<b>✔ Committed</b> a1b2c3d feat(go): complete missing interface methods · 2 files +340 −3"); await p.w(2200); p.note(null); } },
+
+    { g: "git", name: "Review staged", go: async function (p) {
+        p.set(["const (", "\tStatusPending Status = \"pending\"", "\tStatusDone    Status = \"done\"", ")", "", "// release key", "const releaseKey = \"AKIAIOSFODNN7EXAMPLE\"", "", "func Normalize(s string) string {", "\treturn strings.ToLower(s)", "}"], "status.go", "NORMAL"); p.cursor(0); S.showCursor = false;
+        await p.w(400); await p.seq(["␣", "G", "c"]);
+        var tail = " · Ctrl-g to draft · reads 1 file, 154 chars";
+        p.commitPanel({ msg: "", chip: "", ai: "<b>claude/haiku</b>" + tail }); await p.w(900); await p.key("Ctrl+r", 260);
+        var t0 = Date.now(); while (Date.now() - t0 < 1100) { S.cp.ai = "<b>claude/haiku</b> · <span class=\"st\">reviewing what is staged…</span>" + tail; render(); await p.w(90); }
+        dg(p, 6, "error", "staged review", "looks like an AWS access key", 1, 2); dg(p, 9, "warn", "staged review", "the new value is not validated before it is used", 2, 2);
+        S.cp = { msg: "", chip: "", ai: "<b>claude/haiku</b> · <span class=\"wr\">review: 2 findings (quickfix)</span> · Ctrl-g to draft" }; render(); await p.w(2400);
+        await p.key("Esc", 250); p.commitPanel(null); await p.w(1600); } },
     { g: "git", name: "Auto commit", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
         await p.w(400); await p.seq(["␣", "G", "M"]);
