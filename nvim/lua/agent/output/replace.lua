@@ -21,7 +21,7 @@ local M = {}
 local proposals = {}
 
 ---@type table<string, string>
-local KEY_LABEL = { ["<CR>"] = "⏎", ["<Esc>"] = "⎋", ["<Tab>"] = "⇥" }
+local KEY_LABEL = { ["<CR>"] = "Enter", ["<Esc>"] = "Esc", ["<Tab>"] = "Tab" }
 
 ---@param key string
 ---@return string

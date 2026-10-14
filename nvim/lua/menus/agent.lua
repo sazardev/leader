@@ -1,7 +1,7 @@
 -- ── Agent context (global): <leader>a ────────────────────────────────────────
 -- The actions come from the registry (agent/actions): adding one does not require touching this
 -- file. They work in normal mode (function under the cursor) and in visual mode (the selection).
--- Accepting/rejecting a proposal has NO entry here: it is ⏎/⎋ on the proposal.
+-- Accepting/rejecting a proposal has NO entry here: it is Enter/Esc on the proposal.
 local function agent()
   return require "agent"
 end

@@ -240,7 +240,7 @@ local before = ai_text()
 eq("panel: the agent announces the model and the files it will read", {
   before:find("fakecommit", 1, true) ~= nil,
   before:find("reads 1 file", 1, true) ~= nil,
-  before:find("⌃g to draft", 1, true) ~= nil,
+  before:find("Ctrl-g to draft", 1, true) ~= nil,
 }, { true, true, true })
 
 -- stage from the list
@@ -334,7 +334,7 @@ vim.ui.select = function(items, opts, cb)
 end
 press(fb.gitcommit, "<C-t>")
 eq(
-  "type: ⌃t changes the type and keeps the rest",
+  "type: Ctrl-t changes the type and keeps the rest",
   vim.api.nvim_buf_get_lines(fb.gitcommit, 0, 1, false)[1],
   "fix(editor): add the commit panel"
 )

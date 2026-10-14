@@ -77,7 +77,7 @@ local function header(st, opts)
   end
   local left = (" ✦ %s · %s "):format(opts.title, opts.meta)
   -- the longest hint that fits next to the header; if not even the short one fits, it is omitted
-  local hints = { "⏎ run · ⌃J newline · ↑ history · ⎋ cancel", "⏎ run · ⎋ cancel", "⏎ run" }
+  local hints = { "Enter run · Ctrl-J newline · Up history · Esc cancel", "Enter run · Esc cancel", "Enter run" }
   local hint = ""
   for _, candidate in ipairs(hints) do
     if vim.fn.strdisplaywidth(left) + vim.fn.strdisplaywidth(candidate) + 2 <= st.width then

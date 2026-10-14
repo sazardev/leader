@@ -3,7 +3,7 @@
 -- with +/− per file); below, the message with live Conventional Commits validation and a line saying what the
 -- agent will do (model, what it reads, how much it costs) BEFORE spending anything. All keyboard-driven, with the theme colors.
 --
---   files   ⎵ stage/unstage · a all · u none · p diff · ⇥ message        message   ⌃s commit · ⌃g AI · ⌃t type · ⌃o scope
+--   files   Space stage/unstage · a all · u none · p diff · Tab message        message   Ctrl-s commit · Ctrl-g AI · Ctrl-t type · Ctrl-o scope
 --
 -- Entry points (<leader>G menu): `c` opens the panel, `m` opens it and asks the AI for the draft, `a` rewrites the last
 -- commit (amend). All three share the same panel.
@@ -109,7 +109,8 @@ local function layout()
   local total = list_h + MSG_HEIGHT + 5
   local top = math.max(0, math.floor((rows - total) / 2) - 1)
   local left = math.floor((vim.o.columns - (width + 2)) / 2)
-  local base = { relative = "editor", width = width, col = left, style = "minimal", border = require("ui.flat").border() }
+  local base =
+    { relative = "editor", width = width, col = left, style = "minimal", border = require("ui.flat").border() }
   local msg_row = top + list_h + 2
   return vim.tbl_extend("force", base, { height = list_h, row = top }),
     vim.tbl_extend("force", base, { height = MSG_HEIGHT, row = msg_row }),
@@ -138,7 +139,7 @@ local function chrome()
   local b = S.branch
   local where = b.upstream and ("%s → %s"):format(b.name, b.upstream) or ("%s (no upstream)"):format(b.name)
   local title = {
-    { S.amend and (" ◆ Amend %s "):format(S.head and S.head.hash or "") or " ◆ Commit ", "AgentTitle" },
+    { S.amend and (" ◆ Amend %s "):format(S.head and S.head.hash or "") or " ◆ Commit ", "CommitHeader" },
     { "· " .. where .. " ", "AgentHint" },
   }
   if b.ahead > 0 then
@@ -149,7 +150,7 @@ local function chrome()
   end
   files_cfg.title = title
   files_cfg.title_pos = "left"
-  files_cfg.footer = " ⎵ stage · a all · u none · p diff · ⇥ message · ⌃g AI · q cancel "
+  files_cfg.footer = " Space stage · a all · u none · p diff · Tab message · Ctrl-g AI · q cancel "
   files_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.files_win, files_cfg)
 
@@ -162,7 +163,7 @@ local function chrome()
   elseif c.state == "empty" then
     local suggest = conventional.suggest_type(staged_paths())
     mtitle = {
-      { " Message ", "AgentTitle" },
+      { " Message ", "CommitHeader" },
       { suggest and ("· suggested type: %s "):format(suggest) or "· type(scope): subject ", "AgentHint" },
     }
   elseif c.state == "ok" then
@@ -182,7 +183,7 @@ local function chrome()
   end
   msg_cfg.title = mtitle
   msg_cfg.title_pos = "left"
-  msg_cfg.footer = " ⌃s commit · ⌃g AI draft · ⌃t type · ⌃o scope · ⇥ files · q cancel "
+  msg_cfg.footer = " Ctrl-s commit · Ctrl-g AI draft · Ctrl-t type · Ctrl-o scope · Tab files · q cancel "
   msg_cfg.footer_pos = "center"
   vim.api.nvim_win_set_config(S.msg_win, msg_cfg)
   vim.api.nvim_win_set_config(S.status_win, status_cfg)
@@ -216,18 +217,18 @@ local function ai_line()
       bits[#bits + 1] = ("$%.4f"):format(u.cost)
     end
     chunks[#chunks + 1] = { "· " .. table.concat(bits, " · ") .. " ", "AgentHint" }
-    chunks[#chunks + 1] = { "· u undo · ⌃g redo ", "AgentHint" }
+    chunks[#chunks + 1] = { "· u undo · Ctrl-g redo ", "AgentHint" }
   elseif #paths == 0 then
     chunks = {
       { " ✦ AI ", "CommitAI" },
-      { "· stage files first (⎵ in the list); the draft reads only what is staged ", "AgentHint" },
+      { "· stage files first (Space in the list); the draft reads only what is staged ", "AgentHint" },
     }
   else
     local d = ai.describe(paths, S.root)
     chunks = {
       { " ✦ AI ", "CommitAI" },
       { (d.model or "no backend") .. " ", "CommitAI" },
-      { "· ⌃g to draft ", "AgentHint" },
+      { "· Ctrl-g to draft ", "AgentHint" },
       {
         ("· reads %d file%s, %s%s "):format(
           d.files,
@@ -345,7 +346,7 @@ local function render_files(keep_path)
     )
   end
   if #staged == 0 then
-    lines[#lines + 1] = "nothing staged yet: ⎵ stages the file under the cursor, a stages everything"
+    lines[#lines + 1] = "nothing staged yet: Space stages the file under the cursor, a stages everything"
     rows[#lines] = {}
     marks[#lines] = { hl = "CommitDim" }
   end
@@ -353,7 +354,7 @@ local function render_files(keep_path)
     entry_line(e)
   end
   if #other > 0 then
-    header(("Not staged · %d — NOT included"):format(#other), "other", "CommitUnstaged")
+    header(("Not staged · %d — NOT included"):format(#other), "other", "CommitHeader")
     for _, e in ipairs(other) do
       entry_line(e)
     end
@@ -367,7 +368,8 @@ local function render_files(keep_path)
   vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
   for i, m in pairs(marks) do
     if m.hl then
-      vim.api.nvim_buf_set_extmark(buf, NS, i - 1, 0, { end_col = #lines[i], hl_group = m.hl })
+      -- section bars run the full width of the panel (hl_eol), like the demo's blue title bars
+      vim.api.nvim_buf_set_extmark(buf, NS, i - 1, 0, { end_row = i, end_col = 0, hl_group = m.hl, hl_eol = true })
     end
     for _, s in ipairs(m.spans or {}) do
       vim.api.nvim_buf_set_extmark(buf, NS, i - 1, s[1], { end_col = s[2], hl_group = s[3] })
@@ -636,7 +638,7 @@ end
 local function pick_scope()
   local first = vim.api.nvim_buf_get_lines(S.msg_buf, 0, 1, false)[1] or ""
   if not conventional.split(first) then
-    return log.info "Commit: pick the type first (⌃t)"
+    return log.info "Commit: pick the type first (Ctrl-t)"
   end
   local paths = #staged_paths() > 0 and staged_paths() or vim.tbl_map(function(e)
     return e.path
@@ -680,7 +682,7 @@ local function submit()
   local paths = staged_paths()
   if #paths == 0 and not S.amend then
     focus "files"
-    return log.warn "Nothing staged: ⎵ stages the file under the cursor, a stages everything"
+    return log.warn "Nothing staged: Space stages the file under the cursor, a stages everything"
   end
   local amend = S.amend
   local adds, dels = 0, 0

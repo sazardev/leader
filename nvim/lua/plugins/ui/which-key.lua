@@ -6,7 +6,7 @@ return {
       delay = 0,
       -- flat bottom panel: air around the content, `key ➜ description`, `+Group` (see ui/flat)
       win = { border = "none", padding = { 1, 2 }, title = true, title_pos = "left" },
-      layout = { width = { min = 24 }, spacing = 4 },
+      layout = { width = { min = 22, max = 26 }, spacing = 4 }, -- columns of the same width, long labels cut: like the demo's grid
       icons = {
         mappings = false,
         separator = "➜",

@@ -6,6 +6,7 @@ return {
     { "<leader>fr", "<cmd>GrugFar<cr>", desc = "Find replace in project (grug-far)" },
   },
   opts = {
+    icons = { enabled = false }, -- plain labels (Search:, Replace:), like the rest of the flat UI
     keymaps = {
       close = { n = "q" },
     },
