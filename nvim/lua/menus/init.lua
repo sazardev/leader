@@ -12,6 +12,7 @@ function M.contexts()
   local list = require("languages").menus()
   table.insert(list, require "menus.git")
   table.insert(list, require "menus.settings")
+  table.insert(list, require "menus.files")
   table.insert(list, require "menus.session")
   table.insert(list, require "menus.agent")
   table.insert(list, require "menus.agent_advanced")
@@ -21,6 +22,7 @@ function M.contexts()
   table.insert(list, require "menus.agent_tests")
   table.insert(list, require "menus.agent_lenses")
   table.insert(list, require "menus.comments")
+  table.insert(list, require "menus.folds")
   return list
 end
 
