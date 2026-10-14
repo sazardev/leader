@@ -5,7 +5,7 @@ local M = {}
 
 --- `opts.on_cancel` runs when it closes without a choice (Esc, q): to go back to where it was opened from.
 ---@param items table[]
----@param opts { title: string, on_cancel?: fun() }
+---@param opts { title: string, on_cancel?: fun(), index?: integer }  index: row to open on (default: the `current` one)
 ---@param on_choice fun(item: table)
 function M.pick(items, opts, on_choice)
   local ok, pickers = pcall(require, "telescope.pickers")
@@ -45,7 +45,7 @@ function M.pick(items, opts, on_choice)
         end,
       },
       sorter = conf.generic_sorter {},
-      default_selection_index = index,
+      default_selection_index = opts.index or index,
       attach_mappings = function(bufnr)
         local chosen = false
         actions.select_default:replace(function()

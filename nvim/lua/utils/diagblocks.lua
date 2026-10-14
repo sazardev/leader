@@ -529,6 +529,20 @@ local function has_diagnostics(buf)
   return false
 end
 
+--- The view's saved preferences (the settings panel shows them)
+---@return DiagBlocksPrefs
+function M.get()
+  return vim.deepcopy(prefs)
+end
+
+--- Changes the view's preferences from the settings panel: saved, and applied to every buffer
+---@param change { enabled: boolean?, mode: "expanded"|"compact"? }
+function M.set(change)
+  prefs = vim.tbl_extend("force", prefs, change)
+  save_prefs()
+  apply_all()
+end
+
 --- Show/hide the blocks (saved for the next session; when off, only the line number is tinted)
 function M.toggle()
   local buf = vim.api.nvim_get_current_buf()

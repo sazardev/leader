@@ -1,7 +1,8 @@
 -- ── User settings (single configurable source of truth) ──────────────────────
 -- Everything "adjustable" lives here with its default value. To change it without
 -- touching the repo, create `lua/local.lua` (git-ignored) returning a partial
--- table, or define `vim.g.nvim_settings` before loading the config:
+-- table, or define `vim.g.nvim_settings` before loading the config. What you pick in the settings panel
+-- (<leader>Sp) is saved apart and wins over `local.lua`:
 --
 --   -- lua/local.lua
 --   return { theme = { name = "catppuccin" }, languages = { disabled = { "astro" } } }
@@ -385,12 +386,17 @@ local defaults = {
 }
 
 local overrides = {}
+local saved = {} -- what was picked in the settings panel (<leader>Sp, lua/prefs): wins over local.lua
 
--- NVIM_NO_LOCAL=1 ignores lua/local.lua (used by scripts/gen-cheatsheet.sh so that
+-- NVIM_NO_LOCAL=1 ignores lua/local.lua and the panel's saved choices (used by scripts/gen-cheatsheet.sh so that
 -- the generated cheatsheet does not depend on the machine)
 local ok, localcfg = pcall(require, "local")
 if ok and type(localcfg) == "table" and not vim.env.NVIM_NO_LOCAL then
   overrides = localcfg
 end
+if not vim.env.NVIM_NO_LOCAL then
+  local prefs = require "prefs.store"
+  saved = prefs.nest(prefs.read())
+end
 
-return vim.tbl_deep_extend("force", defaults, overrides, vim.g.nvim_settings or {})
+return vim.tbl_deep_extend("force", defaults, overrides, saved, vim.g.nvim_settings or {})

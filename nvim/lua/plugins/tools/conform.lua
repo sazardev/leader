@@ -6,7 +6,12 @@ return {
   event = "BufWritePre",
   opts = {
     formatters_by_ft = require("languages").formatters(),
-    format_on_save = save.enabled and { timeout_ms = save.timeout_ms, lsp_format = "fallback" } or nil,
+    -- a function, so <leader>Sf (settings panel) can turn it off and on without a restart
+    format_on_save = function()
+      if save.enabled then
+        return { timeout_ms = save.timeout_ms, lsp_format = "fallback" }
+      end
+    end,
   },
   config = function(_, opts)
     require("conform").setup(opts)

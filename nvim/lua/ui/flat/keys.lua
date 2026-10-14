@@ -182,6 +182,11 @@ function M.set(on)
   end
 end
 
+---@return boolean
+function M.is_on()
+  return enabled
+end
+
 function M.toggle()
   M.set(not enabled)
   vim.notify("Key display " .. (enabled and "on" or "off"), vim.log.levels.INFO)

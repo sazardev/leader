@@ -1,10 +1,8 @@
 -- ── Settings context (global): <leader>S ─────────────────────────────────────
--- Appearance today; future live settings get added here.
-local function appearance()
-  return require "appearance"
+-- `p` opens the panel with everything that can be changed (lua/prefs); the rest are the few that earn a key of their own.
+local function prefs()
+  return require "prefs"
 end
-
-local default_name = require("core.settings").theme.name
 
 return {
   name = "Settings",
@@ -12,51 +10,52 @@ return {
   global = true,
   maps = {
     {
+      "p",
+      "panel",
+      function()
+        prefs().open()
+      end,
+    },
+    {
       "t",
       "toggle theme",
       function()
-        appearance().toggle()
+        require("appearance").toggle()
       end,
     },
     {
-      "d",
-      "default theme (" .. default_name .. ")",
+      "f",
+      "format on save",
       function()
-        if appearance().use(appearance().default()) then
-          require("utils.log").info("Theme: " .. appearance().default())
-        end
+        prefs().cycle(prefs().find "format_on_save.enabled")
       end,
     },
     {
-      "a",
-      "terminal theme (Alacritty)",
+      "l",
+      "plugins",
       function()
-        if appearance().use(appearance().TERMINAL) then
-          require("utils.log").info "Theme: terminal"
-        end
+        vim.cmd "Lazy"
       end,
     },
     {
-      "r",
-      "re-sync terminal theme",
+      "M",
+      "tools",
       function()
-        if appearance().use(appearance().TERMINAL) then
-          require("utils.log").info "Terminal theme re-synced"
-        end
-      end,
-    },
-    {
-      "p",
-      "theme picker",
-      function()
-        require("nvchad.themes").open()
+        vim.cmd "Mason"
       end,
     },
     {
       "i",
-      "theme info",
+      "info",
       function()
-        require("utils.log").info(appearance().info())
+        require("prefs.info").open()
+      end,
+    },
+    {
+      "u",
+      "update config",
+      function()
+        require("prefs.update").run()
       end,
     },
   },
