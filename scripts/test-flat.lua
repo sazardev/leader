@@ -117,5 +117,30 @@ for _, l in ipairs(lines_narrow) do
   check(vim.fn.strdisplaywidth(l) <= 20, "start: nothing wider than a narrow window")
 end
 
+-- ── which-key labels: no section the menu already says ───────────────────────
+local labels = require "ui.flat.labels"
+local LABELS = {
+  { "Go", "Go run", "run" },
+  { "Go", "Go test -race ./...", "test -race ./..." },
+  { "Agent", "Agent ask", "ask" },
+  { "Agent DDD", "Agent ddd fix", "fix" },
+  { "Agent Tests", "Agent test write", "write" },
+  { "Agent Lenses", "Agent lens security", "security" },
+  { "Agent", "+Agent DDD", "+DDD" },
+  { "Session", "Session restore session (this folder)", "restore (this folder)" },
+  { "Comments", "Comments toggle comment under cursor", "toggle under cursor" },
+  { "Find", "telescope find files", "files" },
+  { "Find", "Find replace in project", "replace in project" },
+  { "Harpoon", "Harpoon jump to file 2", "jump to file 2" },
+  { "Dart / Flutter", "Dart format / organize", "format / organize" },
+  { nil, "General save", "save" },
+  { nil, "LSP code action", "code action" },
+  { nil, "Find file history (session)", "Find file history (session)" },
+  { "Go", "Go", "Go" },
+}
+for _, c in ipairs(LABELS) do
+  check(labels.trim(c[1], c[2]) == c[3], ("labels: %s | %s -> %s (got %s)"):format(tostring(c[1]), c[2], c[3], labels.trim(c[1], c[2])))
+end
+
 print(fails == 0 and ("ALL OK (" .. total .. " checks)") or ("FAILURES: " .. fails .. " of " .. total))
 vim.cmd(fails == 0 and "qa!" or "cquit 1")

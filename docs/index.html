@@ -865,16 +865,34 @@ footer a:hover{color:var(--fg)}
     "aS": [["d", "Agent service deps"], ["i", "Agent service implement"], ["r", "Agent service review"]],
     "aT": [["f", "Agent test fix"], ["g", "Agent test gaps"], ["m", "Agent test mock"], ["w", "Agent test write"]],
     "C": [["c", "Comments collapse long comments"], ["d", "Comments doc comment template for this function/type"], ["e", "Comments expand comments"], ["m", "Comments public functions missing a doc comment (quickfix)"], ["t", "Comments toggle comment under cursor"]],
-    "f": [["b", "telescope find buffers"], ["f", "telescope find files"], ["m", "general format file"], ["o", "telescope find oldfiles"], ["r", "Find replace in project (grug-far)"], ["w", "telescope live grep"]],
+    "f": [["b", "telescope find buffers"], ["f", "telescope find files"], ["m", "general format file"], ["o", "telescope find oldfiles"], ["r", "Find replace in project"], ["w", "telescope live grep"]],
     "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["t", "Git status"], ["T", "Git conflict theirs"]],
     "g": [["a", "Go struct: add json tags (snake_case)"], ["A", "Go struct: add json tags + omitempty"], ["b", "Go build"], ["c", "Go go test -cover ./..."], ["D", "Go struct: remove json tags"], ["e", "Go if err != nil for the call under the cursor"], ["f", "Go format"], ["g", "Go go generate ./..."], ["i", "Go go fix (apply modernizers)"], ["m", "Go go test ./..."], ["p", "Go go fix -diff (modernizers preview)"], ["r", "Go run"], ["R", "Go go test -race ./..."], ["s", "Go struct: fill literal"], ["t", "Go go mod tidy"], ["T", "Go add test for the function under the cursor"], ["u", "Go go get -u + go mod tidy"], ["v", "Go lint (golangci-lint, or go vet if missing)"], ["x", "Go golangci-lint --fix"]],
     "h": [["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"], ["a", "Harpoon add file"], ["m", "Harpoon menu"]],
     "P": [["l", "Session restore last session"], ["r", "Session restore session (this folder)"], ["s", "Session select session (any project)"], ["w", "Session save session now"], ["x", "Session don't save on exit"]],
     "S": [["a", "Settings terminal theme (Alacritty)"], ["d", "Settings default theme (gruvbox)"], ["i", "Settings theme info"], ["p", "Settings theme picker"], ["r", "Settings re-sync terminal theme"], ["t", "Settings toggle theme"]],
-    "x": [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list (Trouble)"]],
+    "x": [["a", "Diagnostics blocks inline (toggle)"], ["c", "Diagnostics blocks collapse / expand"], ["d", "Diagnostics line popup (press again to enter)"], ["n", "Diagnostics next block"], ["p", "Diagnostics previous block"], ["x", "Diagnostics project list"]],
     "n": [["d", "nvim-tree: New folder(s)"], ["x", "nvim-tree: Delete folder with contents"]],
     "": [["a", "Agent", 1], ["C", "Comments", 1], ["f", "Find", 1], ["g", "Go", 1], ["G", "Git", 1], ["h", "Harpoon", 1], ["P", "Session", 1], ["S", "Settings", 1], ["x", "Diagnostics", 1], ["/", "toggle comment"], ["d", "General delete without copying"], ["D", "LSP Go to type definition"], ["e", "nvimtree focus window"], ["H", "Find file history (session)"], ["q", "General close buffer / quit"], ["w", "General save"]]
   };
+  /* labels without what the menu already says ("Agent ask" inside Agent reads "ask"): port of ui/flat/labels.lua */
+  function trimLabel(parent, desc) {
+    var mark = desc.charAt(0) === "+" ? "+" : "", known = {};
+    (parent || "").split(/\s+/).forEach(function (w) { if (w) known[w.toLowerCase()] = 1; });
+    function said(word) {
+      var w = word.toLowerCase().replace(/[^a-z0-9]+$/, "");
+      if (!/^[a-z0-9]/.test(w)) return false;
+      if (known[w]) return true;
+      return w.length >= 3 && Object.keys(known).some(function (k) { return k.indexOf(w) === 0; });
+    }
+    var kept = desc.replace(/^\+/, "").split(/\s+/).filter(function (w, i) {
+      return !(said(w) || (i === 0 && /^(telescope|general|lsp)$/i.test(w)));
+    });
+    return kept.length ? mark + kept.join(" ") : desc;
+  }
+  Object.keys(MENU).forEach(function (path) {
+    MENU[path].forEach(function (it) { it[1] = trimLabel(GN[path], it[1]); });
+  });
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   /* primitives, all bound to one run so a click or scrolling away aborts it */

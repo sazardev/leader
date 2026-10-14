@@ -485,14 +485,14 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>xd` | n | Line popup (press again to enter) |
 | `<leader>xn` | n | Next block |
 | `<leader>xp` | n | Previous block |
-| `<leader>xx` | n | Project list (Trouble) |
+| `<leader>xx` | n | Project list |
 
 ### Find
 
 | Key | Mode | Action |
 |---|---|---|
 | `<leader>H` | n | File history (session) |
-| `<leader>fr` | n | Replace in project (grug-far) |
+| `<leader>fr` | n | Replace in project |
 
 ### Flash
 

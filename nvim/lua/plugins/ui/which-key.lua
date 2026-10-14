@@ -54,5 +54,6 @@ return {
         { "<leader>xb", hidden = true },
       },
     }
+    require("ui.flat.labels").install() -- "Go run" inside Go reads "run"
   end,
 }
