@@ -38,6 +38,24 @@ local function overrides(name)
   end
 end
 
+--- Servers never attach to buffers that are not files on disk (`diffview://…`, `fugitive://…`): gopls and others
+--- reject those URIs with an error popup. Wraps the server's own `root_dir` function when it has one.
+---@param name string
+local function skip_virtual_buffers(name)
+  local root_dir = (vim.lsp.config[name] or {}).root_dir
+  if type(root_dir) ~= "function" then
+    return
+  end
+  vim.lsp.config(name, {
+    root_dir = function(bufnr, on_dir)
+      if vim.api.nvim_buf_get_name(bufnr):match "^%a[%w+.-]*://" then
+        return
+      end
+      return root_dir(bufnr, on_dir)
+    end,
+  })
+end
+
 function M.setup()
   local names = require("languages").lsp_servers()
   if #names == 0 then
@@ -52,6 +70,7 @@ function M.setup()
     if cfg then
       vim.lsp.config(name, cfg)
     end
+    skip_virtual_buffers(name)
     vim.lsp.enable(name)
   end
 end
