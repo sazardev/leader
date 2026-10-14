@@ -31,19 +31,9 @@ local REMOVED = {
   "<leader>gt", -- telescope git_status: now <leader>Gt (contextual Git menu)
 }
 
--- <A-h> (NvChad horizontal terminal) overrode mini.move (Alt+hjkl moves lines/blocks)
-local REMOVED_MODES = {
-  { { "n", "t" }, "<A-h>" },
-}
-
 function M.setup()
   for _, lhs in ipairs(REMOVED) do
     pcall(vim.keymap.del, "n", lhs)
-  end
-  for _, r in ipairs(REMOVED_MODES) do
-    for _, mode in ipairs(r[1]) do
-      pcall(vim.keymap.del, mode, r[2])
-    end
   end
 end
 

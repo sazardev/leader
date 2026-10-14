@@ -23,6 +23,8 @@ which-key only shows what belongs to the current buffer.
 | `<leader>s` | CSS | `css`, `scss`, `less` |
 | `<leader>C` | Comments | global |
 | `<leader>d` | Dart / Flutter | `dart` |
+| `<leader>F` | File | global |
+| `<leader>z` | Fold | global |
 | `<leader>G` | Git | files inside a git repo |
 | `<leader>g` | Go | `go`, `gomod`, `gowork` |
 | `<leader>j` | Java | `java` |
@@ -173,6 +175,47 @@ _Where: `dart`_
 | `<leader>dx` | dart fix --apply |
 | `<leader>df` | format |
 
+### File — `<leader>F`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Fn` | new file |
+| `<leader>FN` | new folder |
+| `<leader>Fr` | rename |
+| `<leader>Fm` | move |
+| `<leader>Fc` | duplicate |
+| `<leader>Fx` | delete |
+| `<leader>Fu` | undo delete |
+| `<leader>Fy` | copy path |
+| `<leader>FY` | copy full path |
+| `<leader>Ft` | show in tree |
+| `<leader>Fo` | open file |
+
+### Fold — `<leader>z`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>zf` | function here |
+| `<leader>zt` | type here (struct, class, interface) |
+| `<leader>zo` | object here (table, map, array) |
+| `<leader>zb` | block here (again: the one around it) |
+| `<leader>zm` | methods of this type |
+| `<leader>zF` | all functions |
+| `<leader>zT` | all types |
+| `<leader>zO` | all objects |
+| `<leader>za` | all, outline only |
+| `<leader>ze` | expand all |
+| `<leader>zs` | all but this (focus) |
+| `<leader>zu` | unfold here and inside |
+| `<leader>zz` | toggle here |
+| `<leader>z1` | level 1 (top-level folds open) |
+| `<leader>z2` | level 2 |
+| `<leader>z3` | level 3 |
+
 ### Git — `<leader>G`
 
 _Where: files inside a git repo_
@@ -309,12 +352,13 @@ _Where: global_
 
 | Key | Action |
 |---|---|
+| `<leader>Sp` | panel |
 | `<leader>St` | toggle theme |
-| `<leader>Sd` | default theme (gruvbox) |
-| `<leader>Sa` | terminal theme (Alacritty) |
-| `<leader>Sr` | re-sync terminal theme |
-| `<leader>Sp` | theme picker |
-| `<leader>Si` | theme info |
+| `<leader>Sf` | format on save |
+| `<leader>Sl` | plugins |
+| `<leader>SM` | tools |
+| `<leader>Si` | info |
+| `<leader>Su` | update config |
 
 ### TypeScript / JavaScript — `<leader>t`
 
@@ -382,8 +426,6 @@ Preset `enter` plus the overrides from `plugins/editing/blink.lua`. `→` = trie
 | `<CR>` | Open file and close tree |
 | `<Del>` | Delete |
 | `<Tab>` | Open Preview |
-| `<leader>nd` | New folder(s) |
-| `<leader>nx` | Delete folder with contents |
 | `<lt>` | Previous Sibling |
 | `>` | Next Sibling |
 | `B` | Toggle Filter: No Buffer |
@@ -408,7 +450,7 @@ Preset `enter` plus the overrides from `plugins/editing/blink.lua`. `→` = trie
 | `[e` | Prev Diagnostic |
 | `]c` | Next Git |
 | `]e` | Next Diagnostic |
-| `a` | Create File Or Directory |
+| `a` | New file or folder |
 | `bd` | Delete Bookmarked |
 | `bmv` | Move Bookmarked |
 | `bt` | Trash Bookmarked |
@@ -508,9 +550,28 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>xa` | n | Blocks inline (toggle) |
 | `<leader>xc` | n | Blocks collapse / expand |
 | `<leader>xd` | n | Line popup (press again to enter) |
+| `<leader>xe` | n | Copy all |
+| `<leader>xf` | n | Copy file |
+| `<leader>xl` | n | Copy line |
 | `<leader>xn` | n | Next block |
 | `<leader>xp` | n | Previous block |
 | `<leader>xx` | n | Project list |
+
+### File
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>FN` | n | New folder |
+| `<leader>FY` | n | Copy full path |
+| `<leader>Fc` | n | Duplicate |
+| `<leader>Fm` | n | Move |
+| `<leader>Fn` | n | New file |
+| `<leader>Fo` | n | Open file |
+| `<leader>Fr` | n | Rename |
+| `<leader>Ft` | n | Show in tree |
+| `<leader>Fu` | n | Undo delete |
+| `<leader>Fx` | n | Delete |
+| `<leader>Fy` | n | Copy path |
 
 ### Find
 
@@ -525,6 +586,27 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 |---|---|---|
 | `S` | n,x,o | Treesitter |
 | `s` | n,x,o | Jump |
+
+### Fold
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>z1` | n | Level 1 (top-level folds open) |
+| `<leader>z2` | n | Level 2 |
+| `<leader>z3` | n | Level 3 |
+| `<leader>zF` | n | All functions |
+| `<leader>zO` | n | All objects |
+| `<leader>zT` | n | All types |
+| `<leader>za` | n | All, outline only |
+| `<leader>zb` | n | Block here (again: the one around it) |
+| `<leader>ze` | n | Expand all |
+| `<leader>zf` | n | Function here |
+| `<leader>zm` | n | Methods of this type |
+| `<leader>zo` | n | Object here (table, map, array) |
+| `<leader>zs` | n | All but this (focus) |
+| `<leader>zt` | n | Type here (struct, class, interface) |
+| `<leader>zu` | n | Unfold here and inside |
+| `<leader>zz` | n | Toggle here |
 
 ### General
 
@@ -562,7 +644,6 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | Key | Mode | Action |
 |---|---|---|
 | `<A-h>` | x | Left |
-| `<A-h>` | n | Line left |
 | `<A-j>` | x | Down |
 | `<A-j>` | n | Line down |
 | `<A-k>` | x | Up |
@@ -610,12 +691,13 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 
 | Key | Mode | Action |
 |---|---|---|
-| `<leader>Sa` | n | Terminal theme (Alacritty) |
-| `<leader>Sd` | n | Default theme (gruvbox) |
-| `<leader>Si` | n | Theme info |
-| `<leader>Sp` | n | Theme picker |
-| `<leader>Sr` | n | Re-sync terminal theme |
+| `<leader>SM` | n | Tools |
+| `<leader>Sf` | n | Format on save |
+| `<leader>Si` | n | Info |
+| `<leader>Sl` | n | Plugins |
+| `<leader>Sp` | n | Panel |
 | `<leader>St` | n | Toggle theme |
+| `<leader>Su` | n | Update config |
 
 ### Surround
 
@@ -638,6 +720,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 
 | Key | Mode | Action |
 |---|---|---|
+| `<A-h>` | n,t | Toggleable horizontal term |
 | `<A-i>` | n,t | Toggle floating term |
 | `<A-v>` | n,t | Toggleable vertical term |
 | `<C-x>` | t | Escape terminal mode |

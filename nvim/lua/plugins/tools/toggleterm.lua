@@ -45,6 +45,16 @@ return {
     require("toggleterm").setup(opts)
     -- Esc in the terminal closes the panel/floating window
     vim.keymap.set("t", "<Esc>", "<cmd>lua require('toggleterm').toggle()<cr>", { desc = "Terminal close (Esc)" })
+    -- Esc/Shift+Esc also from the terminal's Normal mode (after a click or Ctrl-\ Ctrl-n the `t` map no longer applies)
+    vim.api.nvim_create_autocmd("FileType", {
+      group = vim.api.nvim_create_augroup("TerminalEscClose", { clear = true }),
+      pattern = "toggleterm",
+      callback = function(ev)
+        require("utils.terminal").attach_keys(ev.buf, function()
+          require("toggleterm").toggle()
+        end)
+      end,
+    })
     -- Responsive: readjusts the open panels when the window size changes
     vim.api.nvim_create_autocmd("VimResized", {
       group = vim.api.nvim_create_augroup("TerminalResponsive", { clear = true }),

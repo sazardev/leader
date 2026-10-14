@@ -41,6 +41,25 @@ function M.refresh()
   end
 end
 
+--- Keys of a terminal buffer, the same for toggleterm's and NvChad's: Esc closes the window (`close`; the
+--- shell keeps running), Shift+Esc only hands the focus back to the previous window and leaves the terminal open
+---@param buf integer
+---@param close fun()
+function M.attach_keys(buf, close)
+  local function map(lhs, rhs, desc)
+    vim.keymap.set({ "n", "t" }, lhs, rhs, { buffer = buf, desc = desc })
+  end
+  map("<Esc>", close, "Terminal close (Esc)")
+  map("<S-Esc>", function()
+    vim.cmd "stopinsert"
+    -- toggleterm closes its floats on WinLeave: skip that event for this one jump so the terminal stays
+    local ignore = vim.o.eventignore
+    vim.opt.eventignore:append "WinLeave"
+    pcall(vim.cmd, "wincmd p")
+    vim.o.eventignore = ignore
+  end, "Terminal unfocus (Shift+Esc)")
+end
+
 --- Run `cmd` in the integrated terminal with cwd `dir`
 ---@param cmd string
 ---@param dir string
