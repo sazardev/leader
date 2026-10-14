@@ -275,6 +275,7 @@ function M.build(t)
   g.FlatNotifyWarn = { fg = t.yellow, bg = t.soft }
   g.FlatNotifyError = { fg = t.red, bg = t.soft }
   g.FlatNotifyDebug = { fg = t.faint, bg = t.soft }
+  g.FlatKey = { fg = t.on, bg = t.fg, bold = true } -- the keycaps (ui/flat/keys.lua): solid, like the demo's
   g.FlatFresh = { bg = veil(t.yellow, 0.28) }
   for i = 1, M.FRESH_STEPS do
     -- frame 1 is the strongest, the last one is almost the background

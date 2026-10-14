@@ -121,6 +121,7 @@ local function layout()
       row = msg_row + MSG_HEIGHT + 2,
       col = left,
       style = "minimal",
+      border = "none", -- borderless on purpose (not the global 'winborder')
       focusable = false,
       zindex = 40,
     }

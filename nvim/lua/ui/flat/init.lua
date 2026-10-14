@@ -88,6 +88,7 @@ function M.setup()
   if ui.notify then
     require("ui.flat.notify").setup()
   end
+  require("ui.flat.keys").setup()
   M.apply()
 end
 

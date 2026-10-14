@@ -33,7 +33,7 @@ local REQUIRED = {
   "WhichKey", "WhichKeyGroup", "WhichKeyDesc", "WhichKeyNormal",
   "TelescopeSelection", "TelescopePromptNormal", "TelescopeResultsNormal", "TelescopePreviewNormal", "TelescopeMatching",
   "NvimTreeNormal", "NvimTreeRootFolder", "Visual", "CursorLineNr", "DiffAdd", "DiffDelete", "GitConflictCurrent",
-  "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "NvDashAscii", "FlatNotify", "FlatNotifyError",
+  "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "NvDashAscii", "FlatNotify", "FlatNotifyError", "FlatKey",
   "AgentInput", "AgentStatus", "AgentFloat", "CommitHeader", "CommitAI", "FlatFresh1", "FlatFresh" .. groups.FRESH_STEPS,
 }
 
