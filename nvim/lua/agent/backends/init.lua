@@ -8,6 +8,7 @@
 --   available()     boolean                     is the CLI installed?
 --   models(cb)      cb({ {id, label?}... })     selectable models (may be async)
 --   build(req)      { cmd, stdin?, env?, cwd }  request -> process to launch
+--   warm()          nil                         optional: start something resident ahead of `build` (never blocks)
 --   parser()        { feed(chunk) -> string?,   new text (streaming), if any
 --                     finish(code, stderr) -> AgentResult }
 --

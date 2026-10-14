@@ -166,11 +166,24 @@ local defaults = {
       max_cost_usd = 0.25, -- cap per call (`--max-budget-usd`): cuts off a runaway response; nil = no cap
     },
     opencode = {
-      models = nil, -- nil = what `opencode models` returns (requested once per session)
-      model = nil, -- e.g. "opencode-go/qwen3.8-flash"
-      light_model = nil, -- light model; nil = the main one (opencode ids depend on your provider)
+      -- Cheap and fast models only (measured: 4/4 on graded tasks, 1.4-3 s warm, ~$0.0002 per action), all with 0-day retention
+      -- except Haiku (30 days). nil = every model `opencode models` returns (requested once per session)
+      models = {
+        "opencode-go/deepseek-v4.1-flash", -- 1.5 s, $0.0002; doubles in price at Peak (01-04 and 06-10 UTC, Mon-Fri)
+        "opencode-go/minimax-m3", -- 1.4 s, $0.0005
+        "opencode-go/claude-haiku-5-5", -- 1.5 s, $0.00016, flat price (30 days retention)
+        "opencode-go/glm-5.3-flash", -- 3 s, $0.0002 (always thinks: rejects `no_thinking`)
+        "opencode-go/gpt-6-luna", -- 2.6 s, $0.0002
+      },
+      model = "opencode-go/deepseek-v4.1-flash",
+      light_model = "opencode-go/deepseek-v4.1-flash", -- same one: docs/explain are as cheap as it gets
       agent = nil, -- opencode's own agent (by default, a tool-less one generated on the fly)
-      attach = nil, -- "http://localhost:4096" (`opencode serve`): avoids paying the startup on every action
+      attach = nil, -- "http://localhost:4096" (`opencode serve` of your own): avoids paying the startup on every action
+      serve = true, -- keeps a private `opencode serve` warm (~2.5 s less per action; the first one is still cold). Off in light mode
+      -- Models whose id contains one of these have thinking turned off (`thinking: disabled`): deepseek-v4.1-flash spent 300-1400
+      -- reasoning tokens (4-15 s) on a 3-line function. Costs some quality; {} keeps it on. Provider-specific: glm/cat-jam reject it
+      no_thinking = { "deepseek", "haiku", "minimax-m3" },
+      mcp = false, -- false: your global opencode MCP servers are turned off for the agent (~20k input tokens and ~2 s less)
     },
     -- LOCAL models with Ollama (CPU or GPU/CUDA: it uses the GPU only if present). Connects by itself: <leader>am → Setup detects the server
     -- (OLLAMA_HOST, localhost, the Windows host from WSL), can start it and pull a model suited to your VRAM.

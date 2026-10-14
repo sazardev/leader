@@ -89,11 +89,14 @@ function M.run(job)
     action = job.action.name,
   }
   local parser = backend.parser()
+  -- `cwd` does not update $PWD, and some CLIs (opencode) resolve their project from it: without this they load
+  -- the AGENTS.md/CLAUDE.md of the repo nvim was launched from (~10k tokens) instead of the neutral directory
+  local env = spec.cwd and vim.tbl_extend("force", { PWD = spec.cwd }, spec.env or {}) or spec.env
 
   local ok, handle = pcall(vim.system, spec.cmd, {
     stdin = spec.stdin,
     cwd = spec.cwd,
-    env = spec.env,
+    env = env,
     text = true,
     timeout = settings.timeout_ms,
     stdout = function(_, data)

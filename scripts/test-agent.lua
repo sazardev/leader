@@ -129,6 +129,7 @@ local qe = oc.parser()
 qe.feed '{"type":"error","error":{"name":"APIError","data":{"message":"Forbidden"}}}\n'
 eq("opencode: error with message", qe.finish(1, ""), { ok = false, err = "Forbidden" })
 eq("opencode: no text or error", oc.parser().finish(0, "").ok, false)
+require("core.settings").agent.opencode.serve = false -- hermetic: do not start a real `opencode serve`
 local ospec =
   oc.build { system = "SYS", prompt = "PROMPT", model = "opencode-go/x", action = "explain", effort = "high" }
 local cfg = vim.json.decode(ospec.env.OPENCODE_CONFIG_CONTENT)
@@ -143,6 +144,55 @@ eq("opencode: argv", {
   ospec.cmd[#ospec.cmd],
   ospec.cmd[#ospec.cmd - 1],
 }, { "nvim-explain", "high", "PROMPT", "--" })
+
+-- opencode: the global MCP servers are turned off (their schemas were ~20k input tokens); JSONC tolerated
+do
+  local xdg = vim.fn.tempname()
+  vim.fn.mkdir(xdg .. "/opencode", "p")
+  vim.fn.writefile({
+    "// comment",
+    "{",
+    '  "$schema": "https://opencode.ai/config.json", // trailing',
+    "  /* block */",
+    '  "mcp": {',
+    '    "chrome": { "type": "local", "command": ["x"], "enabled": true },',
+    '    "dart": { "type": "local", "command": ["y"] },',
+    "  },",
+    "}",
+  }, xdg .. "/opencode/opencode.jsonc")
+  local real_xdg = vim.env.XDG_CONFIG_HOME
+  vim.env.XDG_CONFIG_HOME = xdg
+  local mcp = oc.config().mcp
+  eq("opencode: global MCP servers disabled", { mcp.chrome, mcp.dart }, { { enabled = false }, { enabled = false } })
+  local own = require("core.settings").agent.opencode
+  own.mcp = true
+  eq("opencode: mcp = true leaves them alone", oc.config(), nil)
+  own.mcp = false
+  vim.env.XDG_CONFIG_HOME = xdg .. "/missing"
+  eq("opencode: no global config, no override", oc.config(), nil)
+  vim.env.XDG_CONFIG_HOME = real_xdg
+
+  local fast = vim.json.decode(
+    oc.build({ system = "S", prompt = "P", model = "opencode-go/deepseek-v4.1-flash", action = "docs" }).env.OPENCODE_CONFIG_CONTENT
+  )
+  eq("opencode: thinking off for listed models", fast.agent["nvim-docs"].options, { thinking = { type = "disabled" } })
+  eq("opencode: thinking untouched for others", cfg.agent["nvim-explain"].options, nil)
+
+  -- the private server's HTTP answer: ONE json object, no trailing newline
+  local http = oc.parser()
+  http.feed '{"info":{"tokens":{"input":50,"output":9,"cache":{"read":700,"write":0}},"cost":0.001},'
+  http.feed '"parts":[{"type":"step-start"},{"type":"reasoning","text":"hmm"},{"type":"text","text":"```go\nx\n```"}]}'
+  local hr = http.finish(0, "")
+  eq(
+    "opencode http: text and usage of the whole message",
+    { hr.ok, hr.text, hr.usage.tokens_in, hr.usage.tokens_out, hr.usage.cost },
+    { true, "```go\nx\n```", 750, 9, 0.001 }
+  )
+  local he = oc.parser()
+  he.feed '{"name":"UnknownError","data":{"message":"Unexpected server error.","ref":"err_1"}}'
+  eq("opencode http: error object", he.finish(0, ""), { ok = false, err = "Unexpected server error. (err_1)" })
+  eq("opencode http: no session ready → cold path", require("agent.backends.opencode_server").post {}, nil)
+end
 
 -- diff and target without treesitter
 local diff = require "agent.output.diff"

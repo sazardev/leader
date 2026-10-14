@@ -111,22 +111,32 @@ effort either: they are the cheap ones and must not become expensive because of 
 
 - `<leader>am` opens a selector with the **main** model (and the backend), the **light** model and the effort, with their current value. Everything is remembered.
 - Change which actions are light: `agent = { tiers = { review = "light", docs = "main" } }` in `local.lua`.
-- `agent.claude.light_model` / `agent.opencode.light_model` set the default light model. In OpenCode it is `nil` (uses the
-  main one) because its ids depend on your provider: pick it in `<leader>am`.
+- `agent.claude.light_model` / `agent.opencode.light_model` set the default light model. In OpenCode both default to
+  `opencode-go/deepseek-v4.1-flash` (ids depend on your provider: pick another in `<leader>am`).
 
 ## Backend and model
 
 `<leader>am` → Main model opens ONE fuzzy list with the models of all installed backends (Claude: `haiku`/`sonnet`/`opus`;
-OpenCode: whatever `opencode models` returns). Choosing one also switches the backend and **is remembered** across sessions
+OpenCode: the cheap, fast shortlist in `agent.opencode.models`, or whatever `opencode models` returns if that is `nil`). Choosing one also switches the backend and **is remembered** across sessions
 (`stdpath("state")/agent.json`). Effort (Claude only; `--effort`) is in the same selector. With `backend = "auto"` the
 first available one in `agent.order` is used.
 
 - **Claude Code** (`claude -p`): no tools, no session on disk, text streaming.
 - **OpenCode** (`opencode run`): each action travels as an ephemeral agent with no tools (`OPENCODE_CONFIG_CONTENT`).
-  Slow to start (~4 s): with `agent.opencode.attach = "http://localhost:4096"` (an `opencode serve` already running) this is avoided.
+  Your global MCP servers are turned off for these runs (`agent.opencode.mcp = true` keeps them): their tool schemas were
+  ~20k input tokens and ~2 s per action. With `agent.opencode.serve` (default) a **private `opencode serve`** (free loopback
+  port, random password, no MCP, stopped on exit, off in light mode) boots in the background and actions talk to its HTTP
+  API with curl on a session created ahead: ~2 s per action instead of ~8 s. The first action (while it boots) is cold.
+  Models matching `agent.opencode.no_thinking` (default `deepseek`, `haiku`, `minimax-m3`) run with thinking off: deepseek-v4.1-flash spent 300-1400
+  reasoning tokens (4-15 s) on small functions; it costs some quality, `{}` turns it back on. It is per model because glm/cat-jam reject the parameter.
+  The shortlist (deepseek-v4.1-flash, minimax-m3, claude-haiku-5-5, glm-5.3-flash, gpt-6-luna) was picked by benchmarking all opencode-go
+  models on four graded tasks (two `implement` checked with `go test`, a `review` with a seeded bug, a `review` of clean code that must
+  answer `OK`): 4/4, 1.4-3 s warm, ~$0.0002 per action. Haiku keeps requests 30 days; Gemini and Muse Spark train on prompts (left out).
+  DeepSeek costs double at Peak (01-04 and 06-10 UTC, Mon-Fri). Only one run per task, so differences under ~0.5 s are noise.
+  `agent.opencode.attach` points at a server of your own instead, but `opencode run --attach` printed no text in v1.19.
   `agent.opencode.agent` uses an agent of your own. If opencode does not find the requested agent it warns and falls back to the default one, which
   DOES have tools: here that is treated as an error.
-- Each opencode session stays in its list with the title `nvim <action>`.
+- Each opencode session stays in its list: titled `nvim <action>` in the cold path, `nvim agent` on the private server.
 
 ## Local backends and models (automatic setup)
 

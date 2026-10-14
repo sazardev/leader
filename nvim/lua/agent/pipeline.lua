@@ -3,6 +3,7 @@
 -- prompt → runner. Each step belongs to another module; here they are only chained.
 local actions = require "agent.actions"
 local anchor = require "agent.anchor"
+local backends = require "agent.backends"
 local context = require "agent.context"
 local jobs = require "agent.jobs"
 local log = require "utils.log"
@@ -83,6 +84,10 @@ function M.run(name, opts)
       } or nil,
     }
     status.attach(job) -- immediate feedback, also while the context is being gathered
+    local backend = backends.get(sel.backend)
+    if backend.warm then
+      backend.warm() -- a backend with a resident server boots it while the context is being gathered
+    end
 
     context.build(action, subject or target, function(sections)
       if job.state ~= "running" then
