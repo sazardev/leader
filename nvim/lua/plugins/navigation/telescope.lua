@@ -58,5 +58,16 @@ return {
   },
   config = function(_, opts)
     require("telescope").setup(opts)
+    -- the preview shows line numbers and the hit line across the whole width, like the demo's
+    -- (the cursor sits on the hit; the extmark telescope paints only covers the text)
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "TelescopePreviewerLoaded",
+      callback = function()
+        vim.wo.number = true
+        vim.wo.cursorline = true
+        vim.wo.cursorlineopt = "both"
+        vim.wo.winhl = vim.wo.winhl .. ",CursorLine:TelescopePreviewLine"
+      end,
+    })
   end,
 }

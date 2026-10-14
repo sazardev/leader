@@ -144,6 +144,9 @@ function M.build(t)
   g.TelescopeMultiSelection = { fg = t.yellow, bg = t.soft, bold = true }
   g.TelescopeMatching = { fg = t.yellow, bold = true }
   g.TelescopeResultsComment = { fg = t.faint }
+  -- the hit in the preview: a soft yellow veil (the demo's), never the blue selection over faint text
+  g.TelescopePreviewLine = { bg = veil(t.yellow, 0.14) }
+  g.TelescopePreviewMatch = { fg = t.yellow, bold = true }
 
   -- ── file tree ─────────────────────────────────────────────────────────────
   g.NvimTreeNormal = { fg = t.fg, bg = t.deep }
@@ -165,6 +168,13 @@ function M.build(t)
   g.CurSearch = { fg = t.on, bg = t.yellow, bold = true }
   g.IncSearch = g.CurSearch
   g.MatchParen = { bg = veil(t.blue, 0.30), bold = true }
+  -- text is never chipped: base46 paints TODO/NOTE and quotes on a background of their own, a patch on any float
+  g.Todo = { fg = t.yellow, bold = true }
+  g["@comment.todo"] = g.Todo
+  g["@comment.note"] = { fg = t.blue, bold = true }
+  g["@comment.warning"] = { fg = t.orange, bold = true }
+  g["@comment.danger"] = { fg = t.red, bold = true }
+  g["@markup.quote"] = { fg = t.dim }
   g.LineNr = { fg = t.faint }
   g.CursorLineNr = { fg = t.yellow, bold = true }
   g.Folded = { fg = t.faint, italic = true }

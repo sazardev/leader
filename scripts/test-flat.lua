@@ -33,7 +33,7 @@ local REQUIRED = {
   "WhichKey", "WhichKeyGroup", "WhichKeyDesc", "WhichKeyNormal",
   "TelescopeSelection", "TelescopePromptNormal", "TelescopeResultsNormal", "TelescopePreviewNormal", "TelescopeMatching",
   "NvimTreeNormal", "NvimTreeRootFolder", "Visual", "CursorLineNr", "DiffAdd", "DiffDelete", "GitConflictCurrent",
-  "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "FlatNotify", "FlatNotifyError", "FlatKey", "NvStartNormal", "NvStartSel", "NvStartBtn",
+  "TelescopePreviewLine", "TelescopePreviewMatch", "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "FlatNotify", "FlatNotifyError", "FlatKey", "NvStartNormal", "NvStartSel", "NvStartBtn",
   "AgentInput", "AgentStatus", "AgentFloat", "CommitHeader", "CommitAI", "FlatFresh1", "FlatFresh" .. groups.FRESH_STEPS,
 }
 
@@ -57,6 +57,12 @@ for name, p in pairs(PALETTES) do
   check(color.contrast(t.yellow, t.soft) >= 2.5, name .. ": yellow keys unreadable over the block")
   check(color.contrast(t.dim, t.soft) >= 3.5, name .. ": dim text unreadable over the block")
   check(color.contrast(t.faint, t.soft) >= 1.9, name .. ": faint hints vanish over the block")
+
+  -- text is never chipped: TODO/NOTE and quotes carry no background; the preview's hit line stays a veil the text can be read over
+  for _, group in ipairs { "Todo", "@comment.todo", "@comment.note", "@markup.quote" } do
+    check(g[group] and g[group].bg == nil, name .. ": " .. group .. " must not paint a background")
+  end
+  check(color.contrast(t.dim, g.TelescopePreviewLine.bg) >= 3.0, name .. ": text unreadable over the preview's hit line")
 
   -- the "just changed" flash fades: each frame is closer to the background than the one before
   local function distance(i)
