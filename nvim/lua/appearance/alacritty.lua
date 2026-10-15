@@ -58,10 +58,18 @@ local function candidates()
   return vim.list_extend(list, wsl)
 end
 
+---@type string? the config found in this session: the search globs /mnt/*/Users/* (the Windows disk on WSL, ~20 ms)
+local found
+
 ---@return string?
 function M.find_config()
+  if found and vim.uv.fs_stat(found) then
+    return found
+  end
+  found = nil
   for _, path in ipairs(candidates()) do
     if vim.uv.fs_stat(path) then
+      found = path
       return path
     end
   end
@@ -149,6 +157,25 @@ function M.load()
   if cache then
     return cache
   end
+  -- the palette compiled last time, if its files are untouched: no search on /mnt/c, no TOML parsing (the usual start)
+  local compiled = require("appearance.state").read_compiled()
+  local override = require("core.settings").theme.terminal.config
+  if
+    compiled.palette
+    and compiled.config
+    and compiled.signature
+    and (not override or expand(override) == compiled.config)
+    and M.unchanged(compiled.signature)
+  then
+    cache = {
+      palette = compiled.palette,
+      config = compiled.config,
+      theme_file = compiled.theme_file,
+      files = M.files_of(compiled.signature),
+      signature = compiled.signature,
+    }
+    return cache
+  end
   local config = M.find_config()
   if not config then
     return nil, "Alacritty config not found (see theme.terminal.config in core/settings.lua)"
@@ -178,14 +205,75 @@ function M.signature()
   return loaded and loaded.signature or nil
 end
 
+--- The files and stamps a signature recorded ("path:sec.nsec:size|…")
+---@param signature string
+---@return { path: string, stamp: string }[]
+function M.files_of(signature)
+  local files = {}
+  for entry in signature:gmatch "[^|]+" do
+    local path, recorded = entry:match "^(.*):(%-?%d+%.%d+:%d+)$"
+    if not path then
+      path, recorded = entry:match "^(.*):()$" -- a file that did not exist: empty stamp
+      recorded = ""
+    end
+    if path then
+      files[#files + 1] = { path = path, stamp = recorded }
+    end
+  end
+  return files
+end
+
+--- Are the files of a signature exactly as recorded? Only `stat`s them: no search for the config, no parsing. This is
+--- what keeps the terminal theme free at startup (the config lives on /mnt/c on WSL, where reading is slow).
+---@type { signature: string, result: boolean, at: integer }? the last answer: startup asks several times in a row
+local last_check
+
+---@param signature string
+---@return boolean
+function M.unchanged(signature)
+  local now = vim.uv.now()
+  if last_check and last_check.signature == signature and now - last_check.at < 500 then
+    return last_check.result
+  end
+  local result = M.check_files(signature)
+  last_check = { signature = signature, result = result, at = now }
+  return result
+end
+
+--- `unchanged` without the short memory (the watcher's poll must see every change)
+---@param signature string
+---@return boolean
+function M.check_files(signature)
+  local files = M.files_of(signature)
+  if #files == 0 then
+    return false
+  end
+  for _, f in ipairs(files) do
+    if stamp(f.path) ~= f.stamp then
+      return false
+    end
+  end
+  return true
+end
+
+---@type { path: string, stamp: string }[]? files to watch when the palette was not loaded (it came from the cache)
+local watched
+
+--- Watch the files of a known signature without loading the palette
+---@param signature string
+function M.prime(signature)
+  watched = M.files_of(signature)
+end
+
 --- Did any config file change since the last read? It only does `stat`
 --- (no re-reading or parsing), so it is suitable for periodic polling.
 ---@return boolean
 function M.is_stale()
-  if not cache then
+  local files = cache and cache.files or watched
+  if not files then
     return false
   end
-  for _, file in ipairs(cache.files) do
+  for _, file in ipairs(files) do
     if stamp(file.path) ~= file.stamp then
       return true
     end
@@ -196,6 +284,7 @@ end
 --- Discards the cache (re-read on the next load)
 function M.reset()
   cache = nil
+  last_check = nil
 end
 
 return M

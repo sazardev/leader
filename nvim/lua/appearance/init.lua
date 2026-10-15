@@ -38,7 +38,15 @@ end
 function M.initial()
   local saved = state.read_choice().theme
   if saved == M.TERMINAL then
-    return (terminal_enabled() and alacritty.load()) and M.TERMINAL or M.default()
+    if not terminal_enabled() then
+      return M.default()
+    end
+    -- the compiled cache already is this config, untouched: no need to look for it or parse it
+    local compiled = state.read_compiled()
+    if compiled.theme == M.TERMINAL and compiled.signature and alacritty.unchanged(compiled.signature) then
+      return M.TERMINAL
+    end
+    return alacritty.load() and M.TERMINAL or M.default()
   end
   return saved or M.default()
 end
@@ -65,7 +73,14 @@ function M.persist()
   local loaded = name == M.TERMINAL and alacritty.load() or nil
   state.write_choice(name)
   applied = loaded and loaded.signature or nil
-  state.write_compiled { theme = name, signature = applied }
+  -- the palette goes with its signature: the next start reads it from here instead of searching and parsing the config
+  state.write_compiled {
+    theme = name,
+    signature = applied,
+    palette = loaded and loaded.palette or nil,
+    config = loaded and loaded.config or nil,
+    theme_file = loaded and loaded.theme_file or nil,
+  }
   M.watch()
 end
 
@@ -107,6 +122,17 @@ end
 function M.sync()
   local desired = M.initial()
   local compiled = state.read_compiled()
+  -- the usual start: the cache was compiled from these very files. Only `stat` (a full read costs ~60 ms on WSL)
+  if
+    desired == M.TERMINAL
+    and compiled.theme == M.TERMINAL
+    and compiled.signature
+    and alacritty.unchanged(compiled.signature)
+  then
+    applied = compiled.signature
+    alacritty.prime(compiled.signature)
+    return false
+  end
   local signature = desired == M.TERMINAL and alacritty.signature() or nil
   if compiled.theme == desired and compiled.signature == signature then
     applied = signature
@@ -121,6 +147,9 @@ end
 function M.refresh()
   if M.current() ~= M.TERMINAL or not terminal_enabled() then
     return false
+  end
+  if applied and alacritty.unchanged(applied) then
+    return false -- nothing changed (FocusGained calls this every time): no search, no parse
   end
   local signature = alacritty.signature()
   if not signature or signature == applied then
