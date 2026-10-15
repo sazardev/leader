@@ -1,6 +1,6 @@
 #!/bin/sh
 # All the config's tests at once: agent and commits (scripts/test-agent.sh), Go helpers (scripts/test-go.sh),
-# installer (scripts/test-install.sh), flat design (scripts/test-flat.sh), settings panel (scripts/test-prefs.sh), file operations (scripts/test-files.sh), copy diagnostics (scripts/test-diagcopy.sh), code search (scripts/test-search.sh), project tasks (scripts/test-tasks.sh), .gitignore helper (scripts/test-gitignore.sh), Go project setup (scripts/test-gosetup.sh), Flutter / Dart helpers (scripts/test-flutter.sh) and up-to-date cheatsheet (scripts/gen-cheatsheet.sh --check). No network or tokens.
+# installer (scripts/test-install.sh), flat design (scripts/test-flat.sh), settings panel (scripts/test-prefs.sh), file operations (scripts/test-files.sh), copy diagnostics (scripts/test-diagcopy.sh), code search (scripts/test-search.sh), project tasks (scripts/test-tasks.sh), .gitignore helper (scripts/test-gitignore.sh), Go project setup (scripts/test-gosetup.sh), Flutter / Dart helpers (scripts/test-flutter.sh), the real config loading cleanly (scripts/test-startup.sh), up-to-date cheatsheet (scripts/gen-cheatsheet.sh --check) and up-to-date web docs (scripts/gen-docs.sh --check). No network or tokens.
 # Each suite can still be run on its own. Exits with a code != 0 if any fails.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -28,5 +28,7 @@ run "project tasks" "$ROOT/scripts/test-tasks.sh"
 run ".gitignore helper" "$ROOT/scripts/test-gitignore.sh"
 run "Go project setup" "$ROOT/scripts/test-gosetup.sh"
 run "Flutter / Dart helpers" "$ROOT/scripts/test-flutter.sh"
+run "config loads cleanly" "$ROOT/scripts/test-startup.sh"
 run "cheatsheet up to date" "$ROOT/scripts/gen-cheatsheet.sh" --check
+run "web docs up to date" "$ROOT/scripts/gen-docs.sh" --check
 exit "$status"

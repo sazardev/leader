@@ -1,13 +1,27 @@
 #!/bin/sh
-# Keeps CHEATSHEET.md up to date: if the commit touches the nvim config, it regenerates it
-# from the real keymaps and adds it to the commit. Never blocks the commit: if nvim
-# or the plugins are missing, it only warns.
+# Keeps the generated documentation up to date and adds it to the commit:
+#   · CHEATSHEET.md, from the real keymaps, when the commit touches the nvim config;
+#   · docs/docs/index.html (the web documentation), from the Markdown being committed (README.md, CHEATSHEET.md,
+#     AGENTS.md, docs/cheatsheets/), read from the index so unstaged work never reaches the page.
+# Never blocks the commit: if nvim or the plugins are missing, it only warns.
 # Enable once per clone: git config core.hooksPath .githooks
-git diff --cached --name-only | grep -q '^nvim/' || exit 0
-
 ROOT="$(git rev-parse --show-toplevel)"
-if ! "$ROOT/scripts/gen-cheatsheet.sh"; then
-  echo "pre-commit: could not regenerate CHEATSHEET.md (are nvim and the plugins installed?)" >&2
-  exit 0
+staged="$(git diff --cached --name-only)"
+
+if printf '%s\n' "$staged" | grep -q '^nvim/'; then
+  if "$ROOT/scripts/gen-cheatsheet.sh"; then
+    git add "$ROOT/CHEATSHEET.md"
+  else
+    echo "pre-commit: could not regenerate CHEATSHEET.md (are nvim and the plugins installed?)" >&2
+  fi
 fi
-git add "$ROOT/CHEATSHEET.md"
+
+# after the cheatsheet: it is one of the pages
+if git diff --cached --name-only | grep -qE '^(nvim/|README\.md|CHEATSHEET\.md|AGENTS\.md|docs/cheatsheets/|scripts/gen-docs\.lua)'; then
+  if "$ROOT/scripts/gen-docs.sh" >/dev/null; then
+    git add "$ROOT/docs/docs/index.html"
+  else
+    echo "pre-commit: could not regenerate docs/docs/index.html (is nvim installed?)" >&2
+  fi
+fi
+exit 0

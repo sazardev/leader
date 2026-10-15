@@ -4,7 +4,7 @@ A **Neovim** config on top of NvChad v2.5, designed as a small **framework**: yo
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-`v1.0.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows
+`v1.3.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/my-nvim-setup/docs/)
 
 ## Installation
 
@@ -39,7 +39,7 @@ the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVI
 
 Then open `nvim`. Press `<Space>` and which-key shows you the menus.
 
-There is also a landing page, `docs/index.html` (flat and square like the config, no build, self-hosted Geist in `docs/fonts/`, dark/light with `t`); serve `docs/` with GitHub Pages (`cd docs && python3 -m http.server`).
+There is also a landing page, `docs/index.html` (flat and square like the config, no build, self-hosted Geist in `docs/fonts/`, dark/light with `t`), and the documentation at `docs/docs/index.html` (generated from the Markdown by `scripts/gen-docs.sh`); serve `docs/` with GitHub Pages (`cd docs && python3 -m http.server`).
 
 | Option | Effect |
 |---|---|
@@ -86,6 +86,7 @@ junction at `%LOCALAPPDATA%\nvim` and does the same steps (written but not teste
 | UI | **flat design** (floats, menus and pickers are filled blocks, no boxes; every color derived from the theme, notifications, yank/accept flash), lualine, gruvbox ↔ light theme **or live-inherited from the terminal** (Alacritty), dashboard with braille art, render-markdown, inline colors |
 | Sessions | one per folder and branch, periodic autosave |
 | **Go without an LLM** | completion helpers that read your code and your `go.mod` (see below) |
+| **Dart / Flutter** | run with an entry-point picker, debugging, tests inside the editor, build_runner watch, Riverpod/freezed completion (see below) |
 | **AI agent** (optional) | `<leader>a`: one-shot actions on the function under the cursor, with an inline diff (see below) |
 
 ### Commits (`<leader>G`)
@@ -104,7 +105,7 @@ A short generic menu and one menu per **level**, each with its own folder and ac
 
 | Menu | What it does |
 |---|---|
-| `<leader>a` | implement, review, explain, ask, document, refactor, hand off to Herdr; **`f` inline fix** (the line's diagnostic, with the type of what it points at) and **`F` block fix** (the whole function) |
+| `<leader>a` | implement, review, explain, ask, document, refactor, **`t` convert** (JSON, SQL or curl into code for the file's language), hand off to Herdr; **`f` inline fix** (the line's diagnostic, with the type of what it points at) and **`F` block fix** (the whole function) |
 | `aT` **tests** | `w` writes only the missing tests at the end of the test file · `m` mock · `f` fixes a test by running it first (if it already passes, 0 tokens) · `g` gaps (local) |
 | `aL` **lenses** | security, performance, concurrency, errors, API compatibility: single-focus reviews as diagnostics; each one first discards what is not its concern |
 | `aD` / `aP` / `aS` | hexagonal architecture: domain, repositories and services, with local 0-token analysis |
@@ -126,6 +127,18 @@ On top of a shared index (`utils/goindex.lua`: treesitter + `go.mod`, cached by 
   **enum helpers** (`IsValid`, `Parse`, `UnmarshalText`…), **interface from a struct** and `var _ I = (*T)(nil)`,
   **HTTP handlers** from a service (net/http, chi, gin, echo);
 - struct tags, constructors, filled literals, sentinel errors, statement snippets. Details in [docs/cheatsheets/go.md](docs/cheatsheets/go.md).
+
+### Dart / Flutter (`<leader>d`)
+
+- **run and debug** through nvim-dap, with a picker of entry points (`lib/main*.dart`, the last one first) and the device in the
+  statusline; hot reload on save, the app's log in a split that keeps your focus;
+- **tests inside the editor**: the test under the cursor, the file or everything, a mark per test line, failures as diagnostics on
+  the `expect` that failed, quickfix; `<leader>dT` jumps between a file and its test;
+- **code generation**: `build_runner watch` in the background with its state in the statusline and its errors on their line;
+  saving an `.arb` runs `gen-l10n`;
+- **completion for your stack**, read from `pubspec.yaml`: Riverpod providers, freezed classes, Consumer widgets, named after the
+  file and with their `part` lines; **pub outdated** written next to each dependency, `pub add`.
+  Details in [docs/cheatsheets/dart-flutter.md](docs/cheatsheets/dart-flutter.md).
 
 ## Customizing
 
@@ -179,6 +192,7 @@ The principles (the same across the whole repo) and where they show:
 
 ## Keys and documentation
 
+- **[The documentation site](https://sazardev.github.io/my-nvim-setup/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
 - [`CHEATSHEET.md`](CHEATSHEET.md): **all** the keys. It is generated from the real keymaps (`scripts/gen-cheatsheet.sh`; the pre-commit hook regenerates it). Inside nvim, the dashboard's *Mappings* button shows the same.
 - [`docs/cheatsheets/`](docs/cheatsheets/README.md): what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.
 - [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md): architecture and pitfalls for whoever touches the config (people or agents).

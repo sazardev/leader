@@ -55,8 +55,10 @@ return {
 
       decorations = {
         statusline = {
-          app_version = true, -- app version in the statusline
-          device = true, -- active device
+          -- off: our statusline does not show it, and it reads pubspec.yaml on every Dart buffer (a loose .dart file
+          -- outside a package got a "We tried to open this file but couldn't" message)
+          app_version = false,
+          device = true, -- the device the app runs on: the statusline's `▶ device` chip (lua/dartrun)
         },
       },
 

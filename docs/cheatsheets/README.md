@@ -11,13 +11,13 @@
 | Cheatsheet | What it covers |
 |---|---|
 | [go.md](go.md) | **Go in depth**: struct tags, snippets, contextual completion, `<leader>g` menu |
-| [agent.md](agent.md) | **Inline agent** (`<leader>a`): one-shot implement/review/explain... with Claude or OpenCode |
+| [agent.md](agent.md) | **Inline agent** (`<leader>a`): one-shot implement/review/explain/convert... with Claude, OpenCode or a local model (Ollama, OpenAI-compatible servers) |
 | [gitignore.md](gitignore.md) | **.gitignore** (`<leader>Gi`): what it detects, the topics, how it merges with an existing file |
 | [tasks.md](tasks.md) | **Makefile tasks** (`<leader>R`): the picker, writing targets it can list, the preset Makefiles per language |
 | [typescript.md](typescript.md) | TypeScript / JavaScript / TSX |
 | [python.md](python.md) | Python |
 | [rust.md](rust.md) | Rust |
-| [dart-flutter.md](dart-flutter.md) | Dart / Flutter |
+| [dart-flutter.md](dart-flutter.md) | **Dart / Flutter** (`<leader>d`): run and debug, tests inside the editor, build_runner, completion for Riverpod/freezed, pub |
 | [java-kotlin.md](java-kotlin.md) | Java and Kotlin (Gradle / Maven) |
 | [lua.md](lua.md) | Lua (the config itself) |
 | [markdown.md](markdown.md) | Markdown |
@@ -27,7 +27,7 @@
 ## How the leader works
 
 Each language has **its own letter** under `<leader>` and **only exists in buffers of that filetype**;
-`<leader>G` (Git) only inside a repo, and `<leader>P` (sessions), `<leader>S` (settings), `<leader>F` (files) and `<leader>C` (comments) are global.
+`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>P` (sessions), `<leader>S` (settings), `<leader>F` (files) and `<leader>C` (comments) are global.
 Press `<leader>` and which-key shows only what applies to the current file (no delay).
 
 The language menus open an integrated terminal (toggleterm) and run the commands at the **project root**
