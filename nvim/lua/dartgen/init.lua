@@ -3,7 +3,8 @@
 -- statusline says `gen …` while it builds, `gen` when it is up to date and `gen ✗ N` when it failed, the errors land as
 -- diagnostics on the file they point at, and `<leader>dL` shows the whole output. `<leader>dG` builds once. Opening a
 -- file whose generated part (`x.g.dart`, `x.freezed.dart`) does not exist says so once. The watch is resident (a Dart
--- VM): in light mode `<leader>dg` builds once instead.
+-- VM): in light mode `<leader>dg` builds once instead. Saving an `.arb` file runs `flutter gen-l10n` (packages with
+-- l10n.yaml), so new translation keys exist for the LSP at once.
 local log = require "utils.log"
 local parse = require "dartgen.parse"
 
@@ -270,8 +271,60 @@ function M.check_parts(buf)
   end
 end
 
+-- ── translations: `flutter gen-l10n` when an .arb file is saved ──────────────
+
+---@type table<string, vim.SystemObj> running gen-l10n per package (a second save waits for the first)
+local l10n_jobs = {}
+
+--- The first line that says what went wrong in gen-l10n's output
+---@param text string
+---@return string
+function M.l10n_error(text)
+  for line in text:gmatch "[^\n]+" do
+    local l = vim.trim(line)
+    if
+      l ~= ""
+      and not l:match "^Because l10n%.yaml"
+      and (l:lower():find "error" or l:find "Exception" or l:find "must")
+    then
+      return l
+    end
+  end
+  return vim.trim(text):match "[^\n]*$" or "unknown error"
+end
+
+--- Regenerates the localizations of the package an .arb file belongs to (the package must have l10n.yaml): the
+--- getters the LSP offers (`AppLocalizations.of(context).newKey`) exist as soon as the file is saved
+---@param buf integer
+function M.l10n(buf)
+  local root = vim.fs.root(buf, "l10n.yaml")
+  if not root or l10n_jobs[root] then
+    return
+  end
+  local ok, proc = pcall(vim.system, { "flutter", "gen-l10n" }, { cwd = root, text = true }, function(out)
+    vim.schedule(function()
+      l10n_jobs[root] = nil
+      if out.code == 0 then
+        log.info "Translations regenerated (flutter gen-l10n)"
+      else
+        log.error("Translations: " .. M.l10n_error((out.stdout or "") .. "\n" .. (out.stderr or "")))
+      end
+    end)
+  end)
+  if ok then
+    l10n_jobs[root] = proc
+  end
+end
+
 function M.setup()
   local group = vim.api.nvim_create_augroup("Dartgen", { clear = true })
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    group = group,
+    pattern = "*.arb",
+    callback = function(ev)
+      M.l10n(ev.buf)
+    end,
+  })
   vim.api.nvim_create_autocmd("BufReadPost", {
     group = group,
     pattern = "*.dart",

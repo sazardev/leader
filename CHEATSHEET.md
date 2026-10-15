@@ -174,7 +174,14 @@ _Where: `dart`_
 | `<leader>dl` | log toggle |
 | `<leader>dt` | devtools |
 | `<leader>dp` | pub get |
-| `<leader>dm` | test (flutter or dart, auto-detected) |
+| `<leader>dU` | pub outdated |
+| `<leader>dP` | pub add |
+| `<leader>dm` | test nearest |
+| `<leader>dM` | test file |
+| `<leader>dA` | test all |
+| `<leader>d.` | test again |
+| `<leader>dT` | test file toggle |
+| `<leader>dw` | test output |
 | `<leader>dv` | analyze |
 | `<leader>dx` | dart fix --apply |
 | `<leader>df` | format |

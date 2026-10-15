@@ -15,7 +15,15 @@ Filetype: `dart`. The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (genera
 
 ## Run, hot reload, debug
 
-`<leader>dr` runs the app through nvim-dap, so a breakpoint (`<leader>db`, `<leader>dB` with a condition) stops it in
+`<leader>dr` runs the app (`<leader>dd` under the debugger). A package with several entry points (`lib/main.dart`,
+`lib/main_dev.dart`, `lib/main_plank.dart`…) gets a picker with the one you used last first, remembered per project
+(`lua/dartrun`, `stdpath("state")/dartrun.json`); project configurations you declare yourself
+(`require("flutter-tools").setup_project`, with flavors or dart-define) win, and flutter-tools asks among them. While the
+app runs, the statusline shows `▶ <device>`. The app's log opens in a bottom split that keeps the focus in your code
+(`<leader>dl` toggles it) and its errors also arrive as notes. With FVM, the project's SDK (`.fvm/flutter_sdk`) is used
+when it is installed.
+
+It runs through nvim-dap, so a breakpoint (`<leader>db`, `<leader>dB` with a condition) stops it in
 any run; `<leader>dd` does the same explicitly. Saving a `.dart` file hot-reloads the running app and saving
 `pubspec.yaml` runs `pub get` (flutter-tools). While stopped: `<leader>dc` continue, `<leader>dn` step over, `<leader>di`
 into, `<leader>dO` out; the panel (watches, scopes, breakpoints, threads, REPL) opens and closes with the session
@@ -36,6 +44,40 @@ For packages with `build_runner` in `pubspec.yaml` (freezed, json_serializable, 
 
 Both output formats are understood (build_runner ≥ 2.5: `Built with build_runner…` / `E builder on file:`; older:
 `[INFO] Succeeded after…` / `[SEVERE]`). build_runner 2.16 removed `--delete-conflicting-outputs`: it is not passed.
+
+## Tests inside the editor
+
+| Key | Runs |
+|---|---|
+| `<leader>dm` | the test or group under the cursor (the whole file when the cursor is outside any) |
+| `<leader>dM` | the file |
+| `<leader>dA` | every test of the package |
+| `<leader>d.` | the last run again |
+| `<leader>dT` | jumps between `lib/x.dart` and `test/x_test.dart`, creating the test file (not saved) with its imports and a `group` |
+| `<leader>dw` | the raw output of the last run (a compile error that stopped it before any test, toolchain warnings) |
+
+`flutter test` or `dart test` (whichever the package is) with the JSON reporter (`lua/darttest`). Each test line gets a
+mark as it finishes (`✓` with its time, `✗`, `○` skipped, `…` running) and the statusline counts `test ✓12 ✗1 …`. A
+failure becomes a diagnostic on the line its stack trace points at (the `expect` that failed) with the expected/actual
+text and whatever the test printed; the failures go to the quickfix list and one note sums the run up
+(`Tests failed: 2 of 3 · 1 skipped · calc add fails`). Results are kept per file, so a test file opened later shows them.
+A test is found by its literal name, groups included (`--plain-name "calc add sums"`): a name with interpolation
+(`'renders $x'`) cannot be targeted, run its group or the file. Flutter compiles before the first test: a single
+widget test takes ~45 s the first time on a big app, and much less afterwards.
+
+## Dependencies
+
+`<leader>dU` writes, next to each dependency of `pubspec.yaml` that is behind, what it can move to: `↑ 2.5.6` (green:
+`pub upgrade` takes it, the constraint allows it), `latest 3.0.0 (change the constraint)` (yellow) or
+`discontinued` / `security advisory` (red); saving `pubspec.yaml` clears them. `<leader>dP` adds packages (`name`,
+`dev:name`, `name:^1.2.0`, several at once) with `pub add`; its error, if any, is one note. Both ask pub.dev (network).
+`<leader>dp` is `pub get` (saving `pubspec.yaml` also runs it).
+
+## Translations
+
+Saving an `.arb` file in a package with `l10n.yaml` runs `flutter gen-l10n` in the background, so
+`AppLocalizations.of(context).newKey` exists for the LSP at once; a mistake (an ICU syntax error, a missing placeholder)
+comes back as one note with gen-l10n's own message.
 
 ## Completion for the stack
 

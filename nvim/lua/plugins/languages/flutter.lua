@@ -29,6 +29,8 @@ return {
   "akinsho/flutter-tools.nvim",
   enabled = not vim.tbl_contains(require("core.settings").languages.disabled, "dart"),
   ft = { "dart" },
+  -- translations: saving an .arb runs `flutter gen-l10n` (lua/dartgen); dartls still starts only for Dart buffers
+  event = { "BufReadPre *.arb", "BufNewFile *.arb" },
   dependencies = {
     "nvim-lua/plenary.nvim",
     "saghen/blink.cmp",
@@ -41,6 +43,8 @@ return {
     end
     enable_document_colors()
     require("dartgen").setup()
+    require("darttest").setup()
+    require("dartpub").setup()
     require("dartgen").check_parts(vim.api.nvim_get_current_buf()) -- the file that loaded the plugin already fired BufReadPost
 
     require("flutter-tools").setup {
@@ -66,13 +70,18 @@ return {
         enabled = true,
       },
 
+      -- the app's log in a bottom split that does not take the focus (`<leader>dl` toggles it); errors also as notes
       dev_log = {
         enabled = true,
         filter = nil,
-        open_cmd = "tabedit",
+        open_cmd = ("botright %dsplit"):format(math.max(8, math.floor(vim.o.lines * 0.3))),
+        focus_on_open = false,
+        notify_errors = true,
       },
 
       flutter_path = nil, -- auto-detect from PATH
+      -- FVM: the project's own SDK when it has one installed (.fvm/flutter_sdk), the one in PATH otherwise
+      fvm = vim.uv.fs_stat(vim.fn.getcwd() .. "/.fvm/flutter_sdk") ~= nil,
       flutter_lookup_cmd = nil,
 
       lsp = {

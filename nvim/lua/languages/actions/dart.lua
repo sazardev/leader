@@ -20,8 +20,21 @@ local function tool(flutter_sub, dart_sub)
 end
 
 return {
-  { "r", "run", ex "FlutterRun" },
-  { "d", "debug", ex "FlutterDebug" },
+  -- run / debug: a picker of entry points when there are several (lua/dartrun)
+  {
+    "r",
+    "run",
+    function()
+      require("dartrun").run()
+    end,
+  },
+  {
+    "d",
+    "debug",
+    function()
+      require("dartrun").run(true)
+    end,
+  },
   { "h", "hot reload", ex "FlutterReload" },
   { "R", "hot restart", ex "FlutterRestart" },
   { "q", "quit app", ex "FlutterQuit" },
@@ -31,7 +44,64 @@ return {
   { "l", "log toggle", ex "FlutterLogToggle" },
   { "t", "devtools", ex "FlutterDevTools" },
   { "p", "pub get", ex "FlutterPubGet" },
-  { "m", "test (flutter or dart, auto-detected)", tool("test", "test") },
+  -- dependencies (lua/dartpub): what is behind, written next to it in pubspec.yaml; pub add
+  {
+    "U",
+    "pub outdated",
+    function()
+      require("dartpub").show_outdated()
+    end,
+  },
+  {
+    "P",
+    "pub add",
+    function()
+      require("dartpub").add()
+    end,
+  },
+  -- tests inside the editor (lua/darttest): marks on the test lines, failures as diagnostics, quickfix
+  {
+    "m",
+    "test nearest",
+    function()
+      require("darttest").run "nearest"
+    end,
+  },
+  {
+    "M",
+    "test file",
+    function()
+      require("darttest").run "file"
+    end,
+  },
+  {
+    "A",
+    "test all",
+    function()
+      require("darttest").run "all"
+    end,
+  },
+  {
+    ".",
+    "test again",
+    function()
+      require("darttest").run "again"
+    end,
+  },
+  {
+    "T",
+    "test file toggle",
+    function()
+      require("darttest").toggle_file()
+    end,
+  },
+  {
+    "w",
+    "test output",
+    function()
+      require("darttest").show_output()
+    end,
+  },
   { "v", "analyze", tool("analyze", "analyze") },
   { "x", "dart fix --apply", tool("pub get && dart fix --apply", "fix --apply") },
   { "f", "format", actions.format },

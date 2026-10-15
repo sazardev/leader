@@ -74,6 +74,46 @@ function M.dartgen_status()
   }
 end
 
+--- Flutter app (dartrun): "▶ Pixel 7" while it runs
+function M.flutter_status()
+  local function text()
+    -- also when the app was started with :FlutterRun: only flutter-tools has to be loaded
+    return package.loaded["flutter-tools.commands"] and require("dartrun").statusline() or ""
+  end
+  return {
+    function()
+      return " " .. text() .. " "
+    end,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = "FlutterRunning",
+    padding = 0,
+  }
+end
+
+--- Dart tests (darttest): "test ✓12 ✗1 …" while a run is going; red as soon as one fails
+function M.darttest_status()
+  local function text()
+    local tests = package.loaded["darttest"]
+    return tests and tests.statusline() or ""
+  end
+  return {
+    function()
+      return " " .. text() .. " "
+    end,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = function()
+      -- lualine evaluates this at setup too, before any test module is loaded
+      local tests = package.loaded["darttest"]
+      return tests and tests.failing() and "DartgenFailed" or "DartgenStatus"
+    end,
+    padding = 0,
+  }
+end
+
 ---@return string name of the working folder
 function M.project_name()
   local cwd = vim.uv.cwd() or ""

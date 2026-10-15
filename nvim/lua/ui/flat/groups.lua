@@ -288,6 +288,17 @@ function M.build(t)
   -- build_runner chips in the statusline (dartgen): aqua while it builds or is up to date, red when it failed
   g.DartgenStatus = { fg = t.aqua, bg = veil(t.aqua, 0.14), bold = true }
   g.DartgenFailed = { fg = t.red, bg = veil(t.red, 0.16), bold = true }
+  -- pub outdated notes in pubspec.yaml (dartpub): green = `pub upgrade` takes it, yellow = the constraint must change
+  g.DartPubUpgrade = { fg = t.green, italic = true }
+  g.DartPubMajor = { fg = t.yellow, italic = true }
+  g.DartPubWarn = { fg = t.red, bold = true }
+  g.FlutterRunning = { fg = t.green, bg = veil(t.green, 0.14), bold = true } -- the app is running (dartrun)
+  -- Dart tests (darttest): the mark on each test line, the time of a passed one, the statusline chip while it runs
+  g.DartTestPass = { fg = t.green }
+  g.DartTestFail = { fg = t.red, bold = true }
+  g.DartTestSkip = { fg = t.faint }
+  g.DartTestRunning = { fg = t.yellow }
+  g.DartTestTime = { fg = t.faint, italic = true }
 
   g.MultiCursorCursor = { fg = t.on, bg = t.purple }
   g.MultiCursorVisual = g.Visual
