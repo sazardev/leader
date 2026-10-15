@@ -29,8 +29,7 @@ function M.setup()
     group = group,
     callback = function()
       vim.schedule(function()
-        local appearance = require "appearance"
-        if appearance.current() == appearance.TERMINAL and appearance.sync() then
+        if require("appearance").refresh() then
           require("utils.log").info "Terminal theme updated"
         end
       end)

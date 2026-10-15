@@ -12,6 +12,12 @@ local M = {}
 
 M.TERMINAL = "terminal"
 
+-- Signature of the Alacritty files THIS instance's highlights were built from. The compiled marker on disk is shared
+-- by every open Neovim (it lives next to the shared base46 cache): the first instance that sees a change recompiles
+-- and updates it, so the others must compare against what they applied themselves, or they would never repaint.
+---@type string?
+local applied
+
 local function terminal_enabled()
   return settings.theme.terminal.enabled
 end
@@ -44,7 +50,7 @@ function M.watch()
     return watcher.stop()
   end
   watcher.start(function()
-    if M.sync() then
+    if M.refresh() then
       log.info "Terminal theme updated"
     end
   end)
@@ -58,7 +64,8 @@ function M.persist()
   local name = M.current()
   local loaded = name == M.TERMINAL and alacritty.load() or nil
   state.write_choice(name)
-  state.write_compiled { theme = name, signature = loaded and loaded.signature or nil }
+  applied = loaded and loaded.signature or nil
+  state.write_compiled { theme = name, signature = applied }
   M.watch()
 end
 
@@ -102,9 +109,24 @@ function M.sync()
   local compiled = state.read_compiled()
   local signature = desired == M.TERMINAL and alacritty.signature() or nil
   if compiled.theme == desired and compiled.signature == signature then
+    applied = signature
     return false
   end
   return M.use(desired)
+end
+
+--- While the terminal theme is active: repaints THIS instance when the Alacritty palette differs from the one its
+--- highlights came from (another instance may already have recompiled the shared cache and its marker).
+---@return boolean changed
+function M.refresh()
+  if M.current() ~= M.TERMINAL or not terminal_enabled() then
+    return false
+  end
+  local signature = alacritty.signature()
+  if not signature or signature == applied then
+    return false
+  end
+  return M.use(M.TERMINAL)
 end
 
 --- Source of the current theme and live-tracking state, on a single line

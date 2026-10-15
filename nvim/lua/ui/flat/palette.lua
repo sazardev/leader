@@ -25,12 +25,17 @@ local DARK_LUMINANCE = 0.179 -- point where white and black contrast equally
 ---@field purple string
 ---@field aqua string
 ---@field orange string
+---@field selection string? the terminal's own selection color (only on the terminal-inherited theme)
 
---- Tokens from the two base46 tables (`base_16` and `base_30`)
+--- Tokens from the two base46 tables (`base_16` and `base_30`).
+--- `opts.faithful` (the terminal-inherited theme): the editor keeps the terminal's exact background instead of the
+--- darker `deep` step, so Neovim and the terminal around it are one surface; `opts.selection` is the terminal's own.
 ---@param b16 table
 ---@param b30 table
+---@param opts? { faithful: boolean?, selection: string? }
 ---@return FlatTokens
-function M.from(b16, b30)
+function M.from(b16, b30, opts)
+  opts = opts or {}
   local bg, fg = b16.base00, b16.base05
   local dark = color.luminance(bg) < DARK_LUMINANCE
   local blend = color.blend
@@ -44,7 +49,7 @@ function M.from(b16, b30)
   return {
     dark = dark,
     bg = bg,
-    deep = blend(bg, "#000000", dark and 0.25 or 0.05),
+    deep = opts.faithful and bg or blend(bg, "#000000", dark and 0.25 or 0.05),
     soft = soft,
     fg = fg,
     -- text on the blocks must stay readable on light themes too: pushed toward the foreground until it has enough contrast
@@ -58,6 +63,7 @@ function M.from(b16, b30)
     purple = accent(b30.dark_purple, b16.base0E),
     aqua = accent(b30.cyan, b16.base0C),
     orange = accent(b30.orange, b16.base09),
+    selection = opts.faithful and opts.selection or nil,
   }
 end
 
@@ -95,7 +101,12 @@ end
 function M.current()
   local ok, tokens = pcall(function()
     local base46 = require "base46"
-    return M.from(base46.get_theme_tb "base_16", base46.get_theme_tb "base_30")
+    local opts
+    if require("nvconfig").base46.theme == "terminal" then
+      local loaded = require("appearance.alacritty").load()
+      opts = { faithful = true, selection = loaded and loaded.palette.selection or nil }
+    end
+    return M.from(base46.get_theme_tb "base_16", base46.get_theme_tb "base_30", opts)
   end)
   return ok and tokens or M.from_highlights()
 end

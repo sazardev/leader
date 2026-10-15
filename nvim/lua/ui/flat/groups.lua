@@ -202,7 +202,7 @@ function M.build(t)
   g.NvimTreeFileName = { fg = t.fg }
 
   -- ── selection, search, cursor line ────────────────────────────────────────
-  g.Visual = { bg = veil(t.blue, 0.30) }
+  g.Visual = { bg = t.selection or veil(t.blue, 0.30) } -- the terminal theme keeps the terminal's own selection
   g.VisualNOS = g.Visual
   g.Search = { fg = t.fg, bg = veil(t.yellow, 0.30) }
   g.CurSearch = { fg = t.on, bg = t.yellow, bold = true }

@@ -73,7 +73,8 @@ function M.build(palette, min_contrast)
     one_bg2 = tint(0.13),
     one_bg3 = tint(0.17),
     grey = tint(0.22),
-    grey_fg = tint(0.24),
+    grey_fg = base_16.base03, -- base46 paints comments with it: the terminal's own bright black, like base03
+
     grey_fg2 = tint(0.26),
     light_grey = tint(0.38),
     red = red,
@@ -83,13 +84,14 @@ function M.build(palette, min_contrast)
     green = green,
     vibrant_green = accent(ansi(10)),
     nord_blue = blue,
-    blue = blend(blue, bg, 0.2),
-    yellow = blend(yellow, bg, 0.2),
+    -- the terminal's exact accents, never dimmed toward the background (fidelity over base46's softer variants)
+    blue = blue,
+    yellow = yellow,
     sun = yellow,
     purple = purple,
     lavender = purple,
     dark_purple = magenta,
-    teal = blend(cyan, bg, 0.2),
+    teal = cyan,
     orange = orange,
     cyan = cyan,
     statusline_bg = tint(0.05),
