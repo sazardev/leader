@@ -1,0 +1,31 @@
+# .NET: bin and obj folders, user settings, NuGet packages
+# detect: *.csproj *.fsproj *.sln *.cs *.fs
+# Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+publish/
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+
+# User and IDE state
+.vs/
+*.user
+*.suo
+*.rsuser
+*.userprefs
+.idea/
+
+# Tests and coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Packages and user secrets
+packages/
+.nuget/
+secrets.json

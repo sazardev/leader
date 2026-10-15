@@ -1,0 +1,28 @@
+# Go: compiled binaries, test and profiling output
+# detect: go.mod go.work *.go
+# Binaries and build output
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Tests, coverage and profiling
+*.test
+*.out
+coverage.txt
+coverage.html
+*.coverprofile
+profile.cov
+*.prof
+*.pprof
+
+# Workspaces (local, per developer)
+go.work
+go.work.sum
+
+# Delve and air (live reload build folder)
+__debug_bin*
+tmp/

@@ -17,6 +17,28 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicate
 - In light mode go.nvim does not load: those actions warn instead of failing.
 - `run` and `build` run on the file's directory (`.` if there is a `go.mod`, or the single file if not). The rest run from the module root.
 
+## Project setup (`<leader>gS`, `lua/gosetup/`)
+
+The config files a Go project usually wants, one key each (0 tokens, nothing resident): **golangci-lint** (`.golangci.yml`:
+`minimal`, `standard`, `strict`, v2 format), **Air** (`.air.toml`: `basic`, `api` with graceful restarts), **Dockerfile**
+(`alpine` or `distroless`, multi-stage, non-root), **.dockerignore**, **GitHub Actions CI**, **git hooks** (lefthook) and
+**.editorconfig**. `Sp` is a checklist of all of them (what is missing and core is checked), `Sm` creates a Makefile (same as
+`<leader>Rc`) and `Sg` the `.gitignore` (`<leader>Gi`).
+
+- **Filled in from the project, never asked**: the module path (golangci's local import prefix), the Go version of `go.mod`
+  (image tags), where `main` really is (`./cmd/api` or `.`) and the binary's name. The module is the nearest `go.mod` up from
+  the current file.
+- **Never overwrites.** A file that is already there (also `.golangci.yaml`/`.toml`/`.json` for golangci-lint) is opened.
+  A misnamed config such as `.golangcli.yml` (golangci-lint only reads `.golangci.yml`) is offered a **rename** with the
+  buffers and servers following; the content is kept.
+- With several variants the picker previews the file exactly as it will be written.
+- golangci-lint **v2** configs (`version: "2"`): a v1 binary refuses them, and the action warns when it finds one.
+- **Add a preset**: drop `presets/<topic>/<variant>.<ext>` in `lua/gosetup/`. Line 1 is `# description` (stays in the file),
+  line 2 is `# target: path/relative/to/the/module` (not written). Placeholders: `{{module}}` `{{go}}` `{{main}}` `{{binary}}`.
+  A new topic (a folder) also needs its entry in `TOPICS` (`gosetup/init.lua`): key, label, default variant.
+- Tests: `scripts/test-gosetup.sh` renders every preset and, where the tools exist, has them check it (golangci-lint v2
+  `config verify`, air's own keys from `air init`, `lefthook validate`, TOML/YAML parsing).
+
 ## Struct tags while you type (`utils/gotags.lua`)
 
 The tag value is **derived from the field name**: `SentAt` → `sent_at`, `UserID` → `user_id`, `HTTPServer` → `http_server`, `Kind` → `kind`.
@@ -346,6 +368,7 @@ The friendly declaration ones (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `fm
 |---|---|
 | `lua/languages/go.lua` | declaration: gopls, goimports, gofumpt, golangci-lint, govet |
 | `lua/languages/actions/go.lua` | `<leader>g` menu actions |
+| `lua/gosetup/` | `<leader>gS`: presets (`presets/<topic>/<variant>`), `vars.lua` (module, Go version, main), `init.lua` (topics, flows) |
 | `lua/plugins/languages/go.lua` | go.nvim (`tag_transform = "snakecase"`, `tag_options = false`) |
 | `lua/servers/gopls.lua` | gopls settings |
 | `lua/utils/gotags.lua` | blink source: struct tags |

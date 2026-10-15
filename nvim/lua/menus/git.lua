@@ -46,6 +46,14 @@ return {
         require("agent.review").run(require("commit.git").root())
       end,
     },
+    -- .gitignore from what the project looks like: secrets, languages, Docker... (lua/gitignore/)
+    {
+      "i",
+      "ignore rules",
+      function()
+        require("gitignore").open()
+      end,
+    },
     { "t", "status", ex "Telescope git_status" },
     { "b", "blame", ex "GitBlameToggle" },
     { "d", "diff", ex "DiffviewOpen" },

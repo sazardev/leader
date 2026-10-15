@@ -230,6 +230,7 @@ _Where: files inside a git repo_
 | `<leader>GM` | commit auto |
 | `<leader>Ga` | amend |
 | `<leader>Gv` | review staged |
+| `<leader>Gi` | ignore rules |
 | `<leader>Gt` | status |
 | `<leader>Gb` | blame |
 | `<leader>Gd` | diff |
@@ -269,6 +270,16 @@ _Where: `go`, `gomod`, `gowork`_
 | `<leader>gi` | go fix (apply modernizers) |
 | `<leader>gg` | go generate ./... |
 | `<leader>gu` | go get -u + go mod tidy |
+| `<leader>gSl` | setup golangci-lint config |
+| `<leader>gSa` | setup Air live reload (.air.toml) |
+| `<leader>gSd` | setup Dockerfile |
+| `<leader>gSi` | setup .dockerignore |
+| `<leader>gSc` | setup GitHub Actions CI |
+| `<leader>gSh` | setup git hooks (lefthook) |
+| `<leader>gSe` | setup .editorconfig |
+| `<leader>gSp` | setup several files |
+| `<leader>gSm` | setup Makefile |
+| `<leader>gSg` | setup gitignore |
 
 ### Java — `<leader>j`
 

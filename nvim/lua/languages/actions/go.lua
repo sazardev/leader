@@ -38,7 +38,7 @@ local function go_cmd(cmd)
   end
 end
 
-return {
+local maps = {
   { "a", "struct: add json tags (snake_case)", go_cmd "GoAddTag json" },
   { "A", "struct: add json tags + omitempty", go_cmd "GoAddTag json -add-options json=omitempty" },
   { "D", "struct: remove json tags", go_cmd "GoRmTag json" },
@@ -76,3 +76,6 @@ return {
   { "g", "go generate ./...", in_root "go generate ./..." },
   { "u", "go get -u + go mod tidy", in_root "go get -u ./... && go mod tidy" },
 }
+
+-- <leader>gS: config files for the project (golangci-lint, Air, Dockerfile, CI, hooks...) — lua/gosetup/
+return vim.list_extend(maps, require("gosetup").maps())

@@ -1,0 +1,20 @@
+# Lefthook, Go: format and lint what you commit, run the tests before you push
+# target: lefthook.yml
+pre-commit:
+  parallel: false
+  commands:
+    format:
+      glob: "*.go"
+      run: gofumpt -l -w {staged_files}
+      stage_fixed: true
+    lint:
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD
+    tidy:
+      glob: "go.{mod,sum}"
+      run: go mod tidy && git diff --exit-code go.mod go.sum
+
+pre-push:
+  commands:
+    test:
+      run: go test ./...

@@ -4,7 +4,8 @@
 -- group). The <leader> popup shows only what is relevant.
 --
 -- A context is: { name, prefix, maps = { {key, desc, fn, modes?}... },
---                 filetypes? = {...}, detect? = fun(buf): boolean }
+--                 filetypes? = {...}, detect? = fun(buf): boolean,
+--                 groups? = { [letter] = name } (names of sub-prefixes inside the menu) }
 local M = {}
 
 ---@return table[]
@@ -54,6 +55,10 @@ local function bind(buf, ctx)
   local ok, wk = pcall(require, "which-key")
   if ok then
     wk.add { { "<leader>" .. ctx.prefix, group = ctx.name, buffer = buf } }
+    -- optional sub-groups: keys of a context that start with one letter and go on (`<leader>gS` + l, a, d…)
+    for key, name in pairs(ctx.groups or {}) do
+      wk.add { { "<leader>" .. ctx.prefix .. key, group = name, buffer = buf } }
+    end
   end
 end
 

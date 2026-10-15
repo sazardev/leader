@@ -1,0 +1,24 @@
+# .dockerignore for Go: keeps the build context small and secrets out of the image
+# target: .dockerignore
+.git
+.github
+.vscode
+.idea
+.env
+.env.*
+!.env.example
+tmp/
+bin/
+dist/
+vendor/
+coverage.*
+*.test
+*.out
+*.log
+Dockerfile
+docker-compose*.yml
+compose*.yml
+.air.toml
+.golangci.yml
+README.md
+docs/

@@ -1,0 +1,41 @@
+# C / C++: objects, libraries, executables and CMake build trees
+# detect: CMakeLists.txt Makefile *.c *.cpp *.cc *.h *.hpp
+# Objects and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.d
+*.gch
+*.pch
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build trees
+build/
+build-*/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Testing/
+_deps/
+
+# Tooling output (clangd, debuggers, profilers)
+.cache/
+compile_commands.json
+*.dSYM/
+*.gcda
+*.gcno
+core
+vgcore.*

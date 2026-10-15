@@ -24,5 +24,5 @@ return {
     }
   end,
 
-  menu = { name = "Go", prefix = "g", maps = require "languages.actions.go" },
+  menu = { name = "Go", prefix = "g", maps = require "languages.actions.go", groups = { S = "setup" } },
 }

@@ -8,6 +8,7 @@
 --
 -- M.input   → text + editable field + buttons (Enter confirms, Esc cancels)
 -- M.confirm → text + buttons (only y confirms, any other key cancels)
+-- M.checklist → rows to switch on and off (Space/x, a for all) + buttons
 local M = {}
 
 local FLAT = require("ui.flat").enabled()
@@ -93,15 +94,34 @@ local function paint(buf, lines)
   end
 end
 
+--- Writes the lines into the buffer and paints them. The flat modal gives every row the block's color (not under the
+--- buttons: a row-wide highlight wins over the chip's own background). Safe to call again to redraw
+---@param buf integer
+---@param lines (string|table[])[]
+local function render(buf, lines)
+  vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.tbl_map(plain, lines))
+  paint(buf, lines)
+  if FLAT then
+    for i, line in ipairs(lines) do
+      local chips = type(line) == "table"
+        and vim.iter(line):any(function(seg)
+          return type(seg[2]) == "string" and seg[2]:find "^NvModalBtn" ~= nil
+        end)
+      if not chips then
+        vim.api.nvim_buf_set_extmark(buf, NS, i - 1, 0, { line_hl_group = "FlatModalRow", priority = 1 })
+      end
+    end
+  end
+end
+
 ---@param lines (string|table[])[]
 ---@param opts { title?: string, editable?: boolean }
 ---@return integer buf, integer win, function close
 local function open(lines, opts)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden = "wipe"
-  local text = vim.tbl_map(plain, lines)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, text)
-  paint(buf, lines)
+  render(buf, lines)
   vim.bo[buf].modifiable = opts.editable or false
 
   local width = width_of(lines)
@@ -123,16 +143,6 @@ local function open(lines, opts)
     -- would carry the picker's `winhighlight`. The modal paints itself: every row on the block's color, none left to the
     -- window's own background
     vim.wo[win].winhighlight = "EndOfBuffer:NormalFloat"
-    for i, line in ipairs(lines) do
-      -- (not under the buttons: a row-wide highlight wins over the chip's own background)
-      local chips = type(line) == "table"
-        and vim.iter(line):any(function(seg)
-          return type(seg[2]) == "string" and seg[2]:find "^NvModalBtn" ~= nil
-        end)
-      if not chips then
-        vim.api.nvim_buf_set_extmark(buf, NS, i - 1, 0, { line_hl_group = "FlatModalRow", priority = 1 })
-      end
-    end
     require("ui.flat.motion").enter { win }
   end
 
@@ -230,6 +240,104 @@ function M.confirm(lines, opts, on_yes)
     answered = true
     close()
     on_yes()
+  end, { buffer = buf, nowait = true, desc = "Confirm" })
+end
+
+--- A list of things to switch on and off, then one button
+--- Space or x toggles the row, a toggles all, Enter confirms, Esc/q cancels
+---@param items { label: string, desc: string?, checked: boolean? }[]
+---@param opts { title?: string, intro?: (string|table[])[], confirm?: string, footer?: string }
+---@param on_submit fun(chosen: integer[]) the indexes of the checked items, in order
+function M.checklist(items, opts, on_submit)
+  local state = {}
+  local label_w = 0
+  for i, item in ipairs(items) do
+    state[i] = item.checked and true or false
+    label_w = math.max(label_w, vim.fn.strdisplaywidth(item.label))
+  end
+  local intro = opts.intro or {}
+  local first = #intro + 1 -- the row of the first item
+
+  local function lines()
+    local out = vim.list_slice(intro)
+    for i, item in ipairs(items) do
+      local pad = string.rep(" ", label_w - vim.fn.strdisplaywidth(item.label))
+      out[#out + 1] = {
+        { state[i] and " [x] " or " [ ] ", state[i] and M.hl.mark or M.hl.muted },
+        { item.label .. pad, state[i] and M.hl.file or M.hl.muted },
+        { item.desc and ("  " .. item.desc) or "", M.hl.muted },
+      }
+    end
+    out[#out + 1] = ""
+    if opts.footer then
+      out[#out + 1] = { { opts.footer, M.hl.muted } }
+    end
+    out[#out + 1] = buttons {
+      { key = "Enter", label = opts.confirm or "Confirm", kind = "primary" },
+      { key = "Esc", label = "Cancel", kind = "soft" },
+    }
+    return out
+  end
+
+  local buf, win = open(lines(), { title = opts.title })
+  local last = first + #items - 1
+  vim.wo[win].cursorline = true
+  if FLAT then
+    vim.wo[win].winhighlight = "EndOfBuffer:NormalFloat,CursorLine:FlatInput"
+  end
+  vim.api.nvim_win_set_cursor(win, { first, 0 })
+
+  local function redraw()
+    vim.bo[buf].modifiable = true
+    render(buf, lines())
+    vim.bo[buf].modifiable = false
+  end
+  local function row()
+    return vim.api.nvim_win_get_cursor(win)[1]
+  end
+  local function toggle()
+    local i = row() - first + 1
+    if state[i] ~= nil then
+      state[i] = not state[i]
+      redraw()
+    end
+  end
+  local function toggle_all()
+    local any_off = vim.tbl_contains(state, false)
+    for i in ipairs(state) do
+      state[i] = any_off
+    end
+    redraw()
+  end
+  local function chosen()
+    local out = {}
+    for i, on in ipairs(state) do
+      if on then
+        out[#out + 1] = i
+      end
+    end
+    return out
+  end
+
+  -- the cursor lives on the items only (not on the buttons under them)
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    buffer = buf,
+    callback = function()
+      local r = row()
+      if r < first or r > last then
+        vim.api.nvim_win_set_cursor(win, { math.min(math.max(r, first), last), 0 })
+      end
+    end,
+  })
+  vim.keymap.set("n", "<Space>", toggle, { buffer = buf, nowait = true, desc = "Toggle" })
+  vim.keymap.set("n", "x", toggle, { buffer = buf, nowait = true, desc = "Toggle" })
+  vim.keymap.set("n", "a", toggle_all, { buffer = buf, nowait = true, desc = "Toggle all" })
+  vim.keymap.set("n", "<CR>", function()
+    local out = chosen()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+    on_submit(out)
   end, { buffer = buf, nowait = true, desc = "Confirm" })
 end
 

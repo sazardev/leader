@@ -335,6 +335,11 @@ local defaults = {
 
   -- Git (lua/commit/, menu <leader>G): commits with Conventional Commits
   git = {
+    -- <leader>Gi (lua/gitignore/): what it looks at to suggest .gitignore topics
+    ignore = {
+      depth = 3, -- levels of folders read under the git root (dependency and build folders are never entered)
+      max = 4000, -- names read at most, so a huge tree stays cheap
+    },
     commit = {
       -- { type, description }. The .githooks/commit-msg hook validates the same types: if you change
       -- the list here, change it there too.

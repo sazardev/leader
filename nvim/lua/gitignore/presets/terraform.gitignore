@@ -1,0 +1,24 @@
+# Terraform: state, providers and variable files (they hold secrets)
+# detect: *.tf *.tfvars .terraform.lock.hcl .terraform/
+# Providers and modules
+.terraform/
+.terraform.tfstate.lock.info
+
+# State: it contains secrets in plain text, keep it in a remote backend
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Variable files (commit the *.tfvars.example instead)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Local overrides and plans
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+tfplan

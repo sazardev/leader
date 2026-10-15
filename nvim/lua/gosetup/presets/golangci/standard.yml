@@ -1,0 +1,65 @@
+# golangci-lint v2, standard: bugs, error handling, HTTP/SQL leaks and security on top of the defaults, tuned for services
+# target: .golangci.yml
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose      # HTTP response bodies that are never closed
+    - contextcheck   # a function that has a context passes it on
+    - errorlint      # errors.Is / errors.As instead of == and type assertions, %w when wrapping
+    - gocritic       # a broad set of diagnostics and small simplifications
+    - gosec          # security: weak crypto, SQL built with strings, file permissions...
+    - misspell       # typos in comments and strings
+    - noctx          # HTTP requests without a context
+    - nolintlint     # //nolint directives that are malformed or no longer needed
+    - rowserrcheck   # sql.Rows.Err is checked
+    - sqlclosecheck  # sql.Rows / Stmt are closed
+    - unconvert      # needless type conversions
+    - unparam        # parameters that are never used or always receive the same value
+  settings:
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment # noisy, and it fights with readable struct layouts
+        - shadow         # `err` is shadowed on purpose all the time
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - noctx
+          - unparam
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - {{module}}
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

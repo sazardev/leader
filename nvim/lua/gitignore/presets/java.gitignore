@@ -1,0 +1,38 @@
+# Java / Kotlin: class files, Gradle and Maven output, IDE project files
+# detect: pom.xml build.gradle build.gradle.kts settings.gradle settings.gradle.kts gradlew *.java *.kt *.kts .gradle/
+# Compiled output
+*.class
+*.jar
+*.war
+*.ear
+!gradle/wrapper/gradle-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+replay_pid*
+
+# Gradle
+.gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+local.properties
+gradle-app.setting
+.kotlin/
+
+# Maven
+target/
+.mvn/timing.properties
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+dependency-reduced-pom.xml
+
+# IDE project files
+out/
+.classpath
+.project
+.settings/
+nbproject/
+*.ipr
+*.iws

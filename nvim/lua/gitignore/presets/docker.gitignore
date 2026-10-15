@@ -1,0 +1,10 @@
+# Docker: local compose overrides and container data
+# detect: Dockerfile docker-compose.yml docker-compose.yaml compose.yml compose.yaml *.dockerfile .dockerignore
+# Local overrides (per developer)
+docker-compose.override.yml
+docker-compose.override.yaml
+compose.override.yml
+compose.override.yaml
+
+# Local data of the containers
+.docker/

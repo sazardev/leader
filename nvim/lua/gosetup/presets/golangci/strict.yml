@@ -1,0 +1,91 @@
+# golangci-lint v2, strict: standard + complexity limits, exhaustive switches, wrapped errors, no globals. Noisy on old code
+# target: .golangci.yml
+version: "2"
+
+run:
+  timeout: 10m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - contextcheck
+    - cyclop         # cyclomatic complexity per function
+    - errorlint
+    - exhaustive     # every enum value handled in a switch
+    - forcetypeassert # x.(T) without the ok form
+    - funlen         # function length
+    - gocognit       # cognitive complexity per function
+    - gocritic
+    - gosec
+    - misspell
+    - nestif         # deeply nested ifs
+    - noctx
+    - nolintlint
+    - perfsprint     # fmt.Sprintf where strconv or concatenation is faster
+    - prealloc       # slices that could be preallocated
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - wrapcheck      # errors from other packages are wrapped before they are returned
+  settings:
+    cyclop:
+      max-complexity: 15
+    funlen:
+      lines: 80
+      statements: 50
+    gocognit:
+      min-complexity: 20
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+    exhaustive:
+      default-signifies-exhaustive: true
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - cyclop
+          - errcheck
+          - funlen
+          - gocognit
+          - gosec
+          - noctx
+          - unparam
+          - wrapcheck
+
+formatters:
+  enable:
+    - gci
+    - gofumpt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix({{module}})
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

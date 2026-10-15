@@ -1,0 +1,15 @@
+# Rust: the target directory and compiler leftovers
+# detect: Cargo.toml *.rs target/
+# Build output
+target/
+
+# Backups made by rustfmt
+**/*.rs.bk
+*.pdb
+
+# Cargo.lock: commit it for binaries and applications; uncomment for libraries
+# Cargo.lock
+
+# Profiling
+flamegraph.svg
+perf.data*

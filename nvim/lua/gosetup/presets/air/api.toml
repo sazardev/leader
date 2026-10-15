@@ -1,0 +1,35 @@
+# Air, API: graceful restarts (SIGINT), reloads on config and template changes too, build errors kept in a log
+# target: .air.toml
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # builds the binary into tmp/ and runs it
+  cmd = "go build -o ./tmp/{{binary}} {{main}}"
+  bin = "./tmp/{{binary}}"
+  include_ext = ["go", "yaml", "yml", "toml", "json", "tpl", "tmpl", "html", "sql"]
+  exclude_dir = ["tmp", "bin", "vendor", "node_modules", ".git", "docs", "migrations"]
+  exclude_regex = ["_test\\.go$", "_mock\\.go$"]
+  delay = 800
+  stop_on_error = true
+  # the server gets SIGINT and time to drain its requests before it is killed
+  send_interrupt = true
+  kill_delay = "2s"
+  log = "build-errors.log"
+
+[color]
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  time = true
+  main_only = false
+
+[misc]
+  clean_on_exit = true
+
+[screen]
+  clear_on_rebuild = true
+  keep_scroll = true
