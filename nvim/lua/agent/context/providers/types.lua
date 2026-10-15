@@ -28,6 +28,71 @@ local function pascal_case(name)
   return name:match "^[A-Z]" ~= nil and name:match "%l" ~= nil
 end
 
+-- full-line comments: `//` `///` `/* … */` `*` (C family, Go, Dart, Rust, JS/TS, Java, Kotlin, Swift), `--` (Lua, SQL) and `#`
+-- where it is a comment (Python, Ruby, shell; never Rust's `#[derive]` or C's `#include`)
+local HASH_COMMENTS = { python = true, ruby = true, sh = true, bash = true, zsh = true, yaml = true, toml = true }
+
+local function is_comment(line, lang)
+  local s = line:match "^%s*(.-)%s*$"
+  return s:match "^//" ~= nil
+    or s:match "^/%*" ~= nil
+    or s:match "^%*" ~= nil
+    or s:match "^%-%-" ~= nil
+    or (HASH_COMMENTS[lang] == true and s:match "^#" ~= nil)
+end
+
+local ENUM_RUN = 4 -- this many bare values in a row (`go,` `bash,` …) are joined into one line
+local JOIN_WIDTH = 100
+local ENUM_VALUES = 24 -- values shown from one run; the rest is counted (the model needs their kind, not all of them)
+
+--- A type definition as the model needs it: what it declares, not how it is documented. Full-line comments (doc
+--- comments of fields and values) and blank lines go (`settings.agent.context.type_comments = true` keeps comments),
+--- and long runs of bare enum values are joined (at most 24, the rest counted): a long enum with a comment per value
+--- shrinks to a few lines.
+--- Comments at the end of a code line stay.
+---@param lines string[]
+---@param lang string
+---@param keep_comments boolean?
+---@return string[]
+local function compact(lines, lang, keep_comments)
+  local kept = {}
+  for _, line in ipairs(lines) do
+    if line:match "%S" and (keep_comments or not is_comment(line, lang)) then
+      kept[#kept + 1] = line
+    end
+  end
+  local out, i = {}, 1
+  while i <= #kept do
+    local j = i
+    while j <= #kept and kept[j]:match "^%s*[%a_][%w_]*%s*,?%s*$" do
+      j = j + 1
+    end
+    if j - i >= ENUM_RUN then
+      local indent = kept[i]:match "^%s*"
+      local row = indent
+      local last = math.min(j - 1, i + ENUM_VALUES - 1)
+      for k = i, last do
+        local value = kept[k]:match "^%s*([%a_][%w_]*)"
+        local piece = value .. ((k < j - 1 or kept[k]:find(",", 1, true)) and ", " or "")
+        if k == last and last < j - 1 then
+          piece = piece .. ("… (%d more)"):format(j - 1 - last)
+        end
+        if #row + #piece > JOIN_WIDTH and row ~= indent then
+          out[#out + 1] = row:gsub("%s+$", "")
+          row = indent
+        end
+        row = row .. piece
+      end
+      out[#out + 1] = row:gsub("%s+$", "")
+      i = j
+    else
+      out[#out + 1] = kept[i]
+      i = i + 1
+    end
+  end
+  return out
+end
+
 ---@param lines string[]
 ---@param limit integer
 ---@return string[]
@@ -63,6 +128,9 @@ local function in_project(path, root)
   if root and path:sub(1, #root) ~= root then
     return false
   end
+  if require("utils.generated").is_generated(path) then
+    return false -- `x.freezed.dart` defines the same class again, ~5x longer: the source is what the model needs
+  end
   for _, pattern in ipairs(IGNORED_PATHS) do
     if path:find(pattern) then
       return false
@@ -83,6 +151,8 @@ local function location_of(location)
 end
 
 local M = {}
+
+M.compact = compact
 
 --- Identifiers the LSP diagnostics point at inside the target (max. 4): the type of each one is requested from there.
 --- Agent findings cover the whole line (nothing concrete to resolve): they do not count.
@@ -137,7 +207,11 @@ return vim.tbl_extend("error", M, {
     local function push(name, header, lines)
       if #entries < settings.types + extra and not included[name] then
         included[name] = true
-        entries[#entries + 1] = { name = name, header = header, lines = clip(lines, settings.type_lines) }
+        entries[#entries + 1] = {
+          name = name,
+          header = header,
+          lines = clip(compact(lines, target.lang, settings.type_comments), settings.type_lines),
+        }
       end
     end
 

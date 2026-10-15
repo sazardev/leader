@@ -50,6 +50,7 @@ _Where: global_
 | `<leader>af` | fix inline |
 | `<leader>aF` | fix block |
 | `<leader>ad` | docs |
+| `<leader>at` | convert |
 | `<leader>an` | next edit |
 | `<leader>aR` | refactor |
 | `<leader>ag` | hand off |
@@ -177,6 +178,16 @@ _Where: `dart`_
 | `<leader>dv` | analyze |
 | `<leader>dx` | dart fix --apply |
 | `<leader>df` | format |
+| `<leader>dg` | codegen watch (toggle) |
+| `<leader>dG` | codegen build once |
+| `<leader>dL` | codegen output |
+| `<leader>db` | breakpoint toggle |
+| `<leader>dB` | breakpoint condition |
+| `<leader>dc` | continue |
+| `<leader>dn` | step over |
+| `<leader>di` | step into |
+| `<leader>dO` | step out |
+| `<leader>du` | debug panel |
 
 ### File — `<leader>F`
 
@@ -557,6 +568,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>am` | n | Model |
 | `<leader>an` | n,x | Next edit |
 | `<leader>ar` | n,x | Review |
+| `<leader>at` | n,x | Convert |
 | `<leader>ax` | n | Stop |
 
 ### Comment

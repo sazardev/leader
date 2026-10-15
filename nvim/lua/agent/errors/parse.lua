@@ -26,6 +26,17 @@ M.FORMATS = {
     efm = '%A  File "%f"\\, line %l\\, in %o,%A  File "%f"\\, line %l,%C    %.%#,%Z%[A-Za-z]%\\+Error%.%#: %m',
   },
   { name = "javac", efm = "%E[ERROR] %f:[%l\\,%c] %m,%E%f:%l: error: %m,%Z%p^,%C%.%#,%-G%.%#" },
+  -- `flutter analyze`: "  error • message • lib/a.dart:3:10 • code"
+  {
+    name = "flutter",
+    efm = "%*[ ]%trror • %m • %f:%l:%c • %.%#,%tarning • %m • %f:%l:%c • %.%#,%*[ ]%tarning • %m • %f:%l:%c • %.%#,%*[ ]%tnfo • %m • %f:%l:%c • %.%#",
+  },
+  -- `dart analyze`: "  error - lib/a.dart:3:10 - message - code" and its `--format=machine` (absolute paths)
+  {
+    name = "dart",
+    efm = "%*[ ]%trror - %f:%l:%c - %m,%tarning - %f:%l:%c - %m,%*[ ]%tnfo - %f:%l:%c - %m,"
+      .. "%tRROR|%*[^|]|%*[^|]|%f|%l|%c|%*[^|]|%m,%tARNING|%*[^|]|%*[^|]|%f|%l|%c|%*[^|]|%m,%tNFO|%*[^|]|%*[^|]|%f|%l|%c|%*[^|]|%m",
+  },
   { name = "generic", efm = "%f:%l:%c: %m,%f:%l: %m" },
 }
 
@@ -39,7 +50,7 @@ end
 ---@param type string?
 ---@return "error"|"warn"
 local function severity_of(type)
-  return (type == "W" or type == "w" or type == "I") and "warn" or "error"
+  return (type == "W" or type == "w" or type == "I" or type == "i") and "warn" or "error"
 end
 
 ---@param lines string[]

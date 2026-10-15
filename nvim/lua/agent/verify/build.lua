@@ -13,7 +13,7 @@ local DEFAULTS = {
   rust = { "cargo", "check", "--quiet" },
 }
 
-local ROOT_MARKER = { go = "go.mod", rust = "Cargo.toml" }
+local ROOT_MARKER = { go = "go.mod", rust = "Cargo.toml", dart = "pubspec.yaml" }
 
 local MARGIN = 2 -- lines around an accepted range that still count as "in it"
 
@@ -31,6 +31,9 @@ function M.command_for(path, lang, setting)
     cmd = setting[lang]
   elseif lang == "python" then
     cmd = { "python3", "-m", "py_compile", path }
+  elseif lang == "dart" then
+    -- only the saved file (a second or two, Flutter included); exits != 0 only on errors, machine format = absolute paths
+    cmd = { "dart", "analyze", "--no-fatal-warnings", "--format=machine", path }
   else
     cmd = DEFAULTS[lang]
   end
@@ -103,7 +106,11 @@ function M.arm(buf, ranges, cfg, on_result)
         if ok or err then
           return -- it builds (or cannot be run here): nothing to blame
         end
-        local mine, elsewhere = M.attribute(parse.parse(output, { root = run.cwd }), path, live)
+        -- only errors are blamed: an analyzer also lists warnings and hints, which never fail a build
+        local errors = vim.tbl_filter(function(e)
+          return e.severity == "error"
+        end, parse.parse(output, { root = run.cwd }))
+        local mine, elsewhere = M.attribute(errors, path, live)
         if #mine > 0 or elsewhere > 0 then
           on_result(mine, elsewhere, output)
         end

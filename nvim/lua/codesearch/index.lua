@@ -65,6 +65,7 @@ local function list_files(root)
   for _, dir in ipairs(settings.exclude) do
     vim.list_extend(cmd, { "--glob", "!" .. dir })
   end
+  vim.list_extend(cmd, require("utils.generated").rg_excludes()) -- x.g.dart, x.freezed.dart, x.pb.go: the source has the names
   local out = vim.system(cmd, { cwd = root, text = true }):wait()
   local files = {}
   for line in (out.stdout or ""):gmatch "[^\r\n]+" do

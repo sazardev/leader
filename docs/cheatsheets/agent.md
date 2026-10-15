@@ -19,6 +19,7 @@ predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** m
 | `f` fix inline | the diagnostic (LSP, linter or agent finding) on the cursor line + optional hint | diff with the minimal change on **only those lines**; the surrounding code and the objects it points to (the variable's type, the signature of what is called) go along as read-only context; with no diagnostic on the line, it does nothing |
 | `F` fix block | all the diagnostics of the function (or selection) + optional hint | diff with the minimal change that leaves the block coherent (several diagnostics with the same cause are fixed together) |
 | `d` docs | function + optional focus | diff that only adds/updates the documentation comment; the model returns **only the comment** (`agent/docplace.lua` puts it above the function, or inside it for Python), so the code cannot change and the output is a few lines |
+| `t` convert | selection (or the paragraph under the cursor) holding a JSON sample, a SQL `CREATE TABLE` or a curl command, in a code file + optional root type name | diff that replaces it with ready code in the file's language: JSON → Go structs with `json` tags and nested types (TS interfaces, JSDoc typedefs in JavaScript, Python dataclasses, Rust serde structs, Dart classes with `fromJson`/`toJson`…), a table → a struct with `db` tags and pointers for nullable columns, curl → a function that sends the request with the standard client (secrets become parameters). What each source becomes is fixed per language (`agent/convert.lua`), so the prompt is explicit; light model, only `rules` as context. A one-word instruction names the root type (`Invoice`); in a non-code file it refuses (paste the JSON where the types should go). In Dart it follows `pubspec.yaml`: JSON → freezed classes (or `@JsonSerializable()`), a table → a drift `Table`; the import and `part` lines are added on accept (`convert_header.lua` on `proposal.accepted`, rules in `utils/dartheader.lua`) and a snake_case key left without `@JsonKey(name: …)` gets it by rule ([Dart / Flutter](dart-flutter.md#the-agent-with-dart)) |
 | `n` next edit | the 30 lines around the cursor + what you just changed in this file | diff with the ONE edit that follows from your recent changes (the rename you are following through, the field added to one constructor and not the others); with nothing changed in the file it asks nothing ([Next edit](#next-edit-on-demand)) |
 | `R` refactor | your instruction (text field) | diff that applies exactly that instruction |
 | `g` handoff | your instruction | sends `file:range` + instruction to an agent already running in Herdr |
@@ -32,12 +33,12 @@ a placeholder. It grows as you type (up to 6 rows), `⏎` sends, `⎋` cancels (
 insert a line break and `↑`/`↓` (or `⌃P`/`⌃N`) walk through the previous instructions of that action, which are remembered
 across sessions. In narrow windows the key hint shortens itself. There is no autocompletion or auto-closing of quotes inside.
 
-**Instruction**: `i`, `d` and `f` open the field and **Enter with an empty field runs without an instruction**; if you type something, it is appended
+**Instruction**: `i`, `d`, `t` and `f` open the field and **Enter with an empty field runs without an instruction**; if you type something, it is appended
 to the prompt and takes precedence over the default behaviour. Useful for an empty `func main() {}` ("read a CSV and sum column
 3"), for an unclear function ("this validates orders before charging; the coupon case is missing") or to steer a fix.
 `a` ask and `R` refactor require the text; `r` review and `e` explain run instantly.
 
-**Short menu**: `i` implement, `d` docs, `n` next edit, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
+**Short menu**: `i` implement, `d` docs, `t` convert, `n` next edit, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
 Herdr), `h` history, `m` model (main, light and effort in a single selector), `c` clear (discards the finding on the line, or those in the selection in visual mode), `C` clear file (those in this file), `x` stop (cancels what is running and discards the
 pending proposals; it does **not** touch findings) and `l` last answer (reopens the last answer or rejected proposal). Everything that works on many pieces at once lives
 in its own **Advanced menu, `<leader>aA`**, so the everyday one stays short: `a` fix all, `o` / `O` fix from output / from a command, `p` plan across
@@ -74,7 +75,11 @@ TypeScript (interface, class, type, enum), Python, Rust (a method of `impl Note`
 A type in the **same file** is read instantly; one in **another file or package** is located with the LSP
 (`textDocument/definition`) and extracted from the destination file (project only, not dependencies). Field types
 are followed one level (`Tags []Tag`), and if the target is a class method, the class is included without the method itself.
-Cap: `context.types` (4) definitions of `context.type_lines` (30) lines.
+Cap: `context.types` (4) definitions of `context.type_lines` (30) lines. Each definition is compacted first (`compact` in
+`providers/types.lua`): full-line comments and blank lines go (`context.type_comments = true` keeps comments), and runs of
+bare enum values are joined, at most 24 shown and the rest counted (`… (188 more)`). Measured on a Flutter widget whose
+`build` uses two enums with a doc comment per value: the `<types>` section went from 3,243 to 871 characters. Definitions
+are never taken from generated files (`x.freezed.dart` repeats the class ~5x longer; `utils/generated.lua`).
 
 Each action asks for what it needs, **in priority order** (if the budget gets tight, the last ones are trimmed):
 
@@ -89,6 +94,7 @@ Each action asks for what it needs, **in priority order** (if the budget gets ti
 | ask | rules, types, callees, outline, diagnostics |
 | explain | rules, types, callees |
 | docs | rules, types (documents the real fields and parameters, without paying for outline or callees) |
+| convert | rules (the selection is the whole input) |
 
 **Transparency (`note:`)**: after the code block the model may add `note: ...` (max. ~15 words) when it assumed or
 added something that was not in the context, and `needs-import: ...`. Both show up in the proposal hint (`note: Note has no
@@ -125,7 +131,7 @@ decides what survives when the budget is tight; only what is SENT is rearranged.
 
 ## Models per tier (cheap where it is enough)
 
-Each action runs on the **main** model or the **light** one. `docs` and `explain` are light (Claude: `haiku`); the rest
+Each action runs on the **main** model or the **light** one. `docs`, `explain` and `convert` are light (Claude: `haiku`); the rest
 use the main one (`sonnet` by default). Measured with Claude, a single-function action: **~$0.005 on sonnet vs ~$0.0003 on
 haiku**, about 17 times less, and the spinner shows the model that is running. Light actions do not inherit the
 effort either: they are the cheap ones and must not become expensive because of a setting meant for others.
@@ -236,7 +242,7 @@ code. Use it when the task no longer fits in a single shot.
 
 ## Hexagonal architecture levels (one menu per level)
 
-`<leader>a` keeps the generic ones (implement, review, explain, ask, fix inline, fix block, docs, refactor, hand off, model, history, clear, stop, last).
+`<leader>a` keeps the generic ones (implement, review, explain, ask, fix inline, fix block, docs, convert, refactor, hand off, model, history, clear, stop, last).
 Each architecture **level** has its own folder (`lua/agent/<level>/`), its own action registry and its own menu, with its context and,
 in each one, a **local 0-token analysis**. The actions of each level run through the same pipeline (inline diff, findings,
 history and cost), and in the history they appear under their own name (`repo_port`, `service_review`, `ddd_fix`...).
@@ -413,7 +419,8 @@ Accepting a proposal is no longer the end. `agent/verify` listens to the replace
    `fix regression 1/2`: it names the problems, the attempt, the model and the estimate. **Yes** launches a `fix regression` proposal
    over the function that holds them (same experience as any proposal, and verified again if you accept it); `verify.max_retries`
    (2) bounds the chain, `verify.auto_retry = true` skips the question (still bounded and still behind the spend guard);
-4. a **build check** (`verify.command = "auto"`: `go build ./...`, `cargo check`, `py_compile`; or your own per language) runs when
+4. a **build check** (`verify.command = "auto"`: `go build ./...`, `cargo check`, `py_compile`, `dart analyze` of the saved file
+   in machine format (only its errors count, never warnings); or your own per language) runs when
    you **save** the accepted code, because a compiler reads the disk. Only the errors on or next to that code are blamed on it; the rest
    of the project's errors are counted, not guessed at.
 
@@ -437,7 +444,8 @@ Tokens: about one `fix block` run per affected function (5 findings in 3 functio
 
 **Fix from output (`<leader>aAo`)**: the errors come from the last terminal buffer, else the quickfix list; `<leader>aAO` asks for a command
 (the project's build by default), runs it and uses what it prints. They are parsed by Neovim's own `errorformat`
-(go, tsc, cargo, python, javac and the generic `file:line:col: message`), **0 tokens**; each piece sends only the errors of its function
+(go, tsc, cargo, python, javac, `flutter analyze`, `dart analyze` (human and `--format=machine`) and the generic
+`file:line:col: message`), **0 tokens**; each piece sends only the errors of its function
 (`<build_errors>`), not the whole output. At most `settings.agent.errors.max_errors` (20) errors are read.
 
 ## Multi-file plans
@@ -541,6 +549,9 @@ parser: the prompt rules and how they are read always change together.
 
 ## Pitfalls
 
+- Generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`, protobuf; list in `utils/generated.lua`) are
+  rewritten on the next build: actions that edit (`replace` output) refuse to run there, explain/ask still work. They are
+  also left out of `types`, code search and the architecture levels' searches.
 - If the model disobeys and sends several code blocks (draft + corrected version, 2 out of 6 times in a test
   with Rust), the **last one that starts like the target** is used and the hint warns: `model sent 2 blocks, check the diff`.
 - The accept/reject hint shortens in narrow windows (it drops tokens/cost first) and the spinner switches to a compact version.

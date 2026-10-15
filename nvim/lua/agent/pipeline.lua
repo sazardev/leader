@@ -128,6 +128,10 @@ function M.run(name, opts)
   if not target then
     return log.warn("Agent: " .. err)
   end
+  -- a generated file is rewritten on the next build: a change there would be lost (reading it is fine)
+  if action.output == "replace" and require("utils.generated").is_generated(target.path) then
+    return log.warn "Agent: this file is generated (build_runner, protobuf…): change its source and rebuild"
+  end
   local problem = action.check and action.check(target)
   if problem then
     return log.warn("Agent: " .. problem)

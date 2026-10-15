@@ -29,6 +29,32 @@ local function callee_identifier(fn)
   return last and is_identifier(last) and last or nil
 end
 
+--- Grammars without call nodes (Dart): a call is a `selector` holding an `argument_part`, right after what it calls:
+--- the identifier itself (`save(x)`, `Text('a')`) or the name inside the member selector before it (`repo.load(id)`)
+---@param n TSNode
+---@return TSNode?
+local function selector_callee(n)
+  local has_args = false
+  for child in n:iter_children() do
+    if child:type() == "argument_part" then
+      has_args = true
+      break
+    end
+  end
+  local prev = has_args and n:prev_named_sibling()
+  if not prev then
+    return nil
+  end
+  if is_identifier(prev) then
+    return prev
+  end
+  if prev:type() == "selector" then
+    local member = prev:named_child(0)
+    local ident = member and member:named_child(0)
+    return ident and is_identifier(ident) and ident or nil
+  end
+end
+
 ---@param target AgentTarget
 ---@return { name: string, row: integer, col: integer }[]
 local function collect_callees(target)
@@ -43,16 +69,19 @@ local function collect_callees(target)
     if #found >= settings.callees then
       return
     end
+    local ident
     if n:type():find "call" then
       local fn = n:field("function")[1] or n:field("name")[1]
-      local ident = fn and callee_identifier(fn)
-      if ident then
-        local name = vim.treesitter.get_node_text(ident, target.buf)
-        local row, col = ident:start()
-        if not seen[name] and row + 1 >= target.first and row + 1 <= target.last then
-          seen[name] = true
-          found[#found + 1] = { name = name, row = row, col = col }
-        end
+      ident = fn and callee_identifier(fn)
+    elseif n:type() == "selector" then
+      ident = selector_callee(n)
+    end
+    if ident then
+      local name = vim.treesitter.get_node_text(ident, target.buf)
+      local row, col = ident:start()
+      if not seen[name] and row + 1 >= target.first and row + 1 <= target.last then
+        seen[name] = true
+        found[#found + 1] = { name = name, row = row, col = col }
       end
     end
     for child in n:iter_children() do
@@ -88,6 +117,7 @@ local function signature(contents)
 end
 
 return {
+  calls = collect_callees, -- for tests: the calls found in a target, without asking the LSP
   cap = 3000,
   stability = 2,
   ---@param target AgentTarget

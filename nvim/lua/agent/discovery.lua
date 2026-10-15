@@ -5,8 +5,10 @@ local scopes = require "agent.context.scopes"
 
 local M = {}
 
-local SKIP =
-  { "-g", "!*_test.*", "-g", "!*.test.*", "-g", "!*.spec.*", "-g", "!**/node_modules/**", "-g", "!**/vendor/**" }
+local SKIP = vim.list_extend(
+  { "-g", "!*_test.*", "-g", "!*.test.*", "-g", "!*.spec.*", "-g", "!**/node_modules/**", "-g", "!**/vendor/**" },
+  require("utils.generated").rg_excludes()
+)
 
 ---@param ext string
 ---@return string? lang

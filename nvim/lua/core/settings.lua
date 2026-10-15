@@ -199,7 +199,8 @@ local defaults = {
       diagnostic_lines = 12, -- inline fix: max lines the diagnostic under the cursor covers (if it spans more, only what starts there)
       around = 25, -- inline fix: lines of surrounding code (before and after) shown as context
       types = 4, -- max type definitions (struct/class/interface...) the target uses
-      type_lines = 30, -- max lines per type definition
+      type_lines = 30, -- max lines per type definition (counted after dropping comments and blank lines)
+      type_comments = false, -- true keeps the full-line comments inside type definitions (doc comments cost tokens, rarely change the code)
       hover_timeout_ms = 700, -- max wait for the LSP; whatever did not arrive in time is omitted
     },
     apply = { format = false }, -- when accepting a replacement, formats that range with conform
@@ -225,7 +226,7 @@ local defaults = {
       max_retries = 2, -- attempts per proposal chain
       auto_retry = false, -- true = retries without asking (still bounded by max_retries and the spend guard)
       -- Build check, run when you SAVE the accepted code (a build reads the disk): "auto" = per language
-      -- (go build, py_compile, cargo check), false = off, or { go = { "go", "vet", "./..." } }
+      -- (go build, py_compile, cargo check, dart analyze of the file), false = off, or { go = { "go", "vet", "./..." } }
       command = "auto",
       timeout_ms = 60000,
     },

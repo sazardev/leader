@@ -46,6 +46,7 @@ local NAMES = {
   "errors_run",
   "plan",
   "docs",
+  "convert",
   "next",
   "refactor",
   "handoff",
