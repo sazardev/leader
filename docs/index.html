@@ -26,6 +26,15 @@
   --on:#f9f5d7;
 }
 *{box-sizing:border-box;margin:0;padding:0;border:0;border-radius:0}
+:root,[data-theme=dark]{color-scheme:dark}[data-theme=light]{color-scheme:light}
+/* scrollbars in the theme's colors: thin, square, no track, no arrows. Chromium ignores ::-webkit-scrollbar as soon as
+   scrollbar-width/-color are set, so those are for Firefox only */
+@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--faint) 75%,transparent) transparent}}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--faint) 75%,transparent)}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font:400 clamp(16px,1.25vw,19px)/1.55 Geist,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background .3s,color .3s}
@@ -326,7 +335,7 @@ footer a:hover{color:var(--fg)}
   .panel{padding:100px 0}
   .sticky{position:relative}
 }
-@media(max-width:520px){.bar nav a{display:none}.tile{min-height:150px}}
+@media(max-width:520px){.bar nav a{display:none}.bar nav a.docs{display:inline}.tile{min-height:150px}} /* on a phone the docs stay one tap away */
 @media(prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   .rv,.p-hero h1 .line span,.pane pre .l{opacity:1;transform:none}
@@ -340,7 +349,7 @@ footer a:hover{color:var(--fg)}
   <div class="wrap">
     <a class="logo" href="#top"><i></i>my-nvim-setup</a>
     <nav>
-      <a href="#go">Go</a><a href="#keys">Keys</a><a href="#install">Install</a><a href="docs/">Docs</a>
+      <a href="#go">Go</a><a href="#keys">Keys</a><a href="#install">Install</a><a class="docs" href="docs/">Docs</a>
       <button id="theme" aria-label="Choose theme">Theme <span class="k">t</span></button>
     </nav>
   </div>

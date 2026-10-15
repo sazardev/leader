@@ -289,15 +289,18 @@ local function render(lines)
         rows[#rows + 1] = cells(lines[i])
         i = i + 1
       end
-      local html = { '<div class="tbl"><table><thead><tr>' }
+      local html = { ('<div class="tbl%s"><table><thead><tr>'):format(#head >= 3 and " wide" or "") }
       for _, c in ipairs(head) do
         html[#html + 1] = "<th>" .. inline(c) .. "</th>"
       end
       html[#html + 1] = "</tr></thead><tbody>"
+      -- on a phone each row becomes a card: with 3+ columns every value carries its column's name
+      local labelled = #head >= 3
       for _, r in ipairs(rows) do
         html[#html + 1] = "<tr>"
         for k = 1, #head do
-          html[#html + 1] = "<td>" .. inline(r[k] or "") .. "</td>"
+          local label = labelled and k > 1 and (' data-label="%s"'):format(escape((head[k]:gsub("`", "")))) or ""
+          html[#html + 1] = "<td" .. label .. ">" .. inline(r[k] or "") .. "</td>"
         end
         html[#html + 1] = "</tr>"
       end
@@ -403,10 +406,19 @@ local TEMPLATE = [==[<!doctype html>
   --green:#79740e;--yellow:#b57614;--aqua:#427b58;--blue:#076678;--red:#9d0006;--purple:#8f3f71;--orange:#af3a03;--on:#f9f5d7;
 }
 *{box-sizing:border-box;margin:0;padding:0;border:0;border-radius:0}
+:root,[data-theme=dark]{color-scheme:dark}[data-theme=light]{color-scheme:light} /* the browser's own parts (the page's scrollbar track) follow */
 html{scroll-padding-top:84px;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font:400 16px/1.65 Geist,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
 a{color:inherit;text-decoration:none}
 button,input{font:inherit;color:inherit;background:none}
+/* scrollbars in the theme's colors: thin, square, no track, no arrows (the page, the sidebar, code, search results).
+   Chromium ignores ::-webkit-scrollbar as soon as scrollbar-width/-color are set, so those are for Firefox only */
+@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--faint) 75%,transparent) transparent}}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--faint) 75%,transparent)}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
 ::selection{background:var(--green);color:var(--on)}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 
@@ -426,9 +438,12 @@ button,input{font:inherit;color:inherit;background:none}
 #menu{display:none}
 
 /* search results: a filled block under the field, like the config's pickers */
-.results{position:absolute;left:0;right:0;top:40px;background:var(--soft);max-height:min(70vh,560px);overflow:auto;display:none}
+.results{position:absolute;left:0;right:0;top:40px;background:var(--soft);max-height:min(70vh,560px);overflow-y:auto;overflow-x:hidden;display:none;overscroll-behavior:contain}
 .results.on{display:block}
-.results a{display:block;padding:8px 14px;font-size:14px}
+/* behind the results, the page steps back (the landing page's scrim) */
+.scrim{position:fixed;inset:60px 0 0 0;background:color-mix(in srgb,var(--bg) 60%,transparent);z-index:45;display:none}
+.scrim.on{display:block}
+.results a{display:block;padding:9px 14px;font-size:14px;overflow-wrap:anywhere}
 .results a small{display:block;color:var(--faint);font-size:12px}
 .results a.sel{background:var(--blue);color:var(--on)}
 .results a.sel small{color:var(--on);opacity:.75}
@@ -436,7 +451,7 @@ button,input{font:inherit;color:inherit;background:none}
 
 /* ── layout ───────────────────────────────────────────────────────────────── */
 .layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:56px;padding:60px 24px 0;max-width:1280px;margin:0 auto}
-aside{position:sticky;top:60px;height:calc(100vh - 60px);overflow:auto;padding:28px 8px 40px 0;font-size:14px;scrollbar-width:thin}
+aside{position:sticky;top:60px;height:calc(100vh - 60px);overflow:auto;padding:28px 8px 40px 0;font-size:14px}
 aside .grp{color:var(--faint);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:22px 0 6px}
 aside .grp:first-child{margin-top:0}
 .nav-top{display:block;padding:4px 10px;color:var(--dim)}
@@ -451,7 +466,7 @@ main{padding:40px 0 120px;min-width:0;max-width:860px}
 
 /* ── content ──────────────────────────────────────────────────────────────── */
 .page+.page{margin-top:96px}
-.js .page{display:none}
+.js .page{display:none;margin-top:0}
 .js .page.on{display:block;animation:in .35s cubic-bezier(.2,.7,.1,1)}
 @keyframes in{from{opacity:0;transform:translateY(12px)}}
 .crumb{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
@@ -461,6 +476,7 @@ h2{font-size:26px;letter-spacing:-.02em;font-weight:600;margin:56px 0 14px;line-
 h3{font-size:19px;font-weight:600;margin:36px 0 10px;line-height:1.3}
 h4{font-size:16px;font-weight:600;margin:28px 0 8px;color:var(--dim)}
 h2 a,h3 a,h4 a{position:relative}
+h1 code,h2 code,h3 code,h4 code{background:none;padding:0;font-size:.88em;color:var(--aqua)}
 h2 a:hover::after,h3 a:hover::after{content:"#";position:absolute;left:calc(100% + 10px);color:var(--faint)}
 p,ul,ol,blockquote,pre,.tbl{margin:0 0 16px}
 ul,ol{padding-left:22px}
@@ -473,9 +489,13 @@ h2 a,h3 a,h4 a,main h2 a:hover,main h3 a:hover{color:inherit;text-decoration:non
 strong{font-weight:600}
 em{color:var(--dim)}
 code{font-family:"Geist Mono",ui-monospace,monospace;font-size:.86em;background:var(--soft);padding:1px 6px;word-break:break-word}
-pre{background:var(--deep);padding:16px 20px;overflow:auto;font-size:14px;line-height:1.55;position:relative}
+.code{position:relative;margin:0 0 16px}
+pre{background:var(--deep);padding:16px 20px;overflow:auto;font-size:14px;line-height:1.55}
+.code pre{margin:0;padding-right:76px}
 pre code{background:none;padding:0;font-size:inherit;word-break:normal}
-pre[data-lang]::before{content:attr(data-lang);position:absolute;top:6px;right:12px;font:11px "Geist Mono",monospace;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+.copy{position:absolute;top:8px;right:8px;font:12px "Geist Mono",monospace;color:var(--faint);background:var(--soft);padding:3px 9px;cursor:pointer;transition:color .15s,background .15s}
+.copy:hover{color:var(--fg)}
+.copy.done{color:var(--on);background:var(--green)}
 blockquote{background:var(--soft);padding:14px 18px;color:var(--dim);box-shadow:inset 3px 0 var(--aqua)}
 hr{height:1px;background:var(--soft);margin:40px 0}
 .tbl{overflow-x:auto}
@@ -495,15 +515,37 @@ footer{color:var(--faint);font-size:13px;padding:40px 0 60px}
 footer a{color:var(--dim)}
 
 @media (max-width:900px){
-  .layout{grid-template-columns:1fr;gap:0}
-  aside{position:fixed;inset:60px 0 0 0;height:auto;background:var(--bg);z-index:40;padding:24px;display:none}
+  .layout{grid-template-columns:1fr;gap:0;padding:60px 18px 0}
+  aside{position:fixed;inset:60px 0 0 0;height:auto;background:var(--bg);z-index:40;padding:20px 18px 40px;display:none;overscroll-behavior:contain}
   aside.open{display:block}
+  body.menu-open{overflow:hidden}
   #menu{display:block}
   .bar{gap:12px;padding:0 14px}
   .logo b,.bar nav a,.search .k{display:none}
   .search{min-width:0}
-  .search input{padding-right:12px}
-  .bar nav{gap:14px}
+  .search input{padding-right:12px;font-size:16px} /* 16px: iOS does not zoom into the field */
+  .bar nav{gap:16px}
+  .results{position:fixed;left:0;right:0;top:60px;max-height:calc(100vh - 60px)}
+  main{padding:28px 0 96px}
+  h1{margin-bottom:22px}
+  h2{font-size:23px;margin-top:44px}
+  pre{font-size:13px;padding:14px 16px;white-space:pre-wrap;overflow-wrap:anywhere} /* wrapped: no sideways scroll on a phone */
+  .code pre{padding-right:16px;padding-top:40px}
+  .nav-top{padding:7px 10px}
+  .nav-sub a{padding:6px 10px}
+  .pager{flex-direction:column}
+}
+@media (max-width:640px){
+  /* tables become one card per row: no column squeezed to a word per line */
+  .tbl table,.tbl tbody,.tbl tr,.tbl td{display:block;width:100%}
+  .tbl thead{display:none}
+  .tbl tr{background:var(--soft);padding:10px 14px;margin-bottom:6px}
+  .tbl tbody tr:nth-child(even) td{background:none}
+  .tbl td{padding:2px 0}
+  .tbl td:first-child{font-weight:600}
+  .tbl td:first-child code{white-space:normal}
+  .tbl.wide td[data-label]{padding-top:6px}
+  .tbl.wide td[data-label]::before{content:attr(data-label);display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:500}
 }
 @media (max-width:520px){.logo{font-size:0;gap:0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -513,7 +555,7 @@ footer a{color:var(--dim)}
 <header class="bar">
   <a class="logo" href="../"><i></i>my-nvim-setup <b>/ docs</b></a>
   <div class="search">
-    <input id="q" type="search" placeholder="Search the docs: a key, a command, a feature…" autocomplete="off" spellcheck="false" aria-label="Search">
+    <input id="q" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-label="Search">
     <span class="k">/</span>
     <div class="results" id="results" role="listbox"></div>
   </div>
@@ -524,6 +566,7 @@ footer a{color:var(--dim)}
     <button id="menu" aria-label="Menu">Menu</button>
   </nav>
 </header>
+<div class="scrim" id="scrim"></div>
 <div class="layout">
 <aside id="nav">
 @NAV@
@@ -569,7 +612,7 @@ footer a{color:var(--dim)}
       t.el.scrollIntoView();
       if (flash) { t.el.classList.remove("flash"); void t.el.offsetWidth; t.el.classList.add("flash"); }
     } else window.scrollTo(0, 0);
-    $("#nav").classList.remove("open");
+    menu(false);
     spy();
   }
   window.addEventListener("hashchange", function () { show(location.hash.slice(1), true); });
@@ -595,7 +638,28 @@ footer a{color:var(--dim)}
     if (!ticking) { ticking = true; requestAnimationFrame(function () { ticking = false; spy(); }); }
   }, { passive: true });
 
-  $("#menu").onclick = function () { $("#nav").classList.toggle("open"); };
+  function menu(open) {
+    $("#nav").classList.toggle("open", open);
+    document.body.classList.toggle("menu-open", open);
+    $("#menu").textContent = open ? "Close" : "Menu";
+  }
+  $("#menu").onclick = function () { menu(!$("#nav").classList.contains("open")); };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") menu(false); });
+
+  /* a Copy button on every code block */
+  $$("main pre").forEach(function (pre) {
+    var box = document.createElement("div"); box.className = "code";
+    pre.parentNode.insertBefore(box, pre); box.appendChild(pre);
+    var b = document.createElement("button"); b.className = "copy"; b.type = "button"; b.textContent = "Copy";
+    b.onclick = function () {
+      var text = pre.textContent, done = function () {
+        b.textContent = "Copied"; b.classList.add("done");
+        setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1400);
+      };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    };
+    box.appendChild(b);
+  });
 
   /* ── search: headings, table rows (every key), list items and paragraphs ───── */
   var index = [];
@@ -613,6 +677,7 @@ footer a{color:var(--dim)}
     });
   });
   var q = $("#q"), box = $("#results"), hits = [], sel = 0;
+  function results(on) { box.classList.toggle("on", on); $("#scrim").classList.toggle("on", on); }
   function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function snippet(text, words) {
     var low = text.toLowerCase(), at = low.indexOf(words[0]), start = Math.max(0, at - 50);
@@ -621,7 +686,7 @@ footer a{color:var(--dim)}
   }
   function search() {
     var words = q.value.toLowerCase().split(/\s+/).filter(Boolean);
-    if (!words.length) { box.classList.remove("on"); return; }
+    if (!words.length) { results(false); return; }
     hits = index.filter(function (it) { return words.every(function (w) { return it.low.indexOf(w) >= 0; }); })
       .map(function (it) {
         var score = (it.head ? 0 : 10) + (it.low.indexOf(words[0]) === 0 ? 0 : 2) + Math.min(it.text.length / 80, 6);
@@ -633,7 +698,7 @@ footer a{color:var(--dim)}
       return '<a href="#' + it.el.id + '" class="' + (i === sel ? "sel" : "") + '">' + snippet(it.text, words) +
         "<small>" + esc(it.page + (it.section !== it.page ? " › " + it.section : "")) + "</small></a>";
     }).join("") : "<p>Nothing matches. Try fewer words.</p>";
-    box.classList.add("on");
+    results(true);
   }
   function move(d) {
     var links = $$("a", box); if (!links.length) return;
@@ -645,17 +710,17 @@ footer a{color:var(--dim)}
     if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) { e.preventDefault(); move(1); }
     else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) { e.preventDefault(); move(-1); }
     else if (e.key === "Enter" && hits[sel]) { e.preventDefault(); go(hits[sel].el.id); }
-    else if (e.key === "Escape") { q.value = ""; box.classList.remove("on"); q.blur(); }
+    else if (e.key === "Escape") { q.value = ""; results(false); q.blur(); }
   });
   box.addEventListener("click", function (e) {
     var a = e.target.closest("a"); if (!a) return;
     e.preventDefault(); go(a.getAttribute("href").slice(1));
   });
   function go(id) {
-    box.classList.remove("on"); q.blur();
+    results(false); q.blur();
     if (location.hash === "#" + id) show(id, true); else location.hash = id;
   }
-  document.addEventListener("click", function (e) { if (!e.target.closest(".search")) box.classList.remove("on"); });
+  document.addEventListener("click", function (e) { if (!e.target.closest(".search")) results(false); });
   document.addEventListener("keydown", function (e) {
     if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); q.select(); }
   });
