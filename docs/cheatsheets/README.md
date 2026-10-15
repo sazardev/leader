@@ -12,6 +12,7 @@
 |---|---|
 | [go.md](go.md) | **Go in depth**: struct tags, snippets, contextual completion, `<leader>g` menu |
 | [agent.md](agent.md) | **Inline agent** (`<leader>a`): one-shot implement/review/explain... with Claude or OpenCode |
+| [tasks.md](tasks.md) | **Makefile tasks** (`<leader>R`): the picker, writing targets it can list, the preset Makefiles per language |
 | [typescript.md](typescript.md) | TypeScript / JavaScript / TSX |
 | [python.md](python.md) | Python |
 | [rust.md](rust.md) | Rust |

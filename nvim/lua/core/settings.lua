@@ -81,6 +81,12 @@ local defaults = {
     },
   },
 
+  -- Project tasks (<leader>R, lua/tasks): the targets of the project's Makefile in one picker; <leader>Rc creates a Makefile
+  -- from a preset when there is none. No model.
+  tasks = {
+    timeout_ms = 8000, -- make is given up on after this long when it lists its targets
+  },
+
   -- Inline agent (lua/agent/): ONE-SHOT actions over what you are looking at (implement,
   -- review, explain...) via `claude -p` or `opencode run`. Menu <leader>a. No chat or sidebar.
   agent = {

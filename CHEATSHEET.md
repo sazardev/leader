@@ -31,6 +31,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>k` | Kotlin | `kotlin` |
 | `<leader>m` | Markdown | `markdown` |
 | `<leader>p` | Python | `python` |
+| `<leader>R` | Run | global |
 | `<leader>r` | Rust | `rust` |
 | `<leader>P` | Session | global |
 | `<leader>S` | Settings | global |
@@ -321,6 +322,22 @@ _Where: `python`_
 | `<leader>pv` | ruff check . |
 | `<leader>px` | ruff check --fix . |
 | `<leader>pf` | ruff format (current file) |
+
+### Run — `<leader>R`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Rr` | pick task |
+| `<leader>Rl` | last task |
+| `<leader>Rd` | default task |
+| `<leader>Ra` | last with args |
+| `<leader>Rp` | dry run |
+| `<leader>Ro` | output terminal |
+| `<leader>Rq` | output to quickfix |
+| `<leader>Rs` | stop task |
+| `<leader>Rc` | create Makefile |
 
 ### Rust — `<leader>r`
 
@@ -681,6 +698,20 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 |---|---|---|
 | `<C-n>` | n | Toggle window |
 | `<leader>e` | n | Focus window |
+
+### Run
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>Ra` | n | Last with args |
+| `<leader>Rc` | n | Create Makefile |
+| `<leader>Rd` | n | Default task |
+| `<leader>Rl` | n | Last task |
+| `<leader>Ro` | n | Output terminal |
+| `<leader>Rp` | n | Dry run |
+| `<leader>Rq` | n | Output to quickfix |
+| `<leader>Rr` | n | Pick task |
+| `<leader>Rs` | n | Stop task |
 
 ### Session
 
