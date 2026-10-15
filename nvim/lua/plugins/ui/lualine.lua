@@ -24,6 +24,7 @@ return {
       lualine_c = { { "branch", icon = "⎇" } },
       lualine_x = {
         components.agent_status(),
+        components.dartgen_status(),
         components.diagnostic_count(vim.diagnostic.severity.ERROR),
         components.diagnostic_count(vim.diagnostic.severity.WARN),
       },

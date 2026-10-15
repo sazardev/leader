@@ -1,0 +1,6 @@
+  32s compiling builders/aot
+  0s json_serializable on 1 input; lib/user.dart
+W json_serializable on lib/user.dart:
+  The version constraint "any" on json_annotation allows versions before 4.12.0 which is not allowed.
+  2s json_serializable on 1 input: 1 output; spent 2s sdk
+  Built with build_runner/aot in 34s; wrote 2 outputs.

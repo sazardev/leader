@@ -28,6 +28,8 @@
   "minty": { "branch": "main", "commit": "aafc9e8e0afe6bf57580858a2849578d8d8db9e0" },
   "multicursor.nvim": { "branch": "1.0", "commit": "704b99f10a72cc05d370cfeb294ff83412a8ab55" },
   "neoconf.nvim": { "branch": "main", "commit": "7bef87a16e161b3311b76ec5aa4ad8581935788e" },
+  "nvim-dap": { "branch": "master", "commit": "cfa2d58f4537aca6ca83e2de1a0d9f1491121264" },
+  "nvim-dap-view": { "branch": "main", "commit": "e766b3d8acef97e7e8b29f7f421aa4977b9978e1" },
   "nvim-highlight-colors": { "branch": "main", "commit": "e4c7af0211866162d999ce0bdd6a029302e19139" },
   "nvim-lint": { "branch": "master", "commit": "f6230a5c06ba59e6059c14637f1dbe29a7978b9b" },
   "nvim-lspconfig": { "branch": "master", "commit": "ac062d0d01c019c0dbdb798968f3e5d8b35c3853" },

@@ -54,6 +54,26 @@ function M.agent_status()
   }
 end
 
+--- build_runner (dartgen): "gen …" / "gen" / "gen ✗ N" while a watch or build runs for this file's package
+function M.dartgen_status()
+  local function text()
+    local gen = package.loaded["dartgen"]
+    return gen and gen.statusline() or ""
+  end
+  return {
+    function()
+      return " " .. text() .. " "
+    end,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = function()
+      return text():find("✗", 1, true) and "DartgenFailed" or "DartgenStatus"
+    end,
+    padding = 0,
+  }
+end
+
 ---@return string name of the working folder
 function M.project_name()
   local cwd = vim.uv.cwd() or ""

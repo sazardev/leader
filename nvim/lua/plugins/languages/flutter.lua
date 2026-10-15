@@ -1,4 +1,5 @@
--- flutter-tools.nvim (Dart Language Server + Flutter tools).
+-- flutter-tools.nvim (Dart Language Server + Flutter tools). Debugging goes through nvim-dap (plugins/tools/dap.lua),
+-- code generation through lua/dartgen (build_runner).
 -- Docs: https://github.com/nvim-flutter/flutter-tools.nvim
 
 --- Capabilities: blink.cmp's if available
@@ -33,7 +34,14 @@ return {
     "saghen/blink.cmp",
   },
   config = function()
+    -- light mode: flutter run, hot reload and the rest stay; the resident language server (dartls) does not start.
+    -- flutter-tools starts it from its ftplugin on every Dart buffer, through this one function
+    if require("core.light").enabled then
+      require("flutter-tools.lsp").attach = function() end
+    end
     enable_document_colors()
+    require("dartgen").setup()
+    require("dartgen").check_parts(vim.api.nvim_get_current_buf()) -- the file that loaded the plugin already fired BufReadPost
 
     require("flutter-tools").setup {
       ui = {
@@ -81,13 +89,11 @@ return {
         },
       },
 
+      -- run and debug through nvim-dap: breakpoints work in any run. flutter-tools registers "Launch flutter"
+      -- (lib/main.dart, or the target of the project config); never empty its configurations, or nothing launches
       debugger = {
         enabled = true,
         run_via_dap = true,
-        register_configurations = function(_)
-          require("dap").configurations.dart = {}
-          require("dap.ext.vscode").load_launchjs()
-        end,
       },
     }
   end,

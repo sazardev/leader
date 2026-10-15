@@ -48,12 +48,16 @@ return {
       per_filetype = {
         lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
         go = { "gotags", "gosmart", "lsp", "path", "snippets", "buffer" },
+        dart = { "dartsmart", "lsp", "path", "snippets", "buffer" },
       },
       providers = {
         lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         gotags = { name = "GoTags", module = "utils.gotags", score_offset = 100 },
         -- constructor / struct{} depending on context, and filters out snippets that do not apply (utils/gosmart.lua)
         gosmart = { name = "GoSmart", module = "utils.gosmart", score_offset = 90 },
+        -- Dart: widgets, Riverpod providers and freezed classes for the project's stack, named after the file, with
+        -- their import and `part` lines (utils/dartsmart.lua)
+        dartsmart = { name = "DartSmart", module = "utils.dartsmart", score_offset = 90 },
         -- friendly-snippets' flutter.json uses the language id "flutter", which is not
         -- a real Neovim filetype (it is always "dart"): requested explicitly.
         -- when starting a declaration in Go: no stray buffer words nor the generic func/type from the LSP

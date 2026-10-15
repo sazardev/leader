@@ -278,6 +278,17 @@ function M.build(t)
   g.FlashLabel = { fg = t.on, bg = t.purple, bold = true }
   g.FlashMatch = { fg = t.fg, bg = veil(t.blue, 0.38) }
   g.FlashCurrent = { fg = t.fg, bg = veil(t.blue, 0.38), bold = true }
+  -- ── debugger (plugins/tools/dap.lua): the signs, and the line the program is stopped on veiled green ──
+  g.DapBreakpoint = { fg = t.red }
+  g.DapBreakpointCondition = { fg = t.yellow }
+  g.DapBreakpointRejected = { fg = t.faint }
+  g.DapLogPoint = { fg = t.aqua }
+  g.DapStopped = { fg = t.green, bold = true }
+  g.DapStoppedLine = { bg = veil(t.green, 0.18) }
+  -- build_runner chips in the statusline (dartgen): aqua while it builds or is up to date, red when it failed
+  g.DartgenStatus = { fg = t.aqua, bg = veil(t.aqua, 0.14), bold = true }
+  g.DartgenFailed = { fg = t.red, bg = veil(t.red, 0.16), bold = true }
+
   g.MultiCursorCursor = { fg = t.on, bg = t.purple }
   g.MultiCursorVisual = g.Visual
   g.MultiCursorDisabledCursor = { fg = t.on, bg = t.faint }

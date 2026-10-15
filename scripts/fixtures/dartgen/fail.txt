@@ -1,0 +1,16 @@
+  0s json_serializable on 1 input; lib/user.dart
+E json_serializable on lib/user.dart:
+  Could not generate `fromJson` code for `x`.
+  To support the type `InvalidType` you can:
+  * Use `JsonConverter`
+    https://pub.dev/documentation/json_annotation/latest/json_annotation/JsonConverter-class.html
+  package:gen/user.dart:13:19
+     ╷
+  13 │   final Undefined x;
+     │                   ^
+     ╵
+  0s json_serializable on 1 input: 1 no-op
+E freezed on lib/order.dart:
+  11:1: Expected a method, getter, setter or operator declaration.
+  0s source_gen:combining_builder on 1 input: 1 no-op
+  Failed to build with build_runner/aot in 0s; wrote 0 outputs.

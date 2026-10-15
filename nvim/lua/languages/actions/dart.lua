@@ -35,4 +35,70 @@ return {
   { "v", "analyze", tool("analyze", "analyze") },
   { "x", "dart fix --apply", tool("pub get && dart fix --apply", "fix --apply") },
   { "f", "format", actions.format },
+  -- code generation (build_runner: lua/dartgen)
+  {
+    "g",
+    "codegen watch (toggle)",
+    function()
+      require("dartgen").toggle()
+    end,
+  },
+  {
+    "G",
+    "codegen build once",
+    function()
+      require("dartgen").build()
+    end,
+  },
+  {
+    "L",
+    "codegen output",
+    function()
+      require("dartgen").show_log()
+    end,
+  },
+  -- debugging (nvim-dap; <leader>dd starts the app under the debugger)
+  {
+    "b",
+    "breakpoint toggle",
+    function()
+      require("dap").toggle_breakpoint()
+    end,
+  },
+  {
+    "B",
+    "breakpoint condition",
+    function()
+      require("dap").set_breakpoint(vim.fn.input "Condition: ")
+    end,
+  },
+  {
+    "c",
+    "continue",
+    function()
+      require("dap").continue()
+    end,
+  },
+  {
+    "n",
+    "step over",
+    function()
+      require("dap").step_over()
+    end,
+  },
+  {
+    "i",
+    "step into",
+    function()
+      require("dap").step_into()
+    end,
+  },
+  {
+    "O",
+    "step out",
+    function()
+      require("dap").step_out()
+    end,
+  },
+  { "u", "debug panel", "<cmd>DapViewToggle<cr>" },
 }
