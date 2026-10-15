@@ -47,6 +47,13 @@ vim.list_extend(maps, {
       queue.list()
     end,
   },
+  {
+    "k",
+    "cache",
+    function()
+      require("agent").cache()
+    end,
+  },
 })
 
 return {

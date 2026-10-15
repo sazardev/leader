@@ -7,6 +7,7 @@ local ports = require "agent.service.ports"
 
 return {
   cap = 3200,
+  stability = 2,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   ---@param ctx { names: string[], action: table }?

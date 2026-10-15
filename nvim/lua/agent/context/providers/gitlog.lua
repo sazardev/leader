@@ -24,6 +24,7 @@ end
 
 return {
   cap = 600,
+  stability = 3,
   parse = parse,
   ---@param target AgentTarget
   ---@param done fun(text: string?)

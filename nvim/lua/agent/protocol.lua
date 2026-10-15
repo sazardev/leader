@@ -17,6 +17,12 @@ needs-import: <imports>
 note: <max 15 words: what you assumed that is absent from the context>
 The block is the final answer: no draft, no second block, no prose.]=]
 
+M.DOC_RULES = [=[
+OUTPUT: one fenced block with ONLY the doc comment, written for the code in <target> (never repeat any code, never the signature); then, only if needed, one or both lines:
+needs-import: <imports>
+note: <max 15 words: what you assumed that is absent from the context>
+The block is the whole comment in its final form (it replaces the existing one, if any), indented like the first line of <target>'s code; for languages whose docstring goes inside the body (Python) it is the docstring, indented as it will sit in the body. Never put code fences inside the comment. No draft, no second block, no prose.]=]
+
 M.FINDINGS_RULES = [[
 OUTPUT, one finding per line, nothing else: L<line>|<error|warn|info>|<problem and fix, max 140 chars>
 <line> = the absolute line number shown in <target>. At most 8, worst first. Real defects only (bugs, wrong edge cases, unhandled errors, races, leaks, security): no style, no praise. Nothing real: OK]]

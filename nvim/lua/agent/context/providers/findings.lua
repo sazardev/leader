@@ -7,6 +7,7 @@ local SEVERITY = { "ERROR", "WARN", "INFO", "HINT" }
 
 return {
   cap = 1800,
+  stability = 3,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   collect = function(target, done)

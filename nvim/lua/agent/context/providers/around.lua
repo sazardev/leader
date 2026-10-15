@@ -6,6 +6,7 @@ local scopes = require "agent.context.scopes"
 
 return {
   cap = 2500,
+  stability = 3,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   collect = function(target, done)

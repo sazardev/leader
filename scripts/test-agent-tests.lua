@@ -185,6 +185,7 @@ agent_state.set = function(k, v)
   store[k] = v
 end
 require("agent.runs.store").use(vim.fn.tempname() .. ".jsonl")
+require("agent.cache").use(vim.fn.tempname() .. ".json")
 require("agent.persist").use(vim.fn.tempname() .. ".json")
 local FAKE = { text = "", calls = 0 }
 require("agent.backends").register("fakeagent", {

@@ -69,6 +69,7 @@ function K.fake()
     store[k] = v
   end
   require("agent.runs.store").use(vim.fn.tempname() .. ".jsonl")
+  require("agent.cache").use(vim.fn.tempname() .. ".json") -- never the real answers: a hit would hide the call a test counts
   require("agent.persist").use(vim.fn.tempname() .. ".json")
 
   local FAKE = { text = "", calls = 0, notes = {}, asked = {}, answer = "yes", reqs = {} }
@@ -85,6 +86,20 @@ function K.fake()
       FAKE.req, FAKE.calls = req, FAKE.calls + 1
       FAKE.reqs[#FAKE.reqs + 1] = req
       local text = type(FAKE.text) == "function" and FAKE.text(req) or FAKE.text
+      if FAKE.slow then -- writes the first half, then keeps going for a while: a job that is still running with text on screen
+        local half = math.ceil(#text / 2)
+        return {
+          cmd = {
+            "sh",
+            "-c",
+            'printf "%s" "$1"; sleep 8; printf "%s" "$2"',
+            "sh",
+            text:sub(1, half),
+            text:sub(half + 1),
+          },
+          cwd = "/tmp",
+        }
+      end
       return { cmd = { "printf", "%s", text }, cwd = "/tmp" }
     end,
     parser = function()

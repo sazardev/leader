@@ -140,4 +140,23 @@ function M.context_size(prompt_chars, opts)
   return math.min(size, opts.max_ctx or 32768)
 end
 
+---@type table<string, integer>
+local widest = {}
+
+--- A window that never shrinks while the model stays loaded. Ollama reloads the model (and drops its KV cache, which is
+--- what makes the second call on the same code fast) whenever `num_ctx` changes: a small action after a big one must keep
+--- the big one's window.
+---@param model string
+---@param size integer
+---@return integer
+function M.sticky(model, size)
+  widest[model] = math.max(widest[model] or 0, size)
+  return widest[model]
+end
+
+--- Forgets the windows (tests, or the server was restarted)
+function M.unstick()
+  widest = {}
+end
+
 return M

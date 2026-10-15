@@ -120,7 +120,7 @@ local function validated(target)
 end
 
 ---@param buf integer
----@param scope string "function" | "class" | "file" | "lines" | "diagnostic" (the lines of the diagnostic under the cursor)
+---@param scope string "function" | "class" | "file" | "lines" | "diagnostic" (the lines of the diagnostic under the cursor) | "window" (around the cursor)
 ---@param range integer[]? visual selection (1-based)
 ---@return AgentTarget?, string? error
 function M.resolve(buf, scope, range)
@@ -129,6 +129,10 @@ function M.resolve(buf, scope, range)
     target = make(buf, "selection", range[1], range[2])
   elseif scope == "file" then
     target = make(buf, "file", 1, vim.api.nvim_buf_line_count(buf))
+  elseif scope == "window" then
+    local total, row = vim.api.nvim_buf_line_count(buf), vim.api.nvim_win_get_cursor(0)[1]
+    local reach = require("core.settings").agent.next_edit.window
+    target = make(buf, "window", math.max(1, row - reach), math.min(total, row + reach))
   elseif scope == "diagnostic" then
     local first, last = M.diagnostic_range(buf, vim.api.nvim_win_get_cursor(0)[1])
     if not first then

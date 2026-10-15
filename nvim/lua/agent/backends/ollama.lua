@@ -75,7 +75,7 @@ function M.build(req)
     stream = true,
     keep_alive = settings.keep_alive,
     options = {
-      num_ctx = http.context_size(#req.system + #req.prompt, settings),
+      num_ctx = http.sticky(req.model, http.context_size(#req.system + #req.prompt, settings)),
       temperature = settings.temperature,
     },
     messages = {

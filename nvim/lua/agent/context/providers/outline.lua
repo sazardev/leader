@@ -7,6 +7,7 @@ local MAX_HEADER = 25
 
 return {
   cap = 2500,
+  stability = 2,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   ---@param ctx { names: string[] }?

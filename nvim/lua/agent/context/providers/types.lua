@@ -107,6 +107,7 @@ end
 
 return vim.tbl_extend("error", M, {
   cap = 3500,
+  stability = 2,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   ---@param ctx { action: table }?

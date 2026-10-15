@@ -27,9 +27,12 @@ function M.done(job, result)
   float.show(
     job,
     text.trim(result.text),
-    title(job, stats.line(job, result) .. (follow and (" · %s ask more"):format(follow) or ""))
+    title(job, stats.line(job, result) .. (follow and (" · %s ask more"):format(follow) or "") .. " · Esc close")
   )
   float.autoclose(job)
+  if follow then
+    float.enable_followup() -- the title says "Tab ask more": it has to work from the code, where the cursor is
+  end
   anchor.delete(job.buf, job.anchor)
   runs.event(job, "shown")
 end

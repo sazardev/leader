@@ -124,6 +124,29 @@ function M.complete(req, cb)
   return require("agent.oneshot").run(req, cb)
 end
 
+--- What the answer cache holds and has saved you, with a button to forget it all (a stored answer is only reused for an
+--- identical request, so clearing is rarely needed)
+function M.cache()
+  local cache = require "agent.cache"
+  local text = require "agent.text"
+  local s = cache.stats()
+  local saved = ("answered %d time%s · saved %s tokens"):format(s.hits, s.hits == 1 and "" or "s", text.tokens(s.tokens))
+  if s.cost > 0 then
+    saved = saved .. (" · ~$%.4f"):format(s.cost)
+  end
+  local lines = {
+    ("%d answer%s kept (%.1f KB)"):format(s.answers, s.answers == 1 and "" or "s", s.bytes / 1024),
+    saved,
+  }
+  if s.answers == 0 then
+    return require("utils.modal").confirm(lines, { title = "Agent cache", confirm = "Nothing to clear" }, function() end)
+  end
+  require("utils.modal").confirm(lines, { title = "Agent cache", confirm = "Clear", danger = true }, function()
+    local n = cache.clear()
+    require("utils.log").info(("Agent: %d cached answer%s forgotten"):format(n, n == 1 and "" or "s"))
+  end)
+end
+
 --- Run history: prompt, response, tokens and cost of each action
 function M.history()
   require("agent.ui.history").open()

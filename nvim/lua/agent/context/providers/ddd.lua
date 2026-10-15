@@ -18,6 +18,7 @@ local ROOT_MARKERS = {
 
 return {
   cap = settings.max_context_chars,
+  stability = 2,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   collect = function(target, done)

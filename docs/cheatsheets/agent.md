@@ -14,11 +14,12 @@ predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** m
 |---|---|---|
 | `i` implement | function (its name, signature, doc or `TODO` are the spec) + optional instruction | inline diff: deleted lines in red, added lines in green below. `⏎` accepts, `⎋` rejects |
 | `r` review | function or selection | real findings as **diagnostics** on their line (`◆`); `<leader>xd` shows the detail |
-| `e` explain | function or selection | window next to the code, streaming; closes by itself when the cursor moves |
+| `e` explain | function or selection | window next to the code, streaming; closes by itself when the cursor moves, or with `Esc` from the code (while it is still streaming, `Esc` also stops the call) |
 | `a` ask | your question (text field) | window, same as explain |
 | `f` fix inline | the diagnostic (LSP, linter or agent finding) on the cursor line + optional hint | diff with the minimal change on **only those lines**; the surrounding code and the objects it points to (the variable's type, the signature of what is called) go along as read-only context; with no diagnostic on the line, it does nothing |
 | `F` fix block | all the diagnostics of the function (or selection) + optional hint | diff with the minimal change that leaves the block coherent (several diagnostics with the same cause are fixed together) |
-| `d` docs | function + optional focus | diff that only adds/updates the documentation comment |
+| `d` docs | function + optional focus | diff that only adds/updates the documentation comment; the model returns **only the comment** (`agent/docplace.lua` puts it above the function, or inside it for Python), so the code cannot change and the output is a few lines |
+| `n` next edit | the 30 lines around the cursor + what you just changed in this file | diff with the ONE edit that follows from your recent changes (the rename you are following through, the field added to one constructor and not the others); with nothing changed in the file it asks nothing ([Next edit](#next-edit-on-demand)) |
 | `R` refactor | your instruction (text field) | diff that applies exactly that instruction |
 | `g` handoff | your instruction | sends `file:range` + instruction to an agent already running in Herdr |
 | `aA` + `a` fix all | none (the file's findings and diagnostics) | one proposal per function that holds any, asked **once** with the total estimate; they wait in a queue ([Several proposals at once](#several-proposals-at-once)) |
@@ -36,7 +37,7 @@ to the prompt and takes precedence over the default behaviour. Useful for an emp
 3"), for an unclear function ("this validates orders before charging; the coupon case is missing") or to steer a fix.
 `a` ask and `R` refactor require the text; `r` review and `e` explain run instantly.
 
-**Short menu**: `i` implement, `d` docs, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
+**Short menu**: `i` implement, `d` docs, `n` next edit, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
 Herdr), `h` history, `m` model (main, light and effort in a single selector), `c` clear (discards the finding on the line, or those in the selection in visual mode), `C` clear file (those in this file), `x` stop (cancels what is running and discards the
 pending proposals; it does **not** touch findings) and `l` last answer (reopens the last answer or rejected proposal). Everything that works on many pieces at once lives
 in its own **Advanced menu, `<leader>aA`**, so the everyday one stays short: `a` fix all, `o` / `O` fix from output / from a command, `p` plan across
@@ -106,6 +107,21 @@ from $0.0005 to $0.0003, with no change in latency. The system prompts were also
 action costs **~50 % less** than before the audit. About ~560 fixed input tokens from the CLI itself remain, which no safe
 flag trims (`CLAUDE_CODE_SIMPLE` and `--bare` break subscription login). `agent.claude.max_cost_usd`
 (0.25) cuts off a runaway call.
+
+### Order of the prompt (stable first, volatile last)
+
+The sections reach the prompt arranged by each provider's `stability`: **1** the same on every call of the project (`rules`, `testing`),
+**2** changes only when the code does (`types`, `outline`, `contracts`, `schema`, `ports`, `ddd`, `testfile`, `callees`), **3** changes
+with the cursor or the editor (`diagnostics`, `findings`, `around`, `callers`, `gitlog`, `changes`, `subject`). The declared order still
+decides what survives when the budget is tight; only what is SENT is rearranged. What this buys depends on the backend:
+
+- **Ollama / llama.cpp / vLLM** keep the KV cache of the last prompt and reuse what is identical from the start: a second action on the
+  same code re-reads only the tail. For that, Ollama's `num_ctx` is now *sticky* per model (a small action after a big one keeps the big
+  window, otherwise Ollama reloads the model and drops that cache).
+- **`claude -p`** gets almost nothing from it: the CLI sends the whole message as ONE block and the fixed part is under the cache's minimum
+  size. That is why `prompt_cache` stays off (measured: -40% per call); if you turn it on, `<leader>ah` shows `cache_read`/`cache_write` per
+  run so you can check it pays. The [answer cache](#answer-cache-repeated-questions-are-free) is what makes repeated questions free there.
+- A new provider declares `stability = 1|2|3` next to its `cap` (default 2).
 
 ## Models per tier (cheap where it is enough)
 
@@ -381,8 +397,10 @@ the proposal and only what you ask to change. The old proposal never touched you
 Cost: about one ordinary run per round (your instruction is ~30 tokens, the previous proposal 100-300), instead of rejecting and
 describing everything again.
 
-The same key on an **answer** (explain / ask window, enter it with `<leader>al`) asks the next question about the same code with the
-earlier questions and answers as the conversation (the oldest turns are dropped past ~4k characters).
+The same key on an **answer** (explain / ask window) asks the next question about the same code with the
+earlier questions and answers as the conversation (the oldest turns are dropped past ~4k characters). The answer window never takes
+focus, so while it is on screen the key is also bound on the code buffer you are in (it goes away with the window; a proposal waiting in
+that buffer gets the key back). Pressing it needs no `<leader>al` first.
 
 ## After accepting: verification
 
@@ -476,9 +494,37 @@ commits that touched those lines (`git log -L`), one line each (~40 tokens): the
 An `.agent.md` at the root (or further up) is added to ALL prompts: style, preferred libraries, what to avoid. Max.
 1500 useful characters. Example: `Idiomatic Go; errors with %w; no logs in pure functions; tests with testify.`
 
+## Next edit (on demand)
+
+Not autocomplete and not ghost text: **one key press** (`<leader>an`) asks the **light** model (a small local one through `light_backend` is
+enough) for the edit you are about to make. What it sees: the lines around the cursor (`settings.agent.next_edit.window`, 30 each side) and
+`<edits>`, your latest changes in this file as `-`/`+` hunks, oldest first.
+
+- The changes are tracked by `agent/edits.lua`: a baseline snapshot per file buffer, compared with the buffer when an insert ends or a normal-mode
+  change settles (one `vim.diff`; no model, no LSP, files over `next_edit.max_lines` are not followed). It keeps the last `keep` hunks and sends
+  at most `max_chars` of them (the newest win).
+- With nothing changed in the file it **asks nothing** (0 tokens, and says why). If nothing in the window clearly follows from your changes the
+  model returns the window unchanged and you get "no changes".
+- It is a normal `replace` proposal: inline diff, `⏎`/`⎋`, verification after accepting, history. Not cached (a proposal on live code).
+- Why on demand: a streaming ghost-text subscription spends tokens on every pause; this spends them only when you ask.
+
+## Answer cache (repeated questions are free)
+
+A request is identified by everything the model would receive: system prompt, file, context sections, target, task, your
+instruction, plus backend, model and effort (`agent/cache/`, pure logic in `cache/core.lua`). If the same request was answered
+before, the stored answer comes back **with 0 tokens**, before the budget guard (nothing to ask about), and goes through the same
+presenter (the status line says `cached · 0 tok · saved $…`). A hit is **not a run**: it never appears in the history (`<leader>ah`) or the spend report, since no model was called. Any change to the function, to a type
+or diagnostic it reads, or to your instruction changes the hash, so a stale answer cannot come back.
+
+- Kept by default: `text` and `findings` outputs (explain, ask, review, lenses). A `replace` proposal is never cached: asking again
+  on live code should give a fresh one. An action can opt in or out with `cache = true|false`.
+- Stored in `stdpath("state")/agent-cache.json`; the least recently used go past `max_entries`, and answers expire after `ttl_days`.
+- `<leader>aAk` shows what the cache holds and has saved you (answers kept, times it answered, tokens and money saved: counters the cache keeps itself) and has a **Clear** button. `settings.agent.cache.enabled = false` turns it off.
+- Tests must never share the real cache (a hit hides the call they count): `K.fake()` points it at a temp file.
+
 ## Settings (`settings.agent`, overridable in `local.lua`)
 
-`backend`, `order`, `light_backend`, `history`, `language` (of explanations, answers and findings; `English` by default), `rules`, `timeout_ms`, `tiers`, `context.*`, `apply.format`
+`backend`, `order`, `light_backend`, `history`, `cache`, `language` (of explanations, answers and findings; `English` by default), `rules`, `timeout_ms`, `tiers`, `context.*`, `apply.format`
 (formats the range with conform on accept), `keys` (accept/reject), `claude.models`/`model`/`light_model`/`prompt_cache`/`max_cost_usd`, `opencode.*`, `ollama.*`, `openai.*`, `custom`.
 
 ## Extending

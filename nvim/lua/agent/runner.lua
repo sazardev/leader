@@ -67,9 +67,21 @@ local function on_exit(job, parser, out)
     return fail(job, result.err)
   end
 
+  require("agent.cache").store(job, result)
+  M.settle(job, result)
+end
+
+--- A call that succeeded: record it, hand the result to the presenter, announce it. Also what a cache hit goes through,
+--- so an answer from disk looks the same as one from the model, except that it is NOT a run: no model was called, so it
+--- stays out of the history and the spend report (the cache keeps its own counters).
+---@param job AgentJob
+---@param result table
+function M.settle(job, result)
   job.state, job.result = "done", result
   jobs.finish(job)
-  runs.record(job, "done") -- before the presenter: its events (accepted, rejected...) hang off this record
+  if not result.cached then
+    runs.record(job, "done") -- before the presenter: its events (accepted, rejected...) hang off this record
+  end
   local ok, summary = pcall(job.presenter.done, job, result)
   if not ok then
     anchor.delete(job.buf, job.anchor)

@@ -7,7 +7,7 @@
 --   key        string        key under <leader>a (under <leader>aA when `advanced`)
 --   advanced   boolean?      lives in the Advanced menu (<leader>aA), not in the everyday <leader>a: batch and multi-step work
 --   modes      string[]?     mapping modes (default n and x)
---   scope      string        "function" | "class" | "type" | "file" | "lines" | "diagnostic" (a visual selection wins;
+--   scope      string        "function" | "class" | "type" | "file" | "lines" | "diagnostic" | "window" (the lines around the cursor) (a visual selection wins;
 --                            "type" = the type under the cursor, or its receiver's if you are in a Go method)
 --   context    string[]?     providers from agent/context/providers
 --   output     string        presenter: "replace" | "findings" | "text" (agent/output)
@@ -25,6 +25,9 @@
 --   handler(session)         (optional) replaces the whole model flow (e.g. handoff)
 --   standalone  boolean?     the action works on a project or a list, not on the code under the cursor (fix all, fix from
 --                            output, plans): no target is resolved, `handler({ selection, action })` takes over
+--   merge(code, target)      (optional) the model returns only part of the result (new tests, just the doc comment): this joins it to
+--                            what the target holds (docs: agent/docplace.lua; test actions: tests/target.lua)
+--   cache       boolean?     true/false forces/forbids the answer cache; default by output kind (text, findings: cached)
 --   verify      boolean?     false = accepting its proposals is not verified afterwards (docs: only comments change)
 --
 -- Add an action: create `agent/actions/<name>.lua` and add it to NAMES; the menu and
@@ -43,6 +46,7 @@ local NAMES = {
   "errors_run",
   "plan",
   "docs",
+  "next",
   "refactor",
   "handoff",
 }

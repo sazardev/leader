@@ -2,7 +2,14 @@
 -- Each action declares which providers it wants (`context = { "rules", "outline"... }`).
 -- A provider is `{ cap, collect(target, done) }` and may be asynchronous. Here they are
 -- launched in parallel and, when the last one finishes, assembled IN THE DECLARED ORDER
--- until `settings.agent.context.max_chars` runs out. The target does not count: it goes apart.
+-- until `settings.agent.context.max_chars` runs out (so the declared order is the PRIORITY when the budget is tight).
+-- The target does not count: it goes apart.
+--
+-- What is handed to the prompt is then ARRANGED by `provider.stability`: 1 = the same on every call of the project (rules),
+-- 2 = changes only when the code does (types, outline, contracts...), 3 = changes with the cursor or the editor state
+-- (diagnostics, findings, the code around, callers, history). Servers that keep the KV cache of the last prompt (Ollama,
+-- llama.cpp, vLLM) and APIs with prefix caching only reuse what is IDENTICAL FROM THE START of the prompt: the stable
+-- part goes first and the volatile one last, so a second call on the same code re-reads only the tail.
 local settings = require("core.settings").agent.context
 local text = require "agent.text"
 
@@ -12,6 +19,33 @@ local M = {}
 ---@return table
 local function provider(name)
   return require("agent.context.providers." .. name)
+end
+
+---@param name string
+---@return integer
+local function stability_of(name)
+  local ok, p = pcall(provider, name)
+  return ok and p.stability or 2
+end
+
+--- Most stable first; the declared order is kept within each level (a stable sort)
+---@param sections { name: string, text: string }[]
+---@param rank fun(name: string): integer
+---@return { name: string, text: string }[]
+function M.arrange(sections, rank)
+  local keyed = {}
+  for i, s in ipairs(sections) do
+    keyed[i] = { s = s, r = rank(s.name), i = i }
+  end
+  table.sort(keyed, function(a, b)
+    if a.r ~= b.r then
+      return a.r < b.r
+    end
+    return a.i < b.i
+  end)
+  return vim.tbl_map(function(k)
+    return k.s
+  end, keyed)
 end
 
 ---@param action table
@@ -34,7 +68,7 @@ function M.build(action, target, done)
         sections[#sections + 1] = { name = name, text = body }
       end
     end
-    done(sections)
+    done(M.arrange(sections, stability_of))
   end
 
   for i, name in ipairs(names) do

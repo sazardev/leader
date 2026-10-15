@@ -454,4 +454,59 @@ function M.declarations(buf)
   return list
 end
 
+--- Named functions and types of a file's text (what a code search lists): `{ name, kind, first, last }`, in order.
+--- A function assigned to a name (`const f = () => ...`, `f = function() ... end`) is named after what it is assigned to.
+---@param text string
+---@param lang string
+---@return { name: string, kind: "function"|"type", first: integer, last: integer }[]
+function M.symbols(text, lang)
+  ensure_plugin()
+  local ok, parser = pcall(vim.treesitter.get_string_parser, text, lang)
+  if not ok then
+    return {}
+  end
+  local root = parser:parse()[1]:root()
+  local qok, query = pcall(vim.treesitter.query.get, lang, "textobjects")
+  if not (qok and query) then
+    return {}
+  end
+  local list, seen = {}, {}
+  local function add(node, kind)
+    local name = declared_name(node, text)
+    if not name then
+      local parent = node:parent()
+      local holder = parent and (parent:field("name")[1] or parent:field("left")[1])
+      name = holder and vim.treesitter.get_node_text(holder, text)
+    end
+    if not name or name == "" or name:find "%s" then
+      return
+    end
+    local sr, er = rows(node)
+    local key = name .. ":" .. sr
+    if not seen[key] then
+      seen[key] = true
+      list[#list + 1] = { name = name, kind = kind, first = sr + 1, last = er + 1 }
+    end
+  end
+  for id, node in query:iter_captures(root, text, 0, -1) do
+    local capture = query.captures[id]
+    if capture == "function.outer" then
+      add(node, "function")
+    elseif capture == "class.outer" and (type_like(node:type()) or node:type():find("impl", 1, true)) then
+      add(node, "type")
+    end
+  end
+  for _, t in ipairs(M.type_declarations(text, lang)) do
+    local key = (t.name or "") .. ":" .. (t.first - 1)
+    if t.name and not seen[key] then
+      seen[key] = true
+      list[#list + 1] = { name = t.name, kind = "type", first = t.first, last = t.last }
+    end
+  end
+  table.sort(list, function(a, b)
+    return a.first < b.first
+  end)
+  return list
+end
+
 return M

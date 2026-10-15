@@ -4,6 +4,7 @@ local project = require "utils.project"
 
 return {
   cap = 1500,
+  stability = 1,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   collect = function(target, done)

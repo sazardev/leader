@@ -49,6 +49,7 @@ _Where: global_
 | `<leader>af` | fix inline |
 | `<leader>aF` | fix block |
 | `<leader>ad` | docs |
+| `<leader>an` | next edit |
 | `<leader>aR` | refactor |
 | `<leader>ag` | hand off |
 | `<leader>am` | model |
@@ -72,6 +73,7 @@ _Where: global_
 | `<leader>aA[` | previous proposal |
 | `<leader>aAy` | accept all |
 | `<leader>aAl` | proposals list |
+| `<leader>aAk` | cache |
 
 ### Agent DDD — `<leader>aD`
 
@@ -484,6 +486,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aA[` | n | Previous proposal |
 | `<leader>aA]` | n | Next proposal |
 | `<leader>aAa` | n | Fix all |
+| `<leader>aAk` | n | Cache |
 | `<leader>aAl` | n | Proposals list |
 | `<leader>aAo` | n | Fix from output |
 | `<leader>aAp` | n | Plan across files |
@@ -524,6 +527,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>ai` | n,x | Implement |
 | `<leader>al` | n | Last answer |
 | `<leader>am` | n | Model |
+| `<leader>an` | n,x | Next edit |
 | `<leader>ar` | n,x | Review |
 | `<leader>ax` | n | Stop |
 
@@ -579,6 +583,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 |---|---|---|
 | `<leader>H` | n | File history (session) |
 | `<leader>fr` | n | Replace in project |
+| `<leader>fs` | n | Project symbols |
 
 ### Flash
 
@@ -615,7 +620,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `;` | n | Command mode (; instead of :) |
 | `<C-c>` | n | Copy whole file |
 | `<C-s>` | n | Save file |
-| `<Esc>` | n | Go back after jump / clear highlight |
+| `<Esc>` | n | Go back after jump / clear highlight / close answer |
 | `<leader>d` | n,x | Delete without copying |
 | `<leader>fm` | n,x | Format file |
 | `<leader>q` | n | Close buffer / quit |

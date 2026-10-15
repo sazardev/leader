@@ -44,7 +44,21 @@ end
 ---@param buf integer
 local function unbind(buf)
   for _, key in pairs(settings.keys) do
-    pcall(vim.keymap.del, "n", key, { buffer = buf })
+    -- only the proposal's own mappings: the answer window may have bound the same key (refine) on this buffer
+    local map = vim.api.nvim_buf_call(buf, function()
+      return vim.fn.maparg(key, "n", false, true) -- it looks at the CURRENT buffer's mappings
+    end)
+    if map.buffer == 1 and (map.desc or ""):find("proposal", 1, true) then
+      pcall(vim.keymap.del, "n", key, { buffer = buf })
+    end
+  end
+end
+
+--- Puts the keys back if proposals are still waiting in the buffer (something else borrowed one for a while)
+---@param buf integer
+function M.rebind(buf)
+  if proposals[buf] and #proposals[buf] > 0 and vim.api.nvim_buf_is_valid(buf) then
+    bind(buf)
   end
 end
 

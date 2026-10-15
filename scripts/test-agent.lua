@@ -302,7 +302,7 @@ eq(
   { adv.prefix, vim.tbl_map(function(m)
     return m[1]
   end, adv.maps) },
-  { "aA", { "a", "o", "O", "p", "]", "[", "y", "l" } }
+  { "aA", { "a", "o", "O", "p", "]", "[", "y", "l", "k" } }
 )
 eq(
   "the everyday menu does not carry them",
@@ -342,6 +342,7 @@ local detail = require "agent.runs.detail"
 local rfmt = require "agent.runs.format"
 local tmp = vim.fn.tempname() .. ".jsonl"
 store.use(tmp)
+require("agent.cache").use(vim.fn.tempname() .. ".json")
 local function run(id, ts, extra)
   return vim.tbl_deep_extend("force", {
     t = "run",

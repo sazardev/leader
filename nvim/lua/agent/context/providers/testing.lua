@@ -1,6 +1,7 @@
 -- Where the tests go and with which framework (agent/tests/convention.lua). Short on purpose: 2-3 lines.
 return {
   cap = 500,
+  stability = 1,
   ---@param target AgentTarget the object under test (with `tests`, set by the action)
   ---@param done fun(text: string?)
   collect = function(target, done)

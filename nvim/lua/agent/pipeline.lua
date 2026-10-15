@@ -8,6 +8,7 @@
 local actions = require "agent.actions"
 local anchor = require "agent.anchor"
 local backends = require "agent.backends"
+local cache = require "agent.cache"
 local context = require "agent.context"
 local guards = require "agent.guards"
 local jobs = require "agent.jobs"
@@ -72,6 +73,12 @@ function M.launch(spec)
     end
     job.input, job.sections = spec.input, sections
     job.system, job.prompt = prompt.build(action, target, sections, spec.input)
+    -- the same question about the same code was already answered: 0 tokens, no budget to check
+    local cached = cache.lookup(job)
+    if cached then
+      status.clear(job)
+      return runner.settle(job, cached)
+    end
     guards.check({
       action = action.name or action.label,
       backend = spec.selection.backend,

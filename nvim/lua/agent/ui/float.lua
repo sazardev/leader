@@ -29,11 +29,72 @@ local function is_open()
   return state.win ~= nil and vim.api.nvim_win_is_valid(state.win)
 end
 
+-- The window does not take focus (you keep editing), so its own keymaps cannot hear anything while you are in the code.
+-- The follow-up key is therefore ALSO bound, for as long as the answer is on screen, on the code buffer it is about.
+---@type { buf: integer, key: string }?
+local followup
+
+local function release_followup()
+  local f = followup
+  followup = nil
+  if f and vim.api.nvim_buf_is_valid(f.buf) then
+    pcall(vim.keymap.del, "n", f.key, { buffer = f.buf })
+    -- a proposal waiting in that buffer may have been using the same key: give it back
+    if package.loaded["agent.output.replace"] then
+      require("agent.output.replace").rebind(f.buf)
+    end
+  end
+end
+
 function M.close()
+  release_followup()
   if is_open() then
     vim.api.nvim_win_close(state.win, true)
   end
   state.win = nil
+end
+
+--- Is the answer window on screen?
+---@return boolean
+function M.is_open()
+  return is_open()
+end
+
+--- Esc on the answer from wherever the cursor is: it goes away. If the model is still writing it, that stops the call too
+--- (like `<leader>ax`): a window that closes while the job keeps running would only come back with the next chunk.
+---@return boolean closed false when there was nothing to dismiss
+function M.dismiss()
+  if not is_open() then
+    return false
+  end
+  local job = state.job
+  if job and job.state == "running" then
+    require("agent.runner").cancel(job) -- its presenter's `release` closes the window
+  end
+  M.close()
+  return true
+end
+
+--- Makes the follow-up key (`settings.agent.keys.refine`) work from the code while the answer is shown
+function M.enable_followup()
+  release_followup()
+  local key = require("core.settings").agent.keys.refine
+  if not (key and is_open() and state.from and vim.api.nvim_buf_is_valid(state.from)) then
+    return
+  end
+  local from = state.from
+  vim.keymap.set("n", key, function()
+    if state.job then
+      require("agent.refine").answer(state.job, state.body)
+    end
+  end, { buffer = from, nowait = true, desc = "Agent ask more" })
+  followup = { buf = from, key = key }
+  -- however the window goes away (`:q`, another plugin, a new answer), the key goes with it
+  vim.api.nvim_create_autocmd("WinClosed", {
+    pattern = tostring(state.win),
+    once = true,
+    callback = release_followup,
+  })
 end
 
 ---@param lines string[]

@@ -60,6 +60,27 @@ local defaults = {
     herdr = false, -- inside Herdr, registers nvim as an "agent" to reopen the pane after the server restarts. Off: Herdr 0.9.x ignores resume and nvim gets in the way in the Agents panel (requires Herdr >= 0.10.0)
   },
 
+  -- Code search (<leader>fs): functions and types of the project ranked by what their names, comments and paths say. No model.
+  search = {
+    results = 100, -- hits shown
+    max_files = 4000, -- the index reads at most this many files
+    max_bytes = 400000, -- bigger files (generated, minified) are skipped
+    exclude = {
+      ".git",
+      "node_modules",
+      ".next",
+      "dist",
+      "build",
+      "vendor",
+      "target",
+      ".cache",
+      ".nuxt",
+      "coverage",
+      "*.min.*",
+      "*.lock",
+    },
+  },
+
   -- Inline agent (lua/agent/): ONE-SHOT actions over what you are looking at (implement,
   -- review, explain...) via `claude -p` or `opencode run`. Menu <leader>a. No chat or sidebar.
   agent = {
@@ -80,6 +101,24 @@ local defaults = {
       enabled = true,
       store_text = true,
       max_entries = 1000, -- past ~1.5x it is compacted down to the most recent ones
+    },
+    -- Next edit (<leader>an): what you just changed is compared with the file's baseline (no model) and sent, with the lines
+    -- around the cursor, to the light model, which proposes the edit that follows. On demand: one key press, no ghost text.
+    next_edit = {
+      window = 30, -- lines above and below the cursor that it may edit
+      keep = 6, -- recent hunks remembered per file
+      max_chars = 1800, -- of them that reach the prompt (the newest win)
+      max_lines = 6000, -- bigger files are not followed (a snapshot is kept)
+    },
+    -- Answer cache: the same request about the same code (same prompt, backend and model) is answered from disk, for free.
+    -- Only the outputs listed are kept: a `replace` proposal is a decision on live code, so asking again gives a fresh one.
+    -- `<leader>aAk` shows what it saved you and clears it; an action can opt out/in with `cache = false|true`.
+    cache = {
+      enabled = true,
+      outputs = { "text", "findings" },
+      max_entries = 300, -- the least recently used go first
+      ttl_days = 30,
+      max_chars = 20000, -- longer answers are not kept
     },
     -- DDD (<leader>aD): local static analysis (free) + agent actions that follow your layers and naming.
     -- Layers are recognized by DIRECTORY NAME (first path segment that matches).

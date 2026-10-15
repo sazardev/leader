@@ -75,6 +75,7 @@ end
 
 return {
   cap = 1800,
+  stability = 3,
   format = format,
   ---@param target AgentTarget
   ---@param done fun(text: string?)

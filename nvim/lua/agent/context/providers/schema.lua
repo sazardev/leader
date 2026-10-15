@@ -40,6 +40,7 @@ end
 
 return {
   cap = 2600,
+  stability = 2,
   ---@param target AgentTarget
   ---@param done fun(text: string?)
   collect = function(target, done)

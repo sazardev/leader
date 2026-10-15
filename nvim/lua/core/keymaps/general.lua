@@ -86,20 +86,27 @@ function M.setup()
     end, { desc = "Diagnostics copy " .. scope })
   end
 
-  -- <Esc>: first closes the diagnostic popup if open; then, after
+  -- <Esc>: first closes the diagnostic popup if open, then the agent's answer window; then, after
   -- gd / grr / Ctrl+click goes back to where you were (if you did not edit there);
   -- if neither applies, does the NvChad thing (clear search highlight)
   map("n", "<Esc>", function()
     if diag.close_popup() then
       return
     end
+    -- the agent's answer window never takes focus, so its own <Esc> cannot hear you while you are in the code
+    if package.loaded["agent.ui.float"] and require("agent.ui.float").dismiss() then
+      return
+    end
     if not require("utils.navigation").back() then
       vim.cmd "noh"
     end
-  end, { desc = "General go back after jump / clear highlight" })
+  end, { desc = "General go back after jump / clear highlight / close answer" })
   map("n", "<leader>H", function()
     require("utils.navigation").history_picker()
   end, { desc = "Find file history (session)" })
+  map("n", "<leader>fs", function()
+    require("codesearch").open()
+  end, { desc = "Find project symbols" })
 
   -- CTRL+click → go to definition (LSP); <Esc> or <C-o> goes back, <C-i> forward
   map(
