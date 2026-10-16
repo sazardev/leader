@@ -4,7 +4,7 @@ A **Neovim** config on top of NvChad v2.5, designed as a small **framework**: yo
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-`v1.3.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/my-nvim-setup/docs/)
+`v1.4.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/my-nvim-setup/docs/)
 
 ## Installation
 
