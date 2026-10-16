@@ -10,7 +10,7 @@ local text = require "agent.text"
 local M = {}
 
 ---@param sel AgentSelection
----@param req { action: string, system: string, prompt: string }
+---@param req { action: string, system: string, prompt: string, on_text: fun(delta: string)? }
 ---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
 local function launch(sel, req, cb)
@@ -21,6 +21,7 @@ local function launch(sel, req, cb)
     model = sel.model,
     effort = sel.effort,
     action = req.action,
+    cache = req.cache,
   }
   local parser = backend.parser()
   local t0 = vim.uv.hrtime()
@@ -34,7 +35,10 @@ local function launch(sel, req, cb)
     stdout = function(_, data)
       if data then
         vim.schedule(function()
-          parser.feed(data)
+          local new = parser.feed(data)
+          if new and req.on_text then -- the caller watches the answer arrive (the build view types it out)
+            req.on_text(new)
+          end
         end)
       end
     end,
@@ -66,7 +70,10 @@ end
 --- Every one-shot call goes through the guards (the spend budget) before anything is sent, so the commit draft, the staged
 --- review and plans are covered without each of them asking. Returns the process when the request starts at once; when a guard
 --- has to ask first it returns nil (the answer arrives through `cb`).
----@param req { action: string, system: string, prompt: string, tier: "main"|"light"? }
+--- `req.on_text(delta)`: optional, called with each piece of the answer as it streams (backends that stream)
+--- `req.cache`: ask the backend to cache the prompt's prefix (a series of requests sharing their first part).
+--- `req.preapproved`: the spend guard does not ask again (the caps still apply)
+---@param req { action: string, system: string, prompt: string, tier: "main"|"light"?, on_text: fun(delta: string)?, cache: boolean? }
 ---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?
 function M.run(req, cb)
@@ -83,6 +90,7 @@ function M.run(req, cb)
     backend = sel.backend,
     model = sel.model,
     chars = #req.system + #req.prompt,
+    preapproved = req.preapproved, -- the user already said yes to this spend (a build asks once for all of it)
   }, function()
     handle = launch(sel, req, cb)
     settled = true

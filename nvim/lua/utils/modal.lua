@@ -8,7 +8,7 @@
 --
 -- M.input   → text + editable field + buttons (Enter confirms, Esc cancels)
 -- M.confirm → text + buttons (only y confirms, any other key cancels)
--- M.checklist → rows to switch on and off (Space/x, a for all) + buttons
+-- M.checklist → rows to switch on and off (Space/x, a for all), optionally in groups (one-of groups) + buttons
 local M = {}
 
 local FLAT = require("ui.flat").enabled()
@@ -244,29 +244,70 @@ function M.confirm(lines, opts, on_yes)
 end
 
 --- A list of things to switch on and off, then one button
---- Space or x toggles the row, a toggles all, Enter confirms, Esc/q cancels
----@param items { label: string, desc: string?, checked: boolean? }[]
----@param opts { title?: string, intro?: (string|table[])[], confirm?: string, footer?: string }
+--- Space or x toggles the row, a toggles all, Enter confirms, Esc/q cancels. Items may carry a `group`: a title row is drawn
+--- above each group (the cursor skips it), and in a group listed in `opts.exclusive` checking one unchecks the others
+--- (pick one, or none). `a` never switches on more than one per exclusive group.
+---@param items { label: string, desc: string?, checked: boolean?, group: string? }[]
+--- `on_cancel`: Esc/q call it (the button reads "Back": a step of a longer flow). `clean`: dots instead of brackets and air
+--- between groups (lists with groups that read better without the checkbox look).
+---@param opts { title?: string, intro?: (string|table[])[], confirm?: string, footer?: string, exclusive?: table<string, boolean>, on_cancel?: fun(), clean?: boolean }
 ---@param on_submit fun(chosen: integer[]) the indexes of the checked items, in order
 function M.checklist(items, opts, on_submit)
   local state = {}
   local label_w = 0
+  local exclusive = opts.exclusive or {}
   for i, item in ipairs(items) do
     state[i] = item.checked and true or false
     label_w = math.max(label_w, vim.fn.strdisplaywidth(item.label))
   end
   local intro = opts.intro or {}
-  local first = #intro + 1 -- the row of the first item
+
+  -- the rows under the intro: a group title, or an item (its index)
+  local rows = {}
+  local group
+  for i, item in ipairs(items) do
+    if item.group and item.group ~= group then
+      if opts.clean and group then
+        rows[#rows + 1] = { spacer = true }
+      end
+      group = item.group
+      rows[#rows + 1] = { title = item.group }
+    end
+    rows[#rows + 1] = { item = i }
+  end
+  local first = #intro + 1 -- the row of the first line of the list
+  local last = first + #rows - 1
+  ---@param r integer buffer row
+  ---@return integer? item index
+  local function item_at(r)
+    local entry = rows[r - first + 1]
+    return entry and entry.item
+  end
 
   local function lines()
     local out = vim.list_slice(intro)
-    for i, item in ipairs(items) do
-      local pad = string.rep(" ", label_w - vim.fn.strdisplaywidth(item.label))
-      out[#out + 1] = {
-        { state[i] and " [x] " or " [ ] ", state[i] and M.hl.mark or M.hl.muted },
-        { item.label .. pad, state[i] and M.hl.file or M.hl.muted },
-        { item.desc and ("  " .. item.desc) or "", M.hl.muted },
-      }
+    for _, entry in ipairs(rows) do
+      if entry.spacer then
+        out[#out + 1] = ""
+      elseif entry.title then
+        out[#out + 1] = opts.clean and { { "  " .. entry.title:upper(), M.hl.muted } }
+          or { { " " .. entry.title:upper(), M.hl.key }, { exclusive[entry.title] and "  one of" or "", M.hl.muted } }
+      else
+        local i, item = entry.item, items[entry.item]
+        local pad = string.rep(" ", label_w - vim.fn.strdisplaywidth(item.label))
+        local one = exclusive[item.group or ""]
+        local box
+        if opts.clean then
+          box = state[i] and (one and "  ● " or "  ■ ") or (one and "  ○ " or "  □ ")
+        else
+          box = one and (state[i] and " (•) " or " ( ) ") or (state[i] and " [x] " or " [ ] ")
+        end
+        out[#out + 1] = {
+          { box, state[i] and M.hl.mark or M.hl.muted },
+          { item.label .. pad, state[i] and M.hl.file or M.hl.muted },
+          { item.desc and ("  " .. item.desc) or "", M.hl.muted },
+        }
+      end
     end
     out[#out + 1] = ""
     if opts.footer then
@@ -274,18 +315,29 @@ function M.checklist(items, opts, on_submit)
     end
     out[#out + 1] = buttons {
       { key = "Enter", label = opts.confirm or "Confirm", kind = "primary" },
-      { key = "Esc", label = "Cancel", kind = "soft" },
+      { key = "Esc", label = opts.on_cancel and "Back" or "Cancel", kind = "soft" },
     }
     return out
   end
 
-  local buf, win = open(lines(), { title = opts.title })
-  local last = first + #items - 1
+  local buf, win, close = open(lines(), { title = opts.title })
+  if opts.on_cancel then
+    local function back()
+      close()
+      vim.schedule(opts.on_cancel)
+    end
+    vim.keymap.set("n", "<Esc>", back, { buffer = buf, nowait = true, desc = "Back" })
+    vim.keymap.set("n", "q", back, { buffer = buf, nowait = true, desc = "Back" })
+  end
   vim.wo[win].cursorline = true
   if FLAT then
     vim.wo[win].winhighlight = "EndOfBuffer:NormalFloat,CursorLine:FlatInput"
   end
-  vim.api.nvim_win_set_cursor(win, { first, 0 })
+  local start = first
+  while start <= last and not item_at(start) do
+    start = start + 1
+  end
+  vim.api.nvim_win_set_cursor(win, { start, 0 })
 
   local function redraw()
     vim.bo[buf].modifiable = true
@@ -295,17 +347,39 @@ function M.checklist(items, opts, on_submit)
   local function row()
     return vim.api.nvim_win_get_cursor(win)[1]
   end
+  ---@param i integer
+  ---@param on boolean
+  local function set(i, on)
+    state[i] = on
+    local g = items[i].group
+    if on and g and exclusive[g] then
+      for j, other in ipairs(items) do
+        if j ~= i and other.group == g then
+          state[j] = false
+        end
+      end
+    end
+  end
   local function toggle()
-    local i = row() - first + 1
-    if state[i] ~= nil then
-      state[i] = not state[i]
+    local i = item_at(row())
+    if i then
+      set(i, not state[i])
       redraw()
     end
   end
   local function toggle_all()
-    local any_off = vim.tbl_contains(state, false)
-    for i in ipairs(state) do
-      state[i] = any_off
+    local any_off = false
+    for i, item in ipairs(items) do
+      if not state[i] and not exclusive[item.group or ""] then
+        any_off = true
+      end
+    end
+    for i, item in ipairs(items) do
+      if exclusive[item.group or ""] then
+        state[i] = any_off and state[i] or false -- all off clears them; all on leaves the choice as it is
+      else
+        state[i] = any_off
+      end
     end
     redraw()
   end
@@ -319,16 +393,56 @@ function M.checklist(items, opts, on_submit)
     return out
   end
 
-  -- the cursor lives on the items only (not on the buttons under them)
+  -- the cursor lives on the items only (not on group titles nor on the buttons under them)
+  local prev = start
   vim.api.nvim_create_autocmd("CursorMoved", {
     buffer = buf,
     callback = function()
-      local r = row()
-      if r < first or r > last then
-        vim.api.nvim_win_set_cursor(win, { math.min(math.max(r, first), last), 0 })
+      if #items == 0 then
+        return
+      end
+      local r = math.min(math.max(row(), first), last)
+      local step = r >= prev and 1 or -1
+      while not item_at(r) do
+        r = r + step
+        if r > last or r < first then -- no item that way: go back the other way
+          step = -step
+          r = math.min(math.max(r, first), last)
+        end
+      end
+      prev = r
+      if r ~= row() then
+        vim.api.nvim_win_set_cursor(win, { r, 0 })
       end
     end,
   })
+  -- j/k go item to item (over the group titles) without waiting for CursorMoved to fix the row afterwards
+  ---@param step integer
+  local function move(step)
+    local r = row()
+    for _ = 1, vim.v.count1 do
+      local nxt = r + step
+      while nxt >= first and nxt <= last and not item_at(nxt) do
+        nxt = nxt + step
+      end
+      if nxt < first or nxt > last then
+        break
+      end
+      r = nxt
+    end
+    prev = r
+    vim.api.nvim_win_set_cursor(win, { r, 0 })
+  end
+  for _, k in ipairs { "j", "<Down>" } do
+    vim.keymap.set("n", k, function()
+      move(1)
+    end, { buffer = buf, nowait = true, desc = "Next" })
+  end
+  for _, k in ipairs { "k", "<Up>" } do
+    vim.keymap.set("n", k, function()
+      move(-1)
+    end, { buffer = buf, nowait = true, desc = "Previous" })
+  end
   vim.keymap.set("n", "<Space>", toggle, { buffer = buf, nowait = true, desc = "Toggle" })
   vim.keymap.set("n", "x", toggle, { buffer = buf, nowait = true, desc = "Toggle" })
   vim.keymap.set("n", "a", toggle_all, { buffer = buf, nowait = true, desc = "Toggle all" })

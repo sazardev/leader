@@ -1,4 +1,4 @@
--- ── Agent Service context (global): <leader>aS ───────────────────────────────
+-- ── Agent Service context (global): <leader>aU (use cases) ──────────────────
 -- Application level of the hexagonal architecture: services / use cases that orchestrate the domain and call ports.
 local function service()
   return require "agent.service"
@@ -26,7 +26,7 @@ maps[#maps + 1] = {
 
 return {
   name = "Agent Service",
-  prefix = "aS",
+  prefix = "aU",
   global = true,
   maps = maps,
 }

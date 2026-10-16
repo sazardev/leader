@@ -251,7 +251,7 @@ history and cost), and in the history they appear under their own name (`repo_po
 |---|---|---|---|---|
 | `<leader>aD` | **Domain / DDD** (`agent/ddd/`) | implement `i`, review `r`, fix `f`, missing `m`, ask `a` | diagnose `d` (layers, violations, aggregates), clear `c` | `ddd` (layers, naming, related pieces) |
 | `<leader>aP` | **Repository** (`agent/repository/`) | port `p`, implement `i`, review `r` | **check** `c` (port vs methods, entity vs table) | `contracts`, `schema` |
-| `<leader>aS` | **Service** (`agent/service/`) | implement `i`, review `r` | **deps** `d` (ports it uses, nonexistent calls, implementations, wiring) | `ports` |
+| `<leader>aU` | **Service** (use cases) (`agent/service/`) | implement `i`, review `r` | **deps** `d` (ports it uses, nonexistent calls, implementations, wiring) | `ports` |
 | `<leader>aT` | **Tests** (`agent/tests/`) | write `w`, mock `m`, fix `f` | **gaps** `g` (public functions in the folder that no test names) | `testing`, `subject`, `testfile` |
 | `<leader>aL` | **Lenses** (`agent/lenses/`) | security `s`, performance `p`, concurrency `c`, errors `e`, api `a` | — (each lens first discards what is not its concern) | `changes` |
 
@@ -289,17 +289,17 @@ columns from the migration, `$1…`, the error style of the sibling implementati
 declaration (not by type inference); the sibling example is the first reasonable one it finds; the schema is only read from `*.sql` and
 `*.prisma` (not from ORM models or the live database).
 
-## Service (`<leader>aS`): application services / use cases
+## Service (`<leader>aU`): application services / use cases
 
 A service can only call the methods that its **ports** declare. The `ports` provider finds the interfaces the service receives
 (fields, constructor parameters, method parameters, in any language) and reads them with their real signatures, each with its path and the
 instruction to call only those methods; with `examples` it adds another service of the project as a style example.
 
-- **`<leader>aSi` service implement**: orchestrates the domain and calls ONLY the ports in `<ports>` with their exact names and signatures; business
+- **`<leader>aUi` service implement**: orchestrates the domain and calls ONLY the ports in `<ports>` with their exact names and signatures; business
   rules are called on the entity (not reimplemented); it propagates the context and translates the ports' errors.
-- **`<leader>aSr` service review**: calls to port methods that do not exist or with wrong arguments, business rules in the service, leaking
+- **`<leader>aUr` service review**: calls to port methods that do not exist or with wrong arguments, business rules in the service, leaking
   infrastructure details, swallowed or untranslated errors, non-atomic steps or steps ordered in a risky way (effects before saving), N+1.
-- **`<leader>aSd` service deps** (0 tokens): for each port, which methods it declares, **which ones this file calls and which ones the port does NOT declare** (it
+- **`<leader>aUd` service deps** (0 tokens): for each port, which methods it declares, **which ones this file calls and which ones the port does NOT declare** (it
   would not compile), which implementations it has and whether any is wired (used outside its file); it lists what needs attention.
 
 Tested with Claude: on a service that called `orders.FindByID` (the port declares `ByID`), `deps` detected it without an LLM and `service review`
@@ -529,6 +529,124 @@ or diagnostic it reads, or to your instruction changes the hash, so a stale answ
 - Stored in `stdpath("state")/agent-cache.json`; the least recently used go past `max_entries`, and answers expire after `ttl_days`.
 - `<leader>aAk` shows what the cache holds and has saved you (answers kept, times it answered, tokens and money saved: counters the cache keeps itself) and has a **Clear** button. `settings.agent.cache.enabled = false` turns it off.
 - Tests must never share the real cache (a hit hides the call they count): `K.fake()` points it at a temp file.
+
+## Project documents (`<leader>aS`): AGENTS.md, STACK.md, DESIGN.md, SPEC.md
+
+The documents every coding agent (Claude Code, Codex, Cursor, opencode, this one) reads before it changes code, written at
+the repository's root in the **same sections in every project**, so an agent always knows where to look. Lowercase keys use
+presets or the project's own facts; uppercase ones take what you describe in your words and the model writes the document.
+
+| Key | Document | How |
+|---|---|---|
+| `b` | the project | **build with agent**: reads the four documents (says which one is missing and its key) and builds the project in its own tab: one plan request, then one small request per file (only the documents it needs, the plan, the API of what is already written and the files it uses), then the manifest's own checks (Go: tidy, gofmt, build, vet, test) and up to 2 fix rounds for the files the errors name. One question before it starts (files, estimated tokens and cost, what it replaces, what the previous build left that this plan drops) |
+| `B` | the project | check again: the checks and fix rounds on the files the last build wrote, as they are now (after you edit them, or after a restart; its list is kept per project in the state dir) |
+| `/` | the library | every preset in one search (stacks, designs, their add-ons, principles) with its preview: `⏎` uses it (a stack or design opens its customize step; an add-on is merged into the STACK.md/DESIGN.md there; a principle is added), `^e` embeds its text under your cursor, `^y` copies it, `^o` opens the preset file (to read it or make your own from it) |
+| `o` | all four | which are there (`●`) and which are missing; Enter opens one or starts it |
+| `a` | AGENTS.md | the model reads the project (file tree, languages, manifests, Makefile targets, `package.json` scripts, README, the other documents) and writes how to work in it: real commands, layout, conventions, workflow, boundaries, definition of done. With one there it **updates** it, keeping what is still true |
+| `A` | AGENTS.md | the same sections without a model (0 tokens): commands detected from the Makefile and manifests, top folders, general rules, `TODO:` lines for what only you know |
+| `c` | CLAUDE.md | Claude Code reads CLAUDE.md, not AGENTS.md: creates one that imports it (`@AGENTS.md`), or adds that line to yours |
+| `t` | STACK.md | preset: kind of project → stack (with a preview) → **customize** → principles. Kinds: backend (Go stdlib / chi / Fiber / Huma / gRPC / workers, Bun + Hono / Elysia, Hono, NestJS, FastAPI, Axum, tonic, Spring, Ktor), web (Next.js, React + Vite, Vite vanilla, Solid, Preact, Alpine.js, Lit, SvelteKit, Astro, Nuxt), full stack (Go + templ + htmx, Bun full stack, Leptos, Next.js + Supabase, T3, Django + htmx, Laravel), mobile (Flutter with Riverpod, Bloc, Supabase, Firebase, offline-first, desktop or no package; Expo, SwiftUI, Compose), self-hosted (Go + SQLite + Litestream, PocketBase, Docker Compose stack, Bun + SQLite), monorepo, CLI / desktop / TUI (Bubble Tea, Wish over SSH, Ratatui, cobra, clap, Tauri) |
+| `T` | STACK.md | described ("Go API for invoices, Postgres, self-hosted"), then customize (the add-ons that fit the words you used) and principles; the model writes it knowing the add-ons, and they are merged after |
+| `k` | STACK.md | customize the one there: add deploy, CI, observability… (those already in it come checked) |
+| `p` | STACK.md | change the principles it carries: the section is rebuilt from the presets you check |
+| `d` | DESIGN.md | kind → design (with a preview) → **customize**. Design systems (Material 3, M3 Expressive, Cupertino, Ant Design, Fluent 2, Carbon, Primer, shadcn/ui, Notion, Linear), styles (neo-brutalism, Swiss, retro pixel, glass, mono minimal) and terminal / TUI (ASCII art, Braille, brutal, classic, retro CRT, modern Charm-style) |
+| `D` | DESIGN.md | described ("like Linear but warmer", "an ASCII art TUI with amber phosphor"), then customize; a design you name is sent as the base, a terminal description gets the terminal add-ons |
+| `s` | SPEC.md | write what you are building in any shape; it comes back as a spec: requirements `FR-n` with Given/When/Then acceptance criteria, non-functional `NFR-n`, data, interfaces, edge cases, milestones, and **every gap as an open question** (never invented). With a SPEC.md there, the page starts from it: edit freely and it comes back tidy, ids kept |
+
+**Customize** is one list in groups, merged into STACK.md without a model (rows replace the row with the same first
+word, rules and commands are added once, so applying twice changes nothing). It opens with **the best picks for that stack
+already checked** (an add-on's `<!-- default: … -->`: in a one-of group the most specific match wins, the stack itself over its
+language over its category), so Enter alone gives a complete setup; change or uncheck what you want. Round marks (`●`/`○`)
+are one-of groups, squares (`■`/`□`) take any number. Only the add-ons that fit the stack are listed (its main language is
+read from the Stack table, so a Go API is never offered TypeScript tools).
+
+**Esc goes back one step** (Principles → Customize → stack → kind of project; in `T`, Customize → the page with what you
+wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes.
+
+| Group | Choices |
+|---|---|
+| Package manager (one of) | Bun or npm instead of pnpm: every command, the lockfile and the Stack row are rewritten |
+| TypeScript | TypeScript 7 (the native `tsc`, ~10x faster type checks) |
+| Lint and format (one of) | Biome, Oxlint, strict ESLint + typescript-eslint |
+| Styling (one of) | Tailwind CSS 4, CSS Modules + tokens, UnoCSS |
+| Deploy (one of) | Docker self-hosted + Caddy, Coolify, Fly.io, single binary + systemd, Kubernetes, Cloudflare, Vercel, stores with fastlane, GoReleaser, cargo-dist |
+| CI (one of) | GitHub Actions, GitLab CI, Forgejo / Gitea Actions |
+| Observability | OpenTelemetry, Prometheus + Grafana, Sentry |
+| Quality | lefthook, Renovate, Dev Container, mise, Nix dev shell |
+
+**DESIGN.md customize** works the same way (best picks checked, Esc back), with its own groups:
+
+| Group | Choices |
+|---|---|
+| Platforms | web responsive, mobile app, desktop app; TUI only, narrow terminals (Termux, Blink) |
+| Theme (one of) | dark + light, dark, light, high contrast; inherit the terminal (ANSI roles, `NO_COLOR`) |
+| Palette (one of) | brand (tints from one color), Gruvbox, Catppuccin, Nord, Tokyo Night, monochrome, phosphor green / amber |
+| Motion (one of) | none, subtle, expressive; terminal animations (spinners, typewriter, frame budget) |
+| Effects | ASCII gradients, CRT, grain, glass blur, dithering, neon glow |
+| Glyphs (one of) | Unicode box + Braille, Nerd Font, ASCII-safe |
+| Density (one of) | compact, comfortable, spacious |
+| Accessibility | reduced motion, color-blind safe, screen reader, WCAG AAA |
+
+A terminal design is a real DESIGN.md for a TUI: colors as ANSI 16 / 256 / truecolor roles with fallbacks, typography as
+monospace cells and glyph sets, spacing in cells, borders as box drawing, motion as frames.
+
+**The build** (`b`) is an orchestrator you can watch, steer, leave and come back to:
+
+| Phase | What happens | Your keys |
+|---|---|---|
+| ready | pre-flight: the four documents and their size, the model of each phase (plan · files · fixes, each on the main or light tier of `<leader>am`), fix rounds, what the plan request will cost | `⏎` plan · `1` `2` `3` tier of each phase · `+` `-` fix rounds |
+| plan | one request: the files in order, what each holds, the documents it needs, the files it uses | `x` stop |
+| review | the plan with an estimate per file and in total (with and without the cache), what it replaces, leftovers of the last build. **This is the confirmation**: nothing is written before `⏎` | `⏎` build · `x` skip a file · `2` `3` tiers · `n` new plan · `p` the plan request |
+| write | one request per file; the code pane types each file out, the feed says what went in and what it cost | `x` stop · `q` hide (it goes on) · `p` the request of the file under the cursor |
+| check | the manifest's own tools plus free consistency checks (below) | |
+| fix | the files the errors name, with their errors; a check whose tool does not run sends the manifest | |
+| done | ✓ or ✗, totals, every file with its lines and cost | `⏎` opens a file · `r` checks again · `n` new plan |
+
+- **Leave it running**: `q` closes the tab, the build goes on; the statusline shows `⠹ build 7/25 · $0.031` from any buffer,
+  a notice says how it ended, `<leader>aSb` brings the view back exactly where it is.
+- **Resilient**: the run is saved after every step (state dir, per project). Closing Neovim mid-build and opening it again
+  offers to continue from the first file not written; the spend so far is kept.
+- **Transparent**: money, tokens in/out, the share read from the cache and the time, live; per file its lines and cost;
+  `p` shows the exact request (system prompt and message) a file was written from; every request is also in `<leader>ah`.
+- **Cheap**: every file and fix request shares ONE system prompt (all four documents + the plan), so the backend caches it
+  once and every later request reads it at a tenth of the price (measured with claude/haiku: ~20k of ~25k tokens per request
+  from the cache); the message carries only the file's focus, the API of what exists and the files it uses.
+
+Checks (never commands written by the model): Go `go mod tidy` · `gofmt` (fixes itself) · `build` · `vet` · `test`; Node/Bun
+`package.json has STACK.md's tools` (Vite, Vitest, TypeScript, Biome… named in the Stack table) · install (the package
+manager STACK.md names when there is no lockfile yet) · `every id the code looks up exists` (HTML vs `getElementById`,
+`querySelector('#…')`, `*_ID` constants) · `every stylesheet and module is used` · `tsc --noEmit` · the `lint` (Biome/Prettier
+fix format themselves), `build` and `test` scripts; Python `uv sync` · compileall · ruff · pytest when declared; Rust, Dart
+and Flutter their build/analyze. A missing golden file stops with "run the tests with the update flag" (no tokens).
+
+Measured on two projects (claude/haiku): a 25-file Go TUI and a 23-file Vite + TS 7 + Bun web app each cost about
+**$0.08–0.10** in total, documents, plan, files, checks and fix rounds included, in 7–8 minutes. Known limits: the checks
+see what compilers, tests and the consistency checks see; how it LOOKS (a timer that should be large) needs your eye on
+the running app; library APIs the model knows badly can be invented (a fix round usually repairs them).
+
+**Principles** are presets too, appended to STACK.md as `## Engineering principles` (one `###` each): SOLID, Clean Code,
+one file one responsibility, hexagonal, testing, error handling and security are checked by default; Clean Architecture, DDD,
+Twelve-Factor, observability, API design, performance, functional core, accessibility, git workflow and documentation are one
+Space away. The model writing a STACK.md only gets their names (to keep the layout consistent); their text is the preset's.
+
+- **Never in silence**: a document that is there is replaced only after a yes, and the old one goes to the trash (`<leader>Fu`
+  brings it back). A file with unsaved changes in a buffer is never written under.
+- **The page** (`s`, `D`, `T`) is a Markdown float: `:w` or Ctrl-s sends it, `q` closes it; what you wrote is kept for the
+  session, so closing it or a failed request loses nothing.
+- **Linked**: creating STACK.md, DESIGN.md or SPEC.md adds its line to AGENTS.md's "Read first".
+- **Language**: the documents are written in `settings.agent.kit.language` (English by default) whatever language you write
+  the description in: the model translates it and keeps names and domain terms. Measured with Haiku: Spanish drafts came
+  back fully in English (they came back mixed before the rule was moved to the end of the request).
+- **Facts vs choices**: AGENTS.md and SPEC.md never invent (a gap is a `TODO:` or an open question); STACK.md and DESIGN.md
+  are choices, so the model makes them, marked `(proposed)` with the reason, and keeps `TODO:` for what only you know.
+- **Commands** come from what the project declares: the Makefile's targets first, then the lockfile's manager (npm/pnpm/yarn/bun,
+  uv/poetry/pdm/pip, Go, Flutter/Dart, Cargo, Maven/Gradle wrappers, Swift, Deno, Composer, Bundler) and only the tools a
+  manifest names (no pytest or ruff guessed).
+- **Cost**: the model ones run once on the main tier (`kit_agents`, `kit_stack`, `kit_design`, `kit_spec`, reassignable in
+  `settings.agent.tiers`), through the spend guard and into the history (`<leader>ah`); presets and `A`/`c`/`p` cost 0 tokens.
+- **Your own presets**: drop a Markdown file in `lua/agent/kit/presets/design/`, `stack/<category>/` (a new folder is a new
+  category), `addons/<group>/` (`<!-- for: ts web -->` says which stacks it fits: tags from the stack's words, `presets.tags`) or `principles/`, starting with `<!-- name: … -->` and `<!-- desc: … -->` (`<!-- core: true -->` checks a principle
+  by default). `scripts/test-kit.sh` checks every preset has its document's sections.
 
 ## Settings (`settings.agent`, overridable in `local.lua`)
 

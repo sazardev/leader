@@ -126,6 +126,14 @@ local defaults = {
       ttl_days = 30,
       max_chars = 20000, -- longer answers are not kept
     },
+    -- Project documents (<leader>aS: AGENTS.md, STACK.md, DESIGN.md, SPEC.md): the language they are written in, whatever
+    -- language you describe things in (the model translates; names and domain terms stay as they are)
+    kit = {
+      language = "English",
+      -- <leader>aSb: the tier of each phase's model (main/light: what <leader>am chose for each) and the fix rounds. The
+      -- build view changes them per run (1 2 3, + -)
+      build = { plan = "main", files = "main", fixes = "main", max_fixes = 2 },
+    },
     -- DDD (<leader>aD): local static analysis (free) + agent actions that follow your layers and naming.
     -- Layers are recognized by DIRECTORY NAME (first path segment that matches).
     ddd = {

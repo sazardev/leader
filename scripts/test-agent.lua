@@ -110,6 +110,18 @@ eq("claude: key argv", {
   vim.tbl_contains(spec.cmd, "--max-budget-usd"),
 }, { true, "", "P", "low", true })
 eq("claude: no prompt cache by default", spec.env, { DISABLE_PROMPT_CACHING = "1" })
+eq(
+  "claude: a request that asks for the cache gets it (the build's series of requests)",
+  require("agent.backends.claude").build({ system = "S", prompt = "P", model = "haiku", cache = true }).env,
+  nil
+)
+require("core.settings").agent.claude.prompt_cache = true
+eq(
+  "claude: prompt_cache = true really turns it on (was always off: `cond and nil or x`)",
+  require("agent.backends.claude").build({ system = "S", prompt = "P", model = "haiku" }).env,
+  nil
+)
+require("core.settings").agent.claude.prompt_cache = false
 
 -- opencode parser + build
 local oc = require "agent.backends.opencode"
@@ -1311,7 +1323,7 @@ if vim.fn.executable "rg" == 1 then
 end
 vim.fn.delete(cp, "rf")
 
--- architecture LEVELS: repository (<leader>aP) and service (<leader>aS), each with its own folder, registry and menu
+-- architecture LEVELS: repository (<leader>aP) and service (<leader>aU), each with its own folder, registry and menu
 local repo_check = require "agent.repository.check"
 eq("repository check: columns of a CREATE TABLE and entity fields (ignoring case and underscores)", {
   repo_check.columns {
@@ -1496,9 +1508,9 @@ eq(
   { "aP", { "p", "i", "r", "c" } }
 )
 eq(
-  "Service menu (<leader>aS): implement, review, deps",
+  "Service menu (<leader>aU, use cases): implement, review, deps",
   { require("menus.agent_service").prefix, keys_of(require "menus.agent_service") },
-  { "aS", { "i", "r", "d" } }
+  { "aU", { "i", "r", "d" } }
 )
 local prefixes = {}
 for _, ctx in ipairs(require("menus").contexts()) do
@@ -1506,7 +1518,7 @@ for _, ctx in ipairs(require("menus").contexts()) do
 end
 eq(
   "the three levels are registered as leader groups",
-  { vim.tbl_contains(prefixes, "aD"), vim.tbl_contains(prefixes, "aP"), vim.tbl_contains(prefixes, "aS") },
+  { vim.tbl_contains(prefixes, "aD"), vim.tbl_contains(prefixes, "aP"), vim.tbl_contains(prefixes, "aU") },
   { true, true, true }
 )
 eq(

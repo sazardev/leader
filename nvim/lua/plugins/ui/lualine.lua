@@ -24,6 +24,7 @@ return {
       lualine_c = { { "branch", icon = "⎇" } },
       lualine_x = {
         components.agent_status(),
+        components.build_status(),
         components.flutter_status(),
         components.dartgen_status(),
         components.darttest_status(),

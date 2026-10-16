@@ -54,6 +54,24 @@ function M.agent_status()
   }
 end
 
+--- The agent build (<leader>aSb) while it runs, from any buffer: "⠹ build 7/25 · $0.031". It does not load the build: no
+--- state module loaded = nothing to show.
+---@return table lualine component
+function M.build_status()
+  local function text()
+    local state = package.loaded["agent.kit.build.state"]
+    return state and state.statusline() or ""
+  end
+  return {
+    text,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = "AgentStatus",
+    padding = 0,
+  }
+end
+
 --- build_runner (dartgen): "gen …" / "gen" / "gen ✗ N" while a watch or build runs for this file's package
 function M.dartgen_status()
   local function text()

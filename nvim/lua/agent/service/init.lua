@@ -1,4 +1,4 @@
--- ── SERVICE level: application services / use cases (<leader>aS) ─────────────
+-- ── SERVICE level: application services / use cases (<leader>aU) ─────────────
 -- They orchestrate the domain and call ports; the level's own context is `ports`.
 --   run(name)   implement | review: LLM actions (same pipeline and experience)
 --   deps()      do its dependencies exist, are they called correctly and are they wired? Local analysis, 0 tokens

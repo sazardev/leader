@@ -18,7 +18,8 @@ which-key only shows what belongs to the current buffer.
 | `<leader>aD` | Agent DDD | global |
 | `<leader>aL` | Agent Lenses | global |
 | `<leader>aP` | Agent Repository | global |
-| `<leader>aS` | Agent Service | global |
+| `<leader>aU` | Agent Service | global |
+| `<leader>aS` | Agent Setup | global |
 | `<leader>aT` | Agent Tests | global |
 | `<leader>s` | CSS | `css`, `scss`, `less` |
 | `<leader>C` | Comments | global |
@@ -115,15 +116,36 @@ _Where: global_
 | `<leader>aPr` | repo review |
 | `<leader>aPc` | repo check |
 
-### Agent Service — `<leader>aS`
+### Agent Service — `<leader>aU`
 
 _Where: global_
 
 | Key | Action |
 |---|---|
-| `<leader>aSi` | service implement |
-| `<leader>aSr` | service review |
-| `<leader>aSd` | service deps |
+| `<leader>aUi` | service implement |
+| `<leader>aUr` | service review |
+| `<leader>aUd` | service deps |
+
+### Agent Setup — `<leader>aS`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>aSb` | setup build |
+| `<leader>aSB` | setup recheck |
+| `<leader>aS/` | setup find |
+| `<leader>aSo` | setup overview |
+| `<leader>aSa` | setup agents |
+| `<leader>aSA` | setup agents template |
+| `<leader>aSc` | setup claude link |
+| `<leader>aSt` | setup stack |
+| `<leader>aST` | setup stack write |
+| `<leader>aSk` | setup stack addons |
+| `<leader>aSp` | setup principles |
+| `<leader>aSd` | setup design |
+| `<leader>aSD` | setup design write |
+| `<leader>aSs` | setup spec |
 
 ### Agent Tests — `<leader>aT`
 
@@ -569,13 +591,27 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aPp` | n,x | Repo port |
 | `<leader>aPr` | n,x | Repo review |
 | `<leader>aR` | n,x | Refactor |
-| `<leader>aSd` | n | Service deps |
-| `<leader>aSi` | n,x | Service implement |
-| `<leader>aSr` | n,x | Service review |
+| `<leader>aS/` | n | Setup find |
+| `<leader>aSA` | n | Setup agents template |
+| `<leader>aSB` | n | Setup recheck |
+| `<leader>aSD` | n | Setup design write |
+| `<leader>aST` | n | Setup stack write |
+| `<leader>aSa` | n | Setup agents |
+| `<leader>aSb` | n | Setup build |
+| `<leader>aSc` | n | Setup claude link |
+| `<leader>aSd` | n | Setup design |
+| `<leader>aSk` | n | Setup stack addons |
+| `<leader>aSo` | n | Setup overview |
+| `<leader>aSp` | n | Setup principles |
+| `<leader>aSs` | n | Setup spec |
+| `<leader>aSt` | n | Setup stack |
 | `<leader>aTf` | n,x | Test fix |
 | `<leader>aTg` | n | Test gaps |
 | `<leader>aTm` | n,x | Test mock |
 | `<leader>aTw` | n,x | Test write |
+| `<leader>aUd` | n | Service deps |
+| `<leader>aUi` | n,x | Service implement |
+| `<leader>aUr` | n,x | Service review |
 | `<leader>aa` | n,x | Ask |
 | `<leader>ac` | n,x | Clear |
 | `<leader>ad` | n,x | Docs |

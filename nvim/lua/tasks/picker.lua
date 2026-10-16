@@ -18,6 +18,7 @@ local function show(items, opts, entry_maker, attach)
       finder = finders.new_table { results = items, entry_maker = entry_maker },
       sorter = conf.generic_sorter {},
       previewer = opts.preview and conf.file_previewer {} or nil,
+      default_selection_index = opts.select,
       attach_mappings = attach,
     })
     :find()
@@ -46,55 +47,79 @@ function M.open(tasks, opts)
     separator = "  ",
     items = { { width = 1 }, { width = 28 }, { remaining = true } },
   }
+  show(tasks, { title = opts.title, results_title = "Enter run · C-a args · C-p dry run · C-r refresh" }, function(t)
+    return {
+      value = t,
+      ordinal = t.name .. " " .. (t.desc or ""),
+      display = function()
+        return displayer {
+          { t.default and "●" or " ", "FlatMark" },
+          { t.name },
+          { t.desc or "", "Comment" },
+        }
+      end,
+    }
+  end, function(bufnr, map)
+    local actions = require "telescope.actions"
+    actions.select_default:replace(chosen(bufnr, opts.on_select))
+    map({ "i", "n" }, "<C-a>", chosen(bufnr, opts.on_args))
+    map({ "i", "n" }, "<C-p>", chosen(bufnr, opts.on_dry))
+    map({ "i", "n" }, "<C-r>", function()
+      actions.close(bufnr)
+      vim.schedule(opts.on_refresh)
+    end)
+    return true
+  end)
+end
+
+---@param items { label: string, desc: string?, path: string?, value: any, search: string? }[] `search`: more words the
+--- filter matches without showing them (an id, a description)
+---@param opts { title: string, preview: boolean?, width: integer?, select: integer?, on_cancel: fun()?, hint: string?, maps: { [1]: string, [2]: fun(value: any) }[]? }
+--- `hint`: the results' title (the keys of the list). `maps`: more keys on the selected entry (`{ "<C-e>", fn }`).
+--- `width`: of the label column (20; no `desc` on any item = the label alone). `select`: the row the cursor starts on.
+--- `on_cancel`: Esc (and Ctrl-c) close the list and call it, e.g. to go back to the step before.
+---@param on_select fun(value: any)
+function M.choose(items, opts, on_select)
+  local entry_display = require "telescope.pickers.entry_display"
+  local with_desc = vim.iter(items):any(function(item)
+    return item.desc ~= nil
+  end)
+  local displayer = entry_display.create {
+    separator = "  ",
+    items = with_desc and { { width = opts.width or 20 }, { remaining = true } } or { { remaining = true } },
+  }
   show(
-    tasks,
-    { title = opts.title, results_title = "Enter run · C-a args · C-p dry run · C-r refresh" },
-    function(t)
+    items,
+    { title = opts.title, results_title = opts.hint, preview = opts.preview, select = opts.select },
+    function(item)
       return {
-        value = t,
-        ordinal = t.name .. " " .. (t.desc or ""),
+        value = item.value,
+        path = item.path,
+        ordinal = item.label .. " " .. (item.desc or "") .. " " .. (item.search or ""),
         display = function()
-          return displayer {
-            { t.default and "●" or " ", "FlatMark" },
-            { t.name },
-            { t.desc or "", "Comment" },
-          }
+          if not with_desc then
+            return displayer { { item.label } }
+          end
+          return displayer { { item.label }, { item.desc or "", "Comment" } }
         end,
       }
     end,
     function(bufnr, map)
-      local actions = require "telescope.actions"
-      actions.select_default:replace(chosen(bufnr, opts.on_select))
-      map({ "i", "n" }, "<C-a>", chosen(bufnr, opts.on_args))
-      map({ "i", "n" }, "<C-p>", chosen(bufnr, opts.on_dry))
-      map({ "i", "n" }, "<C-r>", function()
-        actions.close(bufnr)
-        vim.schedule(opts.on_refresh)
-      end)
+      require("telescope.actions").select_default:replace(chosen(bufnr, on_select))
+      for _, m in ipairs(opts.maps or {}) do
+        map({ "i", "n" }, m[1], chosen(bufnr, m[2]))
+      end
+      if opts.on_cancel then
+        local function back()
+          require("telescope.actions").close(bufnr)
+          vim.schedule(opts.on_cancel)
+        end
+        map({ "i", "n" }, "<Esc>", back)
+        map({ "i", "n" }, "<C-c>", back)
+      end
       return true
     end
   )
-end
-
----@param items { label: string, desc: string?, path: string?, value: any }[]
----@param opts { title: string, preview: boolean? }
----@param on_select fun(value: any)
-function M.choose(items, opts, on_select)
-  local entry_display = require "telescope.pickers.entry_display"
-  local displayer = entry_display.create { separator = "  ", items = { { width = 20 }, { remaining = true } } }
-  show(items, { title = opts.title, preview = opts.preview }, function(item)
-    return {
-      value = item.value,
-      path = item.path,
-      ordinal = item.label .. " " .. (item.desc or ""),
-      display = function()
-        return displayer { { item.label }, { item.desc or "", "Comment" } }
-      end,
-    }
-  end, function(bufnr)
-    require("telescope.actions").select_default:replace(chosen(bufnr, on_select))
-    return true
-  end)
 end
 
 return M

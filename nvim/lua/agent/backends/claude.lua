@@ -60,8 +60,13 @@ function M.build(req)
   if settings.max_cost_usd then
     vim.list_extend(cmd, { "--max-budget-usd", tostring(settings.max_cost_usd) })
   end
-  -- no prompt caching unless requested: see settings.agent.claude.prompt_cache
-  local env = settings.prompt_cache and nil or { DISABLE_PROMPT_CACHING = "1" }
+  -- no prompt caching unless requested: see settings.agent.claude.prompt_cache. `req.cache`: a series of requests that share a
+  -- long prefix (the build sends the same documents with every file) turns it on for itself: reads cost a tenth
+  -- (not `cond and nil or x`: that is always x, and kept the cache off even with prompt_cache = true)
+  local env = nil ---@type table?
+  if not (settings.prompt_cache or req.cache) then
+    env = { DISABLE_PROMPT_CACHING = "1" }
+  end
   return { cmd = cmd, stdin = req.prompt, cwd = sandbox.dir(), env = env }
 end
 
