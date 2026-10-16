@@ -172,6 +172,77 @@ func New(id, title, content string) (*Note, error) {
 
 Contiguous parameters of the same type are grouped. With a single struct in the file it is called `New`; with several, `NewX` (and several entries show up: `funcnew Note`, `funcnew Other`…).
 
+**`Reconstitute`** — the persistence-layer constructor: it takes **every** field and sets it, with no validation and no `now`,
+because the data was valid when it was saved. Optional like `funcnew`: it shows up when you type `recon…` (or `funcrecon…`),
+5 letters at least, at package level, once per struct **declared in the current file** (also inside `type ( … )` blocks) that has no
+such function yet. Structs of other files of the package and generic structs are not offered:
+
+```go
+// Reconstitute rehydrates a Note from persistence without validating it.
+func Reconstitute(id, title, content string, createdAt, updatedAt time.Time) *Note {
+	return &Note{
+		id:        id,
+		title:     title,
+		content:   content,
+		createdAt: createdAt,
+		updatedAt: updatedAt,
+	}
+}
+```
+
+Same rules as `funcnew` for the rest: grouped parameters, `lowerCamel` names, embedded fields skipped, `Reconstitute` with one struct
+in the file and `ReconstituteX` with several. It is the name `toDomain` (`functodomain`, `*_model.go`) looks for in the domain package.
+
+**Getters** — the accessors of an aggregate's private fields: no `Get` prefix, no setters (changes go through methods that mean
+something). For every **unexported** field of a struct declared in the current file that has no accessor yet:
+
+```go
+func (n *Note) ID() string           { return n.id }
+func (n *Note) Title() string        { return n.title }
+func (n *Note) CreatedAt() time.Time { return n.createdAt }
+func (n *Note) Tags() []string       { return slices.Clone(n.tags) }
+```
+
+Two ways in: at package level type `getters` (or `funcgetters`, `accessors`; 5 letters at least) for all the missing ones of a
+struct at once, or write `func (n *Note) ` and the menu (it opens by itself) lists one item per missing getter plus
+`all getters`. Details: the receiver is the one your other methods use (else the first letter of the struct, pointer);
+names follow Go's initialisms (`id` → `ID`, `userId` → `UserID`, `url` → `URL`); exported and embedded fields are skipped; a
+getter you already wrote is not repeated; the bodies come aligned like gofmt writes them. A **slice or map is returned as a
+copy** (`slices.Clone` / `maps.Clone`, the import comes with `goimports` on save), so the caller cannot change the aggregate's
+state through it. `settings.go.getters.clone = false` returns the field as it is. A pointer field is returned as it is.
+
+**`package` at the top of a file** — gopls always offers `package main` next to `package <folder>`, and it used to rank first. Now the
+candidates are judged by where the file is (`utils/gopackage.lua`):
+
+- the **other `.go` files of the folder decide**: they say `package notes` → `notes` first and no `main`; they say `main` → `main` first
+  (`_test` files count as their package; files with `//go:build ignore` and comments are not read as neighbours);
+- **no neighbours**: `main` leads only under `cmd/…`, in a file called `main.go`, or in the module root; anywhere else it is **not
+  offered** (typing `package m…` still brings it, below the rest);
+- `X_test` stays below `X`, except in a `_test.go` file, where both are real options.
+
+**Repository port** — the persistence interface of a domain object, which is almost always the same. **Only in the domain layer**
+(a `domain/`, `entities/`, `model/`… folder, the names of `settings.agent.ddd.layers.domain`, read from the path under the module
+root) type `repository` (`repo` is enough) at package level and each aggregate of the package that has no port yet is offered:
+
+```go
+// Repository is the persistence port of the Note aggregate; infrastructure implements it.
+type Repository interface {
+	Save(ctx context.Context, note *Note) error
+	FindByID(ctx context.Context, id string) (*Note, error)
+	Delete(ctx context.Context, id string) error
+	List(ctx context.Context) ([]*Note, error)
+}
+```
+
+- An **aggregate** is a struct with an identity: a field `id`, `ID` or `<Struct>ID`; its type is the one in the signatures
+  (`string`, `uuid.UUID`, `int64`, `NoteID`). Value objects (no id) and `*Model`, `*DTO`, `*Request`, `*Response`, `*Row`, `*Entity`
+  structs get nothing. A struct that already has its port is not offered again.
+- In a package named after the struct (`package note`) the port is `Repository` (`note.Repository`); in any other, `NoteRepository`.
+- Nothing shows up outside the domain layer, nor in `*_model.go` files: the port belongs to the domain.
+- `settings.go.repository.methods` sets the methods and their order (`Save`, `FindByID`, `Delete`, `List`, `Exists`).
+- The adapter is the other half: in infrastructure, `func (r *noteRepo) ` offers the methods it is missing (goimpl) and
+  `var _ note.Repository = (*noteRepo)(nil)` comes from goport.
+
 **`type`** — type variants:
 
 | Option | Generates |

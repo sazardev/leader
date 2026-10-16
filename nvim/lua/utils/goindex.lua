@@ -732,6 +732,37 @@ M.package_at, M.module_dir, M.module_packages = package_at, module_dir, module_p
 M.related, M.lower_first, M.resolve_interface, M.defined_methods =
   related, lower_first, resolve_interface, defined_methods
 M.normalize, M.zero_value, M.esc, M.range_of = normalize, zero_value, esc, range_of
-M.buffer_state, M.current_package = buffer_state, current_package
+--- The names of the structs declared in the current file, in `type X struct` and in `type ( … )` blocks alike. Generic ones are left
+--- out: their constructor would need the type parameters
+---@return string[]
+local function file_structs()
+  local ok, root = pcall(function()
+    return vim.treesitter.get_parser(0, "go"):parse()[1]:root()
+  end)
+  local names = {}
+  if not ok or not root then
+    return names
+  end
+  for decl in root:iter_children() do
+    if decl:type() == "type_declaration" then
+      for spec in decl:iter_children() do
+        local name, typ = spec:field("name")[1], spec:field("type")[1]
+        if
+          spec:type() == "type_spec"
+          and name
+          and typ
+          and typ:type() == "struct_type"
+          and not spec:field("type_parameters")[1]
+        then
+          names[#names + 1] = vim.treesitter.get_node_text(name, 0)
+        end
+      end
+    end
+  end
+  table.sort(names)
+  return names
+end
+
+M.buffer_state, M.current_package, M.file_structs = buffer_state, current_package, file_structs
 
 return M

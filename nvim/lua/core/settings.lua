@@ -334,6 +334,19 @@ local defaults = {
     auto_collapse = false, -- INITIAL value of "comments folded"; what you pick with <leader>Cc / <leader>Ce is saved and wins
   },
 
+  -- Go helpers (lua/utils/go*.lua)
+  go = {
+    getters = {
+      -- a getter of a slice or map returns a COPY (slices.Clone / maps.Clone), so the caller cannot change the aggregate's
+      -- state through it; false returns the field as it is
+      clone = true,
+    },
+    repository = {
+      -- the methods of the repository port (`repo` in the domain layer), in this order: Save FindByID Delete List Exists
+      methods = { "Save", "FindByID", "Delete", "List" },
+    },
+  },
+
   -- Git (lua/commit/, menu <leader>G): commits with Conventional Commits
   git = {
     -- <leader>Gi (lua/gitignore/): what it looks at to suggest .gitignore topics

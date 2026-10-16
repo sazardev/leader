@@ -126,6 +126,8 @@ On top of a shared index (`utils/goindex.lua`: treesitter + `go.mod`, cached by 
 - **mappers** between layers (`NoteResponse` ↔ `Note`), **constructor wiring** (`NewNoteService(noteRepo)` with the arguments resolved),
   **enum helpers** (`IsValid`, `Parse`, `UnmarshalText`…), **interface from a struct** and `var _ I = (*T)(nil)`,
   **HTTP handlers** from a service (net/http, chi, gin, echo);
+- **getters** of the private fields (slices and maps as copies), **`Reconstitute`** (the persistence constructor), the domain's
+  **repository port** and `package` ranked by the folder (`main` only where it makes sense);
 - struct tags, constructors, filled literals, sentinel errors, statement snippets. Details in [docs/cheatsheets/go.md](docs/cheatsheets/go.md).
 
 ### Dart / Flutter (`<leader>d`)

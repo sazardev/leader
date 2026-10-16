@@ -609,6 +609,451 @@ eq(
   true
 )
 
+-- ── goreconstitute ───────────────────────────────────────────────────────────
+local recon = require "utils.goreconstitute"
+write("domain/note.go", {
+  "package note",
+  "",
+  'import "time"',
+  "",
+  "type Note struct {",
+  "\tid        string",
+  "\ttitle     string",
+  "\tcontent   string",
+  "\tcreatedAt time.Time",
+  "\tupdatedAt time.Time",
+  "}",
+  "",
+})
+open "domain/note.go"
+local rec = recon.declaration_items(TOP, "recon")
+eq("goreconstitute: one item for the one struct", labels(rec), { "Reconstitute | rehydrate Note" })
+eq(
+  "goreconstitute: every field is a parameter, grouped by type, no validation and no now",
+  plain(rec[1]),
+  "// Reconstitute rehydrates a Note from persistence without validating it.\nfunc Reconstitute(id, title, content string, createdAt, updatedAt time.Time) *Note {\n\treturn &Note{\n\t\tid:        id,\n\t\ttitle:     title,\n\t\tcontent:   content,\n\t\tcreatedAt: createdAt,\n\t\tupdatedAt: updatedAt,\n\t}\n}"
+)
+eq("goreconstitute: the funcreconstitute spelling works too", #recon.declaration_items(TOP, "funcrecon"), 1)
+eq("goreconstitute: nothing before 5 letters", recon.declaration_items(TOP, "reco"), {})
+eq("goreconstitute: nothing for another word", recon.declaration_items(TOP, "recoverx"), {})
+eq("goreconstitute: nothing without a fragment", recon.declaration_items(TOP, ""), {})
+
+-- through the completion source, as it is typed at package level
+local source = require("utils.gosmart").new()
+local got
+local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+lines[#lines + 1] = "recon"
+local sctx = type_at(lines)
+source:get_completions(sctx, function(res)
+  got = res
+end)
+vim.wait(500, function()
+  return got ~= nil
+end)
+eq("goreconstitute: the source offers it first while typing `recon`", got and got.items[1] and got.items[1].label, "Reconstitute")
+eq("goreconstitute: and does not ask again once it can show up", got and got.is_incomplete_forward, false)
+lines[#lines] = "rec"
+got = nil
+source:get_completions(type_at(lines), function(res)
+  got = res
+end)
+vim.wait(500, function()
+  return got ~= nil
+end)
+eq("goreconstitute: blink is asked again while the word grows", got and got.is_incomplete_forward, true)
+
+-- already there: not offered again
+write("domain/done.go", {
+  "package note",
+  "",
+  "type Note struct{ id string }",
+  "",
+  "func Reconstitute(id string) *Note { return &Note{id: id} }",
+})
+open "domain/done.go"
+eq("goreconstitute: not offered when the function exists", recon.declaration_items(TOP, "recon"), {})
+
+-- several structs: one per struct, named after it; embedded and keyword fields
+write("domain/many.go", {
+  "package note",
+  "",
+  "type Note struct {",
+  "\tbase",
+  "\tID   string",
+  "\tType string",
+  "}",
+  "",
+  "type Tag struct{}",
+})
+open "domain/many.go"
+local many = recon.declaration_items(TOP, "Reconstitute")
+eq("goreconstitute: several structs, several names", labels(many), { "ReconstituteNote | rehydrate Note", "ReconstituteTag | rehydrate Tag" })
+eq(
+  "goreconstitute: embedded fields are skipped and Go keywords are not used as names",
+  plain(many[1]),
+  "// ReconstituteNote rehydrates a Note from persistence without validating it.\nfunc ReconstituteNote(id, type_ string) *Note {\n\treturn &Note{\n\t\tID:   id,\n\t\tType: type_,\n\t}\n}"
+)
+eq("goreconstitute: an empty struct", plain(many[2]):match "\n(.*)$", "func ReconstituteTag() *Tag {\n\treturn &Tag{}\n}")
+
+-- every struct of the file: grouped `type ( … )` blocks too; generic ones and the package's other files are not
+write("domain/other.go", { "package note", "", "type FromOtherFile struct{ A string }" })
+write("domain/block.go", {
+  "package note",
+  "",
+  "type (",
+  "\tOrder struct {",
+  "\t\tID string",
+  "\t}",
+  "",
+  "\tItem struct{ SKU string; Qty int }",
+  "\tAlias = string",
+  ")",
+  "",
+  "type Box[T any] struct{ value T }",
+  "",
+  "type Plain struct{ N int }",
+})
+open "domain/block.go"
+eq(
+  "goreconstitute: every struct of the file, in a type block too; not generics, not other files",
+  labels(recon.declaration_items(TOP, "recon")),
+  {
+    "ReconstituteItem | rehydrate Item",
+    "ReconstituteOrder | rehydrate Order",
+    "ReconstitutePlain | rehydrate Plain",
+  }
+)
+
+-- ── gogetters ────────────────────────────────────────────────────────────────
+local getters = require "utils.gogetters"
+eq(
+  "gogetters: names follow Go's initialisms",
+  vim.tbl_map(getters.method_name, { "id", "title", "createdAt", "userId", "userID", "httpClient", "ipAddress", "ids", "url" }),
+  { "ID", "Title", "CreatedAt", "UserID", "UserID", "HTTPClient", "IPAddress", "Ids", "URL" }
+)
+
+write("getters/note.go", {
+  "package getters",
+  "",
+  'import "time"',
+  "",
+  "type Note struct {",
+  "\tid        string",
+  "\ttitle     string",
+  "\tcontent   string",
+  "\ttags      []string",
+  "\tmeta      map[string]string",
+  "\tcreatedAt time.Time",
+  "\tUpdatedAt time.Time",
+  "\tbase",
+  "}",
+  "",
+})
+open "getters/note.go"
+local gitems = getters.declaration_items(TOP, "getters")
+eq("gogetters: one item for the struct, counting the missing ones", labels(gitems), { "getters | 6 for Note" })
+eq(
+  "gogetters: one line each, aligned, no Get prefix; slices and maps come back as copies; exported and embedded are skipped",
+  plain(gitems[1]),
+  table.concat({
+    "func (n *Note) ID() string              { return n.id }",
+    "func (n *Note) Title() string           { return n.title }",
+    "func (n *Note) Content() string         { return n.content }",
+    "func (n *Note) Tags() []string          { return slices.Clone(n.tags) }",
+    "func (n *Note) Meta() map[string]string { return maps.Clone(n.meta) }",
+    "func (n *Note) CreatedAt() time.Time    { return n.createdAt }",
+  }, "\n")
+)
+eq("gogetters: the other spellings and the length", {
+  #getters.declaration_items(TOP, "funcgetters"),
+  #getters.declaration_items(TOP, "accessors"),
+  #getters.declaration_items(TOP, "gett"),
+  #getters.declaration_items(TOP, ""),
+}, { 1, 1, 0, 0 })
+eq("gogetters: pending while the word grows", { getters.pending "get", getters.pending "getters", getters.pending "xyz", getters.pending "fun" }, { true, false, false, true })
+
+-- the knob: no copies
+require("core.settings").go.getters.clone = false
+eq("gogetters: clone = false returns the field as it is", plain(getters.declaration_items(TOP, "getters")[1]):match "Tags%(%)[^\n]*", "Tags() []string          { return n.tags }")
+require("core.settings").go.getters.clone = true
+
+-- the receiver of the other methods, and what already exists
+write("getters/svc.go", {
+  "package getters",
+  "",
+  "type Account struct {",
+  "\tid    string",
+  "\temail string",
+  "\tname  string",
+  "}",
+  "",
+  "func (a Account) Email() string { return a.email }",
+  "func (a Account) Rename(n string) Account { a.name = n; return a }",
+})
+open "getters/svc.go"
+local acc = getters.declaration_items(TOP, "getters")
+eq(
+  "gogetters: the receiver is the one the struct already uses (a value here), and an existing getter is not repeated",
+  plain(acc[1]),
+  "func (a Account) ID() string   { return a.id }\nfunc (a Account) Name() string { return a.name }"
+)
+
+-- several structs; one with everything covered gives nothing
+write("getters/two.go", {
+  "package getters",
+  "",
+  "type A struct{ x int }",
+  "",
+  "type B struct{ y int }",
+  "",
+  "func (b *B) Y() int { return b.y }",
+})
+open "getters/two.go"
+eq("gogetters: several structs, one item each, none for a struct that has them all", labels(getters.declaration_items(TOP, "getters")), { "getters A | 1 for A" })
+
+-- after `func (n *Note) `: one item per getter and all of them
+open "getters/note.go"
+local mlines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+mlines[#mlines + 1] = "func (x *Note) "
+local mctx = type_at(mlines)
+local mitems = getters.method_items(mctx)
+eq(
+  "gogetters: after the receiver, each getter and `all getters`",
+  vim.tbl_map(function(it)
+    return it.label
+  end, mitems),
+  { "ID", "Title", "Content", "Tags", "Meta", "CreatedAt", "all getters" }
+)
+eq("gogetters: the receiver is the one typed", plain(mitems[2]), "Title() string { return x.title }")
+eq(
+  "gogetters: `all getters` continues the line, the rest are whole functions",
+  plain(mitems[7]):match "^[^\n]*",
+  "ID() string              { return x.id }"
+)
+mlines[#mlines] = "func (x *Note) Ti"
+local filtered = getters.method_items(type_at(mlines))
+eq(
+  "gogetters: typing the name narrows them",
+  vim.tbl_map(function(it)
+    return it.label
+  end, filtered),
+  { "Title", "all getters" }
+)
+
+-- through the completion source
+local gsrc = require("utils.gosmart").new()
+local gres
+mlines[#mlines] = "func (x *Note) "
+gsrc:get_completions(type_at(mlines), function(res)
+  gres = res
+end)
+vim.wait(500, function()
+  return gres ~= nil
+end)
+eq(
+  "gogetters: the source offers them after the receiver",
+  gres and vim.iter(gres.items):any(function(it)
+    return it.label == "ID" and it.labelDetails.description:find "getter" ~= nil
+  end),
+  true
+)
+local glines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+glines[#glines] = "gette"
+gres = nil
+gsrc:get_completions(type_at(glines), function(res)
+  gres = res
+end)
+vim.wait(500, function()
+  return gres ~= nil
+end)
+eq("gogetters: and at package level once `gette` is typed", gres and gres.items[1] and gres.items[1].label, "getters")
+glines[#glines] = "get"
+gres = nil
+gsrc:get_completions(type_at(glines), function(res)
+  gres = res
+end)
+vim.wait(500, function()
+  return gres ~= nil
+end)
+eq("gogetters: blink is asked again while the word grows", gres and gres.is_incomplete_forward, true)
+
+-- ── gorepository ─────────────────────────────────────────────────────────────
+local repo = require "utils.gorepository"
+eq("gorepository: the identity is `id`, `ID` or `<Struct>ID`", {
+  repo.id_type("Note", { { name = "id", type = "string" } }),
+  repo.id_type("Order", { { name = "ID", type = "uuid.UUID" } }),
+  repo.id_type("Note", { { name = "NoteID", type = "int64" } }),
+  repo.id_type("Money", { { name = "amount", type = "int64" } }),
+}, { "string", "uuid.UUID", "int64", nil })
+eq(
+  "gorepository: `Repository` in a package named after the struct, `NoteRepository` elsewhere",
+  { repo.port_name("Note", "note"), repo.port_name("Note", "domain"), repo.port_name("Note", nil) },
+  { "Repository", "NoteRepository", "NoteRepository" }
+)
+eq("gorepository: pending while the word grows", { repo.pending "re", repo.pending "repo", repo.pending "x" }, { true, false, false })
+
+write("domain/note/note.go", {
+  "package note",
+  "",
+  "type Note struct {",
+  "\tid    string",
+  "\ttitle string",
+  "}",
+  "",
+  "type Tag struct{ name string }",
+})
+write("domain/note/repository.go", { "package note", "" })
+open "domain/note/repository.go"
+local ritems = repo.declaration_items(TOP, "repo")
+eq("gorepository: in the domain layer, the aggregate gets its port, a value object does not", labels(ritems), { "repository | port of Note → Repository" })
+eq(
+  "gorepository: the port, written from the aggregate (the package is named after it)",
+  plain(ritems[1]),
+  "// Repository is the persistence port of the Note aggregate; infrastructure implements it.\ntype Repository interface {\n\tSave(ctx context.Context, note *Note) error\n\tFindByID(ctx context.Context, id string) (*Note, error)\n\tDelete(ctx context.Context, id string) error\n\tList(ctx context.Context) ([]*Note, error)\n}"
+)
+eq("gorepository: the whole word works, too short or another word does not", {
+  #repo.declaration_items(TOP, "repository"),
+  #repo.declaration_items(TOP, "rep"),
+  #repo.declaration_items(TOP, "repox"),
+  #repo.declaration_items(TOP, ""),
+}, { 1, 0, 0, 0 })
+
+-- the knob
+local repo_settings = require("core.settings").go.repository
+repo_settings.methods = { "FindByID", "Exists" }
+eq(
+  "gorepository: the methods are the ones configured, in that order",
+  plain(repo.declaration_items(TOP, "repo")[1]):match "interface {\n(.*)\n}",
+  "\tFindByID(ctx context.Context, id string) (*Note, error)\n\tExists(ctx context.Context, id string) (bool, error)"
+)
+repo_settings.methods = { "Save", "FindByID", "Delete", "List" }
+
+-- several aggregates with their own identity type and package name
+write("domain/shop/shop.go", {
+  "package shop",
+  "",
+  "type Order struct {",
+  "\tID    uuid.UUID",
+  "\tTotal Money",
+  "}",
+  "",
+  "type Customer struct{ CustomerID int64 }",
+  "",
+  "type Money struct{ amount int64 }",
+  "",
+  "type CustomerRepository interface{ Save(ctx context.Context, c *Customer) error }",
+})
+open "domain/shop/shop.go"
+local shop = repo.declaration_items(TOP, "repo")
+eq("gorepository: one per aggregate; a port that exists is not offered again", labels(shop), { "repository | port of Order → OrderRepository" })
+eq("gorepository: the identity type is the field's", plain(shop[1]):match "FindByID%(([^)]*)%)", "ctx context.Context, id uuid.UUID")
+
+write("domain/pair/pair.go", { "package pair", "", "type Alpha struct{ id string }", "", "type Beta struct{ id int64 }" })
+open "domain/pair/pair.go"
+eq(
+  "gorepository: several aggregates, one item each, named after them",
+  labels(repo.declaration_items(TOP, "repo")),
+  { "repository Alpha | port of Alpha → AlphaRepository", "repository Beta | port of Beta → BetaRepository" }
+)
+
+-- outside the domain layer, and persistence models
+write("infrastructure/notes/store.go", { "package notes", "", "type Note struct{ id string }" })
+open "infrastructure/notes/store.go"
+eq("gorepository: nothing outside the domain layer", repo.declaration_items(TOP, "repo"), {})
+write("domain/note/note_model.go", { "package note", "", "type NoteModel struct{ ID string }" })
+open "domain/note/note_model.go"
+eq("gorepository: nothing in a persistence model file (and a `*Model` struct is never an aggregate)", repo.declaration_items(TOP, "repo"), {})
+
+-- through the completion source
+open "domain/note/repository.go"
+local rsrc = require("utils.gosmart").new()
+local rres
+local rlines = { "package note", "", "repo" }
+rsrc:get_completions(type_at(rlines), function(res)
+  rres = res
+end)
+vim.wait(500, function()
+  return rres ~= nil
+end)
+eq("gorepository: the source offers it first while typing `repo`", rres and rres.items[1] and rres.items[1].label, "repository")
+rlines[3] = "re"
+rres = nil
+rsrc:get_completions(type_at(rlines), function(res)
+  rres = res
+end)
+vim.wait(500, function()
+  return rres ~= nil
+end)
+eq("gorepository: blink is asked again while the word grows", rres and rres.is_incomplete_forward, true)
+
+-- ── gopackage ────────────────────────────────────────────────────────────────
+local gopackage = require "utils.gopackage"
+local function info(over)
+  return vim.tbl_extend("force", { siblings = {}, file = "x.go", cmd = false, root = false }, over)
+end
+eq("gopackage: the neighbours decide: their package first, no main", gopackage.decide(info { siblings = { "notes", "notes" } }), { prefer = "notes", main = false })
+eq("gopackage: neighbours that are main: main first", gopackage.decide(info { siblings = { "main" } }), { prefer = "main", main = true })
+eq("gopackage: the most common neighbour wins", gopackage.decide(info { siblings = { "a", "b", "b" } }).prefer, "b")
+eq("gopackage: a tie goes by name", gopackage.decide(info { siblings = { "b", "a" } }).prefer, "a")
+eq("gopackage: nobody around, under cmd/: main", gopackage.decide(info { cmd = true }), { prefer = "main", main = true })
+eq("gopackage: nobody around, main.go: main", gopackage.decide(info { file = "main.go" }), { prefer = "main", main = true })
+eq("gopackage: nobody around, the module root: main", gopackage.decide(info { root = true }), { prefer = "main", main = true })
+eq("gopackage: nobody around, anywhere else: no main", gopackage.decide(info {}), { prefer = nil, main = false })
+
+local function pkgs(list)
+  return vim.tbl_map(function(name)
+    return { label = "package " .. name, kind = 9 }
+  end, list)
+end
+local function ranked(list, typed, decision, test_file)
+  local out = gopackage.rank(pkgs(list), typed, decision, test_file)
+  table.sort(out, function(a, b)
+    return (a.score_offset or 0) > (b.score_offset or 0)
+  end)
+  return vim.tbl_map(function(it)
+    return it.label:gsub("^package ", "")
+  end, out)
+end
+eq("gopackage: main is not even listed where it makes no sense", ranked({ "main", "billing", "billing_test" }, "", { main = false }, false), { "billing", "billing_test" })
+eq("gopackage: unless it is being typed, then it goes last", ranked({ "main", "billing" }, "m", { main = false }, false), { "billing", "main" })
+eq("gopackage: the neighbours' package goes first, main last", ranked({ "main", "api", "api_test" }, "", { prefer = "api", main = true }, false), { "api", "api_test", "main" })
+eq("gopackage: main first when it is the one", ranked({ "api", "main", "api_test" }, "", { prefer = "main", main = true }, false), { "main", "api", "api_test" })
+eq("gopackage: in a _test.go file X_test comes right after X", ranked({ "x_test", "x", "main" }, "", { prefer = "x", main = false }, true), { "x", "x_test" })
+local keep = gopackage.rank({ { label = "package" }, { label = "other" } }, "", { main = false }, false)
+eq("gopackage: anything that is not a package clause is left alone", #keep, 2)
+
+-- from the folder
+write("pk/notes/a.go", { "package notes", "", "type A struct{}" })
+write("pk/notes/a_test.go", { "package notes_test" })
+write("pk/notes/gen.go", { "//go:build ignore", "", "package main" })
+write("pk/notes/doc.go", { "// Package notes does things.", "/*", "package fake", "*/", "package notes" })
+local got_info = gopackage.info(root .. "/pk/notes/new.go")
+table.sort(got_info.siblings)
+eq("gopackage: the folder's neighbours (tests count as their package, `go:build ignore` and comments do not)", got_info.siblings, { "notes", "notes", "notes" })
+eq("gopackage: and the rest of what it knows", { got_info.file, got_info.cmd, got_info.root }, { "new.go", false, false })
+write("cmd/tool/x.go", { "package main" })
+eq("gopackage: cmd/ is recognised", gopackage.info(root .. "/cmd/tool/other.go").cmd, true)
+eq("gopackage: the module root is recognised", gopackage.info(root .. "/main2.go").root, true)
+eq("gopackage: the current file is not its own neighbour", gopackage.info(root .. "/cmd/tool/x.go").siblings, {})
+
+-- through the LSP filter, as blink calls it
+open "pk/notes/new.go"
+local plines = { "package " }
+local pctx = type_at(plines)
+local lsp_items = { { label = "package main", kind = 9 }, { label = "package notes", kind = 9 }, { label = "package notes_test", kind = 9 } }
+local out = require("utils.gosmart").quiet_lsp(pctx, lsp_items)
+eq(
+  "gopackage: quiet_lsp drops main in a folder of package notes and puts notes first",
+  vim.tbl_map(function(it)
+    return it.label
+  end, out),
+  { "package notes", "package notes_test" }
+)
+eq("gopackage: and boosts it", out[1].score_offset > (out[2].score_offset or 0), true)
+open "cmd/tool/new.go"
+local cmd_out = require("utils.gosmart").quiet_lsp(type_at { "package " }, { { label = "package main", kind = 9 }, { label = "package tool", kind = 9 } })
+eq("gopackage: under cmd/ main stays and leads", cmd_out[1].label == "package main" and cmd_out[1].score_offset > (cmd_out[2].score_offset or 0), true)
+
 vim.cmd "silent! bwipeout!"
 vim.fn.delete(root, "rf")
 print(fails == 0 and "\nALL OK" or ("\nFAILURES: " .. fails))

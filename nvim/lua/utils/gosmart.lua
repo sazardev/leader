@@ -152,6 +152,8 @@ local function param_name(name)
   return GO_KEYWORDS[p] and p .. "_" or p
 end
 
+M.param_name = param_name
+
 ---@class GoStruct
 ---@field name string
 ---@field fields { name: string, type: string }[]
@@ -507,11 +509,17 @@ function M.extra_declaration_items(range, frag)
   return items
 end
 
+--- Helpers (utils/<name>.lua: `declaration_items(range, frag)` and `pending(frag)`) whose items exist only once their word is typed
+local TYPED_HELPERS = { "goreconstitute", "gogetters", "gorepository" }
+
 -- STRICT prefix filter (not fuzzy): `pac` must not bring anything from `type`.
 --   func family  → `f`, `fu`, `func`, or after `func ` with nothing else
 --   type family  → `t`, `ty`, `type`, or after `type ` with nothing else
 --   constructor  → `New…` or the struct's name (`Env…`), and after `func Ne…`
 --   funcnew      → (only when typed) `New(all the fields) (*X, error)`
+--   reconstitute → (only when typed, `recon`) `Reconstitute(all the fields) *X`, see utils/goreconstitute.lua
+--   getters      → (only when typed, `gette`) the accessors of the private fields, see utils/gogetters.lua
+--   repository   → (only when typed, `repo`, in the domain layer) the persistence port of an aggregate, see utils/gorepository.lua
 --   after `type Foo` / `func Foo` something is being NAMED: nothing else shows up
 ---@param ctx blink.cmp.Context
 ---@param mode "func"|"type"|"any"
@@ -545,6 +553,14 @@ local function declaration_items(ctx, mode, frag)
   if mode == "any" and frag ~= "" and starts("var", frag) then
     for i, item in ipairs(require("utils.goport").declaration_items(range, frag)) do
       table.insert(items, i, item)
+    end
+  end
+  -- helpers that only show up when their word is typed (≥ their minimum) go first: `Reconstitute`, the getters, the repository
+  if mode == "any" and frag ~= "" then
+    for _, name in ipairs(TYPED_HELPERS) do
+      for i, item in ipairs(require("utils." .. name).declaration_items(range, frag)) do
+        table.insert(items, i, item)
+      end
     end
   end
   for i, item in ipairs(require("utils.gomodel").items {
@@ -1115,6 +1131,10 @@ function M.quiet_lsp(ctx, items)
   if vim.bo.filetype ~= "go" then
     return items
   end
+  -- `package …` at the top of a file: `main` only where it makes sense, the folder's own package first (gopackage)
+  if ctx.line:sub(1, ctx.cursor[2]):match "^p%a*%s*[%w_]*$" then
+    items = require("utils.gopackage").transform(ctx, items)
+  end
   if decl_start(ctx) then
     return vim.tbl_filter(function(it)
       return not (it.kind == KIND.Keyword and (it.label == "func" or it.label == "type"))
@@ -1222,6 +1242,8 @@ function Source:get_completions(ctx, callback)
     -- what's missing from an interface (goimpl) and a service's handlers (gohttp)
     local method_items = require("utils.goimpl").method_items(ctx)
     vim.list_extend(method_items, require("utils.gohttp").method_items(ctx))
+    -- the getters of the struct's private fields (gogetters)
+    vim.list_extend(method_items, require("utils.gogetters").method_items(ctx))
     return callback { is_incomplete_forward = false, is_incomplete_backward = false, items = method_items }
   end
   local lit = #items == 0 and literal_info(ctx)
@@ -1235,7 +1257,14 @@ function Source:get_completions(ctx, callback)
     if mode then
       items = declaration_items(ctx, mode, frag)
       -- `funcnew` only exists with ≥ 5 letters: blink must ask again while the word grows
-      incomplete = mode == "any" and #frag < FUNCNEW_MIN and starts("funcnew", frag)
+      -- (same for the helpers of TYPED_HELPERS: `recon`, `gette`, `repo`)
+      incomplete = mode == "any"
+        and (
+          (#frag < FUNCNEW_MIN and starts("funcnew", frag))
+          or vim.iter(TYPED_HELPERS):any(function(name)
+            return require("utils." .. name).pending(frag)
+          end)
+        )
     elseif M.scope(ctx.cursor[1], ctx.cursor[2], ctx.line) == "interface" then
       items = interface_items(ctx)
       -- the methods the related struct already has (goport) go first
