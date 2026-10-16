@@ -79,7 +79,7 @@ junction at `%LOCALAPPDATA%\nvim` and does the same steps (written but not teste
 | Area | Contents |
 |---|---|
 | Languages | Go, TypeScript/JS/TSX, HTML/CSS/Tailwind/Astro, Python, Rust, Dart/Flutter, Java/Kotlin, Lua, Markdown, JSON/YAML/TOML, Docker, Prisma, YarnSpinner. Each one declares its LSP, formatter, linter, parsers and its `<leader>` menu (it only exists in buffers of that filetype) |
-| Editing | blink.cmp, mini.pairs/surround/move, multicursor, flash (jumps), treesitter textobjects, folds (ufo) with foldable long comments, custom snippets |
+| Editing | **undo word by word** (like VS Code), `U`/`Ctrl+Y` redo, undo tree, the file at the previous save, a clipboard that `x`/`c` don't overwrite and a **yank history** (`[y`/`]y` after a paste, `<leader>uy`), blink.cmp, mini.pairs/surround/move, multicursor, flash (jumps), treesitter textobjects, folds (ufo) with foldable long comments, custom snippets |
 | Navigation | Telescope (+fzf), nvim-tree, harpoon, aerial (symbols), grug-far (global replace), file history |
 | Git | gitsigns, diffview, git-conflict, git-blame (off by default) and **conventional commits** (see below) |
 | Diagnostics | inline blocks under their line, line number colored by severity, unique colors across the whole UI, line popup, copy as text (line, file or project), Trouble |

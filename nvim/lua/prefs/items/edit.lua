@@ -10,6 +10,8 @@ return {
       vim.o.autoread = on
     end,
   },
+  { group = "Editing", label = "Undo word by word", kind = "toggle", id = "history.word_undo" },
+  { group = "Editing", label = "x / c keep the clipboard", kind = "toggle", id = "clipboard.keep" },
   {
     group = "Editing",
     label = "Session autosave",

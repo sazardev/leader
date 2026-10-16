@@ -312,6 +312,22 @@ local defaults = {
   -- Clipboard via OSC 52 (WSL/SSH without a graphical server): "auto" | true | false
   clipboard = {
     osc52 = "auto",
+    -- like VS Code: only yank (y) and cut (d) fill the clipboard; x and c delete without copying, and pasting over
+    -- a selection keeps what you copied, so you can paste it again (false = Vim's way: every delete copies)
+    keep = true,
+  },
+
+  -- Undo, redo and the yank history (lua/history, global <leader>u menu)
+  history = {
+    -- insert mode: u undoes one word (or one pause) at a time instead of the whole insert; `.` still repeats it all
+    word_undo = true,
+    pause_ms = 1000, -- typing again after this pause also starts a new undo step (0 = only words)
+    redo_keys = true, -- U and Ctrl+Y redo, Ctrl+Z undoes (also in insert mode) instead of suspending nvim
+    yanks = {
+      max = 50, -- entries kept (every yank and cut, newest first; [y / ]y cycle what you just pasted)
+      max_chars = 100000, -- bigger texts are not kept
+      persist = true, -- the list survives restarts (stdpath("state")/yanks.json; registers already do, in shada)
+    },
   },
 
   -- Integrated terminal (toggleterm): used by the per-language menus and lazydocker.

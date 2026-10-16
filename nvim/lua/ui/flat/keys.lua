@@ -149,6 +149,10 @@ end
 
 function M.on_key(key, typed)
   local mode = vim.fn.mode()
+  -- the undo step history/undo.lua closes while you type (<C-g>u) is not something you pressed
+  if typed == "" and mode == "i" and (key == "\7" or key == "u") then
+    return
+  end
   local k = typed ~= "" and typed or key
   local text = label(k)
   if not text then

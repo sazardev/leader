@@ -26,6 +26,7 @@ local PAGES = {
   { "agent", "AI agent", "docs/cheatsheets/agent.md", "Features" },
   { "go", "Go", "docs/cheatsheets/go.md", "Features" },
   { "dart-flutter", "Dart / Flutter", "docs/cheatsheets/dart-flutter.md", "Features" },
+  { "editing", "Undo and clipboard", "docs/cheatsheets/editing.md", "Features" },
   { "tasks", "Project tasks", "docs/cheatsheets/tasks.md", "Features" },
   { "gitignore", ".gitignore", "docs/cheatsheets/gitignore.md", "Features" },
   { "typescript", "TypeScript / JS", "docs/cheatsheets/typescript.md", "Languages" },

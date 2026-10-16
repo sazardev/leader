@@ -27,6 +27,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>z` | Fold | global |
 | `<leader>G` | Git | files inside a git repo |
 | `<leader>g` | Go | `go`, `gomod`, `gowork` |
+| `<leader>u` | History | global |
 | `<leader>j` | Java | `java` |
 | `<leader>k` | Kotlin | `kotlin` |
 | `<leader>m` | Markdown | `markdown` |
@@ -298,6 +299,18 @@ _Where: `go`, `gomod`, `gowork`_
 | `<leader>gSp` | setup several files |
 | `<leader>gSm` | setup Makefile |
 | `<leader>gSg` | setup gitignore |
+
+### History — `<leader>u`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>uu` | undo tree |
+| `<leader>uy` | yank list |
+| `<leader>u[` | previous save |
+| `<leader>u]` | next save |
+| `<leader>ux` | forget yanks |
 
 ### Java — `<leader>j`
 
@@ -578,6 +591,16 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>at` | n,x | Convert |
 | `<leader>ax` | n | Stop |
 
+### Clipboard
+
+| Key | Mode | Action |
+|---|---|---|
+| `C` | n,x | C without copying |
+| `X` | n,x | X without copying |
+| `c` | n,x | C without copying |
+| `p` | x | Paste over keeps it |
+| `x` | n,x | X without copying |
+
 ### Comment
 
 | Key | Mode | Action |
@@ -684,6 +707,26 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>h4` | n | Jump to file 4 |
 | `<leader>ha` | n | Add file |
 | `<leader>hm` | n | Menu |
+
+### History
+
+| Key | Mode | Action |
+|---|---|---|
+| `<C-r>` | n | Redo (flashes what changed) |
+| `<C-y>` | n | Redo (Ctrl+Y) |
+| `<C-z>` | i | Undo in insert mode |
+| `<C-z>` | n | Undo (Ctrl+Z, never suspends nvim) |
+| `<leader>u[` | n | Previous save |
+| `<leader>u]` | n | Next save |
+| `<leader>uu` | n | Undo tree |
+| `<leader>ux` | n | Forget yanks |
+| `<leader>uy` | n | Yank list |
+| `P` | n | Paste before ([y / ]y swap it) |
+| `U` | n | Redo (U) |
+| `[y` | n | Older yank in place of the paste |
+| `]y` | n | Newer yank in place of the paste |
+| `p` | n | Paste after ([y / ]y swap it) |
+| `u` | n | Undo (flashes what changed) |
 
 ### LSP
 
