@@ -84,8 +84,11 @@ local function usage_of(result)
   }
 end
 
+--- `opts.on_think(delta)`: the model's thinking as it streams (it comes before any text: a long plan thinks for a minute)
+---@param opts { on_think: fun(delta: string)? }?
 ---@return table
-function M.parser()
+function M.parser(opts)
+  local on_think = opts and opts.on_think
   local chunks, final = {}, nil
   local feed = ndjson.new(function(ev)
     if ev.type == "stream_event" then
@@ -93,6 +96,8 @@ function M.parser()
       if delta and delta.type == "text_delta" and delta.text then
         chunks[#chunks + 1] = delta.text
         return delta.text
+      elseif on_think and delta and delta.type == "thinking_delta" and delta.thinking then
+        on_think(delta.thinking)
       end
     elseif ev.type == "result" then
       final = ev

@@ -132,7 +132,16 @@ local defaults = {
       language = "English",
       -- <leader>aSb: the tier of each phase's model (main/light: what <leader>am chose for each) and the fix rounds. The
       -- build view changes them per run (1 2 3, + -)
-      build = { plan = "main", files = "main", fixes = "main", max_fixes = 2 },
+      build = {
+        plan = "main",
+        files = "main",
+        fixes = "main",
+        max_fixes = 2, -- fix rounds in a row that change nothing before it stops (rounds that progress go on, up to 8)
+        -- when every check passes, the rendered screens (Go teatest golden files) are compared with DESIGN.md by one
+        -- request, and what does not match is fixed (once per build)
+        look = true,
+        view = { code = true, feed = true }, -- panes the build view opens with (c and f toggle them)
+      },
     },
     -- DDD (<leader>aD): local static analysis (free) + agent actions that follow your layers and naming.
     -- Layers are recognized by DIRECTORY NAME (first path segment that matches).

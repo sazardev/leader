@@ -137,6 +137,9 @@ local DESIGN_SECTIONS = {}
 for _, sec in ipairs(compose.doc("design").sections) do
   DESIGN_SECTIONS[sec] = true
 end
+for _, sec in ipairs(compose.doc("design").optional) do
+  DESIGN_SECTIONS[sec] = true
+end
 local design_addons = 0
 for axis, kind in vim.fs.dir(presets.dir() .. "/design-addons") do
   if kind == "directory" then
@@ -852,6 +855,67 @@ eq(
 eq("build plan: unknown docs dropped", parsed.files[2].docs, { "spec" })
 eq("build plan: needs only earlier files", parsed.files[2].needs, { "go.mod" })
 eq("build plan: no JSON", select(2, bplan.parse "sorry"), "the answer has no JSON object")
+-- the plan while it is written: what is complete so far, nothing half-read
+local whole =
+  '{"name":"calc","summary":"A \\"TUI\\" calculator.","architecture":"domain <- ui","decisions":["Bubble Tea","sentinel errors"],"files":[{"path":"go.mod","purpose":"module","exports":[],"docs":["stack"]},{"path":"keypad.go","purpose":"the keypad","exports":["NewKeypad() — starts on ="],"needs":["go.mod"]}]}'
+local cut = bplan.partial(whole:sub(1, whole:find "Bubble Tea" + 12))
+eq(
+  "partial: complete strings only (escaped quotes kept)",
+  { cut.summary, cut.architecture, cut.decisions, #cut.files },
+  { 'A "TUI" calculator.', "domain <- ui", { "Bubble Tea" }, 0 }
+)
+local mid = bplan.partial(whole:sub(1, whole:find '"keypad.go"' + 14))
+eq(
+  "partial: a file whose path arrived, its purpose not yet",
+  { #mid.files, mid.files[2].path, mid.files[2].purpose },
+  { 2, "keypad.go", "" }
+)
+local all = bplan.partial(whole)
+eq(
+  "partial: the whole JSON = every file with its contract",
+  { #all.files, all.files[2].exports, all.files[2].needs },
+  { 2, { "NewKeypad() — starts on =" }, { "go.mod" } }
+)
+eq("partial: nothing yet", #bplan.partial("").files, 0)
+local thinking = {}
+local cparser = require("agent.backends.claude").parser {
+  on_think = function(d)
+    thinking[#thinking + 1] = d
+  end,
+}
+local streamed = cparser.feed(
+  '{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"hmm"}}}\n'
+    .. '{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"{"}}}\n'
+)
+eq("claude parser: thinking goes to on_think, text is returned", { thinking, streamed }, { { "hmm" }, "{" })
+local rich =
+  bplan.parse '{"name":"calc","summary":"A TUI calculator.","architecture":"domain <- ui <- cmd","decisions":["Bubble Tea"],"files":[{"path":"keypad.go","purpose":"the keypad","exports":["NewKeypad() Keypad — the highlight starts on ="],"docs":["design"]},{"path":"app_test.go","purpose":"tests","verifies":"FR-3 Enter evaluates","needs":["keypad.go"]}]}'
+eq(
+  "build plan: summary, architecture, decisions",
+  { rich.summary, rich.architecture, rich.decisions },
+  { "A TUI calculator.", "domain <- ui <- cmd", { "Bubble Tea" } }
+)
+eq(
+  "build plan: what a file exports and promises",
+  rich.files[1].exports,
+  { "NewKeypad() Keypad — the highlight starts on =" }
+)
+eq("build plan: what a test verifies", rich.files[2].verifies, "FR-3 Enter evaluates")
+local rich_system = bprompt.system(rich, { spec = "S" })
+ok(
+  "build plan: every file request carries the contract",
+  rich_system:find("exports NewKeypad() Keypad — the highlight starts on =", 1, true)
+    and rich_system:find("Architecture: domain <- ui <- cmd", 1, true)
+    and rich_system:find("verifies FR-3", 1, true)
+)
+local rich_md = require("agent.kit.build").plan_text(rich)
+ok(
+  "build plan.md: how it works, architecture, decisions, files by folder",
+  rich_md:find("## How it works", 1, true)
+    and rich_md:find("## Architecture", 1, true)
+    and rich_md:find("## Decisions", 1, true)
+    and rich_md:find("`NewKeypad() Keypad — the highlight starts on =`", 1, true)
+)
 eq("build content: fence removed", bprompt.content "```go\npackage main\n```\n", "package main\n")
 eq("build content: plain kept", bprompt.content "package main\n\n", "package main\n")
 local freq = bprompt.file(
@@ -898,6 +962,143 @@ eq(
   { ["internal/ui/app_test.go"] = { "vet: internal/ui/app_test.go:60:5: tm.WaitFor undefined" } }
 )
 eq(
+  "build blame: TypeScript's file(line,col)",
+  bverify.blame("src/main.ts(12,5): error TS2304: Cannot find name 'x'.\n", { "src/main.ts" }),
+  { ["src/main.ts"] = { "src/main.ts(12,5): error TS2304: Cannot find name 'x'." } }
+)
+eq(
+  "build blame: go test's package-relative names, mapped through the package line and the module",
+  bverify.blame(
+    '--- FAIL: TestLayout (0.05s)\n    app_test.go:46: keypad label "C" is not visible\nFAIL\nFAIL\tascii-calc/internal/ui\t0.05s\n--- FAIL: TestEval (0.00s)\n    calculator_test.go:39: unexpected\nFAIL\tascii-calc/internal/domain\t0.01s\n',
+    { "internal/ui/app_test.go", "internal/domain/calculator_test.go", "internal/other/app_test.go" },
+    "ascii-calc"
+  ),
+  {
+    ["internal/ui/app_test.go"] = { '    app_test.go:46: keypad label "C" is not visible' },
+    ["internal/domain/calculator_test.go"] = { "    calculator_test.go:39: unexpected" },
+  }
+)
+eq(
+  "build tests: test files by language",
+  vim.tbl_map(bverify.is_test, {
+    "internal/ui/app_test.go",
+    "src/a.test.ts",
+    "src/b.spec.tsx",
+    "tests/x.rs",
+    "test_api.py",
+    "pkg/api_test.py",
+    "src/main.ts",
+    "app.go",
+  }),
+  { true, true, true, true, true, true, false, false }
+)
+local tplan = {
+  name = "t",
+  files = {
+    { path = "calc.go", purpose = "c", docs = { "spec" }, needs = {} },
+    { path = "calc_test.go", purpose = "t", docs = { "spec" }, needs = { "calc.go" } },
+  },
+}
+ok(
+  "build fix of a test: never weaken it",
+  bprompt
+    .fix("calc_test.go", "package x", "--- FAIL", tplan.files[2], tplan, { spec = "S" }, {}, "test").prompt
+    :find("Never delete or weaken assertions", 1, true)
+)
+ok(
+  "build fix of the code a test exercises: fix it or return it unchanged",
+  bprompt
+    .fix("calc.go", "package x", "--- FAIL", tplan.files[1], tplan, { spec = "S" }, {}, "subject").prompt
+    :find("if this file is right, return it unchanged", 1, true)
+)
+eq(
+  "build pm hint: from STACK.md's row",
+  bverify.package_manager_hint "x\n| Package manager | Bun (`bun install`) | fast |\n",
+  "bun"
+)
+eq("build pm hint: none", bverify.package_manager_hint "no table", nil)
+eq("build manifest: the planned one", bverify.manifest_of { "src/a.ts", "package.json" }, "package.json")
+eq(
+  "build tools: what STACK.md names and package.json lacks",
+  bverify.missing_tools(
+    "x\n## Stack\n\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Build | Vite 8 (Rolldown) | fast |\n| Tests | Vitest | ok |\n| Lint | Biome 2 | one tool |\n\n## Project layout\n",
+    '{"devDependencies":{"vitest":"^3"}}'
+  ),
+  { "@biomejs/biome", "vite" }
+)
+eq(
+  "build tools: nothing missing",
+  bverify.missing_tools("\n## Stack\n| Tests | Vitest | x |\n## X\n", '{"devDependencies":{"vitest":"^3"}}'),
+  {}
+)
+eq(
+  "build DOM: ids the code looks up that the HTML lacks",
+  bverify.missing_ids {
+    ["index.html"] = '<main id="app"><button id="start">go</button></main>',
+    ["src/main.ts"] = 'const a = document.getElementById("app")\nconst b = document.querySelector("#open-settings")\nconst c = document.getElementById(\'start\')',
+    ["src/main.test.ts"] = 'document.getElementById("only-in-tests")',
+  },
+  { 'index.html:1: no element with id "open-settings" (src/main.ts:2 looks for it)' }
+)
+eq(
+  "build DOM: an id kept in a constant",
+  bverify.missing_ids {
+    ["index.html"] = '<main id="app"></main>',
+    ["src/main.ts"] = 'const OPEN_SETTINGS_ID = "open-settings";\nconst rootId = "app";\nconst element = document.getElementById(id);',
+  },
+  { 'index.html:1: no element with id "open-settings" (src/main.ts:1 looks for it)' }
+)
+ok(
+  "build api: the HTML's ids are part of the API",
+  bprompt.api({ ["index.html"] = '<div id="timer"></div><button id="start">' }, "x"):find("#timer", 1, true)
+)
+eq(
+  "build orphans: a stylesheet nothing loads, blamed on the page",
+  bverify.orphans {
+    ["index.html"] = '<link rel="stylesheet" href="/src/styles/tokens.css"><script type="module" src="/src/main.ts"></script>',
+    ["src/main.ts"] = 'import { start } from "./features/timer/timer.view";',
+    ["src/features/timer/timer.view.ts"] = "export function start() {}",
+    ["src/styles/tokens.css"] = ":root {}",
+    ["src/styles/base.css"] = "body {}",
+    ["src/main.test.ts"] = "",
+    ["vite.config.ts"] = "",
+  },
+  { "index.html:1: src/styles/base.css is never linked or imported (load it from the page or its entry script)" }
+)
+local golden_only =
+  "?   \tascii-calc/cmd/app\t[no test files]\n--- FAIL: TestLayout (0.05s)\n    golden.go:22: open testdata/TestLayout.golden: no such file or directory\n--- FAIL: TestHistory (0.05s)\n    golden.go:22: open testdata/TestHistory.golden: no such file or directory\nFAIL\nFAIL\tascii-calc/internal/ui\t0.051s\nFAIL"
+eq(
+  "build golden: only those tests, only those packages, with -update (Go's real output)",
+  bverify.golden_update(golden_only),
+  { "go", "test", "ascii-calc/internal/ui", "-run", "^(TestHistory|TestLayout)$", "-update" }
+)
+eq(
+  "build golden: another test failing too = no snapshot (it would lock the bug in)",
+  bverify.golden_update(
+    golden_only:gsub(
+      "FAIL\nFAIL\t",
+      "--- FAIL: TestKeypad (0.01s)\n    app_test.go:46: keypad not visible\nFAIL\nFAIL\t",
+      1
+    )
+  ),
+  nil
+)
+eq(
+  "build golden: not about golden files = no command",
+  bverify.golden_update "--- FAIL: TestA\nFAIL\tx/ui\t0.1s\n",
+  nil
+)
+local bmod = require "agent.kit.build"
+eq(
+  "build progress: the same failure, other timings = the same signature",
+  bmod.signature("go test", "--- FAIL: TestA (0.05s)\nFAIL\tx\t0.05s"),
+  bmod.signature("go test", "--- FAIL: TestA (0.07s)\nFAIL\tx\t0.09s")
+)
+ok(
+  "build progress: another failing test = progress",
+  bmod.signature("go test", "--- FAIL: TestA (0.05s)") ~= bmod.signature("go test", "--- FAIL: TestB (0.05s)")
+)
+eq(
   "build outside: a file the build did not write",
   bverify.outside("x/old.go:3:1: boom\nmain.go:1:1: e\n", { "main.go" }),
   { "x/old.go" }
@@ -917,6 +1118,13 @@ write(broot .. "/DESIGN.md", "# D\n")
 local asked = {}
 package.loaded["agent"].complete = function(r, cb)
   asked[#asked + 1] = r.action
+  if r.action == "kit_build_plan" and r.on_think and #asked == 1 then
+    local code = vim.fn.bufnr "build://code"
+    r.on_think "The spec asks for a keypad."
+    asked.thinking = vim.api.nvim_buf_get_lines(code, 0, -1, false)
+    r.on_text '{"name":"t","files":[{"path":"src/a.txt","purpose":"a"'
+    asked.planning = vim.api.nvim_buf_get_lines(code, 0, 1, false)[1]
+  end
   if r.action == "kit_build_plan" then
     return cb(
       true,
@@ -937,13 +1145,61 @@ build.open()
 eq("build: opens on the pre-flight, nothing asked yet", { bstate.run.phase, #asked }, { "ready", 0 })
 ok("build: the view is up", require("agent.kit.build.view").shown())
 build.go()
-eq("build: Enter plans, then waits on the review", { bstate.run.phase, asked }, { "review", { "kit_build_plan" } })
+eq(
+  "build: Enter plans, then waits on the review",
+  { bstate.run.phase, asked[1], #asked },
+  { "review", "kit_build_plan", 1 }
+)
+eq("plan live: the thinking shows before the plan", { asked.thinking[1]:match "^> thinking", asked.thinking[3] }, {
+  "> thinking",
+  "The spec asks for a keypad.",
+})
+ok("plan live: then the plan as it arrives", asked.planning:find("> planning · 1 file so far", 1, true))
+asked.thinking, asked.planning = nil, nil
 ok("build: the review has an estimate per file", bstate.run.files[1].estimate and bstate.run.estimate.tokens > 0)
+-- the view: the plan is markdown and stays so across toggles; z focuses it; l hides the list; Tab moves between panes
+local function code_ft()
+  return vim.bo[vim.fn.bufnr "build://code"].filetype
+end
+local function feed_key(k)
+  vim.api.nvim_feedkeys(vim.keycode(k), "x", false)
+end
+eq("view: the plan shows as markdown", code_ft(), "markdown")
+feed_key "c"
+feed_key "c"
+eq("view: c twice keeps it markdown", code_ft(), "markdown")
+feed_key "z"
+eq(
+  "view: z = the code pane alone, the cursor in it",
+  { #vim.api.nvim_tabpage_list_wins(0), vim.api.nvim_buf_get_name(0):match "build://(%w+)" },
+  { 1, "code" }
+)
+feed_key "z"
+eq("view: z again = the panes back", #vim.api.nvim_tabpage_list_wins(0), 3)
+feed_key "l"
+eq("view: l hides the list", vim.fn.bufwinnr "build://files", -1)
+feed_key "l"
+local before_win = vim.api.nvim_get_current_win()
+feed_key "<Tab>"
+ok("view: Tab moves to another pane", vim.api.nvim_get_current_win() ~= before_win)
 build.toggle_skip "README.md"
 eq("build: x skips a file", bstate.run.files[2].state, "skipped")
 build.toggle_skip "README.md"
 build.cycle "files"
 eq("build: 2 switches the files' tier", bstate.run.tiers.files, "light")
+build.go()
+eq(
+  "build: an Enter right as the review appears does not build (typed ahead, pressed twice)",
+  bstate.run.phase,
+  "review"
+)
+build.show_plan()
+eq(
+  "build: P shows the plan in the code pane",
+  vim.api.nvim_buf_get_lines(vim.fn.bufnr "build://code", 0, 1, false)[1],
+  "# Plan · t"
+)
+vim.wait(1600)
 build.go()
 vim.wait(1000, function()
   return bstate.run.phase == "done"
@@ -964,6 +1220,25 @@ ok(
   build.sent "src/a.txt" and build.sent("src/a.txt").prompt:find("Write `src/a.txt`", 1, true)
 )
 eq("build: no statusline when nothing runs", bstate.statusline(), "")
+local bview = require "agent.kit.build.view"
+vim.o.columns = 200
+ok(
+  "build statusline: wide = every figure, % escaped for the statusline",
+  bview.status_figures():find("%% cached", 1, true)
+)
+vim.o.columns = 60
+ok(
+  "build statusline: narrow = the short figures",
+  not bview.status_figures():find("cached", 1, true) and bview.status_figures():find("$", 1, true)
+)
+ok("build statusline: narrow = fewer keys", #bview.status_keys() < 60)
+vim.o.columns = 80
+ok(
+  "build statusline: the phase and the keys of the moment",
+  bview.status_phase() == "done"
+    and bview.status_color() == "KitBuildStateOk"
+    and bview.status_keys():find("r recheck", 1, true)
+)
 
 -- stop in the middle, then resume from the file it stopped at
 local hold
@@ -981,6 +1256,7 @@ package.loaded["agent"].complete = function(r, cb)
 end
 build.restart()
 build.go()
+vim.wait(1600) -- past the review guard
 build.go()
 vim.wait(200)
 eq("build: running on the second file", { bstate.run.running, bstate.run.current }, { true, "two.txt" })
@@ -1011,6 +1287,24 @@ eq(
   { read(broot .. "/one.txt"), read(broot .. "/two.txt") },
   { "x\n", "x\n" }
 )
+-- n: a new plan right away (no Enter), said in the feed; X: the build's files to the trash, the run forgotten
+build.restart()
+ok("replan: plans right away", bstate.run.phase == "review")
+ok(
+  "replan: said in the feed",
+  vim.iter(bstate.run.feed):any(function(e)
+    return e.title == "Replan"
+  end)
+)
+build.clean()
+eq(
+  "clean: the files the build wrote are in the trash",
+  { read(broot .. "/one.txt"), read(broot .. "/two.txt") },
+  { nil, nil }
+)
+ok("clean: the documents stay", read(broot .. "/AGENTS.md") ~= nil and read(broot .. "/SPEC.md") ~= nil)
+eq("clean: the saved run is forgotten", bstate.load(broot), nil)
+eq("clean: back to the pre-flight", bstate.run.phase, "ready")
 vim.cmd "silent! tabonly"
 
 -- library: every preset in one list; use merges an add-on / adds a principle; embed inserts at the cursor
@@ -1029,12 +1323,9 @@ eq(
   #all,
   #presets.all "stack" + #presets.all "design" + kinds["stack add-on"] + kinds["design add-on"] + #principles
 )
-local libroot = project(
-  "library",
-  {
-    ["STACK.md"] = "# STACK.md: x\n\n## Stack\n\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Language | Go | x |\n\n## Rules for agents\n\n- r\n",
-  }
-)
+local libroot = project("library", {
+  ["STACK.md"] = "# STACK.md: x\n\n## Stack\n\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Language | Go | x |\n\n## Rules for agents\n\n- r\n",
+})
 vim.system({ "git", "init", "-q" }, { cwd = libroot }):wait()
 vim.cmd "silent! tabonly"
 vim.cmd.edit(vim.fn.fnameescape(libroot .. "/STACK.md"))
@@ -1062,6 +1353,307 @@ lib.embed(entry("principle", "solid"), vim.api.nvim_get_current_win())
 eq("library embed: under the cursor", vim.api.nvim_buf_get_lines(0, 0, 2, false), { "before", "### SOLID" })
 vim.cmd "bwipeout!"
 
+-- fixes: the API carries what a declaration promises; diagnose before fixing; a fix that weakens a test is refused
+local api = bprompt.api({
+  ["keypad.go"] = 'package c\n\n// NewKeypad builds the keypad.\n// The highlight opens on "=".\nfunc NewKeypad() Keypad {\n}\n\nfunc helper() {}\n',
+}, "x")
+ok(
+  "api: the doc comment above a declaration",
+  api:find('// NewKeypad builds the keypad. The highlight opens on "=".\n  func NewKeypad() Keypad', 1, true)
+)
+ok("api: no comment, no line", not api:find "//%s*\n  func helper")
+local bdiag = require "agent.kit.build.diagnose"
+local dplan = {
+  name = "t",
+  files = {
+    { path = "calc.go", purpose = "c", docs = { "spec" }, needs = {} },
+    { path = "calc_test.go", purpose = "t", docs = { "spec" }, needs = { "calc.go" } },
+  },
+}
+local dreq = bdiag.request(
+  "calc_test.go:10: want 11",
+  { ["calc_test.go"] = { "calc_test.go:10: want 11" } },
+  dplan,
+  { spec = "S" },
+  { ["calc.go"] = "package c\nfunc Add() {}", ["calc_test.go"] = "package c\n" }
+)
+ok(
+  "diagnose request: the output, the test and the code it uses",
+  dreq.prompt:find("<output>", 1, true)
+    and dreq.prompt:find('<file path="calc.go">', 1, true)
+    and dreq.prompt:find('<file path="calc_test.go">', 1, true)
+)
+eq("diagnose request: the same cached system prompt as the files", dreq.system, bprompt.system(dplan, { spec = "S" }))
+local parsed_diag = bdiag.parse(
+  '{"diagnosis":"d","files":[{"path":"calc.go","change":"x"},{"path":"/etc/passwd","change":"y"}]}',
+  { "calc.go", "calc_test.go" }
+)
+eq("diagnose parse: only planned paths", parsed_diag and #parsed_diag.files, 1)
+eq("diagnose parse: nothing usable", bdiag.parse("sorry", { "calc.go" }), nil)
+ok("weakened: a removed assertion", bverify.weakened('t.Errorf("a")\nt.Fatal("b")', 't.Errorf("a")'))
+ok("weakened: a new skip", bverify.weakened('t.Errorf("a")', 't.Skip("later")\nt.Errorf("a")'))
+eq("weakened: same strength", bverify.weakened('t.Errorf("a")', 'x := 1\nt.Errorf("a")'), nil)
+
+-- the whole fix flow with a fake model and a fake check
+local froot = project(
+  "fixflow",
+  { ["AGENTS.md"] = "# A\n", ["STACK.md"] = "# S\n", ["SPEC.md"] = "# P\n", ["DESIGN.md"] = "# D\n" }
+)
+vim.system({ "git", "init", "-q" }, { cwd = froot }):wait()
+local real_checks = bverify.checks
+bverify.checks = function()
+  return {
+    {
+      label = "fake test",
+      fn = function()
+        local code = read(froot .. "/calc.go") or ""
+        if code:find("fixed", 1, true) then
+          return true, ""
+        end
+        return false, "calc_test.go:10: Enter evaluated nothing"
+      end,
+    },
+  }
+end
+local fasked = {}
+package.loaded["agent"].complete = function(r, cb)
+  fasked[#fasked + 1] = r.action
+  local answers = {
+    kit_build_plan = '{"name":"t","files":[{"path":"calc.go","purpose":"c"},{"path":"calc_test.go","purpose":"t","needs":["calc.go"]}]}',
+    kit_build_diagnose = '{"diagnosis":"the keypad opens on 7","files":[{"path":"calc.go","change":"open on ="},{"path":"calc_test.go","change":"relax it"}]}',
+  }
+  local text = answers[r.action]
+  if not text then
+    local path = r.prompt:match "Write `([^`]+)`"
+      or r.prompt:match "Fix `([^`]+)`"
+      or r.prompt:match "exercises `([^`]+)`"
+      or r.prompt:match "`([^`]+)` is a test"
+    if r.action == "kit_build_file" then
+      text = path == "calc_test.go" and 'package c\nfunc TestX(t *testing.T) { t.Errorf("x") }' or "package c"
+    elseif path == "calc.go" then
+      text = "package c // fixed"
+    else
+      text = "package c\nfunc TestX(t *testing.T) {}" -- the weakening the guard must refuse
+    end
+  end
+  cb(true, text, { tokens_in = 10, tokens_out = 2 })
+  return { kill = function() end }
+end
+vim.cmd "silent! tabonly"
+vim.cmd.edit(vim.fn.fnameescape(froot .. "/AGENTS.md"))
+bstate.run = nil
+build.open()
+build.go()
+vim.wait(1600) -- past the review guard
+build.go()
+vim.wait(2000, function()
+  return bstate.run.phase == "done" or bstate.run.phase == "failed"
+end)
+bverify.checks = real_checks
+ok("fix flow: diagnosed before fixing", vim.tbl_contains(fasked, "kit_build_diagnose"))
+eq("fix flow: the code the diagnosis named was fixed", read(froot .. "/calc.go"), "package c // fixed\n")
+ok(
+  "fix flow: the weakened test was refused (it keeps its assertion)",
+  (read(froot .. "/calc_test.go") or ""):find("t.Errorf", 1, true)
+)
+ok(
+  "fix flow: the refusal is in the feed",
+  vim.iter(bstate.run.feed):any(function(e)
+    return e.text:find("fix refused", 1, true) ~= nil
+  end)
+)
+eq("fix flow: then the check passes", bstate.run.phase, "done")
+vim.cmd "silent! tabonly"
+
+-- design: toolkit add-ons follow the project's STACK.md; Screens merged into DESIGN.md; the look at rendered screens
+do
+  local kit_presets = require "agent.kit.presets"
+  local ascii = vim.iter(kit_presets.all "design"):find(function(p)
+    return p.id == "ascii-art"
+  end)
+  local function toolkit_pick(stack, preset, category)
+    local tags = kit_presets.with_stack(kit_presets.design_tags(preset, category), stack)
+    local addons = kit_presets.addons(tags, nil, "design")
+    local out = {}
+    for a in pairs(kit_presets.preselect(addons, tags, preset.id, category)) do
+      if a.axis == "toolkit" then
+        out[#out + 1] = a.id
+      end
+    end
+    local offered = vim.tbl_map(
+      function(a)
+        return a.id
+      end,
+      vim.tbl_filter(function(a)
+        return a.axis == "toolkit"
+      end, addons)
+    )
+    table.sort(offered)
+    return out, offered
+  end
+  local go_stack =
+    "# S\n## Summary\nA terminal app.\n## Stack\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Language | Go 1.25 | x |\n## Project layout\n"
+  local picked, offered = toolkit_pick(go_stack, ascii, "terminal")
+  eq("toolkit: a Go STACK.md checks Charm for a terminal design", picked, { "charm" })
+  eq("toolkit: a terminal design offers only terminal toolkits", offered, { "charm", "ink", "ratatui", "textual" })
+  eq(
+    "toolkit: Rust → Ratatui",
+    (toolkit_pick(go_stack:gsub("Go 1.25", "Rust 1.90"), ascii, "terminal")),
+    { "ratatui" }
+  )
+  eq(
+    "toolkit: Python → Textual",
+    (toolkit_pick(go_stack:gsub("Go 1.25", "Python 3.13"), ascii, "terminal")),
+    { "textual" }
+  )
+  eq("toolkit: no STACK.md, nothing checked", (toolkit_pick(nil, ascii, "terminal")), {})
+  local linear = vim.iter(kit_presets.all "design"):find(function(p)
+    return p.category ~= "terminal"
+  end)
+  local web =
+    "# S\n## Summary\nA React app with Tailwind.\n## Stack\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Language | TypeScript 7 | x |\n## Project layout\n"
+  eq("toolkit: a Tailwind stack checks Tailwind", (toolkit_pick(web, linear, linear.category)), { "tailwind" })
+  eq(
+    "toolkit: React without Tailwind → CSS variables",
+    (toolkit_pick(web:gsub(" with Tailwind", ""), linear, linear.category)),
+    { "css-variables" }
+  )
+  eq(
+    "toolkit: a terminal stack's `tui` never makes a GUI design offer terminal toolkits",
+    vim.tbl_contains(select(2, toolkit_pick(go_stack, linear, linear.category)), "charm"),
+    false
+  )
+
+  -- Screens: inserted before "Rules for agents", replaced in place, a fenced answer unwrapped
+  local d = "# DESIGN.md: X\n\n## Components\n\n- a\n\n## Rules for agents\n\n- r\n"
+  local with = compose.set_screens(d, "## Screens\n\n### Main\n\n```\n[ 7 ]\n```\n")
+  eq(
+    "screens: before the rules",
+    with,
+    "# DESIGN.md: X\n\n## Components\n\n- a\n\n## Screens\n\n### Main\n\n```\n[ 7 ]\n```\n\n## Rules for agents\n\n- r\n"
+  )
+  eq(
+    "screens: replaced, not added twice",
+    compose.set_screens(with, "### Main\n\n```\n[ = ]\n```"),
+    "# DESIGN.md: X\n\n## Components\n\n- a\n\n## Screens\n\n### Main\n\n```\n[ = ]\n```\n\n## Rules for agents\n\n- r\n"
+  )
+  eq(
+    "screens: at the end when there are no rules",
+    compose.set_screens("# D\n\n## Color\n\n- c\n", "### A"),
+    "# D\n\n## Color\n\n- c\n\n## Screens\n\n### A\n"
+  )
+  local kit = require "agent.kit"
+  eq(
+    "screens: chatter before the heading dropped",
+    kit.screens_of "Sure!\n\n## Screens\n\n### A\n",
+    "## Screens\n\n### A"
+  )
+  eq(
+    "screens: a fence around the answer dropped",
+    kit.screens_of "```markdown\n## Screens\n\n### A\n```",
+    "## Screens\n\n### A"
+  )
+  eq("screens: a ### Screens heading is not the section", kit.screens_of "### Screens\n", nil)
+  local sreq = require("agent.kit.prompts").screens("# SPEC", "# DESIGN", "## Summary\nA TUI.\n## Stack\n")
+  ok(
+    "screens: the request carries SPEC, DESIGN and the stack's summary",
+    sreq.prompt:find("<spec>", 1, true)
+      and sreq.prompt:find("<design>", 1, true)
+      and sreq.prompt:find("A TUI.", 1, true)
+  )
+  ok("screens: answers a section, not a file", sreq.system:find("`## ` heading", 1, true) ~= nil)
+
+  -- look: control sequences out, golden files found, tests never fixed
+  local look = require "agent.kit.build.look"
+  eq(
+    "look: CSI/OSC/modes stripped, blank rows around trimmed",
+    look.clean "\27[?25l\27[?2004h   \n\27[1;35m 7 \27[0m  \n  \n\27]0;title\7\27[2K\27[?25h",
+    " 7"
+  )
+  local lroot = project("look", { ["internal/ui/testdata/TestA.golden"] = "\27[1m[ 7 ]\27[0m\n", ["x.golden"] = "no" })
+  local renders = look.renders(lroot)
+  eq(
+    "look: the testdata golden files, as shown",
+    renders,
+    { { path = "internal/ui/testdata/TestA.golden", text = "[ 7 ]" } }
+  )
+  eq(
+    "look: tests and goldens are never the fix",
+    look.parse(
+      '{"diagnosis":"not centered","files":[{"path":"ui.go","change":"Place"},{"path":"ui_test.go","change":"x"}]}',
+      { "ui.go", "ui_test.go" }
+    ).files,
+    { { path = "ui.go", change = "Place" } }
+  )
+  eq("look: files [] = the screens match", look.parse('{"diagnosis":"matches","files":[]}', { "ui.go" }), nil)
+
+  -- look flow: checks pass → one look → the named file fixed → the golden written again → done; once per build
+  local groot = project(
+    "lookflow",
+    { ["AGENTS.md"] = "# A\n", ["STACK.md"] = "# S\n", ["SPEC.md"] = "# P\n", ["DESIGN.md"] = "# D\n" }
+  )
+  vim.system({ "git", "init", "-q" }, { cwd = groot }):wait()
+  local golden = groot .. "/testdata/TestMain.golden"
+  local saved_checks = bverify.checks
+  bverify.checks = function()
+    return {
+      {
+        label = "fake test",
+        fn = function() -- like `go test -update` on a missing golden: the screen as the code draws it now
+          if not vim.uv.fs_stat(golden) then
+            write(golden, (read(groot .. "/ui.go") or ""):find("centered", 1, true) and "   [ 7 ]\n" or "[ 7 ]\n")
+          end
+          return true, ""
+        end,
+      },
+    }
+  end
+  local lasked = {}
+  package.loaded["agent"].complete = function(r, cb)
+    lasked[#lasked + 1] = r.action
+    local answers = {
+      kit_build_plan = '{"name":"t","files":[{"path":"ui.go","purpose":"the screen"}]}',
+      kit_build_look = '{"diagnosis":"the keypad is not centered","files":[{"path":"ui.go","change":"lipgloss.Place it"}]}',
+    }
+    local text = answers[r.action] or (r.action == "kit_build_file" and "package ui" or "package ui // centered")
+    if r.action == "kit_build_look" then
+      lasked.render = r.prompt:match '<render path="testdata/TestMain.golden">\n(.-)\n</render>'
+    end
+    cb(true, text, { tokens_in = 10, tokens_out = 2 })
+    return { kill = function() end }
+  end
+  vim.cmd "silent! tabonly"
+  vim.cmd.edit(vim.fn.fnameescape(groot .. "/AGENTS.md"))
+  bstate.run = nil
+  build.open()
+  build.go()
+  vim.wait(1600)
+  build.go()
+  vim.wait(3000, function()
+    return bstate.run.phase == "done" or bstate.run.phase == "failed"
+  end)
+  bverify.checks = saved_checks
+  eq(
+    "look flow: one look, after the checks pass",
+    vim.tbl_filter(function(a)
+      return a == "kit_build_look"
+    end, lasked),
+    { "kit_build_look" }
+  )
+  eq("look flow: the model saw the screen", lasked.render, "[ 7 ]")
+  eq("look flow: the file it named was fixed", read(groot .. "/ui.go"), "package ui // centered\n")
+  eq("look flow: the golden written again from the fixed code", read(golden), "   [ 7 ]\n")
+  eq("look flow: done, looked once", { bstate.run.phase, bstate.run.looked }, { "done", true })
+  build.recheck()
+  vim.wait(1000, function()
+    return not bstate.run.running
+  end)
+  eq("look flow: a recheck does not look again (0 tokens)", #vim.tbl_filter(function(a)
+    return a == "kit_build_look"
+  end, lasked), 1)
+  vim.cmd "silent! tabonly"
+end
+
 -- menu: keys and the Service level moved to aU
 local menu = require "menus.agent_setup"
 eq("menu: prefix", menu.prefix, "aS")
@@ -1070,7 +1662,7 @@ eq(
   vim.tbl_map(function(m)
     return m[1]
   end, menu.maps),
-  { "b", "B", "/", "o", "a", "A", "c", "t", "T", "k", "p", "d", "D", "s" }
+  { "b", "B", "/", "o", "a", "A", "c", "t", "T", "k", "p", "d", "D", "w", "s" }
 )
 eq("menu: Service lives on aU now", require("menus.agent_service").prefix, "aU")
 

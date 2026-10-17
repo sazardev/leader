@@ -114,6 +114,9 @@ local function written(root, file, path, replaced, extra)
       msg = msg .. "; linked from AGENTS.md"
     end
   end
+  if file == "DESIGN.md" and exists(root .. "/SPEC.md") then -- the next step that pays off most: the screens drawn
+    extra = (extra and (extra .. "; ") or "") .. "<leader>aSw draws the screens"
+  end
   log.info(msg .. (extra and ("; " .. extra) or ""))
 end
 
@@ -691,6 +694,15 @@ local function design_choices(tags)
   end, presets.addons(tags, nil, "design"))
 end
 
+--- A design's tags plus the project's STACK.md's (its language picks the toolkit add-on: Go → Charm, Rust → Ratatui…)
+---@param preset KitPreset|{ id: string }
+---@param category string?
+---@return table<string, boolean>
+local function design_tags(preset, category)
+  local stack = require("utils.project").read(snapshot.root() .. "/STACK.md")
+  return presets.with_stack(presets.design_tags(preset, category), stack)
+end
+
 --- Words that make a description a terminal one
 local TERMINAL_WORDS = { "terminal", "tui", "cli", "console", "ascii", "braille", "ansi", "shell" }
 
@@ -700,15 +712,15 @@ local TERMINAL_WORDS = { "terminal", "tui", "cli", "console", "ascii", "braille"
 ---@return table<string, boolean>, string?
 local function described_design_tags(text, base)
   if base then
-    return presets.design_tags(base, base.category), base.category
+    return design_tags(base, base.category), base.category
   end
   local words = " " .. text:lower():gsub("[^%w]", " ") .. " "
   for _, w in ipairs(TERMINAL_WORDS) do
     if words:find(" " .. w .. " ", 1, true) then
-      return presets.design_tags({ id = "described" }, "terminal"), "terminal"
+      return design_tags({ id = "described" }, "terminal"), "terminal"
     end
   end
-  return presets.design_tags({ id = "described" }, "styles"), "styles"
+  return design_tags({ id = "described" }, "styles"), "styles"
 end
 
 --- A design preset, in steps: kind (design systems, styles, terminal / TUI) → design (preview) → customize (platforms,
@@ -759,7 +771,7 @@ function M.design(start)
         },
         function(p)
           if not st.preset or st.preset.id ~= p.id then
-            local tags = presets.design_tags(p, st.category.id)
+            local tags = design_tags(p, st.category.id)
             st.list = design_choices(tags)
             st.checked = best(st.list, tags, p.id, st.category.id)
           end
@@ -785,7 +797,7 @@ function M.design(start)
       st.category = vim.iter(categories):find(function(c)
         return c.id == start.category
       end) or categories[1]
-      local tags = presets.design_tags(start.preset, start.category)
+      local tags = design_tags(start.preset, start.category)
       st.list = design_choices(tags)
       st.checked = best(st.list, tags, start.preset.id, start.category)
       st.preset = start.preset
@@ -861,6 +873,74 @@ function M.design_prompt()
       step_draft()
     end
   )
+end
+
+--- The `## Screens` section of a model's answer: what comes before its heading and a fence around it dropped; nil if absent
+---@param text string
+---@return string?
+function M.screens_of(text)
+  text = "\n" .. (text or "")
+  local at = text:find "\n##%s+[Ss]creens"
+  if not at then
+    return nil
+  end
+  at = at + 1
+  local body = vim.trim(text:sub(at))
+  if text:sub(1, at - 1):match "```%w*%s*$" then -- the whole answer was fenced: its closing fence goes
+    body = vim.trim((body:gsub("\n```%s*$", "")))
+  end
+  return body
+end
+
+--- <leader>aSw: a wireframe of every main screen SPEC.md names, drawn in DESIGN.md's style, written into DESIGN.md as its
+--- `## Screens` section (replaced when there is one; the previous DESIGN.md goes to the trash). Needs both documents.
+function M.screens()
+  local root = snapshot.root()
+  local project = require "utils.project"
+  local spec, design = project.read(root .. "/SPEC.md"), project.read(root .. "/DESIGN.md")
+  if not design or not spec then
+    return log.info(
+      ("Setup: screens are drawn from SPEC.md in DESIGN.md's style: missing %s (<leader>aS%s)"):format(
+        design and "SPEC.md" or "DESIGN.md",
+        design and "s" or "d"
+      )
+    )
+  end
+  if unsaved(root .. "/DESIGN.md") then
+    return log.warn "Setup: DESIGN.md has unsaved changes in a buffer: save them first"
+  end
+  if busy["DESIGN.md"] then
+    return log.info "Setup: DESIGN.md is already being written"
+  end
+  local req = require("agent.kit.prompts").screens(spec, design, project.read(root .. "/STACK.md"))
+  local sel = require("agent.selection").current { name = req.action, tier = req.tier }
+  if not sel then
+    return log.warn "Setup: no agent backend found (<leader>am)"
+  end
+  busy["DESIGN.md"] = true
+  log.info(("Setup: drawing the screens with %s…"):format(require("agent.selection").label(sel)))
+  require("agent").complete(req, function(ok, text)
+    busy["DESIGN.md"] = nil
+    local screens = ok and M.screens_of(text)
+    if not screens then
+      return log.warn("Setup: no screens drawn: " .. (ok and "the answer had no ## Screens section" or tostring(text)))
+    end
+    local current = project.read(root .. "/DESIGN.md") or design
+    local path, why = M.write(root, "DESIGN.md", compose.set_screens(current, screens), true)
+    if not path then
+      return log.warn("Setup: " .. why)
+    end
+    vim.cmd.checktime()
+    vim.cmd.edit(vim.fn.fnameescape(path))
+    vim.fn.search("^## Screens", "w")
+    local n = select(2, screens:gsub("\n### ", ""))
+    log.info(
+      ("Setup: DESIGN.md · %d screen%s drawn (the previous one is in the trash: <leader>Fu)"):format(
+        n,
+        n == 1 and "" or "s"
+      )
+    )
+  end)
 end
 
 --- Changes which principles the STACK.md there carries (the section is rebuilt from the presets)

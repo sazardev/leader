@@ -58,6 +58,8 @@ M.DOCS = {
       "Accessibility",
       "Rules for agents",
     },
+    -- sections a DESIGN.md may add: the toolkit add-ons' mapping, the screens drawn by <leader>aSw
+    optional = { "Toolkit", "Screens" },
   },
   {
     id = "spec",
@@ -237,6 +239,36 @@ function M.set_principles(text, chosen)
     return join(vim.list_extend(vim.list_extend(before, { "", vim.trim(block), "" }), after))
   end
   return body .. "\n" .. block
+end
+
+M.SCREENS = "Screens"
+
+--- The DESIGN.md with its `## Screens` section (wireframes) replaced, or added before "Rules for agents" (else at the end)
+---@param text string
+---@param screens string the section, with or without its `## Screens` heading
+---@return string
+function M.set_screens(text, screens)
+  local body = vim.trim(screens):gsub("^##%s+[Ss]creens%s*\n", "")
+  local block = { "## " .. M.SCREENS, "" }
+  vim.list_extend(block, lines_of(vim.trim(body)))
+  local lines = lines_of(text)
+  local first, last = section(lines, M.SCREENS)
+  if first then
+    local out = vim.list_slice(lines, 1, first - 1)
+    vim.list_extend(out, block)
+    if last < #lines then -- the next section, one blank line after the wireframes
+      out[#out + 1] = ""
+    end
+    return join(vim.list_extend(out, vim.list_slice(lines, last + 1)))
+  end
+  local at = section(lines, "Rules for agents")
+  if not at then
+    return join(lines):gsub("\n*$", "") .. "\n\n" .. join(block)
+  end
+  local out = vim.list_slice(lines, 1, at - 1)
+  vim.list_extend(out, block)
+  out[#out + 1] = ""
+  return join(vim.list_extend(out, vim.list_slice(lines, at)))
 end
 
 -- ── Add-ons: a preset's sections merged into a STACK.md ─────────────────────

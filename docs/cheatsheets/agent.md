@@ -551,6 +551,7 @@ presets or the project's own facts; uppercase ones take what you describe in you
 | `p` | STACK.md | change the principles it carries: the section is rebuilt from the presets you check |
 | `d` | DESIGN.md | kind → design (with a preview) → **customize**. Design systems (Material 3, M3 Expressive, Cupertino, Ant Design, Fluent 2, Carbon, Primer, shadcn/ui, Notion, Linear), styles (neo-brutalism, Swiss, retro pixel, glass, mono minimal) and terminal / TUI (ASCII art, Braille, brutal, classic, retro CRT, modern Charm-style) |
 | `D` | DESIGN.md | described ("like Linear but warmer", "an ASCII art TUI with amber phosphor"), then customize; a design you name is sent as the base, a terminal description gets the terminal add-ons |
+| `w` | DESIGN.md | **screens**: one request draws a wireframe of every main screen SPEC.md names (and the states that change the layout: empty, error, too small) in DESIGN.md's own style, character by character at the minimum size, with what each region uses and how it adapts; written as its `## Screens` section (replaced when there is one, the old file to the trash). Needs SPEC.md and DESIGN.md. Models copy a picture far more faithfully than prose, so the build lays screens out as drawn |
 | `s` | SPEC.md | write what you are building in any shape; it comes back as a spec: requirements `FR-n` with Given/When/Then acceptance criteria, non-functional `NFR-n`, data, interfaces, edge cases, milestones, and **every gap as an open question** (never invented). With a SPEC.md there, the page starts from it: edit freely and it comes back tidy, ids kept |
 
 **Customize** is one list in groups, merged into STACK.md without a model (rows replace the row with the same first
@@ -582,10 +583,11 @@ wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes
 | Theme (one of) | dark + light, dark, light, high contrast; inherit the terminal (ANSI roles, `NO_COLOR`) |
 | Palette (one of) | brand (tints from one color), Gruvbox, Catppuccin, Nord, Tokyo Night, monochrome, phosphor green / amber |
 | Motion (one of) | none, subtle, expressive; terminal animations (spinners, typewriter, frame budget) |
-| Effects | ASCII gradients, CRT, grain, glass blur, dithering, neon glow |
+| Effects | ASCII gradients, CRT, grain, glass blur, dithering, neon glow; **hero art** (ASCII art, Braille, synthwave, retro: the art is the app's identity, so the main screen carries it, framed and centered, its value also in plain text) |
 | Glyphs (one of) | Unicode box + Braille, Nerd Font, ASCII-safe |
 | Density (one of) | compact, comfortable, spacious |
 | Accessibility | reduced motion, color-blind safe, screen reader, WCAG AAA |
+| Toolkit (one of) | how the design is written in code, as a `## Toolkit` table (token → code): Charm (Lip Gloss: one styles file, `Place` to center, `Join` to compose, Harmonica), Ratatui, Textual, Ink; Tailwind CSS v4, CSS variables, Flutter theme. Checked from the project's STACK.md: Go → Charm, Rust → Ratatui, Python → Textual, a Tailwind stack → Tailwind |
 
 A terminal design is a real DESIGN.md for a TUI: colors as ANSI 16 / 256 / truecolor roles with fallbacks, typography as
 monospace cells and glyph sets, spacing in cells, borders as box drawing, motion as frames.
@@ -595,13 +597,30 @@ monospace cells and glyph sets, spacing in cells, borders as box drawing, motion
 | Phase | What happens | Your keys |
 |---|---|---|
 | ready | pre-flight: the four documents and their size, the model of each phase (plan · files · fixes, each on the main or light tier of `<leader>am`), fix rounds, what the plan request will cost | `⏎` plan · `1` `2` `3` tier of each phase · `+` `-` fix rounds |
-| plan | one request: the files in order, what each holds, the documents it needs, the files it uses | `x` stop |
-| review | the plan with an estimate per file and in total (with and without the cache), what it replaces, leftovers of the last build. **This is the confirmation**: nothing is written before `⏎` | `⏎` build · `x` skip a file · `2` `3` tiers · `n` new plan · `p` the plan request |
+| plan | one request writes the build's **contract**: how it works, the architecture and dependency direction, the key decisions (and the SPEC questions it had to assume), then every file in order with what it does, **what it exports and promises** (`NewKeypad() — the highlight starts on =`), what a test verifies (FR-n), the documents it needs and the files it uses. The contract goes to every file request (cached), so files written apart agree. Shown as plan.md in the code pane **while it is made**: first what the model read and its thinking steps (the CLI streams the thinking without its text on subscription accounts), then each section and file as it arrives. Long lines wrap: nothing scrolls sideways | `x` stop |
+| review | the plan with an estimate per file and in total (with and without the cache), what it replaces, leftovers of the last build. **This is the confirmation**: nothing is written before `⏎` (an Enter that arrives as the review appears, typed ahead or pressed twice, is ignored) | `⏎` build · `x` skip a file · `2` `3` tiers · `n` new plan · `p` the plan request |
 | write | one request per file; the code pane types each file out, the feed says what went in and what it cost | `x` stop · `q` hide (it goes on) · `p` the request of the file under the cursor |
 | check | the manifest's own tools plus free consistency checks (below) | |
-| fix | the files the errors name, with their errors; a check whose tool does not run sends the manifest | |
+| look | when every check passes, **the screens as they render** (Go teatest golden files: exactly what the terminal shows, colors stripped) go to the model with DESIGN.md, its Screens wireframes first, in one request (cached system prompt, ~$0.006). What differs (not centered, cut off, a missing frame) is fixed in the code like a diagnosis' files, the golden files go to the trash and the checks write them again. Once per build (`r` stays at 0 tokens); off with `settings.agent.kit.build.look = false` | |
+| fix | rounds go on **while they make progress** (the failure changes), up to 8; they stop after `max_fixes` rounds in a row that change nothing (the `±` keys), and a round that changed nothing escalates the next one to the main tier with more effort. Each round: first a **diagnosis**: one request sees the tool's output, the API (with each declaration's doc comment) and the files involved, and names the root cause and every file to change, including files the errors do not name (a test fails, the bug is in the code it tests). Then each of those files is fixed with the diagnosis and its own instruction, the code before the tests. A fix that weakens a test (fewer assertions or waits, a new skip) is **refused** and the test stays as it was; a check whose tool does not run sends the manifest | |
 | done | ✓ or ✗, totals, every file with its lines and cost | `⏎` opens a file · `r` checks again · `n` new plan |
 
+- **The tab**: on the left the phases as chips (done ones green, the current one with a spinner, the next ones faint), the progress
+  bar, then the files (the one being written on a full-width band, like the agent's inline target) and the checks; models
+  and documents only before it writes. The code (`c` shows/hides it) and the feed (`f`) on the right; with both hidden only
+  the list advancing is left (`settings.agent.kit.build.view` sets which panes it opens with). The statusline of the tab
+  is its own (a lualine extension): the phase as the mode chip in the color of how it stands (red failed, yellow stopped,
+  green done), the keys of the moment (as many as fit, most useful first), then progress · money (and cache · time when
+  the screen is wide).
+- **Reading and moving**: `z` puts the code pane alone on the screen with the cursor in it (the plan, a file, a request) and
+  `z` again brings the panes back; `l` hides or shows the files, `c` the code, `f` the feed; `Tab` / `Shift-Tab` move the
+  cursor between the panes; `P` shows the plan (plan.md, rendered) at any moment.
+- **Start over**: `n` plans again right away (the files of the old plan stay; the new review says which it replaces and
+  which leftovers go to the trash). `X` cleans the build after a confirmation that lists them: every file it wrote goes to
+  the trash (`<leader>Fu` brings them back), empty folders it made are removed, the saved run is forgotten; the four
+  documents are never touched.
+- **Nothing is lost**: the run is saved after every step. Closing Neovim with a plan in review and running `<leader>aSb`
+  again brings the review back with the plan on screen; a run stopped mid-write continues from the first file not written.
 - **Leave it running**: `q` closes the tab, the build goes on; the statusline shows `⠹ build 7/25 · $0.031` from any buffer,
   a notice says how it ended, `<leader>aSb` brings the view back exactly where it is.
 - **Resilient**: the run is saved after every step (state dir, per project). Closing Neovim mid-build and opening it again
@@ -617,7 +636,12 @@ Checks (never commands written by the model): Go `go mod tidy` · `gofmt` (fixes
 manager STACK.md names when there is no lockfile yet) · `every id the code looks up exists` (HTML vs `getElementById`,
 `querySelector('#…')`, `*_ID` constants) · `every stylesheet and module is used` · `tsc --noEmit` · the `lint` (Biome/Prettier
 fix format themselves), `build` and `test` scripts; Python `uv sync` · compileall · ruff · pytest when declared; Rust, Dart
-and Flutter their build/analyze. A missing golden file stops with "run the tests with the update flag" (no tokens).
+and Flutter their build/analyze. Missing golden files (snapshot tests run for the first time) are created by running those packages' tests with
+`-update` (no tokens; review `testdata/*.golden`), then the checks run again. A build is **done** only when every check
+passes; otherwise it ends **failed** with the fix rounds it tried.
+
+Measured fix (claude/haiku): ascii-calc's keypad opened on "7" so Enter typed a 7 and three UI tests failed; the
+diagnosis named `keypad.go` (not in the errors), one fix there, tests untouched, every check green: 2 requests, $0.008.
 
 Measured on two projects (claude/haiku): a 25-file Go TUI and a 23-file Vite + TS 7 + Bun web app each cost about
 **$0.08–0.10** in total, documents, plan, files, checks and fix rounds included, in 7–8 minutes. Known limits: the checks

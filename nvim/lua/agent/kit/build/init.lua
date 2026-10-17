@@ -12,6 +12,8 @@
 -- Every request goes through the spend guard (no question per file once the review is accepted; the caps still apply)
 -- and lands in the history (<leader>ah: kit_build_plan, kit_build_file, kit_build_fix).
 local compose = require "agent.kit.compose"
+local diagnose = require "agent.kit.build.diagnose"
+local look_mod = require "agent.kit.build.look"
 local log = require "utils.log"
 local plan_mod = require "agent.kit.build.plan"
 local prompt = require "agent.kit.build.prompt"
@@ -22,8 +24,34 @@ local M = {}
 
 local KEYS = { ["AGENTS.md"] = "a", ["STACK.md"] = "t", ["DESIGN.md"] = "d", ["SPEC.md"] = "s" }
 
+M.MAX_ROUNDS = 8
+
+--- What a failure is, to tell a round that made progress from one that did not: the failing check and its failing
+--- tests (or its first error lines), without timings or paths that change from run to run (pure)
+---@param label string
+---@param output string
+---@return string
+function M.signature(label, output)
+  local names = {}
+  for name in ("\n" .. output):gmatch "\n%s*%-%-%- FAIL: (%S+)" do
+    names[#names + 1] = name
+  end
+  if #names == 0 then
+    for line in output:gmatch "[^\n]+" do
+      if line:find ":%d+" then
+        names[#names + 1] = (line:gsub("%(%d+%.%d+s%)", ""):gsub("%d+%.%d+s", ""))
+        if #names >= 3 then
+          break
+        end
+      end
+    end
+  end
+  table.sort(names)
+  return label .. "|" .. table.concat(names, ";")
+end
+
 --- What is running now: the request's process (to stop it) and when this stretch of running began
-local live = { handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {} }
+local live = { handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {}, review_at = nil }
 
 ---@return BuildRun
 local function run()
@@ -118,8 +146,9 @@ end
 function M.shared_estimate(plan, docs)
   local chars = 1200
   for _, f in ipairs(plan.files) do
-    chars = chars + #f.path + #f.purpose + 6
+    chars = chars + #f.path + #f.purpose + 6 + #table.concat(f.exports or {}, " ") + #(f.verifies or "")
   end
+  chars = chars + #(plan.summary or "") + #(plan.architecture or "") + #table.concat(plan.decisions or {}, " ")
   for _, text in pairs(docs) do
     chars = chars + #text
   end
@@ -140,7 +169,7 @@ end
 
 -- ── Models of each phase ─────────────────────────────────────────────────────
 
-local ACTION = { plan = "kit_build_plan", files = "kit_build_file", fixes = "kit_build_fix" }
+local ACTION = { plan = "kit_build_plan", files = "kit_build_file", fixes = "kit_build_fix" } -- diagnosis: the fixes' model
 
 --- "claude/haiku" for a phase, from its tier (main/light) and what <leader>am chose for that tier
 ---@param phase "plan"|"files"|"fixes"
@@ -288,6 +317,9 @@ end
 local function call(req, phase, on_text, cb)
   local t0 = vim.uv.hrtime()
   req.tier = run().tiers[phase]
+  if phase == "fixes" and (live.stuck or 0) > 0 then -- the last round changed nothing: think harder
+    req.tier, req.effort = "main", "high"
+  end
   req.on_text = on_text
   req.preapproved = phase ~= "plan" -- the review was the yes; the plan request itself is small
   live.handle = require("agent").complete(req, function(ok, text, usage)
@@ -362,46 +394,57 @@ function M.sent(path)
   return live.prompts[path]
 end
 
-local check -- forward
+local check, look -- forward
+---@type table<string, "test"|"subject"> what each file of the coming fix round is (a failing test, the code it tests)
+local roles = {}
 
--- fix: the files the errors name, one after the other, then check again
----@param blamed table<string, string[]>
-local function fix(blamed)
+--- The files a diagnosis (or the look at the screens) named, one request each, code before tests; then the checks again
+---@param list { path: string, change: string }[]
+---@param note string what is wrong, for every file
+---@param blamed table<string, string[]> the errors per file (a file with none gets `head`)
+---@param head string
+local function fix_files(list, note, blamed, head)
   local r = run()
-  r.fix_round = r.fix_round + 1
-  r.phase = "fix"
-  local paths = vim.tbl_keys(blamed)
-  table.sort(paths)
-  state.feed(
-    "step",
-    ("round %d · %d file%s"):format(r.fix_round, #paths, #paths == 1 and "" or "s"),
-    M.model "fixes",
-    "Fix"
-  )
+  table.sort(list, function(x, y) -- the code first, then the tests that check it
+    local tx, ty = verify.is_test(x.path) and 1 or 0, verify.is_test(y.path) and 1 or 0
+    if tx ~= ty then
+      return tx < ty
+    end
+    return x.path < y.path
+  end)
   local i = 0
   local function next_fix()
     i = i + 1
-    local path = paths[i]
+    local item = list[i]
     if not r.running then
       return
     end
-    if not path then
+    if not item then
       return check()
     end
+    local path = item.path
     local file = state.file(path)
-    local req =
-      prompt.fix(path, written()[path] or "", table.concat(blamed[path], "\n"), file, r.plan, live.docs, written())
+    local role = verify.is_test(path) and "test" or (roles[path] or (not blamed[path] and "subject") or nil)
+    local errors = blamed[path] and table.concat(blamed[path], "\n") or head
+    local before = written()[path] or ""
+    local req = prompt.fix(
+      path,
+      before,
+      errors,
+      file,
+      r.plan,
+      live.docs,
+      written(),
+      role,
+      (note ~= "" or item.change ~= "") and (note .. (item.change ~= "" and ("\nIn this file: " .. item.change) or ""))
+        or nil
+    )
     live.prompts[path] = { system = req.system, prompt = req.prompt }
     r.current = path
     if file then
       file.state = "writing"
     end
-    local lines = #blamed[path]
-    state.feed(
-      "in",
-      path,
-      ("%d error line%s · %s chars"):format(lines, lines == 1 and "" or "s", size(#req.system + #req.prompt))
-    )
+    state.feed("in", path, ("%s · %s chars"):format(role or "named in the errors", size(#req.system + #req.prompt)))
     view().code_start(path, "fixing")
     call(req, "fixes", view().code_stream, function(ok, text, usage, ms)
       if not ok then
@@ -411,22 +454,146 @@ local function fix(blamed)
         return finish("failed", "✗ the fix of " .. path .. " failed", "fail", text)
       end
       local content = prompt.content(text)
-      local done, why = write_file(r.root, path, content)
-      if not done then
-        return finish("failed", "✗ could not write " .. path, "fail", tostring(why))
+      local weaker = verify.is_test(path) and verify.weakened(before, content)
+      if weaker then -- the test stays as it was: the fix must come from the code
+        if file then
+          file.state = "done"
+        end
+        state.feed("fail", ("%s: fix refused, %s"):format(path, weaker), usage_text(usage, ms))
+        return next_fix()
       end
-      written()[path] = content
+      if content ~= before then
+        local done, why = write_file(r.root, path, content)
+        if not done then
+          return finish("failed", "✗ could not write " .. path, "fail", tostring(why))
+        end
+        written()[path] = content
+      end
       if file then
-        file.state, file.lines = "fixed", select(2, content:gsub("\n", ""))
+        file.state, file.lines = content ~= before and "fixed" or "done", select(2, content:gsub("\n", ""))
         file.cost = (file.cost or 0) + (usage and usage.cost or 0)
       end
-      view().code_done(path, content, "fixed")
-      state.feed("out", path, usage_text(usage, ms))
+      view().code_done(path, content, content ~= before and "fixed" or "unchanged")
+      state.feed("out", path .. (content ~= before and "" or " · unchanged"), usage_text(usage, ms))
       state.save()
       next_fix()
     end)
   end
   next_fix()
+end
+
+-- fix: diagnose first (one request with everything in view), then each file the diagnosis names with its instruction;
+-- a fix that weakens a test is refused (the test stays as it was)
+---@param blamed table<string, string[]>
+---@param output string the failing check's output
+local function fix(blamed, output)
+  local r = run()
+  r.fix_round = r.fix_round + 1
+  r.phase = "fix"
+  local planned = vim.tbl_map(function(f)
+    return f.path
+  end, r.files)
+  state.feed("step", ("round %d · diagnosing"):format(r.fix_round), M.model "fixes", "Fix")
+  local dreq = diagnose.request(output, blamed, r.plan, live.docs, written())
+  live.prompts["diagnosis"] = { system = dreq.system, prompt = dreq.prompt }
+  state.feed(
+    "in",
+    "diagnosis",
+    ("%d file%s named · %s chars"):format(
+      vim.tbl_count(blamed),
+      vim.tbl_count(blamed) == 1 and "" or "s",
+      size(#dreq.system + #dreq.prompt)
+    )
+  )
+  call(dreq, "fixes", nil, function(dok, dtext, dusage, dms)
+    local plan = dok and diagnose.parse(dtext, planned)
+    local list = {} ---@type { path: string, change: string }[]
+    local note = ""
+    if plan then
+      note = plan.diagnosis
+      list = plan.files
+      state.feed("out", "diagnosis · " .. plan.diagnosis, usage_text(dusage, dms))
+      for _, f in ipairs(list) do
+        state.feed("info", f.path .. ": " .. f.change)
+      end
+    else
+      for path in pairs(blamed) do
+        list[#list + 1] = { path = path, change = "" }
+      end
+      state.feed("info", "no usable diagnosis: fixing the files the errors name")
+    end
+    local head = table.concat(vim.list_slice(vim.split(vim.trim(output), "\n", { plain = true }), 1, 40), "\n")
+    fix_files(list, note, blamed, head)
+  end)
+end
+
+--- Every check passes: the end, after one look at the rendered screens against DESIGN.md (once per build; Go TUIs, whose
+--- teatest golden files are the screens as the terminal shows them). What differs is fixed like a diagnosis' files; the
+--- golden files shown go to the trash first, so the checks write them again from the fixed code.
+look = function()
+  local r = run()
+  local function done(note)
+    finish("done", ("✓ built · %d files · checks pass"):format(state.progress()), "info", note)
+  end
+  local renders = {}
+  local enabled = (require("core.settings").agent.kit.build or {}).look ~= false
+  if enabled and not r.looked and live.docs and live.docs.design then
+    renders = look_mod.renders(r.root)
+  end
+  if #renders == 0 then
+    return done "every check passes · ⏎ opens a file"
+  end
+  r.looked = true -- once per build: a recheck stays at 0 tokens unless a check fails
+  local planned = vim.tbl_map(function(f)
+    return f.path
+  end, r.files)
+  state.feed(
+    "step",
+    ("%d screen%s against DESIGN.md"):format(#renders, #renders == 1 and "" or "s"),
+    M.model "fixes",
+    "Look"
+  )
+  local req = look_mod.request(renders, r.plan, live.docs, written())
+  live.prompts["look"] = { system = req.system, prompt = req.prompt }
+  state.feed(
+    "in",
+    "look",
+    ("%s · %s chars"):format(
+      table.concat(
+        vim.tbl_map(function(x)
+          return vim.fs.basename(x.path)
+        end, renders),
+        ", "
+      ),
+      size(#req.system + #req.prompt)
+    )
+  )
+  call(req, "fixes", nil, function(ok, text, usage, ms)
+    local diff = ok and look_mod.parse(text, planned)
+    if not diff then
+      state.feed("out", "look · the screens match DESIGN.md", usage_text(usage, ms))
+      return done "every check passes and the screens match DESIGN.md · ⏎ opens a file"
+    end
+    state.feed("out", "look · " .. diff.diagnosis, usage_text(usage, ms))
+    local blamed = {}
+    for _, f in ipairs(diff.files) do
+      state.feed("info", f.path .. ": " .. f.change)
+      blamed[f.path] = { "The screen does not match DESIGN.md: " .. f.change }
+    end
+    for _, x in ipairs(renders) do -- written again by the checks from the fixed code
+      require("files.ops").trash(r.root .. "/" .. x.path)
+    end
+    live.autofixed = {} -- the golden update may run again
+    roles = {}
+    r.phase = "fix"
+    local shown = table.concat(
+      vim.tbl_map(function(x)
+        return ("%s:\n%s"):format(x.path, x.text)
+      end, renders),
+      "\n\n"
+    )
+    fix_files(diff.files, diff.diagnosis, blamed, shown)
+  end)
 end
 
 -- check: the manifest's own tools
@@ -460,38 +627,38 @@ check = function()
           return f.path
         end, r.files)
       )
-      local done = state.progress()
-      return finish(
-        "done",
-        ("✓ built · %d files · checks pass"):format(done),
-        "info",
-        "every check passes · ⏎ opens a file"
-      )
+      return look()
     end
-    if failed and failed.autofix and not live.autofixed[failed.label] then -- gofmt: no model, once
+    local fixer = failed and failed.autofix
+    if type(fixer) == "function" then
+      fixer = fixer(output or "")
+    end
+    if fixer and not live.autofixed[failed.label] then -- a tool fixes it, no model (once: what it cannot fix goes on)
       live.autofixed[failed.label] = true
-      vim.system(failed.autofix, { cwd = r.root }):wait()
-      state.feed("info", table.concat(failed.autofix, " ") .. " · formatting, 0 tokens")
+      vim.system(fixer, { cwd = r.root }):wait()
+      local golden = table.concat(fixer, " "):find("-update", 1, true)
+      state.feed(
+        "info",
+        table.concat(fixer, " ") .. (golden and " · first golden files: review testdata/*.golden" or " · 0 tokens")
+      )
       return check()
     end
     state.feed("fail", failed and failed.label or "check", (output or ""):sub(1, 1200))
-    if (output or ""):find "%.golden: no such file" then -- snapshot tests make their golden files, not a model
-      return finish(
-        "done",
-        "■ built · golden files to create",
-        "info",
-        "snapshot tests need their golden files once: run them with the update flag (teatest: go test ./... -update), then r"
-      )
-    end
     local planned = vim.tbl_map(function(f)
       return f.path
     end, r.files)
-    local outside = verify.outside(output or "", planned)
+    local outside = vim.tbl_filter(function(p) -- only the project's own (not a library's file in a stack trace)
+      return vim.uv.fs_stat(r.root .. "/" .. p) ~= nil
+    end, verify.outside(output or "", planned))
     if #outside > 0 then
       state.feed("info", "errors in files this build did not write: " .. table.concat(outside, ", "))
     end
-    local blamed = verify.blame(output or "", planned)
-    local manifest = next(blamed) == nil and verify.manifest_of(planned)
+    local gomod = require("utils.project").read(r.root .. "/go.mod") or ""
+    local blamed = verify.blame(output or "", planned, gomod:match "^module%s+(%S+)" or gomod:match "\nmodule%s+(%S+)")
+    roles = {}
+    -- the manifest only when the tool itself did not run (no test failed, no file named)
+    local tests_failed = (output or ""):find "%-%-%- FAIL" or (output or ""):find "FAIL:" or (output or ""):find "✗"
+    local manifest = next(blamed) == nil and not tests_failed and verify.manifest_of(planned)
     if manifest then -- no file named: the tool did not run, the manifest lacks something
       local lines = vim.split(vim.trim(output or ""), "\n", { plain = true })
       blamed[manifest] = vim.list_slice(lines, 1, 40)
@@ -502,6 +669,18 @@ check = function()
         )
       )
     end
+    -- a failing test: the code it exercises goes too (the bug is often there, not in the test)
+    for _, path in ipairs(vim.tbl_keys(blamed)) do
+      if verify.is_test(path) then
+        roles[path] = "test"
+        local file = state.file(path)
+        for _, subject in ipairs(file and file.needs or {}) do
+          if not blamed[subject] and not verify.is_test(subject) and not verify.is_manifest(subject) then
+            blamed[subject], roles[subject] = blamed[path], "subject"
+          end
+        end
+      end
+    end
     if next(blamed) == nil then
       return finish(
         "failed",
@@ -510,10 +689,34 @@ check = function()
         "no planned file is named: fix it by hand or ask the agent"
       )
     end
-    if r.fix_round >= r.max_fixes then
+    -- rounds go on while they make progress (the failure changes); they stop after `max_fixes` rounds in a row that
+    -- change nothing, or at the hard cap. A round that changed nothing escalates the next one (main tier, more effort).
+    local signature = M.signature(failed and failed.label or "", output or "")
+    if live.last_signature == signature then
+      live.stuck = (live.stuck or 0) + 1
+    else
+      live.stuck = 0
+    end
+    live.last_signature = signature
+    if live.stuck >= r.max_fixes then
+      return finish(
+        "failed",
+        ("✗ no progress in %d fix rounds (%d in all)"):format(live.stuck, r.fix_round),
+        "fail",
+        "the same failure came back: Enter tries again with fresh rounds, or fix it by hand"
+      )
+    end
+    if r.fix_round >= M.MAX_ROUNDS then
       return finish("failed", ("✗ still failing after %d fix rounds"):format(r.fix_round), "fail")
     end
-    fix(blamed)
+    if r.fix_round > 0 then
+      state.feed(
+        "info",
+        live.stuck > 0 and "the same failure: the next round escalates (main tier, more effort)"
+          or "progress: the failure changed, another round"
+      )
+    end
+    fix(blamed, output or "")
   end)
 end
 
@@ -521,6 +724,8 @@ end
 local function write()
   local r = run()
   r.phase = "write"
+  r.looked = nil -- new code: its screens get a look
+  live.stuck, live.last_signature = 0, nil
   begin()
   local i = 0
   local function next_file()
@@ -587,8 +792,74 @@ local function plan()
   live.prompts["plan.json"] = { system = req.system, prompt = req.prompt }
   state.feed("step", "the documents become a list of files", M.model "plan", "Plan")
   state.feed("in", "plan", ("agents stack design spec · %s chars"):format(size(#req.system + #req.prompt)))
-  view().code_start("plan.json", "planning")
-  call(req, "plan", view().code_stream, function(ok, text, usage, ms)
+  view().code_start("plan.md", "planning")
+  -- the plan read while it is made: first the model's thinking (a long plan thinks for a minute before writing), then the
+  -- JSON that has arrived, rendered as plan.md (what is complete so far); a 1 s tick keeps the clock moving in between
+  local so_far, thought, thinks, last_draw, t_plan = "", "", 0, 0, vim.uv.hrtime()
+  -- what the model was given, shown while it thinks (the claude CLI streams the thinking without its text)
+  local given = { "## Read", "" }
+  for _, d in ipairs(M.doc_sizes(live.docs)) do
+    given[#given + 1] = ("- %s · %s chars"):format(d.file, size(d.chars))
+  end
+  vim.list_extend(given, {
+    "",
+    "## Next",
+    "",
+    "- how it works, the architecture and the decisions",
+    "- the files in the order they are written: what each exports, verifies and uses",
+  })
+  given = table.concat(given, "\n")
+  local function draw(force)
+    local now = vim.uv.hrtime()
+    if not force and (now - last_draw) / 1e6 < 150 then
+      return
+    end
+    last_draw = now
+    local secs = math.floor((now - t_plan) / 1e9)
+    if so_far == "" then
+      local doing = thinks > 0 and ("thinking · %d step%s"):format(thinks, thinks == 1 and "" or "s")
+        or "waiting for the model"
+      local head = ("> %s · %ds · %s\n\n"):format(doing, secs, M.model "plan")
+      local body = vim.trim(thought) ~= "" and vim.trim(thought) or given
+      return view().code_live("plan.md", head .. body .. "\n")
+    end
+    local partial = plan_mod.partial(so_far)
+    local head = ("> planning · %d file%s so far · %ds · %s\n\n"):format(
+      #partial.files,
+      #partial.files == 1 and "" or "s",
+      secs,
+      M.model "plan"
+    )
+    view().code_live("plan.md", head .. M.plan_text(partial))
+  end
+  local tick = vim.uv.new_timer()
+  local function stop_tick()
+    if tick and not tick:is_closing() then
+      tick:stop()
+      tick:close()
+    end
+  end
+  tick:start(
+    1000,
+    1000,
+    vim.schedule_wrap(function()
+      if not run().running or run().phase ~= "plan" then
+        return stop_tick()
+      end
+      draw(true)
+    end)
+  )
+  draw(true)
+  req.on_think = function(delta)
+    thought, thinks = thought .. delta, thinks + 1
+    draw(thinks == 1)
+  end
+  call(req, "plan", function(delta)
+    local first = so_far == ""
+    so_far = so_far .. delta
+    draw(first) -- the thinking gives way to the plan at once
+  end, function(ok, text, usage, ms)
+    stop_tick()
     if not ok then
       return finish("ready", "✗ the plan failed", "fail", text)
     end
@@ -609,6 +880,10 @@ local function plan()
     M.reestimate()
     pause()
     r.phase = "review"
+    live.review_at = vim.uv.hrtime()
+    if live.replanning then -- the screen says it is a new plan, not only a new list
+      r.outcome, live.replanning = "■ new plan · review it · ⏎ builds", false
+    end
     state.save()
     state.changed()
   end)
@@ -619,9 +894,37 @@ end
 ---@return string
 function M.plan_text(plan)
   local out = { "# Plan · " .. plan.name, "" }
+  local function para(title, text)
+    if text and text ~= "" then
+      vim.list_extend(out, { "## " .. title, "", text, "" })
+    end
+  end
+  para("How it works", plan.summary)
+  para("Architecture", plan.architecture)
+  if plan.decisions and #plan.decisions > 0 then
+    out[#out + 1] = "## Decisions"
+    out[#out + 1] = ""
+    for _, d in ipairs(plan.decisions) do
+      out[#out + 1] = "- " .. d
+    end
+    out[#out + 1] = ""
+  end
+  out[#out + 1] = ("## Files (%d, in the order they are written)"):format(#plan.files)
+  local dir
   for i, f in ipairs(plan.files) do
-    out[#out + 1] = ("%d. `%s`  %s"):format(i, f.path, f.purpose)
-    local meta = "   " .. table.concat(f.docs, " ")
+    local here = vim.fs.dirname(f.path)
+    if here ~= dir then
+      dir = here
+      vim.list_extend(out, { "", "### " .. (here == "." and "(root)" or here) })
+    end
+    vim.list_extend(out, { "", ("%d. **%s** · %s"):format(i, vim.fs.basename(f.path), f.purpose) })
+    for _, e in ipairs(f.exports or {}) do
+      out[#out + 1] = "   - `" .. e:gsub("`", "") .. "`"
+    end
+    if f.verifies then
+      out[#out + 1] = "   - verifies: " .. f.verifies
+    end
+    local meta = "   - reads " .. table.concat(f.docs, " ")
     if #f.needs > 0 then
       meta = meta .. " · uses " .. table.concat(f.needs, ", ")
     end
@@ -647,6 +950,10 @@ function M.go()
     return plan()
   end
   if r.phase == "review" then
+    -- the review is the confirmation: an Enter that arrives right as it appears (typed ahead, pressed twice) is not one
+    if live.review_at and (vim.uv.hrtime() - live.review_at) / 1e9 < 1.5 then
+      return log.info "Build: this is the review · press Enter again to build"
+    end
     for _, p in ipairs(r.stale or {}) do
       require("files.ops").trash(r.root .. "/" .. p)
     end
@@ -686,6 +993,7 @@ function M.go()
     return write()
   end
   r.fix_round, live.autofixed = 0, {}
+  live.stuck, live.last_signature = 0, nil
   begin()
   check()
 end
@@ -699,6 +1007,7 @@ function M.recheck()
   live.docs = live.docs or M.docs(r.root)
   live.written = nil
   r.fix_round, live.autofixed, r.outcome = 0, {}, nil
+  live.stuck, live.last_signature = 0, nil
   state.feed("step", "the files as they are now", "0 tokens unless a fix is needed", "Check again")
   begin()
   check()
@@ -741,18 +1050,107 @@ function M.toggle_skip(path)
   state.changed()
 end
 
---- `n`: a new plan from the documents (the saved run is forgotten)
-function M.restart()
+--- A fresh run of the same project, keeping the models and the rounds you chose (nothing saved is touched)
+---@return BuildRun?
+local function fresh_run()
   local r = state.run
   if not r or r.running then
-    return
+    return nil
   end
   local docs = M.docs(r.root)
   live.docs, live.written, live.prompts, live.autofixed = docs, nil, {}, {}
+  live.stuck, live.last_signature, live.review_at = 0, nil, nil
   local tiers, max = r.tiers, r.max_fixes
-  local fresh = state.new(r.root, M.doc_sizes(docs))
-  fresh.tiers, fresh.max_fixes = tiers, max
-  state.changed()
+  local new = state.new(r.root, M.doc_sizes(docs))
+  new.tiers, new.max_fixes = tiers, max
+  return new
+end
+
+--- `n`: a new plan, now (the files the old one wrote stay; the new review says which it replaces or drops)
+function M.restart()
+  local had = state.run and state.run.plan
+  if not fresh_run() then
+    return
+  end
+  state.feed("step", had and "the previous plan is replaced" or "a plan from the documents", nil, "Replan")
+  live.replanning = had and true or false
+  plan()
+end
+
+--- `X`: undo the build: the files it wrote go to the trash (`<leader>Fu` brings them back), the saved run and the list
+--- of written files are forgotten, the pre-flight is left. Asks first, with the count.
+function M.clean()
+  local r = state.run
+  if not r or r.running then
+    return log.info "Build: stop it first (x)"
+  end
+  local paths, seen = {}, {}
+  local function add(p)
+    if p and not seen[p] and vim.uv.fs_stat(r.root .. "/" .. p) then
+      seen[p] = true
+      paths[#paths + 1] = p
+    end
+  end
+  for _, f in ipairs(r.files) do
+    if f.state == "done" or f.state == "fixed" or f.state == "failed" or f.state == "writing" then
+      add(f.path)
+    end
+  end
+  for _, p in ipairs(M.previous(r.root)) do
+    add(p)
+  end
+  table.sort(paths)
+  local modal = require "utils.modal"
+  local lines = {
+    { { ("%d file%s this build wrote go to the trash"):format(#paths, #paths == 1 and "" or "s"), modal.hl.file } },
+    { { "<leader>Fu brings them back · the four documents stay", modal.hl.muted } },
+    "",
+  }
+  for i = 1, math.min(#paths, 8) do
+    lines[#lines + 1] = { { "  " .. paths[i], modal.hl.muted } }
+  end
+  if #paths > 8 then
+    lines[#lines + 1] = { { ("  … and %d more"):format(#paths - 8), modal.hl.muted } }
+  end
+  modal.confirm(lines, { title = "Clean the build", confirm = "Clean", danger = true }, function()
+    local ops = require "files.ops"
+    for _, p in ipairs(paths) do
+      ops.trash(r.root .. "/" .. p)
+    end
+    -- empty folders the build made are left behind by the trash: remove those that are empty now
+    local dirs = {}
+    for _, p in ipairs(paths) do
+      local d = vim.fs.dirname(p)
+      while d and d ~= "." and d ~= "" do
+        dirs[d] = true
+        d = vim.fs.dirname(d)
+      end
+    end
+    local list = vim.tbl_keys(dirs)
+    table.sort(list, function(x, y)
+      return #x > #y -- deepest first
+    end)
+    for _, d in ipairs(list) do
+      vim.uv.fs_rmdir(r.root .. "/" .. d)
+    end
+    os.remove(state.path(r.root))
+    os.remove(M.manifest_path(r.root))
+    fresh_run()
+    view().code_done(
+      "plan.md",
+      "# Clean\n\nThe build's files are in the trash. The documents are untouched: ⏎ plans again.\n",
+      "cleaned",
+      true
+    )
+    state.feed(
+      "step",
+      ("%d file%s to the trash, the run forgotten"):format(#paths, #paths == 1 and "" or "s"),
+      nil,
+      "Clean"
+    )
+    state.changed()
+    log.info(("Build: cleaned · %d file%s in the trash (<leader>Fu)"):format(#paths, #paths == 1 and "" or "s"))
+  end)
 end
 
 --- `+`/`-`: fix rounds
@@ -789,12 +1187,27 @@ function M.open()
   if state.resumable(saved) then
     state.run = saved
     saved.docs = M.doc_sizes(docs)
-    saved.outcome = ("■ paused at %s · ⏎ continues · n replans"):format(saved.at or saved.phase)
+    saved.outcome = saved.phase == "review" and "■ the plan is waiting · ⏎ builds · n replans"
+      or ("■ paused at %s · ⏎ continues · n replans"):format(
+        saved.phase == "stopped" and (saved.at or "write") or saved.phase
+      )
     M.reestimate()
   else
     state.new(root, M.doc_sizes(docs))
   end
   view().open()
+  if state.run.plan then -- a run with a plan comes back with it on screen (closing Neovim loses nothing)
+    M.show_plan()
+  end
+end
+
+--- `P`: the plan, in the code pane (what the build writes against), in any phase
+function M.show_plan()
+  local r = state.run
+  if not r or not r.plan then
+    return log.info "Build: no plan yet (⏎ in the pre-flight asks for one)"
+  end
+  view().code_done("plan.md", M.plan_text(r.plan), "the plan", true)
 end
 
 --- The menu's `b` and older callers

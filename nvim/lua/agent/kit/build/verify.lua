@@ -9,7 +9,8 @@ local M = {}
 ---@field label string
 ---@field cmd string[]
 ---@field fails_on_output boolean?  gofmt -l: any output is a failure
----@field autofix string[]?          a command that fixes what it reports with no model (gofmt -w)
+---@field autofix (string[]|fun(output: string): string[]?)?  a command that fixes what it reports with no model (gofmt -w;
+---                                   for tests, the first golden files); a function says which command for that output, or none
 ---@field fn (fun(): boolean, string)?  a check done here, no command (STACK.md against the manifest)
 
 --- Tools a STACK.md table names → the npm package that must then be in package.json
@@ -185,6 +186,112 @@ local function web_files(root)
   return out
 end
 
+--- Snapshot tests seen for the first time have no golden file yet: they are created by running ONLY those tests with
+--- `-update` (what the app draws now becomes the snapshot). Only when missing golden files are the only failure: a test
+--- failing for another reason means the app is not right yet, and a snapshot of it would lock the bug in. nil otherwise.
+---@param output string
+---@return string[]?
+function M.golden_update(output)
+  if not (output or ""):find "%.golden: no such file" then
+    return nil
+  end
+  local failing, golden = {}, {}
+  for name in ("\n" .. output):gmatch "\n%-%-%- FAIL: ([%w_]+)" do -- top-level tests (subtests are indented)
+    failing[name] = true
+  end
+  for name in output:gmatch "testdata/([%w_]+)%.golden: no such file" do
+    golden[name] = true
+  end
+  for name in pairs(failing) do
+    if not golden[name] then
+      return nil
+    end
+  end
+  local pkgs, seen = {}, {}
+  -- `FAIL<tab>pkg<tab>0.05s` (a bare `FAIL` line comes first: the package is the one after the tab)
+  for pkg in ("\n" .. output):gmatch "\nFAIL\t([^\t\n%s]+)" do
+    if not seen[pkg] then
+      seen[pkg] = true
+      pkgs[#pkgs + 1] = pkg
+    end
+  end
+  if #pkgs == 0 or next(golden) == nil then
+    return nil
+  end
+  local names = vim.tbl_keys(golden)
+  table.sort(names)
+  local cmd = { "go", "test" }
+  vim.list_extend(cmd, pkgs)
+  vim.list_extend(cmd, { "-run", "^(" .. table.concat(names, "|") .. ")$", "-update" })
+  return cmd
+end
+
+--- Is this path a test file? (Go, JS/TS, Python, Dart, Rust test folders)
+---@param path string
+---@return boolean
+function M.is_test(path)
+  return path:match "_test%.go$" ~= nil
+    or path:match "%.test%.[jt]sx?$" ~= nil
+    or path:match "%.spec%.[jt]sx?$" ~= nil
+    or path:match "_test%.py$" ~= nil
+    or path:match "/test_[^/]*%.py$" ~= nil
+    or path:match "^test_[^/]*%.py$" ~= nil
+    or path:match "_test%.dart$" ~= nil
+    or path:match "^tests?/" ~= nil
+end
+
+--- What a test asserts and what skips it, in the usual frameworks (Go testing/testify/teatest, Jest/Vitest, pytest,
+--- Rust, Dart)
+local ASSERTS = {
+  "t%.Error",
+  "t%.Fatal",
+  "require%.",
+  "assert%.",
+  "WaitFor",
+  "expect%(",
+  "assert%s",
+  "assert!%(",
+  "assert_eq!%(",
+  "assert_ne!%(",
+  "should%.",
+}
+local SKIPS = { "t%.Skip", "%.skip%(", "xit%(", "xdescribe%(", "@pytest%.mark%.skip", "#%[ignore%]", "skip:%s*true" }
+
+---@param text string
+---@param patterns string[]
+---@return integer
+local function count(text, patterns)
+  local n = 0
+  for _, pat in ipairs(patterns) do
+    n = n + select(2, text:gsub(pat, ""))
+  end
+  return n
+end
+
+--- Does the new version of a test check less than the old one? (fewer assertions or waits, a new skip) → why, else nil
+---@param old string
+---@param new string
+---@return string?
+function M.weakened(old, new)
+  local before, after = count(old or "", ASSERTS), count(new or "", ASSERTS)
+  if after < before then
+    return ("it removes %d assertion%s or wait%s"):format(
+      before - after,
+      before - after == 1 and "" or "s",
+      before - after == 1 and "" or "s"
+    )
+  end
+  if count(new or "", SKIPS) > count(old or "", SKIPS) then
+    return "it skips a test"
+  end
+end
+
+---@param path string
+---@return boolean
+function M.is_manifest(path)
+  return vim.tbl_contains(M.MANIFESTS, path)
+end
+
 M.MANIFESTS = { "package.json", "go.mod", "Cargo.toml", "pyproject.toml", "requirements.txt", "pubspec.yaml" }
 
 --- The package manager STACK.md names in its Stack table (what to use before any lockfile exists)
@@ -226,7 +333,7 @@ function M.checks(root, prefer)
       { label = "gofmt -l .", cmd = { "gofmt", "-l", "." }, fails_on_output = true, autofix = { "gofmt", "-w", "." } },
       { label = "go build ./...", cmd = { "go", "build", "./..." } },
       { label = "go vet ./...", cmd = { "go", "vet", "./..." } },
-      { label = "go test ./...", cmd = { "go", "test", "./..." } },
+      { label = "go test ./...", cmd = { "go", "test", "./..." }, autofix = M.golden_update },
     }
   elseif has "Cargo.toml" then
     return { { label = "cargo build", cmd = { "cargo", "build", "--quiet" } } }
@@ -354,23 +461,58 @@ function M.path_in(line)
     or line:match "^%s*%.?/?([%w_%-%./]+%.%w+)%s*$"
 end
 
---- The planned files the tool output names, with their lines of output (pure)
+--- The planned files the tool output names, with their lines of output (pure). `module` (go.mod's module path) maps
+--- `go test`'s package-relative names back to the project
 ---@param output string
 ---@param paths string[] planned paths
+---@param module string?
 ---@return table<string, string[]>
-function M.blame(output, paths)
-  local known = {}
+function M.blame(output, paths, module)
+  local known, by_base = {}, {}
   for _, p in ipairs(paths) do
     known[p] = true
+    local base = vim.fs.basename(p)
+    by_base[base] = by_base[base] or {}
+    table.insert(by_base[base], p)
   end
   local out = {}
+  local function add(file, line)
+    out[file] = out[file] or {}
+    table.insert(out[file], line)
+  end
+  -- `go test` names files relative to their package (`app_test.go:46:`) and says the package after them
+  -- (`FAIL<tab>module/internal/ui`): those wait for it; a name that fits one planned file only needs no package
+  local pending = {}
+  local function settle(pkg)
+    local dir = pkg and module and pkg:sub(1, #module) == module and pkg:sub(#module + 2) or nil
+    for _, item in ipairs(pending) do
+      local candidates = by_base[vim.fs.basename(item.file)] or {}
+      local hit = dir
+        and known[(dir ~= "" and (dir .. "/") or "") .. item.file]
+        and ((dir ~= "" and (dir .. "/") or "") .. item.file)
+      if not hit and #candidates == 1 then
+        hit = candidates[1]
+      end
+      if hit then
+        add(hit, item.line)
+      end
+    end
+    pending = {}
+  end
   for line in (output or ""):gmatch "[^\n]+" do
-    local file = M.path_in(line)
-    if file and known[file] then
-      out[file] = out[file] or {}
-      table.insert(out[file], line)
+    local pkg = line:match "^FAIL%s+(%S+)%s" or line:match "^FAIL%s+(%S+)$" or line:match "^ok%s+(%S+)%s"
+    if pkg and pkg ~= "FAIL" then
+      settle(pkg)
+    else
+      local file = M.path_in(line)
+      if file and known[file] then
+        add(file, line)
+      elseif file then
+        pending[#pending + 1] = { file = file, line = line }
+      end
     end
   end
+  settle(nil)
   return out
 end
 

@@ -72,6 +72,45 @@ function M.build_status()
   }
 end
 
+--- The statusline of the build tab (<leader>aSb), for its buffers (filetype agentbuild): the phase as the mode chip,
+--- the keys of the moment, then progress · money · cache · time
+---@return table lualine extension
+function M.build_extension()
+  local function view()
+    return package.loaded["agent.kit.build.view"]
+  end
+  local function part(name)
+    return function()
+      local v = view()
+      if not v then
+        return ""
+      end
+      local ok, text = pcall(v[name]) -- a failing piece must not take the whole statusline down
+      return ok and text or ""
+    end
+  end
+  return {
+    filetypes = { "agentbuild" },
+    sections = {
+      lualine_a = {
+        {
+          part "status_phase",
+          fmt = M.centered(10),
+          color = function()
+            local v = view()
+            local ok, group = pcall(function()
+              return v and v.status_color()
+            end)
+            return ok and group or nil
+          end,
+        },
+      },
+      lualine_c = { part "status_keys" },
+      lualine_x = { part "status_figures" },
+    },
+  }
+end
+
 --- build_runner (dartgen): "gen …" / "gen" / "gen ✗ N" while a watch or build runs for this file's package
 function M.dartgen_status()
   local function text()

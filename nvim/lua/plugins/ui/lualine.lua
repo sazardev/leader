@@ -36,6 +36,7 @@ return {
       },
       lualine_z = { { components.position, fmt = components.centered(6) } },
     },
+    extensions = { components.build_extension() },
     inactive_sections = {
       lualine_a = {},
       lualine_b = { "filename" },

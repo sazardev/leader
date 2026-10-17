@@ -5,7 +5,7 @@ local M = {}
 
 local SYSTEM = [[You are a coding agent writing ONE file of a project, following its documents exactly.
 Output ONLY the complete file content: no explanation, no ``` fence, nothing before or after.
-Follow STACK.md (layout, conventions, rules for agents, engineering principles), DESIGN.md for anything the user sees, SPEC.md for behaviour, AGENTS.md for workflow rules.
+Follow STACK.md (layout, conventions, rules for agents, engineering principles), DESIGN.md for anything the user sees (its `## Screens` wireframes are the layout: alignment, centering, frames and sizes exactly as drawn; its `## Toolkit` says how to express it in code), SPEC.md for behaviour, AGENTS.md for workflow rules.
 Use only the APIs of the files you are shown and of the libraries STACK.md names; keep exported names consistent with the plan. Small, clear functions; no TODOs; no placeholder code.]]
 
 ---@param docs table<string, string>
@@ -31,9 +31,26 @@ end
 ---@param current string
 ---@return string
 local function outline(plan, current)
+  -- the plan's whole contract (identical in every request: no "current" mark, so the backend caches it)
   local rows = {}
+  if plan.summary and plan.summary ~= "" then
+    rows[#rows + 1] = "Summary: " .. plan.summary
+  end
+  if plan.architecture and plan.architecture ~= "" then
+    rows[#rows + 1] = "Architecture: " .. plan.architecture
+  end
+  if plan.decisions and #plan.decisions > 0 then
+    rows[#rows + 1] = "Decisions:\n- " .. table.concat(plan.decisions, "\n- ")
+  end
+  rows[#rows + 1] = "Files (each exports what the others rely on; keep every promise):"
   for _, f in ipairs(plan.files) do
-    rows[#rows + 1] = ("- %s: %s"):format(f.path, f.purpose) -- no "current" mark: identical in every request (cacheable)
+    rows[#rows + 1] = ("- %s: %s"):format(f.path, f.purpose)
+    for _, e in ipairs(f.exports or {}) do
+      rows[#rows + 1] = "    exports " .. e
+    end
+    if f.verifies then
+      rows[#rows + 1] = "    verifies " .. f.verifies
+    end
   end
   return "<plan>\n" .. table.concat(rows, "\n") .. "\n</plan>"
 end
@@ -88,16 +105,33 @@ function M.api(written, skip)
       and not path:match "%.mod$"
       and not path:match "%.test%.[jt]s$"
     then
-      local decls = {}
-      for line in written[path]:gmatch "[^\n]+" do
+      local decls, count, comment = {}, 0, nil
+      for line in (written[path] .. "\n"):gmatch "([^\n]*)\n" do
+        -- the comment right above a declaration says what it promises ("the keypad opens on =", "returns nil when…"):
+        -- the behaviour other files rely on, not only the signature
+        local text = line:match "^%s*///?%s*(.-)%s*$"
+          or line:match "^%s*/?%*+%s*(.-)%s*%*?/?$"
+          or line:match "^%s*#%s+(.-)%s*$"
+        local is_decl = false
         for _, pat in ipairs(DECL) do
           if line:match(pat) then
-            decls[#decls + 1] = (line:gsub("%s*{%s*$", ""):gsub("%s+$", ""))
+            is_decl = true
             break
           end
         end
-        if #decls >= 40 then
-          break
+        if is_decl then
+          if comment and comment ~= "" then
+            decls[#decls + 1] = "// " .. (#comment > 140 and (comment:sub(1, 139) .. "…") or comment)
+          end
+          decls[#decls + 1] = (line:gsub("%s*{%s*$", ""):gsub("%s+$", ""))
+          count, comment = count + 1, nil
+          if count >= 40 then
+            break
+          end
+        elseif text and text ~= "" then
+          comment = comment and (comment .. " " .. text) or text
+        elseif not text then
+          comment = nil
         end
       end
       if path:match "%.html?$" then -- the DOM contract: the ids scripts look up
@@ -187,7 +221,9 @@ end
 ---@param docs table<string, string>
 ---@param written table<string, string>
 ---@return table req
-function M.fix(path, content, errors, file, plan, docs, written)
+---@param role "test"|"subject"|nil  a failing test, or the code a failing test exercises
+---@param note string? the diagnosis of the failure and what to change in this file
+function M.fix(path, content, errors, file, plan, docs, written, role, note)
   local system = M.system(plan, docs)
   local parts = { M.focus(file and file.docs or { "stack" }) }
   local api = M.api(written, path)
@@ -200,9 +236,22 @@ function M.fix(path, content, errors, file, plan, docs, written)
   end
   parts[#parts + 1] = ('<file path="%s">\n%s\n</file>'):format(path, content)
   parts[#parts + 1] = "<errors>\n" .. vim.trim(errors) .. "\n</errors>"
-  parts[#parts + 1] = ("Fix `%s` so these errors are gone, using the names in <api> for what other files declare. Return the whole corrected file."):format(
-    path
-  )
+  if note and note ~= "" then
+    parts[#parts + 1] = "<diagnosis>\n" .. vim.trim(note) .. "\n</diagnosis>"
+  end
+  if role == "test" then
+    parts[#parts + 1] = ("`%s` is a test and it fails. Fix the test only if the test itself is wrong (a wrong API, an expectation SPEC.md does not state). Never delete or weaken assertions, waits or cases to make it pass: when the expectation is right the bug is in the code it tests, which is sent separately; then return this file unchanged. Return the whole file."):format(
+      path
+    )
+  elseif role == "subject" then
+    parts[#parts + 1] = ("A test that exercises `%s` fails with the errors above. If the bug is in this file, fix it so the test's expectation (which follows SPEC.md) holds; if this file is right, return it unchanged. Use the names in <api> for what other files declare. Return the whole file."):format(
+      path
+    )
+  else
+    parts[#parts + 1] = ("Fix `%s` so these errors are gone, using the names in <api> for what other files declare. Return the whole corrected file."):format(
+      path
+    )
+  end
   return { action = "kit_build_fix", tier = "main", system = system, prompt = table.concat(parts, "\n\n"), cache = true }
 end
 

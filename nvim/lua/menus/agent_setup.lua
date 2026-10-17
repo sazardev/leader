@@ -29,6 +29,7 @@ local maps = {
   { "p", "setup principles", kit "principles" },
   { "d", "setup design", kit "design" },
   { "D", "setup design write", kit "design_prompt" },
+  { "w", "setup screens", kit "screens" },
   { "s", "setup spec", kit "spec" },
 }
 

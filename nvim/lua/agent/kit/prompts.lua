@@ -10,6 +10,12 @@ local SYSTEM =
 Output ONLY the Markdown file: it starts with the `# ` title line, nothing before or after it, no ``` fence around it.
 Be dense and concrete: imperative rules an agent can follow and a reviewer can check, real names, real commands, real numbers. No filler, no marketing, no emojis.]]
 
+--- One section of a document (the rest stays as the user has it)
+local SECTION_SYSTEM = SYSTEM:gsub(
+  "Output ONLY the Markdown file: it starts with the `# ` title line",
+  "Output ONLY the Markdown section asked for: it starts with its `## ` heading"
+)
+
 --- About the project: what is not in the input is not made up
 local FACTS = "Never invent facts: what the input does not say and you cannot infer goes to a `TODO:` line."
 --- A stack or a design is a set of choices: making them is the job
@@ -230,6 +236,37 @@ For a terminal UI (TUI, CLI) translate every section to the terminal: colors as 
       .. block("description", description)
       .. task
       .. closing("DESIGN.md", "<product or style, in 2-5 words>", DECIDE),
+  }
+end
+
+--- DESIGN.md's `## Screens` section: a wireframe of every main screen SPEC.md names, drawn in DESIGN.md's own style. Models
+--- copy a picture far more faithfully than prose, so the build lays screens out as drawn.
+---@param spec string
+---@param design string
+---@param stack string?
+---@return table
+function M.screens(spec, design, stack)
+  local summary = stack and (stack:match "## Summary%s*\n(.-)\n## " or ""):sub(1, 1500) or ""
+  local task =
+    [[Write the `## Screens` section of DESIGN.md (in <design>) for the product in <spec>: one wireframe per main screen and per state that changes the layout (empty, error, too small), in the style DESIGN.md defines.
+Output ONLY the section: it starts with `## Screens`, no other `## ` heading, no fence around the whole answer.
+For each screen:
+- `### <Screen name>` and one line: what it is for and which SPEC requirements (FR-n) it serves.
+- A ``` fenced wireframe drawn character by character as it renders: the real borders, glyphs and labels from DESIGN.md, real sample content (not "Lorem"), aligned exactly. Terminal UI: at the minimum size the documents name (else 80x24), every line exactly that wide (pad with spaces), the composition centered when DESIGN.md says so. GUI: about 100 columns for the widest layout, plus a narrow (mobile) variant when the product has one.
+- Under it, a short list: each region with its tokens (color, type, spacing), alignment, fixed vs flexible sizes, focus/selection, and how it adapts when the window is bigger or smaller.
+Keep it consistent with DESIGN.md's components and rules; where SPEC leaves a layout choice open, decide and mark it `(proposed)`.]]
+  return {
+    action = "kit_screens",
+    tier = "main",
+    timeout_ms = 300000, -- several screens drawn cell by cell, after a long think
+    system = SECTION_SYSTEM,
+    prompt = block("spec", spec)
+      .. block("design", design)
+      .. block("stack-summary", summary)
+      .. task
+      .. ("\n\nThe first line is exactly: `## Screens`.\nLanguage: write every line in %s; the labels on screen as SPEC.md writes them."):format(
+        (require("core.settings").agent.kit or {}).language or "English"
+      ),
   }
 end
 

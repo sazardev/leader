@@ -19,11 +19,11 @@ local function launch(sel, req, cb)
     system = req.system,
     prompt = req.prompt,
     model = sel.model,
-    effort = sel.effort,
+    effort = req.effort or sel.effort, -- a request may ask for more (a build's fix round that made no progress)
     action = req.action,
     cache = req.cache,
   }
-  local parser = backend.parser()
+  local parser = backend.parser { on_think = req.on_think } -- backends that do not stream thinking ignore it
   local t0 = vim.uv.hrtime()
 
   local ok, handle = pcall(vim.system, spec.cmd, {
@@ -31,7 +31,7 @@ local function launch(sel, req, cb)
     cwd = spec.cwd,
     env = spec.env,
     text = true,
-    timeout = settings.timeout_ms,
+    timeout = req.timeout_ms or settings.timeout_ms,
     stdout = function(_, data)
       if data then
         vim.schedule(function()
@@ -48,7 +48,7 @@ local function launch(sel, req, cb)
       local killed = out.code == 124 or out.code == 143 or out.signal == 15
       local ms = math.floor((vim.uv.hrtime() - t0) / 1e6)
       if killed and not result.ok then
-        return cb(false, ("timed out (%gs)"):format(settings.timeout_ms / 1000))
+        return cb(false, ("timed out (%gs)"):format((req.timeout_ms or settings.timeout_ms) / 1000))
       end
       if result.ok then
         require("agent.runs").call(req, sel, "done", result.usage, ms, result.text)
@@ -71,8 +71,10 @@ end
 --- review and plans are covered without each of them asking. Returns the process when the request starts at once; when a guard
 --- has to ask first it returns nil (the answer arrives through `cb`).
 --- `req.on_text(delta)`: optional, called with each piece of the answer as it streams (backends that stream)
+--- `req.on_think(delta)`: optional, the model's thinking as it streams (claude), before the answer starts
 --- `req.cache`: ask the backend to cache the prompt's prefix (a series of requests sharing their first part).
---- `req.preapproved`: the spend guard does not ask again (the caps still apply)
+--- `req.preapproved`: the spend guard does not ask again (the caps still apply). `req.timeout_ms`: a longer limit for a
+--- request known to answer long (a build plan)
 ---@param req { action: string, system: string, prompt: string, tier: "main"|"light"?, on_text: fun(delta: string)?, cache: boolean? }
 ---@param cb fun(ok: boolean, text: string, usage: table?)
 ---@return vim.SystemObj?

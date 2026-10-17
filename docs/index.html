@@ -908,7 +908,7 @@ footer a:hover{color:var(--fg)}
     "aD": [["a", "Agent ddd ask"], ["c", "Agent ddd clear"], ["d", "Agent ddd diagnose"], ["f", "Agent ddd fix"], ["i", "Agent ddd implement"], ["m", "Agent ddd missing"], ["r", "Agent ddd review"]],
     "aL": [["a", "Agent lens api"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["p", "Agent lens performance"], ["s", "Agent lens security"]],
     "aP": [["c", "Agent repo check"], ["i", "Agent repo implement"], ["p", "Agent repo port"], ["r", "Agent repo review"]],
-    "aS": [["/", "Agent setup find"], ["a", "Agent setup agents"], ["A", "Agent setup agents template"], ["b", "Agent setup build"], ["B", "Agent setup recheck"], ["c", "Agent setup claude link"], ["d", "Agent setup design"], ["D", "Agent setup design write"], ["k", "Agent setup stack addons"], ["o", "Agent setup overview"], ["p", "Agent setup principles"], ["s", "Agent setup spec"], ["t", "Agent setup stack"], ["T", "Agent setup stack write"]],
+    "aS": [["/", "Agent setup find"], ["a", "Agent setup agents"], ["A", "Agent setup agents template"], ["b", "Agent setup build"], ["B", "Agent setup recheck"], ["c", "Agent setup claude link"], ["d", "Agent setup design"], ["D", "Agent setup design write"], ["k", "Agent setup stack addons"], ["o", "Agent setup overview"], ["p", "Agent setup principles"], ["s", "Agent setup spec"], ["t", "Agent setup stack"], ["T", "Agent setup stack write"], ["w", "Agent setup screens"]],
     "aT": [["f", "Agent test fix"], ["g", "Agent test gaps"], ["m", "Agent test mock"], ["w", "Agent test write"]],
     "aU": [["d", "Agent service deps"], ["i", "Agent service implement"], ["r", "Agent service review"]],
     "C": [["c", "Comments collapse long comments"], ["d", "Comments doc comment template for this function/type"], ["e", "Comments expand comments"], ["m", "Comments public functions missing a doc comment (quickfix)"], ["t", "Comments toggle comment under cursor"]],
@@ -1401,13 +1401,13 @@ footer a:hover{color:var(--fg)}
         load(p, "internal/domain/note.go", 2); S.showCursor = false; await p.w(500);
         await p.seq(["␣", "a", "S"]); await p.w(900); await p.key("b", 260);
         var files = ["go.mod", "internal/domain/note.go", "internal/domain/note_test.go", "internal/application/note_service.go", "internal/infrastructure/note_repo.go", "internal/transport/note_handler.go", "cmd/api/main.go", "README.md"];
-        var banner = [["h1", "█▄▄ █ █ █ █   █▀▄"], ["h1", "█▄█ █▄█ █ █▄▄ █▄▀"], ["it", "notes"], [""]];
+        var banner = [];
         function steps(at) {
           var names = ["plan", "review", "write", "check", "fix", "done"];
           return names.map(function (n, i) { return i < at ? "<b>" + n + "</b>" : i === at ? '<span class="ck">' + n + "</span>" : '<span class="ck off">' + n + "</span>"; }).join(" ━ ");
         }
         var models = [["h2", "Models"], ["", "1 plan   <b>claude/haiku</b>   main"], ["", "2 files  <b>claude/haiku</b>   main"], ["", "3 fixes  <b>claude/haiku</b>   main"], [""]];
-        var bo = { kind: "report", title: "agent build", hint: " · ⏎ plan · 1 2 3 tier · ± fixes · q close ", lines: [] };
+        var bo = { kind: "report", title: "notes", hint: " · ⏎ plan · 1 2 3 tier · ± fixes · q close ", lines: [] };
         bo.lines = banner.concat([["", steps(-1)], [""], ["it", "$0.000 · 0 in · 0% cached · 0m00s"], [""]], models, [["h2", "Documents"], ["", "● AGENTS.md 7.9k · ● STACK.md 19.7k · ● DESIGN.md 6.8k · ● SPEC.md 15.4k"], [""], ["", "<b>⏎ plan</b> · 1 request · ~14.8k in · ~$0.004"]]);
         p.ov(bo); await p.w(2600);
         await p.key("⏎", 240); await p.spin(2, "build planning · claude/haiku", 900, "plan");

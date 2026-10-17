@@ -145,6 +145,7 @@ _Where: global_
 | `<leader>aSp` | setup principles |
 | `<leader>aSd` | setup design |
 | `<leader>aSD` | setup design write |
+| `<leader>aSw` | setup screens |
 | `<leader>aSs` | setup spec |
 
 ### Agent Tests — `<leader>aT`
@@ -605,6 +606,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSp` | n | Setup principles |
 | `<leader>aSs` | n | Setup spec |
 | `<leader>aSt` | n | Setup stack |
+| `<leader>aSw` | n | Setup screens |
 | `<leader>aTf` | n,x | Test fix |
 | `<leader>aTg` | n | Test gaps |
 | `<leader>aTm` | n,x | Test mock |

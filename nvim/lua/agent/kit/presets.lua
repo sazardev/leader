@@ -174,6 +174,7 @@ M.DESIGN_AXES = {
   { id = "glyphs", label = "Glyphs", exclusive = true },
   { id = "density", label = "Density", exclusive = true },
   { id = "accessibility", label = "Accessibility", exclusive = false },
+  { id = "toolkit", label = "Toolkit", exclusive = true },
 }
 
 --- The tags of a design preset: `all`, its id, its category, and `tui` for terminal ones (what design add-ons fit)
@@ -191,6 +192,24 @@ function M.design_tags(preset, category)
     tags.gui = true
   end
   return tags
+end
+
+--- The design tags plus what the project's STACK.md says (its languages and kind words: `go`, `rust`, `flutter`,
+--- `tailwind`…), so a toolkit add-on comes checked for the stack the project uses. Its own `tui`/`gui` and ids win.
+---@param tags table<string, boolean>
+---@param stack string? the STACK.md text
+---@return table<string, boolean>
+function M.with_stack(tags, stack)
+  if not stack or stack == "" then
+    return tags
+  end
+  local out = vim.deepcopy(tags)
+  for tag in pairs(M.tags { id = "", body = stack }) do
+    if tag ~= "" and tag ~= "tui" then
+      out[tag] = true
+    end
+  end
+  return out
 end
 
 --- Tags add-ons ask for (`for: go`, `default: lang:typescript`). Languages come from the Stack table's Language/Runtime rows
@@ -226,6 +245,7 @@ M.TAG_WORDS = {
   server = { "api", "server", "grpc", "backend" },
   ui = { "react", "vue", "svelte", "solid", "preact", "astro", "lit", "alpine", "htmx", "tailwind", "css" },
   tui = { "tui", "terminal" },
+  tailwind = { "tailwind", "tailwindcss" },
 }
 
 ---@param text string lowercased, padded with spaces, punctuation as spaces

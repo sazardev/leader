@@ -37,6 +37,7 @@ M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "done" }
 ---@field files BuildFileState[]
 ---@field checks { label: string, state: string }[]
 ---@field fix_round integer
+---@field looked boolean?        the rendered screens were compared with DESIGN.md (once per build)
 ---@field feed BuildFeed[]
 ---@field totals { requests: integer, tokens_in: integer, tokens_out: integer, cached: integer, cost: number }
 ---@field estimate { tokens: integer, cost: number? }?
