@@ -1,11 +1,17 @@
 #!/bin/sh
-# Tests of the project kit (nvim/lua/agent/kit, <leader>aS): presets, documents text, project snapshot, flows with a fake model.
+# Tests of the project kit (nvim/lua/agent/kit, <leader>aS): presets, documents text, project snapshot, flows with a fake model
+# (test-kit.lua), and the build's quality harness: answer cleaner, wiring, the use phase and its drivers (test-kit-use.lua;
+# the tmux and Playwright parts are skipped when those are missing).
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 command -v nvim >/dev/null 2>&1 || { echo "test-kit: nvim is not in PATH" >&2; exit 2; }
-state="$(mktemp -d)"
-out="$(XDG_STATE_HOME="$state" AGENT_TEST_ROOT="$ROOT" NVIM_NO_LOCAL=1 NVIM_LIGHT=0 nvim -u NONE --headless -c "luafile $ROOT/scripts/test-kit.lua" 2>&1 | tr '\r' '\n')"
-rm -rf "$state"
-printf '%s\n' "$out"
-printf '%s\n' "$out" | grep -q '^FAIL\|^ERROR\|FAILURES\|^E5' && exit 1
-printf '%s\n' "$out" | grep -q 'ALL OK' || exit 1
-exit 0
+status=0
+for suite in test-kit.lua test-kit-use.lua; do
+  state="$(mktemp -d)"
+  out="$(XDG_STATE_HOME="$state" AGENT_TEST_ROOT="$ROOT" NVIM_NO_LOCAL=1 NVIM_LIGHT=0 nvim -u NONE --headless -c "luafile $ROOT/scripts/$suite" 2>&1 | tr '\r' '\n')"
+  rm -rf "$state"
+  printf '%s\n' "$out"
+  if printf '%s\n' "$out" | grep -q '^FAIL\|^ERROR\|FAILURES\|^E5' || ! printf '%s\n' "$out" | grep -q 'ALL OK'; then
+    status=1
+  fi
+done
+exit $status

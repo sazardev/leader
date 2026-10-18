@@ -2,8 +2,9 @@
 -- Passing checks say the program works, not that it looks as designed: the keypad stuck to the left edge, a help bar cut
 -- off, a frame DESIGN.md asks for and nobody drew. When every check passes, the screens the tests rendered (Go teatest golden
 -- files: the exact text a terminal shows) go to the model with DESIGN.md (its Screens wireframes first) in one request; it
--- answers like a diagnosis (what differs, which files change, with what), and those files are fixed. Once per build.
--- Pure but for reading the files.
+-- answers like a diagnosis (what differs, which files change, with what), and those files are fixed; the screens the
+-- fixed code draws are looked at again (`settings.agent.kit.build.look_rounds`, 2 by default), so a fix that breaks the
+-- layout at another size is seen. Pure but for reading the files.
 local diagnose = require "agent.kit.build.diagnose"
 local prompt = require "agent.kit.build.prompt"
 
@@ -13,7 +14,8 @@ local MAX_RENDERS = 8
 local MAX_CHARS = 24000
 
 local TASK =
-  [[Every check of this project passes. <render> blocks are its screens exactly as the terminal shows them (the tests' golden snapshots, colors stripped). Compare them with DESIGN.md: its `## Screens` wireframes first (layout, alignment, centering, frames, sizes, labels), then its rules (spacing, borders, glyphs, help bar, components).
+  [[Every check of this project passes. <render> blocks are its screens exactly as the terminal shows them (the tests' golden snapshots, colors stripped; a test's name often says the terminal size). Compare them with DESIGN.md: %s
+Look for what a user sees at once: content cut off at the edges or overflowing the size, a region DESIGN.md asks for that is missing, misalignment, a help line cut short, a layout that falls apart at a small size.
 Output ONLY one JSON object, no prose, no ``` fence:
 {"diagnosis": "<one or two sentences: what differs from DESIGN.md, or 'matches'>", "files": [{"path": "<a path from the plan>", "change": "<concretely what to change in that file so the screen matches>"}]}
 Rules:
@@ -46,6 +48,18 @@ end
 ---@class BuildRender
 ---@field path string relative to the root
 ---@field text string as the terminal shows it
+
+--- Every golden file under a testdata folder (the snapshots the checks write again when they are missing)
+---@param root string
+---@return string[] relative paths
+function M.goldens(root)
+  local found = vim.fs.find(function(name, dir)
+    return name:match "%.golden$" ~= nil and dir:find("/testdata", 1, true) ~= nil
+  end, { path = root, type = "file", limit = 200 })
+  return vim.tbl_map(function(full)
+    return full:sub(#root + 2)
+  end, found)
+end
 
 --- The rendered screens of the project: Go golden files under a testdata folder (teatest), largest first, within a budget
 ---@param root string
@@ -92,7 +106,12 @@ function M.request(renders, plan, docs, written)
   for _, r in ipairs(renders) do
     parts[#parts + 1] = ('<render path="%s">\n%s\n</render>'):format(r.path, r.text)
   end
-  parts[#parts + 1] = TASK
+  local screens = (docs.design or ""):find("\n## Screens", 1, true) ~= nil
+  parts[#parts + 1] = TASK:format(
+    screens
+        and "its `## Screens` wireframes first (layout, alignment, centering, frames, sizes, labels), then its rules (spacing, borders, glyphs, help bar, components)."
+      or "its rules (layout, spacing, borders, glyphs, help bar, components, the sizes it supports). It has no wireframes: never invent one."
+  )
   return {
     action = "kit_build_look",
     tier = "main",

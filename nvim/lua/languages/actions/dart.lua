@@ -171,4 +171,39 @@ return {
     end,
   },
   { "u", "debug panel", "<cmd>DapViewToggle<cr>" },
+  -- code folds (<leader>dz…), mirroring the global <leader>z menu so they are reachable from <leader>d
+  {
+    "zf",
+    "fold function here",
+    function()
+      require("utils.folds").here "function"
+    end,
+  },
+  {
+    "zt",
+    "fold type here (struct, class, interface)",
+    function()
+      require("utils.folds").here "type"
+    end,
+  },
+  {
+    "zo",
+    "fold object here (table, map, array)",
+    function()
+      require("utils.folds").here "object"
+    end,
+  },
+  { "zb", "fold block here (again: the one around it)", function() require("utils.folds").block() end },
+  { "zm", "fold methods of this type", function() require("utils.folds").methods() end },
+  { "zF", "fold all functions", function() require("utils.folds").all "function" end },
+  { "zT", "fold all types", function() require("utils.folds").all "type" end },
+  { "zO", "fold all objects", function() require("utils.folds").all "object" end },
+  { "za", "fold all (outline only)", function() require("utils.folds").close_all_folds() end },
+  { "ze", "expand all", function() require("utils.folds").open_all_folds() end },
+  { "zs", "fold all but this (focus)", function() require("utils.folds").focus() end },
+  { "zu", "unfold here and inside", function() require("utils.folds").open_here() end },
+  { "zz", "toggle fold here", function() require("utils.folds").toggle() end },
+  { "z1", "fold level 1", function() require("utils.folds").level(1) end },
+  { "z2", "fold level 2", function() require("utils.folds").level(2) end },
+  { "z3", "fold level 3", function() require("utils.folds").level(3) end },
 }

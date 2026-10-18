@@ -219,6 +219,22 @@ _Where: `dart`_
 | `<leader>di` | step into |
 | `<leader>dO` | step out |
 | `<leader>du` | debug panel |
+| `<leader>dzf` | fold function here |
+| `<leader>dzt` | fold type here (struct, class, interface) |
+| `<leader>dzo` | fold object here (table, map, array) |
+| `<leader>dzb` | fold block here (again: the one around it) |
+| `<leader>dzm` | fold methods of this type |
+| `<leader>dzF` | fold all functions |
+| `<leader>dzT` | fold all types |
+| `<leader>dzO` | fold all objects |
+| `<leader>dza` | fold all (outline only) |
+| `<leader>dze` | expand all |
+| `<leader>dzs` | fold all but this (focus) |
+| `<leader>dzu` | unfold here and inside |
+| `<leader>dzz` | toggle fold here |
+| `<leader>dz1` | fold level 1 |
+| `<leader>dz2` | fold level 2 |
+| `<leader>dz3` | fold level 3 |
 
 ### File — `<leader>F`
 

@@ -114,6 +114,58 @@ function M.missing_ids(files)
   return out
 end
 
+local HANDLER_ATTRS =
+  { action = true, command = true, cmd = true, op = true, operation = true, handler = true, key = true, fn = true }
+
+--- The handler names the page declares (`data-action="equals"`, `data-command`, `data-op`…) that no script mentions
+--- (pure): a button wired to a name the code never handles does nothing, and every test of the logic still passes.
+--- `index.html:39: data-action="equals" is handled by no script (they handle: "evaluate", …)`
+---@param files table<string, string> path → text (.html and script files)
+---@return string[]
+function M.unhandled_actions(files)
+  local scripts = {}
+  for path, text in pairs(files) do
+    if path:match "%.[jt]sx?$" and not path:match "%.test%.[jt]sx?$" and not path:match "%.spec%.[jt]sx?$" then
+      scripts[#scripts + 1] = text
+    end
+  end
+  if #scripts == 0 then
+    return {}
+  end
+  local code = table.concat(scripts, "\n")
+  local out, seen = {}, {}
+  local paths = vim.tbl_keys(files)
+  table.sort(paths)
+  for _, path in ipairs(paths) do
+    if path:match "%.html$" then
+      local n = 0
+      for line in (files[path] .. "\n"):gmatch "([^\n]*)\n" do
+        n = n + 1
+        for attr, value in line:gmatch "data%-(%a+)%s*=%s*[\"']([%w_%-:%.]+)[\"']" do
+          -- a name the code dispatches on (`equals`, `clear`); a digit or a symbol (`7`, `/`) is data parsed generically
+          local handler = HANDLER_ATTRS[attr] and value:match "^%a[%w_%-]+%w$" ~= nil and #value >= 3
+          if handler and not seen[attr .. value] then
+            seen[attr .. value] = true
+            local quoted = code:find('"' .. value .. '"', 1, true)
+              or code:find("'" .. value .. "'", 1, true)
+              or code:find("`" .. value .. "`", 1, true)
+              or code:find("%f[%w_]" .. value:gsub("%p", "%%%0") .. "%s*[:(]") -- an object key or a method named so
+            if not quoted then
+              out[#out + 1] = ('%s:%d: data-%s="%s" is handled by no script: pressing it does nothing (handle that name, or use the name the code handles)'):format(
+                path,
+                n,
+                attr,
+                value
+              )
+            end
+          end
+        end
+      end
+    end
+  end
+  return out
+end
+
 --- Stylesheets and modules nothing references (pure): written, never linked or imported. Each line blames the entry
 --- (the HTML page) that should load it: `index.html:1: src/styles/base.css is never linked or imported`
 ---@param files table<string, string> path → text (.html, .css and script files)
@@ -226,6 +278,27 @@ function M.golden_update(output)
   return cmd
 end
 
+--- Versions a model invented (`go: x@v0.0.0-2025…: invalid version: unknown revision …`): their requires go, and
+--- `go mod tidy` puts back the real ones. 0 tokens; nil when no version is unknown.
+---@param output string
+---@return string[]?
+function M.drop_versions(output)
+  local cmd, seen = { "go", "mod", "edit" }, {}
+  for mod in (output or ""):gmatch "go: ([%w%.%-_/]+)@[^:%s]+: invalid version" do
+    if not seen[mod] then
+      seen[mod] = true
+      cmd[#cmd + 1] = "-droprequire=" .. mod
+    end
+  end
+  for mod in (output or ""):gmatch "go: ([%w%.%-_/]+)@[^:%s]+: reading [^\n]-: 404" do
+    if not seen[mod] then
+      seen[mod] = true
+      cmd[#cmd + 1] = "-droprequire=" .. mod
+    end
+  end
+  return #cmd > 3 and cmd or nil
+end
+
 --- Is this path a test file? (Go, JS/TS, Python, Dart, Rust test folders)
 ---@param path string
 ---@return boolean
@@ -329,7 +402,7 @@ function M.checks(root, prefer)
   end
   if has "go.mod" then
     return {
-      { label = "go mod tidy", cmd = { "go", "mod", "tidy" } },
+      { label = "go mod tidy", cmd = { "go", "mod", "tidy" }, autofix = M.drop_versions },
       { label = "gofmt -l .", cmd = { "gofmt", "-l", "." }, fails_on_output = true, autofix = { "gofmt", "-w", "." } },
       { label = "go build ./...", cmd = { "go", "build", "./..." } },
       { label = "go vet ./...", cmd = { "go", "vet", "./..." } },
@@ -385,6 +458,13 @@ function M.checks(root, prefer)
         fn = function()
           local missing = M.missing_ids(web_files(root))
           return #missing == 0, table.concat(missing, "\n")
+        end,
+      }
+      out[#out + 1] = {
+        label = "every control the page declares is handled",
+        fn = function()
+          local unhandled = M.unhandled_actions(web_files(root))
+          return #unhandled == 0, table.concat(unhandled, "\n")
         end,
       }
       out[#out + 1] = {

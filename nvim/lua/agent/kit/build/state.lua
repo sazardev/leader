@@ -4,7 +4,7 @@
 -- reads it, and it is saved after every step (state dir, per project) so a build interrupted by closing Neovim resumes.
 local M = {}
 
-M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "done" }
+M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "use", "done" }
 
 ---@class BuildFileState: BuildFile
 ---@field state "pending"|"writing"|"done"|"failed"|"fixed"|"skipped"
@@ -30,14 +30,16 @@ M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "done" }
 ---@field name string
 ---@field phase string           one of PHASES, or "stopped"/"failed" (where it ended)
 ---@field outcome string?        the last line: "✓ built · …", "✗ …"
----@field tiers { plan: string, files: string, fixes: string }   "main"|"light" per phase
+---@field tiers { plan: string, files: string, fixes: string, use: string }   "main"|"light" per phase
 ---@field max_fixes integer
 ---@field docs { file: string, chars: integer }[]
 ---@field plan BuildPlan?
 ---@field files BuildFileState[]
 ---@field checks { label: string, state: string }[]
 ---@field fix_round integer
----@field looked boolean?        the rendered screens were compared with DESIGN.md (once per build)
+---@field looked boolean?        the rendered screens were compared with DESIGN.md (no more looks this build)
+---@field looks integer?         looks so far (`look_rounds` at most)
+---@field use { fixes: integer, plays: integer?, scenarios: UseScenario[]?, kind: string?, passed: integer?, total: integer?, issues: integer?, dir: string?, done: boolean?, error: string? }?
 ---@field feed BuildFeed[]
 ---@field totals { requests: integer, tokens_in: integer, tokens_out: integer, cached: integer, cost: number }
 ---@field estimate { tokens: integer, cost: number? }?
@@ -83,6 +85,7 @@ function M.new(root, docs)
       plan = settings.plan or "main",
       files = settings.files or "main",
       fixes = settings.fixes or "main",
+      use = settings.use_tier or "main",
     },
     max_fixes = settings.max_fixes or 2,
     docs = docs,
@@ -226,6 +229,7 @@ function M.statusline()
     or (run.phase == "plan" and "build planning")
     or (run.phase == "check" and "build checking")
     or (run.phase == "fix" and ("build fixing %d"):format(run.fix_round))
+    or (run.phase == "use" and "build using the app")
     or ("build " .. run.phase)
   return (" %s %s · $%.3f "):format(spin, what, run.totals.cost)
 end

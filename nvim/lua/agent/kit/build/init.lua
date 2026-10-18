@@ -5,20 +5,29 @@
 --   plan    one request: the ordered files, their documents and the earlier files they use (plan.lua)
 --   review  the plan with what each file will cost; skip files, change models; Enter starts (this IS the confirmation)
 --   write   one small request per file (prompt.lua: documents + plan in the cached system prompt, the API of what exists)
---   check   the manifest's own tools (verify.lua), never commands from the model; gofmt fixes itself
+--   check   the manifest's own tools (verify.lua), never commands from the model; gofmt fixes itself; then what the plan
+--           exports must be used by another file (wiring.lua: a feature only its tests reach is not finished)
 --   fix     the files the errors name, with their errors, `max_fixes` rounds; then check again
+--   use     the app used like its user would (use/: scenarios from SPEC.md, a driver per kind of app, free checks per
+--           step, one verdict request); what fails is fixed, the same scenarios replayed (`use_rounds`)
+--   look    the rendered screens against DESIGN.md (Go teatest golden files), `look_rounds` times at most
 -- The run lives in build/state.lua, not in the window: closing the tab (q) leaves it running, the statusline shows it,
 -- <leader>aSb brings the view back, `x` stops it. It is saved after every step: a build cut short (Neovim closed) resumes.
 -- Every request goes through the spend guard (no question per file once the review is accepted; the caps still apply)
--- and lands in the history (<leader>ah: kit_build_plan, kit_build_file, kit_build_fix).
+-- and lands in the history (<leader>ah: kit_build_plan, kit_build_file, kit_build_fix, kit_build_scenarios, kit_build_use).
+-- An answer that is not a clean file (a fence with prose, echoed tags, tool-call markup) is cleaned (clean.lua) and, when
+-- that is not enough, asked again once before anything is written.
+local clean = require "agent.kit.build.clean"
 local compose = require "agent.kit.compose"
 local diagnose = require "agent.kit.build.diagnose"
+local edits = require "agent.kit.build.edits"
 local look_mod = require "agent.kit.build.look"
 local log = require "utils.log"
 local plan_mod = require "agent.kit.build.plan"
 local prompt = require "agent.kit.build.prompt"
 local state = require "agent.kit.build.state"
 local verify = require "agent.kit.build.verify"
+local wiring = require "agent.kit.build.wiring"
 
 local M = {}
 
@@ -38,7 +47,8 @@ function M.signature(label, output)
   end
   if #names == 0 then
     for line in output:gmatch "[^\n]+" do
-      if line:find ":%d+" then
+      -- `file.go:12:`, TypeScript's `file.ts(12,5)`, a scenario or wiring finding
+      if line:find ":%d+" or line:find "%(%d+,%d+%)" or line:find "^✗ " then
         names[#names + 1] = (line:gsub("%(%d+%.%d+s%)", ""):gsub("%d+%.%d+s", ""))
         if #names >= 3 then
           break
@@ -169,18 +179,22 @@ end
 
 -- ── Models of each phase ─────────────────────────────────────────────────────
 
-local ACTION = { plan = "kit_build_plan", files = "kit_build_file", fixes = "kit_build_fix" } -- diagnosis: the fixes' model
+-- diagnosis and look: the fixes' model; use: the scenarios and the verdict (worth the strongest model you have)
+local ACTION = { plan = "kit_build_plan", files = "kit_build_file", fixes = "kit_build_fix", use = "kit_build_use" }
+
+--- The phases whose model can be chosen, in the order the view lists them (keys 1 2 3 4)
+M.TIERED = { "plan", "files", "fixes", "use" }
 
 --- "claude/haiku" for a phase, from its tier (main/light) and what <leader>am chose for that tier
----@param phase "plan"|"files"|"fixes"
+---@param phase "plan"|"files"|"fixes"|"use"
 ---@return string label, table? sel
 function M.model(phase)
-  local sel = require("agent.selection").current { name = ACTION[phase], tier = run().tiers[phase] }
+  local sel = require("agent.selection").current { name = ACTION[phase], tier = run().tiers[phase] or "main" }
   return sel and require("agent.selection").label(sel) or "no backend", sel
 end
 
 --- Dollars per input token of a phase's model, from the history (nil until the model has a price)
----@param phase "plan"|"files"|"fixes"
+---@param phase "plan"|"files"|"fixes"|"use"
 ---@return number?
 function M.price(phase)
   local _, sel = M.model(phase)
@@ -234,13 +248,13 @@ function M.plan_estimate()
 end
 
 --- Switches a phase between the main and the light tier
----@param phase "plan"|"files"|"fixes"
+---@param phase "plan"|"files"|"fixes"|"use"
 function M.cycle(phase)
   local r = state.run
   if not r or r.running then
     return
   end
-  r.tiers[phase] = r.tiers[phase] == "main" and "light" or "main"
+  r.tiers[phase] = (r.tiers[phase] or "main") == "main" and "light" or "main"
   M.reestimate()
   state.changed()
 end
@@ -311,12 +325,12 @@ end
 
 --- One request of the build, with its phase's tier, counted in the totals
 ---@param req table
----@param phase "plan"|"files"|"fixes"
+---@param phase "plan"|"files"|"fixes"|"use"
 ---@param on_text fun(delta: string)?
 ---@param cb fun(ok: boolean, text: string, usage: table?, ms: integer)
 local function call(req, phase, on_text, cb)
   local t0 = vim.uv.hrtime()
-  req.tier = run().tiers[phase]
+  req.tier = run().tiers[phase] or "main"
   if phase == "fixes" and (live.stuck or 0) > 0 then -- the last round changed nothing: think harder
     req.tier, req.effort = "main", "high"
   end
@@ -394,7 +408,7 @@ function M.sent(path)
   return live.prompts[path]
 end
 
-local check, look -- forward
+local check, look, use -- forward
 ---@type table<string, "test"|"subject"> what each file of the coming fix round is (a failing test, the code it tests)
 local roles = {}
 
@@ -420,9 +434,17 @@ local function fix_files(list, note, blamed, head)
       return
     end
     if not item then
+      live.autofixed = {} -- new code may need the formatter again: it is free, the model's round is not
       return check()
     end
     local path = item.path
+    if item.new and not state.file(path) then -- a file the plan missed (an embedded asset): planned now, then written
+      local entry =
+        { path = path, purpose = item.change, exports = {}, docs = { "spec", "stack", "design" }, needs = {} }
+      table.insert(r.plan.files, entry)
+      table.insert(r.files, vim.tbl_extend("force", entry, { state = "pending" }))
+      state.feed("info", path .. " · a file the plan missed, added")
+    end
     local file = state.file(path)
     local role = verify.is_test(path) and "test" or (roles[path] or (not blamed[path] and "subject") or nil)
     local errors = blamed[path] and table.concat(blamed[path], "\n") or head
@@ -446,14 +468,42 @@ local function fix_files(list, note, blamed, head)
     end
     state.feed("in", path, ("%s · %s chars"):format(role or "named in the errors", size(#req.system + #req.prompt)))
     view().code_start(path, "fixing")
-    call(req, "fixes", view().code_stream, function(ok, text, usage, ms)
-      if not ok then
-        if file then
-          file.state = "failed"
+    local settle -- what the answer becomes (below): a refused test, a written fix, an unchanged file
+    local function ask(request, retried)
+      call(request, "fixes", view().code_stream, function(ok, text, usage, ms)
+        if not ok then
+          if file then
+            file.state = "failed"
+          end
+          return finish("failed", "✗ the fix of " .. path .. " failed", "fail", text)
         end
-        return finish("failed", "✗ the fix of " .. path .. " failed", "fail", text)
-      end
-      local content = prompt.content(text)
+        local content, bad, whole
+        if edits.unchanged(text) then
+          content = before
+        elseif edits.has(text) then
+          content, bad = edits.apply(before, text)
+          bad = bad and ("its edit blocks do not apply (" .. bad .. ")")
+          whole = bad ~= nil
+        else
+          content = prompt.content(text, path)
+          bad = clean.problem(content, path) or edits.shrunk(before, content)
+        end
+        -- a file the diagnosis said how to change, answered as right as it is (a test may well be)
+        if not bad and content == before and item.change ~= "" and role ~= "test" then
+          bad = "it changed nothing, and the change asked for in this file is: " .. item.change
+        end
+        if bad and not retried then
+          state.feed("info", ("%s: %s · asked again"):format(path, bad), usage_text(usage, ms))
+          view().code_start(path, "asking again")
+          return ask(prompt.again(request, bad, whole), true)
+        elseif bad then -- a broken answer must not replace a file that was a file
+          state.feed("fail", ("%s: %s · the file stays as it was"):format(path, bad), usage_text(usage, ms))
+          content = before ~= "" and before or (content or "")
+        end
+        return settle(content, usage, ms)
+      end)
+    end
+    settle = function(content, usage, ms)
       local weaker = verify.is_test(path) and verify.weakened(before, content)
       if weaker then -- the test stays as it was: the fix must come from the code
         if file then
@@ -477,7 +527,8 @@ local function fix_files(list, note, blamed, head)
       state.feed("out", path .. (content ~= before and "" or " · unchanged"), usage_text(usage, ms))
       state.save()
       next_fix()
-    end)
+    end
+    ask(req, false)
   end
   next_fix()
 end
@@ -494,7 +545,7 @@ local function fix(blamed, output)
     return f.path
   end, r.files)
   state.feed("step", ("round %d · diagnosing"):format(r.fix_round), M.model "fixes", "Fix")
-  local dreq = diagnose.request(output, blamed, r.plan, live.docs, written())
+  local dreq = diagnose.request(output, blamed, r.plan, live.docs, written(), live.user)
   live.prompts["diagnosis"] = { system = dreq.system, prompt = dreq.prompt }
   state.feed(
     "in",
@@ -527,29 +578,63 @@ local function fix(blamed, output)
   end)
 end
 
---- Every check passes: the end, after one look at the rendered screens against DESIGN.md (once per build; Go TUIs, whose
---- teatest golden files are the screens as the terminal shows them). What differs is fixed like a diagnosis' files; the
---- golden files shown go to the trash first, so the checks write them again from the fixed code.
+--- Every check passes and the user phases are over: the outcome says what the user phase found
+---@param note string
+local function done(note)
+  local r = run()
+  local u = r.use or {}
+  local outcome = ("✓ built · %d files · checks pass"):format(state.progress())
+  local kind = "info"
+  if u.total and u.passed == u.total and (u.issues or 0) == 0 then
+    outcome = outcome .. (" · used %d/%d"):format(u.passed, u.total)
+  elseif u.total and u.passed == u.total then -- every step showed what it must, the verdict still names problems
+    outcome = ("⚠ built · %d files · checks pass · used %d/%d · %d issue%s"):format(
+      state.progress(),
+      u.passed,
+      u.total,
+      u.issues,
+      u.issues == 1 and "" or "s"
+    )
+    kind, note = "fail", note .. " · the issues the verdict found are in the feed"
+  elseif u.total then
+    outcome = ("⚠ built · %d files · checks pass · used %d/%d"):format(state.progress(), u.passed, u.total)
+    kind, note = "fail", note .. " · what still fails for the user is in the feed"
+  end
+  finish("done", outcome, kind, note)
+end
+
+--- The golden snapshots follow the code: to the trash before a fix, written again by the checks (and looked at again)
+local function drop_goldens()
+  local r = run()
+  for _, p in ipairs(look_mod.goldens(r.root)) do
+    require("files.ops").trash(r.root .. "/" .. p)
+  end
+  r.looked, r.looks = nil, 0
+  live.autofixed = {} -- the golden update may run again
+end
+
+--- Every check passes and the app was used: the rendered screens against DESIGN.md (Go TUIs, whose teatest golden files
+--- are the screens as the terminal shows them). What differs is fixed like a diagnosis' files, the golden files go to
+--- the trash so the checks write them again from the fixed code, and those are looked at again: `look_rounds` looks at
+--- most (2: one fix, verified); the last one only reports.
 look = function()
   local r = run()
-  local function done(note)
-    finish("done", ("✓ built · %d files · checks pass"):format(state.progress()), "info", note)
-  end
+  local settings = require("core.settings").agent.kit.build or {}
   local renders = {}
-  local enabled = (require("core.settings").agent.kit.build or {}).look ~= false
-  if enabled and not r.looked and live.docs and live.docs.design then
+  if settings.look ~= false and not r.looked and live.docs and live.docs.design then
     renders = look_mod.renders(r.root)
   end
   if #renders == 0 then
     return done "every check passes · ⏎ opens a file"
   end
-  r.looked = true -- once per build: a recheck stays at 0 tokens unless a check fails
+  r.looks = (r.looks or 0) + 1
+  local last = r.looks >= (settings.look_rounds or 2)
   local planned = vim.tbl_map(function(f)
     return f.path
   end, r.files)
   state.feed(
     "step",
-    ("%d screen%s against DESIGN.md"):format(#renders, #renders == 1 and "" or "s"),
+    ("%d screen%s against DESIGN.md · look %d"):format(#renders, #renders == 1 and "" or "s", r.looks),
     M.model "fixes",
     "Look"
   )
@@ -571,19 +656,26 @@ look = function()
   call(req, "fixes", nil, function(ok, text, usage, ms)
     local diff = ok and look_mod.parse(text, planned)
     if not diff then
+      r.looked = true -- a recheck stays at 0 tokens unless a check fails
       state.feed("out", "look · the screens match DESIGN.md", usage_text(usage, ms))
       return done "every check passes and the screens match DESIGN.md · ⏎ opens a file"
     end
     state.feed("out", "look · " .. diff.diagnosis, usage_text(usage, ms))
+    if last then
+      r.looked = true
+      for _, f in ipairs(diff.files) do
+        state.feed("fail", f.path .. ": " .. f.change)
+      end
+      return done(("the screens still differ from DESIGN.md after %d looks"):format(r.looks))
+    end
     local blamed = {}
     for _, f in ipairs(diff.files) do
       state.feed("info", f.path .. ": " .. f.change)
       blamed[f.path] = { "The screen does not match DESIGN.md: " .. f.change }
     end
-    for _, x in ipairs(renders) do -- written again by the checks from the fixed code
-      require("files.ops").trash(r.root .. "/" .. x.path)
-    end
-    live.autofixed = {} -- the golden update may run again
+    local looks = r.looks
+    drop_goldens()
+    r.looks = looks -- this round counts: the next look is the one that checks the fix
     roles = {}
     r.phase = "fix"
     local shown = table.concat(
@@ -592,7 +684,198 @@ look = function()
       end, renders),
       "\n\n"
     )
+    r.fix_round, live.stuck, live.last_signature = 0, 0, nil -- a repair of its own: fresh rounds
     fix_files(diff.files, diff.diagnosis, blamed, shown)
+  end)
+end
+
+--- The app used like its user would (use/): its scenarios (written once from SPEC.md and DESIGN.md, replayed every
+--- round), performed by the driver of its kind, every frame checked for free, one verdict request; what fails for the
+--- user is fixed like a diagnosis' files and the same scenarios run again: `use_rounds` fixes at most, the last play
+--- only reports. An app that cannot be driven here (no driver, no tmux/Playwright/device) skips to the look, at 0 tokens.
+use = function()
+  local r = run()
+  local settings = require("core.settings").agent.kit.build or {}
+  r.use = r.use or { fixes = 0 }
+  if settings.use == false or r.use.done or not r.plan then
+    return look()
+  end
+  local use_mod = require "agent.kit.build.use"
+  local scenario = require "agent.kit.build.use.scenario"
+  local judge = require "agent.kit.build.use.judge"
+  local stack = live.docs and live.docs.stack
+  local ctx, why = use_mod.ready(r.root, stack, verify.package_manager_hint(stack))
+  if not ctx then
+    state.feed("info", "use · skipped: " .. tostring(why))
+    r.use.done = true
+    return look()
+  end
+  local kind = ctx.launch.kind
+  local planned = vim.tbl_map(function(f)
+    return f.path
+  end, r.files)
+  r.phase = "use"
+
+  local function judged(results)
+    live.user = nil -- the app was used again: what the user met is in this verdict
+    local passed, total = judge.tally(results)
+    r.use.passed, r.use.total, r.use.dir = passed, total, ctx.dir
+    local failures = 0
+    for _, x in ipairs(results) do
+      failures = failures + x.failures
+    end
+    for _, l in ipairs(use_mod.lines(results)) do
+      state.feed(l.ok and "info" or "fail", l.text)
+    end
+    state.feed("info", "frames and screenshots: " .. ctx.dir)
+    local _, values = wiring.split(wiring.find(r.plan, written()))
+    local req = judge.request(
+      results,
+      wiring.report(values),
+      r.plan,
+      live.docs,
+      scenario.controls(written(), r.plan),
+      prompt.api(written())
+    )
+    live.prompts["use"] = { system = req.system, prompt = req.prompt }
+    state.feed(
+      "in",
+      "use",
+      ("%d/%d scenarios pass the checks · %s chars"):format(passed, total, size(#req.system + #req.prompt))
+    )
+    local function on_verdict(ok, text, usage, ms, retried)
+      local verdict = ok and judge.parse(text, planned, failures)
+      if not verdict and ok and not retried then -- one more request beats a verdict lost to a stray brace
+        state.feed("info", "use · the verdict was not valid JSON · asked again", usage_text(usage, ms))
+        return call(prompt.again(req, "it was not one valid JSON object"), "use", nil, function(o, t, u, m)
+          on_verdict(o, t, u, m, true)
+        end)
+      end
+      if not verdict then
+        state.feed("out", "use · no usable verdict", usage_text(usage, ms))
+        r.use.done = true
+        return look()
+      end
+      r.use.issues = #vim.tbl_filter(function(i)
+        return i.severity ~= "minor"
+      end, verdict.issues)
+      state.feed(
+        "out",
+        "use · " .. (verdict.pass and "the user gets what SPEC.md promises" or verdict.diagnosis),
+        usage_text(usage, ms)
+      )
+      for _, i in ipairs(verdict.issues) do
+        state.feed(
+          i.severity == "minor" and "info" or "fail",
+          ("%s · scenario %d step %d: %s"):format(i.severity, i.scenario, i.step, i.problem)
+        )
+      end
+      if verdict.pass then
+        r.use.done = true
+        state.save()
+        return look()
+      end
+      if #verdict.files == 0 or r.use.fixes >= (settings.use_rounds or 2) then
+        r.use.done = true
+        state.save()
+        return look()
+      end
+      r.use.fixes = r.use.fixes + 1
+      local blamed, failing = {}, {}
+      for _, f in ipairs(verdict.files) do
+        state.feed("info", f.path .. ": " .. f.change)
+        blamed[f.path] = { "A user trying the app meets this: " .. f.change }
+      end
+      for _, l in ipairs(use_mod.lines(results)) do
+        if not l.ok then
+          failing[#failing + 1] = l.text
+        end
+      end
+      for _, i in ipairs(verdict.issues) do
+        if i.severity ~= "minor" then
+          failing[#failing + 1] = ("%s: %s"):format(i.severity, i.problem)
+        end
+      end
+      drop_goldens() -- the screens change: their snapshots are written again, and looked at
+      roles = {}
+      r.phase = "fix"
+      -- a repair of its own: fresh rounds, and every diagnosis until the app is used again knows what the user met
+      r.fix_round, live.stuck, live.last_signature = 0, 0, nil
+      live.user = table.concat(failing, "\n")
+      fix_files(verdict.files, verdict.diagnosis, blamed, table.concat(failing, "\n"))
+    end
+    call(req, "use", nil, function(ok, text, usage, ms)
+      on_verdict(ok, text, usage, ms, false)
+    end)
+  end
+
+  local function play(list)
+    r.phase = "use"
+    local round = (r.use.plays or 0) + 1
+    r.use.plays = round
+    state.feed("step", ("%s · %d scenarios · play %d"):format(ctx.launch.what, #list, round), "0 tokens", "Use")
+    use_mod.play(ctx, list, {
+      round = round,
+      cancelled = function()
+        return not run().running
+      end,
+      progress = function(text)
+        r.current = text
+        state.changed()
+      end,
+    }, function(results, err)
+      r.current = nil
+      if not run().running then
+        return
+      end
+      if not results then
+        state.feed("fail", "use · " .. tostring(err))
+        r.use.done, r.use.error = true, err
+        return look()
+      end
+      judged(results)
+    end)
+  end
+
+  if r.use.scenarios and r.use.kind == kind then
+    return play(r.use.scenarios)
+  end
+  local req = scenario.request(kind, r.plan, live.docs, written())
+  live.prompts["scenarios"] = { system = req.system, prompt = req.prompt }
+  state.feed("step", "what a user will try, from SPEC.md and DESIGN.md", M.model "use", "Use")
+  state.feed("in", "scenarios", ("%s · %s chars"):format(kind, size(#req.system + #req.prompt)))
+  local function on_scenarios(ok, text, usage, ms, retried)
+    local list = ok and scenario.parse(text, kind)
+    if not list and ok and not retried then -- one more request beats a whole phase lost to a stray brace
+      state.feed("info", "scenarios · not valid JSON · asked again", usage_text(usage, ms))
+      return call(
+        prompt.again(req, "it was not one valid JSON object with a `scenarios` list"),
+        "use",
+        nil,
+        function(o, t, u, m)
+          on_scenarios(o, t, u, m, true)
+        end
+      )
+    end
+    if not list then
+      state.feed("out", "scenarios · none usable · the use phase is skipped", usage_text(usage, ms))
+      r.use.done = true
+      return look()
+    end
+    local steps = 0
+    for _, sc in ipairs(list) do
+      steps = steps + #sc.steps
+    end
+    r.use.scenarios, r.use.kind = list, kind
+    state.feed("out", ("scenarios · %d, %d steps"):format(#list, steps), usage_text(usage, ms))
+    for _, sc in ipairs(list) do
+      state.feed("info", ("%s%s"):format(sc.name, #sc.covers > 0 and (" · " .. table.concat(sc.covers, " ")) or ""))
+    end
+    state.save()
+    play(list)
+  end
+  call(req, "use", nil, function(ok, text, usage, ms)
+    on_scenarios(ok, text, usage, ms, false)
   end)
 end
 
@@ -601,8 +884,14 @@ check = function()
   local r = run()
   r.phase, r.current = "check", nil
   local checks = verify.checks(r.root, verify.package_manager_hint(live.docs and live.docs.stack))
-  if #checks == 0 then
-    return finish("done", ("■ %d files written · no checks for this kind of project"):format(#r.files))
+  if r.plan then -- after the tools: a name the plan promised to others that only its own file (or a test) uses
+    checks[#checks + 1] = {
+      label = "the interface uses what the plan exports",
+      fn = function()
+        local calls = wiring.split(wiring.find(r.plan, written()))
+        return #calls == 0, wiring.report(calls)
+      end,
+    }
   end
   r.checks = vim.tbl_map(function(c)
     return { label = c.label, state = "pending" }
@@ -627,7 +916,7 @@ check = function()
           return f.path
         end, r.files)
       )
-      return look()
+      return use()
     end
     local fixer = failed and failed.autofix
     if type(fixer) == "function" then
@@ -724,8 +1013,11 @@ end
 local function write()
   local r = run()
   r.phase = "write"
-  r.looked = nil -- new code: its screens get a look
-  live.stuck, live.last_signature = 0, nil
+  r.looked, r.looks = nil, 0 -- new code: its screens get a look
+  if r.use then -- and a user: the same scenarios (they come from the documents), fresh rounds
+    r.use = { fixes = 0, scenarios = r.use.scenarios, kind = r.use.kind }
+  end
+  live.stuck, live.last_signature, live.user = 0, nil, nil
   begin()
   local i = 0
   local function next_file()
@@ -752,33 +1044,52 @@ local function write()
       ("%s · plan · api %s%s · %s chars"):format(table.concat(file.docs, " "), size(file.api), sees, size(file.sent))
     )
     view().code_start(file.path)
-    call(req, "files", view().code_stream, function(ok, text, usage, ms)
-      if not ok then
-        file.state = "failed"
-        return finish(
-          "stopped",
-          "✗ " .. file.path .. " failed",
-          "fail",
-          tostring(text) .. " · Enter resumes from this file"
-        )
-      end
-      local content = prompt.content(text)
-      local done, why = write_file(r.root, file.path, content)
-      if not done then
-        file.state = "failed"
-        return finish("stopped", "✗ could not write " .. file.path, "fail", tostring(why))
-      end
-      written()[file.path] = content
-      local u = usage or {}
-      file.state, file.lines = "done", select(2, content:gsub("\n", ""))
-      file.tokens_in, file.tokens_out, file.cached, file.cost, file.ms =
-        u.tokens_in, u.tokens_out, u.cache_read, u.cost, ms
-      file.model = M.model "files"
-      view().code_done(file.path, content)
-      state.feed("out", ("%s · %d lines"):format(file.path, file.lines), usage_text(usage, ms))
-      state.save()
-      next_file()
-    end)
+    local spent = { tokens_in = 0, tokens_out = 0, cache_read = 0, cost = 0, ms = 0 }
+    local function ask(request, retried)
+      call(request, "files", view().code_stream, function(ok, text, usage, ms)
+        if not ok and not retried and tostring(text):find("timed out", 1, true) then -- once: a slow answer is not a wrong one
+          state.feed("info", ("%s: %s · asked again"):format(file.path, tostring(text)))
+          return ask(request, true)
+        end
+        if not ok then
+          file.state = "failed"
+          return finish(
+            "stopped",
+            "✗ " .. file.path .. " failed",
+            "fail",
+            tostring(text) .. " · Enter resumes from this file"
+          )
+        end
+        local u = usage or {}
+        spent.tokens_in, spent.tokens_out = spent.tokens_in + (u.tokens_in or 0), spent.tokens_out + (u.tokens_out or 0)
+        spent.cache_read, spent.cost = spent.cache_read + (u.cache_read or 0), spent.cost + (u.cost or 0)
+        spent.ms = spent.ms + ms
+        local content = prompt.content(text, file.path)
+        local bad = clean.problem(content, file.path)
+        if bad and not retried then -- one more request now beats a check, a diagnosis and a rewrite later
+          state.feed("info", ("%s: %s · asked again"):format(file.path, bad), usage_text(usage, ms))
+          view().code_start(file.path, "asking again")
+          return ask(prompt.again(request, bad), true)
+        elseif bad then
+          state.feed("fail", ("%s: %s · written as it is (the checks will say what is wrong)"):format(file.path, bad))
+        end
+        local done, why = write_file(r.root, file.path, content)
+        if not done then
+          file.state = "failed"
+          return finish("stopped", "✗ could not write " .. file.path, "fail", tostring(why))
+        end
+        written()[file.path] = content
+        file.state, file.lines = "done", select(2, content:gsub("\n", ""))
+        file.tokens_in, file.tokens_out, file.cached, file.cost, file.ms =
+          spent.tokens_in, spent.tokens_out, spent.cache_read, spent.cost, spent.ms
+        file.model = M.model "files"
+        view().code_done(file.path, content)
+        state.feed("out", ("%s · %d lines"):format(file.path, file.lines), usage_text(usage, ms))
+        state.save()
+        next_file()
+      end)
+    end
+    ask(req, false)
   end
   next_file()
 end
@@ -906,6 +1217,14 @@ function M.plan_text(plan)
     out[#out + 1] = ""
     for _, d in ipairs(plan.decisions) do
       out[#out + 1] = "- " .. d
+    end
+    out[#out + 1] = ""
+  end
+  if plan.wiring and #plan.wiring > 0 then
+    out[#out + 1] = "## Wiring (what the user does → what runs → what they see)"
+    out[#out + 1] = ""
+    for _, w in ipairs(plan.wiring) do
+      out[#out + 1] = ("- **%s** %s → `%s` → %s"):format(w.req, w.action, w.code:gsub("`", ""), w.shows)
     end
     out[#out + 1] = ""
   end

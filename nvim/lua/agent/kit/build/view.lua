@@ -1,6 +1,6 @@
 -- ── Build with agent: the view ───────────────────────────────────────────────
 -- A tab that draws build/state.lua, so it can be closed and opened again at any moment (the build goes on without it):
---   left    the phases as chips (plan review write check fix done), the progress bar, then what the phase needs: models
+--   left    the phases as chips (plan review write check fix use done), the progress bar, then what the phase needs: models
 --           and documents (ready), the estimate (review), the files with their lines and cost (the one being written on
 --           a full-width band, like the agent's inline target) and the checks
 --   code    the file being written, typed out as it arrives (`c` hides it: only the list advancing)
@@ -17,7 +17,7 @@ local M = {}
 
 local NS = vim.api.nvim_create_namespace "AgentKitBuild"
 local SPIN = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-local STEPS = { "plan", "review", "write", "check", "fix", "done" }
+local STEPS = { "plan", "review", "write", "check", "fix", "use", "done" }
 local LEFT_W = 50
 
 local LINKS = {
@@ -227,7 +227,7 @@ local function keys_now(run)
   if run.running then
     list = { { "x", "stop" }, { "p", "prompt" } }
   elseif run.phase == "ready" then
-    list = { { "⏎", "plan" }, { "1 2 3", "tiers" } }
+    list = { { "⏎", "plan" }, { "1-4", "tiers" } }
   elseif run.phase == "review" then
     list = { { "⏎", "build" }, { "x", "skip" }, { "n", "replan" }, { "X", "clean" } }
   elseif run.phase == "done" then
@@ -373,14 +373,15 @@ local function left(run)
   -- models: only while they can still change (before it writes)
   if not run.running and (run.phase == "ready" or run.phase == "review") then
     heading "MODELS"
-    for i, phase in ipairs { "plan", "files", "fixes" } do
+    for i, phase in ipairs(build.TIERED) do
       local label = build.model(phase)
-      local row = ("  %d %-6s %-24s %s"):format(i, phase, label, run.tiers[phase])
+      local tier = run.tiers[phase] or "main"
+      local row = ("  %d %-6s %-24s %s"):format(i, phase, label, tier)
       add(lines, marks, row, {
         { 2, 3, "KitBuildKey" },
         { 4, 10, "KitBuildMuted" },
         { 11, 11 + #label, "KitBuildTitle" },
-        { #row - #run.tiers[phase], #row, "KitBuildMuted" },
+        { #row - #tier, #row, "KitBuildMuted" },
       })
     end
     local fixes = ("  ± rounds without progress  %d"):format(run.max_fixes)
@@ -636,7 +637,8 @@ end
 ---@param what string
 local function code_bar(path, what)
   local run = state.run
-  local model = run and require("agent.kit.build").model(run.phase == "fix" and "fixes" or "files") or ""
+  local phase = run and (run.phase == "fix" and "fixes" or run.phase == "use" and "use" or "files")
+  local model = run and require("agent.kit.build").model(phase) or ""
   winbar(V.wc, ("%s  ·  %s  ·  %s"):format(path, what, model))
 end
 
@@ -948,7 +950,7 @@ local function keys(buf)
   map("P", build.show_plan, "show the plan")
   map("n", build.restart, "new plan")
   map("X", build.clean, "clean the build")
-  for i, phase in ipairs { "plan", "files", "fixes" } do
+  for i, phase in ipairs(build.TIERED) do
     map(tostring(i), function()
       build.cycle(phase)
     end, phase .. " tier")

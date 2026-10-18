@@ -137,9 +137,20 @@ local defaults = {
         files = "main",
         fixes = "main",
         max_fixes = 2, -- fix rounds in a row that change nothing before it stops (rounds that progress go on, up to 8)
-        -- when every check passes, the rendered screens (Go teatest golden files) are compared with DESIGN.md by one
-        -- request, and what does not match is fixed (once per build)
+        use_tier = "main", -- the model that writes the scenarios and judges them (4 in the build view)
+        -- when every check passes, the app is used like its user would: scenarios from SPEC.md/DESIGN.md, performed by
+        -- a driver (terminal UI in tmux, CLI, web/Electron in Playwright, Android over adb), every step checked, one
+        -- verdict; what fails is fixed and the same scenarios replayed, `use_rounds` fixes at most
+        use = true,
+        use_rounds = 2,
+        drive = {
+          playwright = nil, -- path to the `playwright` package when it is not in the project nor installed globally
+          android_serial = nil, -- the device to use when `adb devices` lists several
+        },
+        -- then the rendered screens (Go teatest golden files) are compared with DESIGN.md by one request, and what does
+        -- not match is fixed and looked at again, `look_rounds` looks at most
         look = true,
+        look_rounds = 2,
         view = { code = true, feed = true }, -- panes the build view opens with (c and f toggle them)
       },
     },

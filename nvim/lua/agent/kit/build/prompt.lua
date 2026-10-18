@@ -4,9 +4,11 @@
 local M = {}
 
 local SYSTEM = [[You are a coding agent writing ONE file of a project, following its documents exactly.
-Output ONLY the complete file content: no explanation, no ``` fence, nothing before or after.
-Follow STACK.md (layout, conventions, rules for agents, engineering principles), DESIGN.md for anything the user sees (its `## Screens` wireframes are the layout: alignment, centering, frames and sizes exactly as drawn; its `## Toolkit` says how to express it in code), SPEC.md for behaviour, AGENTS.md for workflow rules.
-Use only the APIs of the files you are shown and of the libraries STACK.md names; keep exported names consistent with the plan. Small, clear functions; no TODOs; no placeholder code.]]
+Output ONLY the complete file content (a fix may ask for edit blocks instead: then only those): no explanation, no ``` fence, nothing before or after.
+Follow STACK.md (layout, conventions, rules for agents, engineering principles), DESIGN.md for anything the user sees (when it has `## Screens` wireframes, they are the layout: alignment, centering, frames and sizes exactly as drawn; its `## Toolkit`, when present, says how to express it in code), SPEC.md for behaviour, AGENTS.md for workflow rules.
+Use only the APIs of the files you are shown and of the libraries STACK.md names; keep exported names consistent with the plan. Small, clear functions; no TODOs; no placeholder code.
+Built for a user, not for the tests: every behaviour SPEC.md states must reach the person using it through the path the plan's <wiring> gives (their action → the code → what they see). A screen always shows what the user needs for their next action: what they entered, a pending choice or operation, the result, an error with what to do next. A capability the plan exports for the interface is called by the interface; never leave it reachable only from tests.
+Never write explanations, tags or tool-call markup into the file: its first character is the file's first character.]]
 
 ---@param docs table<string, string>
 ---@param ids string[]
@@ -41,6 +43,12 @@ local function outline(plan, current)
   end
   if plan.decisions and #plan.decisions > 0 then
     rows[#rows + 1] = "Decisions:\n- " .. table.concat(plan.decisions, "\n- ")
+  end
+  if plan.wiring and #plan.wiring > 0 then
+    rows[#rows + 1] = "Wiring (how each requirement reaches the user; every link must exist in the code):"
+    for _, w in ipairs(plan.wiring) do
+      rows[#rows + 1] = ("- %s: %s → %s → %s"):format(w.req, w.action, w.code, w.shows)
+    end
   end
   rows[#rows + 1] = "Files (each exports what the others rely on; keep every promise):"
   for _, f in ipairs(plan.files) do
@@ -203,6 +211,10 @@ function M.file(file, plan, docs, written)
     parts[#parts + 1] = shown
   end
   parts[#parts + 1] = ("Write `%s`: %s"):format(file.path, file.purpose)
+  if file.path:match "go%.mod$" then -- an invented pseudo-version stops every check; tidy writes the real ones
+    parts[#parts + 1] =
+      "Write only the module line and the go line: no require block (go mod tidy adds every dependency the code imports, with its real version)."
+  end
   return {
     action = "kit_build_file",
     tier = "main",
@@ -240,28 +252,49 @@ function M.fix(path, content, errors, file, plan, docs, written, role, note)
     parts[#parts + 1] = "<diagnosis>\n" .. vim.trim(note) .. "\n</diagnosis>"
   end
   if role == "test" then
-    parts[#parts + 1] = ("`%s` is a test and it fails. Fix the test only if the test itself is wrong (a wrong API, an expectation SPEC.md does not state). Never delete or weaken assertions, waits or cases to make it pass: when the expectation is right the bug is in the code it tests, which is sent separately; then return this file unchanged. Return the whole file."):format(
+    parts[#parts + 1] = ("`%s` is a test and it fails. Fix the test only if the test itself is wrong (a wrong API, an expectation SPEC.md does not state). Never delete or weaken assertions, waits or cases to make it pass: when the expectation is right the bug is in the code it tests, which is sent separately; then this file is right as it is."):format(
       path
     )
   elseif role == "subject" then
-    parts[#parts + 1] = ("A test that exercises `%s` fails with the errors above. If the bug is in this file, fix it so the test's expectation (which follows SPEC.md) holds; if this file is right, return it unchanged. Use the names in <api> for what other files declare. Return the whole file."):format(
+    parts[#parts + 1] = ("A test that exercises `%s` fails with the errors above. If the bug is in this file, fix it so the test's expectation (which follows SPEC.md) holds; otherwise this file is right as it is. Use the names in <api> for what other files declare."):format(
       path
     )
   else
-    parts[#parts + 1] = ("Fix `%s` so these errors are gone, using the names in <api> for what other files declare. Return the whole corrected file."):format(
+    parts[#parts + 1] = ("Fix `%s` so these errors are gone, using the names in <api> for what other files declare."):format(
       path
     )
+  end
+  if content == "" then -- a file the diagnosis asked to create
+    parts[#parts + 1] = ("`%s` does not exist yet: answer with its whole content."):format(path)
+  else
+    parts[#parts + 1] = require("agent.kit.build.edits").FORMAT
   end
   return { action = "kit_build_fix", tier = "main", system = system, prompt = table.concat(parts, "\n\n"), cache = true }
 end
 
---- A model's answer as file content: the ``` fence some models still add, removed
+--- A model's answer as file content: fences, echoed tags, leaked tool-call markup and chatter out (clean.lua)
 ---@param text string
+---@param path string?
 ---@return string
-function M.content(text)
-  text = (text or ""):gsub("^%s*\n", "")
-  local inner = text:match "^```[%w_+%-]*\n(.-)\n```%s*$"
-  return ((inner or text):gsub("%s+$", "")) .. "\n"
+function M.content(text, path)
+  return require("agent.kit.build.clean").file(text, path)
+end
+
+--- The same request again, after an answer that was not a clean file: what was wrong, and the rule again
+---@param req table
+---@param why string
+---@param whole boolean? edit blocks failed: this time the whole file (the blocks' format is the hard part for a weak model)
+---@return table
+function M.again(req, why, whole)
+  local copy = vim.deepcopy(req)
+  copy.cache = false -- the cached answer is the bad one
+  copy.prompt = req.prompt
+    .. ("\n\nYour previous answer could not be used: %s. %s no sentence, no fence, no tags."):format(
+      why,
+      whole and "This time answer with the WHOLE corrected file, every line of it, instead of edit blocks:"
+        or "Answer again in exactly the format asked above:"
+    )
+  return copy
 end
 
 return M

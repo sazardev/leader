@@ -544,11 +544,13 @@ eq(
   }),
   { "install=composer install", "test=composer test", "lint=vendor/bin/phpstan analyse" }
 )
-eq(
-  "commands: flutter app",
-  labels(snapshot.commands { files = { "pubspec.yaml", "lib/main.dart" } }),
-  { "install=flutter pub get", "test=flutter test", "lint=flutter analyze", "format=dart format .", "run=flutter run" }
-)
+eq("commands: flutter app", labels(snapshot.commands { files = { "pubspec.yaml", "lib/main.dart" } }), {
+  "install=flutter pub get",
+  "test=flutter test",
+  "lint=flutter analyze",
+  "format=dart format .",
+  "run=flutter run",
+})
 eq(
   "project_name: package.json",
   snapshot.project_name({ ["package.json"] = '{ "name": "shopfront", "private": true }' }, "web"),
@@ -850,10 +852,10 @@ eq(
   vim.tbl_map(function(f)
     return f.path
   end, parsed.files),
-  { "go.mod", "main.go", "later.go" }
+  { "go.mod", "later.go", "main.go" }
 )
-eq("build plan: unknown docs dropped", parsed.files[2].docs, { "spec" })
-eq("build plan: needs only earlier files", parsed.files[2].needs, { "go.mod" })
+eq("build plan: unknown docs dropped", parsed.files[3].docs, { "spec" })
+eq("build plan: needs kept even when later", parsed.files[3].needs, { "go.mod", "later.go" })
 eq("build plan: no JSON", select(2, bplan.parse "sorry"), "the answer has no JSON object")
 -- the plan while it is written: what is complete so far, nothing half-read
 local whole =
@@ -919,7 +921,7 @@ ok(
 eq("build content: fence removed", bprompt.content "```go\npackage main\n```\n", "package main\n")
 eq("build content: plain kept", bprompt.content "package main\n\n", "package main\n")
 local freq = bprompt.file(
-  parsed.files[2],
+  parsed.files[3],
   parsed,
   { spec = "S", stack = "T", design = "D" },
   { ["go.mod"] = "module x" }
@@ -1006,10 +1008,10 @@ ok(
     :find("Never delete or weaken assertions", 1, true)
 )
 ok(
-  "build fix of the code a test exercises: fix it or return it unchanged",
+  "build fix of the code a test exercises: fix it or leave it as it is",
   bprompt
     .fix("calc.go", "package x", "--- FAIL", tplan.files[1], tplan, { spec = "S" }, {}, "subject").prompt
-    :find("if this file is right, return it unchanged", 1, true)
+    :find("otherwise this file is right as it is", 1, true)
 )
 eq(
   "build pm hint: from STACK.md's row",
@@ -1587,7 +1589,7 @@ do
   )
   eq("look: files [] = the screens match", look.parse('{"diagnosis":"matches","files":[]}', { "ui.go" }), nil)
 
-  -- look flow: checks pass → one look → the named file fixed → the golden written again → done; once per build
+  -- look flow: checks pass → a look → the named file fixed → the golden written again → a second look confirms → done
   local groot = project(
     "lookflow",
     { ["AGENTS.md"] = "# A\n", ["STACK.md"] = "# S\n", ["SPEC.md"] = "# P\n", ["DESIGN.md"] = "# D\n" }
@@ -1617,7 +1619,11 @@ do
     }
     local text = answers[r.action] or (r.action == "kit_build_file" and "package ui" or "package ui // centered")
     if r.action == "kit_build_look" then
-      lasked.render = r.prompt:match '<render path="testdata/TestMain.golden">\n(.-)\n</render>'
+      lasked.renders = lasked.renders or {}
+      table.insert(lasked.renders, r.prompt:match '<render path="testdata/TestMain.golden">\n(.-)\n</render>')
+      if #lasked.renders > 1 then
+        text = '{"diagnosis":"matches","files":[]}'
+      end
     end
     cb(true, text, { tokens_in = 10, tokens_out = 2 })
     return { kill = function() end }
@@ -1634,23 +1640,23 @@ do
   end)
   bverify.checks = saved_checks
   eq(
-    "look flow: one look, after the checks pass",
+    "look flow: a look after the checks pass, another after its fix",
     vim.tbl_filter(function(a)
       return a == "kit_build_look"
     end, lasked),
-    { "kit_build_look" }
+    { "kit_build_look", "kit_build_look" }
   )
-  eq("look flow: the model saw the screen", lasked.render, "[ 7 ]")
+  eq("look flow: the model saw the screen, then the fixed one", lasked.renders, { "[ 7 ]", "   [ 7 ]" })
   eq("look flow: the file it named was fixed", read(groot .. "/ui.go"), "package ui // centered\n")
   eq("look flow: the golden written again from the fixed code", read(golden), "   [ 7 ]\n")
-  eq("look flow: done, looked once", { bstate.run.phase, bstate.run.looked }, { "done", true })
+  eq("look flow: done, looked twice", { bstate.run.phase, bstate.run.looked, bstate.run.looks }, { "done", true, 2 })
   build.recheck()
   vim.wait(1000, function()
     return not bstate.run.running
   end)
   eq("look flow: a recheck does not look again (0 tokens)", #vim.tbl_filter(function(a)
     return a == "kit_build_look"
-  end, lasked), 1)
+  end, lasked), 2)
   vim.cmd "silent! tabonly"
 end
 
