@@ -26,6 +26,8 @@ M.DOCS = { "agents", "stack", "design", "spec" }
 ---@field examples BuildExample[]? SPEC.md made concrete: what the user does → exactly what they see
 ---@field files BuildFile[]
 ---@field problems string[]?  what cannot be built as planned (plancheck.lua); empty when it can
+---@field scope string?       a layer or task build ("foundation", "domain", "design", "feature", "recipe"; nil = the whole project, scope.lua)
+---@field task BuildTask?     the requirement or recipe of a task build (set by the build after parsing)
 
 ---@class BuildExample
 ---@field req string     "FR-2"
@@ -69,21 +71,44 @@ Rules:
 - Never plan files that tools generate: golden snapshots (*.golden), lockfiles (go.sum, package-lock.json, …), build output. The tests and the package manager write them.
 - At most 25 files: the smallest project that satisfies SPEC.md.]]
 
+--- What the plan does with the decisions earlier builds accepted (their ADRs)
+M.DECISIONS_RULE =
+  [[- <decisions> are the choices earlier builds accepted: follow them (libraries, patterns, layers, data flow) and never contradict one silently. List in `decisions` only choices that are new. When this build truly must reverse one, say it as a decision of its own: "Supersedes ADR NNNN: <the new choice> because <why>", and plan for the new choice.]]
+
+--- The plan request. A layer build (scope.lua) adds its rules to the system prompt and the project's files as <project>.
 ---@param docs table<string, string> id → text
+---@param scope string? "all" (default), "foundation", "domain", "design"
+---@param existing table<string, string>? the project's files a layer builds on (path → text)
+---@param task BuildTask? the requirement or recipe of a task scope (feature, recipe)
+---@param decisions string? the <decisions> earlier builds accepted (adr.summary), followed unless one is superseded
 ---@return table req
-function M.request(docs)
+function M.request(docs, scope, existing, task, decisions)
+  local s = require("agent.kit.build.scope").get(scope)
+  local rules = require("agent.kit.build.scope").rules(scope, task)
   local parts = {}
   for _, id in ipairs(M.DOCS) do
     if docs[id] then
       parts[#parts + 1] = ("<%s>\n%s\n</%s>"):format(id, vim.trim(docs[id]), id)
     end
   end
+  if s.existing then
+    parts[#parts + 1] = require("agent.kit.build.scope").project(existing or {})
+  end
+  if decisions and decisions ~= "" then
+    parts[#parts + 1] = decisions
+  end
+  local system = SYSTEM
+  if decisions and decisions ~= "" then
+    system = system .. "\n" .. M.DECISIONS_RULE
+  end
   return {
     action = "kit_build_plan",
     tier = "main",
     timeout_ms = 300000, -- the whole contract of ~25 files is a long answer
-    system = SYSTEM,
-    prompt = table.concat(parts, "\n\n") .. "\n\nPlan the files to build this project.",
+    system = rules.plan
+        and (system .. "\n\nScope of this build (it overrides the rules above where they differ):\n" .. rules.plan)
+      or system,
+    prompt = table.concat(parts, "\n\n") .. "\n\n" .. rules.ask,
   }
 end
 
@@ -186,8 +211,11 @@ end
 
 --- The plan from the model's answer, or nil and why
 ---@param text string
+---@param existing table<string, any>? files already in the project (a layer build): a file may need them
+---@param scope string? the build's scope, kept in the plan (prompt.lua adds its line to every file request)
 ---@return BuildPlan?, string?
-function M.parse(text)
+function M.parse(text, existing, scope)
+  existing = existing or {}
   if not (text or ""):find("{", 1, true) then
     return nil, "the answer has no JSON object"
   end
@@ -231,7 +259,7 @@ function M.parse(text)
   end
   for _, f in ipairs(files) do
     f.needs = vim.tbl_filter(function(p)
-      if planned[p] then
+      if planned[p] or existing[p] ~= nil then -- planned, or already in the project (it is shown, not written)
         return true
       end
       if not M.generated(p) then
@@ -256,6 +284,7 @@ function M.parse(text)
     wiring = M.wiring(data.wiring),
     examples = M.examples(data.examples),
     files = files,
+    scope = scope and scope ~= "all" and scope or nil,
   }
   plan.problems = check.problems(plan, missing)
   return plan

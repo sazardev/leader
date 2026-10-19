@@ -176,7 +176,13 @@ end
 ---@param docs table<string, string>
 ---@return string
 function M.system(plan, docs)
-  return SYSTEM .. "\n\n" .. doc_blocks(docs, { "agents", "stack", "design", "spec" }) .. "\n\n" .. outline(plan, "")
+  local line = require("agent.kit.build.scope").rules(plan.scope, plan.task).file
+  return SYSTEM
+    .. (line and ("\n" .. line) or "")
+    .. "\n\n"
+    .. doc_blocks(docs, { "agents", "stack", "design", "spec" })
+    .. "\n\n"
+    .. outline(plan, "")
 end
 
 --- "Focus on: SPEC.md, DESIGN.md" (what the plan said this file needs most)
@@ -209,6 +215,12 @@ function M.file(file, plan, docs, written)
   local shown = files(written, file.needs)
   if shown ~= "" then
     parts[#parts + 1] = shown
+  end
+  if written[file.path] then -- already in the project (a layer build changes it): the new version keeps what others use
+    parts[#parts + 1] = ('<current path="%s">\n%s\n</current>'):format(file.path, written[file.path])
+    parts[#parts + 1] = ("`%s` already exists (above): answer with its whole new version, keeping what the rest of the project uses from it."):format(
+      file.path
+    )
   end
   parts[#parts + 1] = ("Write `%s`: %s"):format(file.path, file.purpose)
   if file.path:match "go%.mod$" then -- an invented pseudo-version stops every check; tidy writes the real ones

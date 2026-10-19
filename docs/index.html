@@ -66,6 +66,7 @@ button{font:inherit;color:inherit;background:none;cursor:pointer}
 .p-speed{background:var(--yellow);color:var(--on);z-index:2}
 .p-opin{background:var(--deep);z-index:3}
 .p-go{background:var(--bg);z-index:3}
+.p-kit{background:var(--deep);z-index:3}
 .p-keys{background:var(--aqua);color:var(--on);z-index:3}
 .p-install{background:var(--green);color:var(--on);z-index:3;min-height:90vh}
 h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
@@ -106,7 +107,7 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .row h3{font-size:clamp(26px,4vw,58px);font-weight:600;letter-spacing:-.05em;line-height:1}
 .row p{color:var(--dim);font-size:clamp(16px,1.5vw,21px);transition:color .25s}
 .row:hover p{color:color-mix(in srgb,var(--on) 70%,transparent)}
-.p-opin h2,.p-go h2,.p-keys h2,.p-install h2{font-size:clamp(44px,7.4vw,112px)}
+.p-opin h2,.p-go h2,.p-kit h2,.p-keys h2,.p-install h2{font-size:clamp(44px,7.4vw,112px)}
 
 /* ── go + agent: a real-looking editor, scripted ────────────────────────────────────────────── */
 .p-go h2 span{color:var(--green)}
@@ -349,7 +350,7 @@ footer a:hover{color:var(--fg)}
   <div class="wrap">
     <a class="logo" href="#top"><i></i>my-nvim-setup</a>
     <nav>
-      <a href="#go">Go</a><a href="#keys">Keys</a><a href="#install">Install</a><a class="docs" href="docs/">Docs</a>
+      <a href="#go">Go</a><a href="#kit">Build</a><a href="#keys">Keys</a><a href="#install">Install</a><a class="docs" href="docs/">Docs</a>
       <button id="theme" aria-label="Choose theme">Theme <span class="k">t</span></button>
     </nav>
   </div>
@@ -407,6 +408,21 @@ footer a:hover{color:var(--fg)}
         <div class="keys" id="edkeys"></div>
         <div class="sl" id="sl"></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel p-kit" id="kit">
+  <div class="wrap">
+    <span class="eyebrow rv">From documents to code</span>
+    <h2 class="rv">Write it down.<br><span>Build it a piece at a time.</span></h2>
+    <div class="rows">
+      <div class="row rv"><h3>Four documents.</h3><p>AGENTS, STACK, DESIGN and SPEC, from presets or your words. Same sections in every project.</p></div>
+      <div class="row rv"><h3>One layer.</h3><p>The foundation from STACK.md, the domain from SPEC.md, the screens from DESIGN.md.</p></div>
+      <div class="row rv"><h3>One feature.</h3><p>Pick a requirement or describe a new one. It lands in SPEC.md, then it is built end to end.</p></div>
+      <div class="row rv"><h3>Recipes.</h3><p>A screen with its state, an endpoint, an entity with its repository. Prefab, for your stack.</p></div>
+      <div class="row rv"><h3>It remembers why.</h3><p>Decisions become ADRs the next build follows. PROGRESS.md says what is left.</p></div>
+      <div class="row rv"><h3>Ship it.</h3><p>Changelog and version from your commits, a PR description, a release checklist.</p></div>
     </div>
   </div>
 </section>
@@ -901,20 +917,22 @@ footer a:hover{color:var(--fg)}
   };
 
   /* which-key menus, as the real config shows them (key ➜ description, groups in purple) */
-  var GN = {"a": "Agent", "aA": "Agent Advanced", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Setup", "aT": "Agent Tests", "aU": "Agent Service", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "gS": "Go setup", "h": "Harpoon", "P": "Session", "S": "Settings", "u": "History", "x": "Diagnostics", "F": "File"};
+  var GN = {"a": "Agent", "aA": "Agent Advanced", "aD": "Agent DDD", "aL": "Agent Lenses", "aP": "Agent Repository", "aS": "Agent Setup", "aSb": "Agent build", "aT": "Agent Tests", "aU": "Agent Service", "C": "Comments", "f": "Find", "G": "Git", "g": "Go", "gS": "Go setup", "GR": "Git release", "h": "Harpoon", "P": "Session", "S": "Settings", "u": "History", "x": "Diagnostics", "F": "File"};
   var MENU = {
     "a": [["A", "Agent Advanced", 1], ["D", "Agent DDD", 1], ["L", "Agent Lenses", 1], ["P", "Agent Repository", 1], ["S", "Agent Setup", 1], ["T", "Agent Tests", 1], ["U", "Agent Service", 1], ["a", "Agent ask"], ["c", "Agent clear"], ["C", "Agent clear file"], ["d", "Agent docs"], ["e", "Agent explain"], ["f", "Agent fix inline"], ["F", "Agent fix block"], ["g", "Agent hand off"], ["h", "Agent history"], ["i", "Agent implement"], ["l", "Agent last answer"], ["m", "Agent model"], ["n", "Agent next edit"], ["r", "Agent review"], ["R", "Agent refactor"], ["t", "Agent convert"], ["x", "Agent stop"]],
     "aA": [["[", "Agent Advanced previous proposal"], ["]", "Agent Advanced next proposal"], ["a", "Agent Advanced fix all"], ["k", "Agent Advanced cache"], ["l", "Agent Advanced proposals list"], ["o", "Agent Advanced fix from output"], ["O", "Agent Advanced fix from a command"], ["p", "Agent Advanced plan across files"], ["y", "Agent Advanced accept all"]],
     "aD": [["a", "Agent ddd ask"], ["c", "Agent ddd clear"], ["d", "Agent ddd diagnose"], ["f", "Agent ddd fix"], ["i", "Agent ddd implement"], ["m", "Agent ddd missing"], ["r", "Agent ddd review"]],
     "aL": [["a", "Agent lens api"], ["c", "Agent lens concurrency"], ["e", "Agent lens errors"], ["p", "Agent lens performance"], ["s", "Agent lens security"]],
     "aP": [["c", "Agent repo check"], ["i", "Agent repo implement"], ["p", "Agent repo port"], ["r", "Agent repo review"]],
-    "aS": [["/", "Agent setup find"], ["a", "Agent setup agents"], ["A", "Agent setup agents template"], ["b", "Agent setup build"], ["B", "Agent setup recheck"], ["c", "Agent setup claude link"], ["d", "Agent setup design"], ["D", "Agent setup design write"], ["k", "Agent setup stack addons"], ["o", "Agent setup overview"], ["p", "Agent setup principles"], ["s", "Agent setup spec"], ["t", "Agent setup stack"], ["T", "Agent setup stack write"], ["w", "Agent setup screens"]],
+    "aS": [["/", "Agent setup find"], ["a", "Agent setup agents"], ["A", "Agent setup agents template"], ["b", "Agent build", 1], ["B", "Agent setup recheck"], ["c", "Agent setup claude link"], ["d", "Agent setup design"], ["D", "Agent setup design write"], ["k", "Agent setup stack addons"], ["o", "Agent setup overview"], ["p", "Agent setup principles"], ["P", "Agent setup progress"], ["r", "Agent setup recipe"], ["s", "Agent setup spec"], ["t", "Agent setup stack"], ["T", "Agent setup stack write"], ["v", "Agent setup coverage"], ["w", "Agent setup screens"]],
+    "aSb": [["b", "Agent setup build all"], ["d", "Agent setup build design"], ["f", "Agent setup build feature"], ["s", "Agent setup build domain"], ["t", "Agent setup build foundation"]],
     "aT": [["f", "Agent test fix"], ["g", "Agent test gaps"], ["m", "Agent test mock"], ["w", "Agent test write"]],
     "aU": [["d", "Agent service deps"], ["i", "Agent service implement"], ["r", "Agent service review"]],
     "C": [["c", "Comments collapse long comments"], ["d", "Comments doc comment template for this function/type"], ["e", "Comments expand comments"], ["m", "Comments public functions missing a doc comment (quickfix)"], ["t", "Comments toggle comment under cursor"]],
     "f": [["b", "telescope find buffers"], ["f", "telescope find files"], ["m", "general format file"], ["o", "telescope find oldfiles"], ["r", "Find replace in project"], ["s", "Find project symbols"], ["w", "telescope live grep"]],
     "F": [["c", "File duplicate"], ["m", "File move"], ["n", "File new file"], ["N", "File new folder"], ["o", "File open file"], ["r", "File rename"], ["t", "File show in tree"], ["u", "File undo delete"], ["x", "File delete"], ["y", "File copy path"], ["Y", "File copy full path"]],
-    "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["i", "Git ignore rules"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["t", "Git status"], ["T", "Git conflict theirs"], ["v", "Git review staged"]],
+    "G": [["a", "Git amend"], ["b", "Git blame"], ["B", "Git conflict both"], ["c", "Git commit"], ["d", "Git diff"], ["f", "Git file history"], ["i", "Git ignore rules"], ["l", "Git conflict list"], ["m", "Git commit + AI draft"], ["M", "Git commit auto"], ["n", "Git conflict next"], ["N", "Git conflict none"], ["o", "Git conflict ours"], ["p", "Git conflict previous"], ["q", "Git close diff"], ["r", "Git repo history"], ["R", "Git release", 1], ["t", "Git status"], ["T", "Git conflict theirs"], ["v", "Git review staged"]],
+    "GR": [["c", "Git release changelog"], ["l", "Git release checklist"], ["p", "Git release PR description"]],
     "g": [["S", "Go setup", 1], ["a", "Go struct: add json tags (snake_case)"], ["A", "Go struct: add json tags + omitempty"], ["b", "Go build"], ["c", "Go go test -cover ./..."], ["D", "Go struct: remove json tags"], ["e", "Go if err != nil for the call under the cursor"], ["f", "Go format"], ["g", "Go go generate ./..."], ["i", "Go go fix (apply modernizers)"], ["m", "Go go test ./..."], ["p", "Go go fix -diff (modernizers preview)"], ["r", "Go run"], ["R", "Go go test -race ./..."], ["s", "Go struct: fill literal"], ["t", "Go go mod tidy"], ["T", "Go add test for the function under the cursor"], ["u", "Go go get -u + go mod tidy"], ["v", "Go lint (golangci-lint, or go vet if missing)"], ["x", "Go golangci-lint --fix"]],
     "gS": [["a", "Go setup Air live reload (.air.toml)"], ["c", "Go setup GitHub Actions CI"], ["d", "Go setup Dockerfile"], ["e", "Go setup .editorconfig"], ["g", "Go setup gitignore"], ["h", "Go setup git hooks (lefthook)"], ["i", "Go setup .dockerignore"], ["l", "Go setup golangci-lint config"], ["m", "Go setup Makefile"], ["p", "Go setup several files"]],
     "h": [["1", "Harpoon jump to file 1"], ["2", "Harpoon jump to file 2"], ["3", "Harpoon jump to file 3"], ["4", "Harpoon jump to file 4"], ["a", "Harpoon add file"], ["m", "Harpoon menu"]],
@@ -1399,7 +1417,7 @@ footer a:hover{color:var(--fg)}
 
     { g: "ask", name: "Build from the docs", go: async function (p) {
         load(p, "internal/domain/note.go", 2); S.showCursor = false; await p.w(500);
-        await p.seq(["␣", "a", "S"]); await p.w(900); await p.key("b", 260);
+        await p.seq(["␣", "a", "S", "b", "b"]); await p.w(600);
         var files = ["go.mod", "internal/domain/note.go", "internal/domain/note_test.go", "internal/application/note_service.go", "internal/infrastructure/note_repo.go", "internal/transport/note_handler.go", "cmd/api/main.go", "README.md"];
         var banner = [];
         function steps(at) {
@@ -1422,12 +1440,52 @@ footer a:hover{color:var(--fg)}
           bo.lines = banner.concat([["", steps(2)], [""], ["", bar + "  " + i + "/" + files.length], ["it", "$" + cost + " · " + (20 + i * 6) + "k in · " + (i ? 61 : 0) + "% cached · 0m" + (30 + i * 9) + "s"], [""], ["h2", "Files"]],
             files.map(function (f, k) { return ["", (k < i ? "● " : k === i ? '<span class="ck">⠹</span> ' : "○ ") + "<code>" + f + "</code>"]; }));
           S.agent = i < files.length ? "build " + i + "/" + files.length + " · $" + cost : null; p.r(); await p.w(i === 3 ? 900 : 420);
-          if (i === 3) { p.ov(null); p.note("<b>Build: still running</b> · the statusline shows it · &lt;leader&gt;aSb brings the view back"); await p.w(1700); p.note(null); p.ov(bo); }
+          if (i === 3) { p.ov(null); p.note("<b>Build: still running</b> · the statusline shows it · &lt;leader&gt;aSbb brings the view back"); await p.w(1700); p.note(null); p.ov(bo); }
         }
         bo.hint = " · ⏎ open · p prompt · r recheck · n replan · q ";
         bo.lines = banner.concat([["", steps(6)], [""], ["", "<b>✓ built · 8 files · checks pass</b>"], ["it", "$0.019 · 68k in · 61% cached · 1m42s"], [""], ["h2", "Checks"], ["", "● go mod tidy · ● gofmt (fixed itself) · ● go build · ● go vet · ● go test"]]);
         S.agent = null; p.r(); await p.w(3200); p.ov(null); await p.w(400); } },
 
+    { g: "ask", name: "Build a feature", go: async function (p) {
+        load(p, "internal/domain/note.go", 2); S.showCursor = false; await p.w(500);
+        await p.seq(["␣", "a", "S", "b", "f"]); await p.w(300);
+        var pk = { kind: "dd", title: "Build a feature · ○ no test yet · ● tested", sel: 0, rows: [
+          ["＋ new", "describe a feature: it becomes FR-4 in SPEC.md, then it is built", ""],
+          ["● FR-1", "Create a note", "tested"], ["● FR-2", "List notes", "tested"], ["○ FR-3", "Archive a note", ""]] };
+        p.ov(pk); await p.w(1800); await p.key("Enter", 260);
+        var dr = { kind: "modal", title: "FR-4 · describe the feature", input: "", hint: BTNS("Enter", "Send", "p", "Esc"),
+          lines: [MU("What should it do? Who uses it, what they do and see, the rules, what can go wrong."), MU("It comes back as FR-4 in SPEC.md, then it is built.")] };
+        p.ov(dr); await p.w(600); await p.typeInto(dr, "input", "export a note as Markdown, its title as the heading", 40); await p.w(500);
+        await p.key("Enter", 260); p.ov(null); await p.spin(2, "writing FR-4 · claude/haiku", 1100, "spec");
+        var cf = { kind: "modal", title: "Add to SPEC.md and build it", hint: BTNS("y", "Add and build", "p", "n"), lines: [
+          "<b>FR-4 Export a note</b>", MU("The system must export a note as Markdown, its title as the heading."), "",
+          MU("  Given a note, when I export it, then a .md file has # title and the body"),
+          MU("  Given an empty note, when I export it, then export is disabled"), "",
+          MU("1 open question: the plan decides it, SPEC.md keeps it for you")] };
+        p.ov(cf); await p.w(2800); await p.key("y", 260);
+        function steps(at) {
+          var names = ["plan", "review", "write", "check", "fix", "done"];
+          return names.map(function (n, i) { return i < at ? "<b>" + n + "</b>" : i === at ? '<span class="ck">' + n + "</span>" : '<span class="ck off">' + n + "</span>"; }).join(" ━ ");
+        }
+        var head = [["", "<b>feature FR-4 · Export a note</b>"]];
+        var files = [["internal/domain/export.go", ""], ["internal/domain/export_test.go", ""], ["internal/application/note_service.go", " · changed"], ["internal/transport/note_handler.go", " · changed"]];
+        var bo = { kind: "report", title: "notes", hint: " · ⏎ plan · 1 2 3 tier · ± fixes · q close ", lines: [] };
+        bo.lines = head.concat([["", steps(-1)], [""], ["h2", "Documents"], ["", "● STACK.md 19.7k · ● SPEC.md 15.9k · ● DESIGN.md 6.8k"], [""], ["", "<b>⏎ plan</b> · on 9 existing files · follows 2 ADRs"]]);
+        p.ov(bo); await p.w(2000);
+        await p.key("⏎", 240); await p.spin(2, "build planning · claude/haiku", 900, "plan");
+        bo.hint = " · ⏎ build · x skip · n replan · q ";
+        bo.lines = head.concat([["", steps(1)], [""], ["h2", "Estimate"], ["", "<b>4 files · ~14k in · ~$0.004 with the cache</b>"], ["it", "replaces 2 files · old ones to the trash"], [""], ["h2", "Files"]],
+          files.map(function (f) { return ["", "○ <code>" + f[0] + "</code>" + MU(f[1])]; }));
+        p.r(); await p.w(2600);
+        await p.key("⏎", 240); bo.hint = " · x stop · q hide, it goes on · p prompt ";
+        p.note("<b>decisions recorded:</b> docs/adr/0003-feature-export-a-note-markdown-export.md"); await p.w(1500); p.note(null);
+        for (var i = 0; i <= files.length; i++) {
+          bo.lines = head.concat([["", steps(2)], [""], ["h2", "Files"]], files.map(function (f, k) { return ["", (k < i ? "● " : k === i ? '<span class="ck">⠹</span> ' : "○ ") + "<code>" + f[0] + "</code>" + MU(f[1])]; }));
+          S.agent = i < files.length ? "build FR-4 " + i + "/" + files.length : null; p.r(); await p.w(480);
+        }
+        bo.hint = " · ⏎ open · p prompt · r recheck · n replan · q ";
+        bo.lines = head.concat([["", steps(6)], [""], ["", "<b>✓ built · 4 files · checks pass</b>"], ["it", "$0.006 · 31k in · 64% cached · 0m48s"], [""], ["h2", "Checks"], ["", "● go mod tidy · ● gofmt · ● go build · ● go vet · ● go test · ● the interface uses what the plan exports"], [""], ["it", "PROGRESS.md updated · next: FR-3 Archive a note has no test yet"]]);
+        S.agent = null; p.r(); await p.w(3200); p.ov(null); await p.w(400); } },
     { g: "git", name: "Commit panel", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
         await p.w(400); await p.seq(["␣", "G", "c"]);
@@ -1446,6 +1504,23 @@ footer a:hover{color:var(--fg)}
         dg(p, 6, "error", "staged review", "looks like an AWS access key", 1, 2); dg(p, 9, "warn", "staged review", "the new value is not validated before it is used", 2, 2);
         S.cp = { msg: "", chip: "", ai: "<b>claude/haiku</b> · <span class=\"wr\">review: 2 findings (quickfix)</span> · Ctrl-g to draft" }; render(); await p.w(2400);
         await p.key("Esc", 250); p.commitPanel(null); await p.w(1600); } },
+    { g: "git", name: "Release", go: async function (p) {
+        load(p, "cmd/api/main.go", 3); S.showCursor = false; await p.w(500);
+        await p.seq(["␣", "G", "R", "c"]); await p.w(300);
+        var cl = { kind: "modal", title: "CHANGELOG.md", hint: BTNS("y", "Write", "p", "n"), lines: [
+          "<b>v1.3.0</b>" + MU("  minor bump from 1.2.4 · 4 commits"), "",
+          MU("### Features"), MU("- **notes:** export a note as Markdown (a1f3c2e)"), MU("- **api:** archive a note (9bd01aa)"), "",
+          MU("### Fixes"), MU("- an empty title no longer crashes the list (4c2e9f0)")] };
+        p.ov(cl); await p.w(2800); await p.key("y", 260); p.ov(null);
+        p.note("<b>Release: CHANGELOG.md has v1.3.0</b> · then bump the version, commit, git tag v1.3.0"); await p.w(1800); p.note(null);
+        await p.seq(["␣", "G", "R", "l"]); await p.w(300);
+        var ck = { kind: "report", title: "release", hint: " · ⏎ runs a check or fixes an item · r reads again · q closes ", lines: [
+          ["h2", "Release · v1.3.0"], ["it", "4 commits since v1.2.4"], [""],
+          ["h2", "Repository"], ["", "☑ working tree clean"], ["", "☑ on main · 4 ahead, 0 behind its upstream"], [""],
+          ["h2", "Quality gates (STACK.md)"], ["", "☐ <code>go test ./...</code> · ⏎ runs it"], ["", "☐ <code>golangci-lint run</code> · ⏎ runs it"], [""],
+          ["h2", "Version and changelog"], ["", "☑ CHANGELOG.md has v1.3.0"], ["", "☐ tag it: <code>git tag v1.3.0</code> then <code>git push --tags</code> (by hand)"], [""],
+          ["h2", "Shipping"], ["", "☑ CI: .github/workflows/ci.yml"], ["", "Deploy: Docker self-hosted + Caddy"]] };
+        p.ov(ck); await p.w(3600); await p.key("q", 250); p.ov(null); await p.w(500); } },
     { g: "git", name: "Auto commit", go: async function (p) {
         p.set(["func Find(db *sql.DB, name string) (*Note, error) {", "\trow := db.QueryRow(\"SELECT id, title FROM notes WHERE title = ?\", name)", "\tn := &Note{}", "\treturn n, row.Scan(&n.ID, &n.Title)", "}"], "query.go", "NORMAL"); p.cursor(1); S.showCursor = false;
         await p.w(400); await p.seq(["␣", "G", "M"]);

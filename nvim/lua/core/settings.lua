@@ -137,7 +137,7 @@ local defaults = {
     -- language you describe things in (the model translates; names and domain terms stay as they are)
     kit = {
       language = "English",
-      -- <leader>aSb: the tier of each phase's model (main/light: what <leader>am chose for each) and the fix rounds. The
+      -- <leader>aSb…: the tier of each phase's model (main/light: what <leader>am chose for each) and the fix rounds. The
       -- build view changes them per run (1 2 3, + -)
       build = {
         plan = "main",
@@ -159,6 +159,10 @@ local defaults = {
         look = true,
         look_rounds = 2,
         view = { code = true, feed = true }, -- panes the build view opens with (c and f toggle them)
+        -- records kept for whoever goes on (0 tokens): the plan's new decisions as docs/adr/NNNN-*.md when its review
+        -- is accepted, and PROGRESS.md (now · done · open · next) whenever a run settles
+        adr = true,
+        progress = true,
       },
     },
     -- DDD (<leader>aD): local static analysis (free) + agent actions that follow your layers and naming.
@@ -440,6 +444,11 @@ local defaults = {
         "secrets?%.",
         "%.kdbx$",
       },
+    },
+    -- <leader>GR (lua/release/): changelog from the commits since the last tag, PR description, release checklist
+    release = {
+      changelog = "CHANGELOG.md", -- the file <leader>GRc writes the next version's section at the top of
+      pr_max_chars = 12000, -- cap of the diff <leader>GRp sends (light tier); less = faster and cheaper
     },
   },
 

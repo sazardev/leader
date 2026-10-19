@@ -8,6 +8,7 @@ return {
   detect = function(buf)
     return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" and vim.fs.root(buf, ".git") ~= nil
   end,
+  groups = { R = "release" },
   maps = {
     -- conventional commits: ONE panel (commit/panel.lua) with three entry points, and `M` without a panel (commit/auto.lua)
     {
@@ -52,6 +53,28 @@ return {
       "ignore rules",
       function()
         require("gitignore").open()
+      end,
+    },
+    -- release (lua/release/): changelog and checklist for free, the PR description with one light request
+    {
+      "Rc",
+      "release changelog",
+      function()
+        require("release").changelog()
+      end,
+    },
+    {
+      "Rp",
+      "release PR description",
+      function()
+        require("release").pr()
+      end,
+    },
+    {
+      "Rl",
+      "release checklist",
+      function()
+        require("release").checklist()
       end,
     },
     { "t", "status", ex "Telescope git_status" },

@@ -544,7 +544,14 @@ presets or the project's own facts; uppercase ones take what you describe in you
 
 | Key | Document | How |
 |---|---|---|
-| `b` | the project | **build with agent**: reads the four documents (says which one is missing and its key) and builds the project in its own tab: one plan request, then one small request per file (only the documents it needs, the plan, the API of what is already written and the files it uses), then the manifest's own checks (Go: tidy, gofmt, build, vet, test) and up to 2 fix rounds for the files the errors name. One question before it starts (files, estimated tokens and cost, what it replaces, what the previous build left that this plan drops) |
+| `bb` | the project | **build with agent**, everything at once: reads the four documents (says which one is missing and its key) and builds the project in its own tab: one plan request, then one small request per file (only the documents it needs, the plan, the API of what is already written and the files it uses), then the manifest's own checks (Go: tidy, gofmt, build, vet, test) and up to 2 fix rounds for the files the errors name. One question before it starts (files, estimated tokens and cost, what it replaces, what the previous build left that this plan drops) |
+| `bt` | the foundation | **build one layer** from STACK.md: manifest, layout, tooling, a minimal entry point that runs (below) |
+| `bs` | the domain | **build one layer** from SPEC.md: entities, rules, use cases and their tests, no interface (below) |
+| `bd` | the design | **build one layer** from DESIGN.md: theme, styles, components, screens, wired to the domain the project has (below) |
+| `bf` | one feature | **build one requirement** end to end: pick an FR of SPEC.md (`○` no test yet, `●` tested) or describe a new one, which becomes the next FR-n in SPEC.md (below) |
+| `r` | a recipe | **prefab task** for your stack (a screen with its state, an endpoint, an entity with its repository, a form…): asks its values, then builds it on the project (below) |
+| `v` | coverage | **0 tokens**: which FR-n have a test, what STACK.md names that the manifest lacks, DESIGN.md tokens no code uses, folders no document mentions (below) |
+| `P` | records | PROGRESS.md and the decisions (ADRs) the builds wrote, with a preview |
 | `B` | the project | check again: the checks and fix rounds on the files the last build wrote, as they are now (after you edit them, or after a restart; its list is kept per project in the state dir) |
 | `/` | the library | every preset in one search (stacks, designs, their add-ons, principles) with its preview: `⏎` uses it (a stack or design opens its customize step; an add-on is merged into the STACK.md/DESIGN.md there; a principle is added), `^e` embeds its text under your cursor, `^y` copies it, `^o` opens the preset file (to read it or make your own from it) |
 | `o` | all four | which are there (`●`) and which are missing; Enter opens one or starts it |
@@ -598,7 +605,85 @@ wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes
 A terminal design is a real DESIGN.md for a TUI: colors as ANSI 16 / 256 / truecolor roles with fallbacks, typography as
 monospace cells and glyph sets, spacing in cells, borders as box drawing, motion as frames.
 
-**The build** (`b`) is an orchestrator you can watch, steer, leave and come back to:
+**The build** (`b…`) is an orchestrator you can watch, steer, leave and come back to. It builds the whole project (`bb`)
+or **one layer** from the document that describes it, with the same letter that document has in this menu:
+
+| Key | Layer | Reads (required first) | Builds | Skips |
+|---|---|---|---|---|
+| `bt` | foundation | STACK.md, AGENTS.md | manifest, folder layout, formatter/linter/test config, Makefile or scripts, a minimal entry point that builds and runs, one smoke test, README (15 files at most) | domain logic, screens; the wiring check and the use phase |
+| `bs` | domain | STACK.md, SPEC.md, AGENTS.md | entities, value objects, rules, errors, use cases and ports where STACK.md's layout puts them, each with tests that prove its FR-n; in-memory adapters only when the tests need them | the interface and the entry point; the wiring check (nothing calls the domain yet, by design) and the use phase |
+| `bd` | design | STACK.md, DESIGN.md, SPEC.md (when there), AGENTS.md | theme or tokens, styles, components and screens (as `## Screens` draws them), wired into the entry point; it **calls** the domain the project has, sample data when there is none | nothing: the wiring check, the use phase (with SPEC.md) and the look all run |
+
+A layer is built **on top of what the project already has**: the plan request gets the existing files as `<project>` (their
+paths, the manifests whole, the API the code declares), every file request sees that API and the existing files it uses,
+and an existing file the plan has to change (the domain adds a dependency to `go.mod`, the design makes `main.go` open the
+screens) is sent as it is and comes back whole. The review shows those as replaced. Usual order: `bt` → `bs` → `bd`, each
+reviewed before anything is written; any of them alone works too (a domain on an empty folder plans its own manifest).
+Each layer keeps **its own saved run** and its own list of the files it created: a replan of the domain only drops the
+domain's old files, `X` sends only the files that layer created to the trash (the ones it only changed stay), and the
+foundation's run is never touched by the domain's. The tab's top line and the statusline name the layer
+(`domain · from SPEC.md`, `⠹ build domain 3/9`).
+
+**One feature at a time** (`bf`): after the first build, most work is a new feature. The picker lists the requirements
+of SPEC.md with whether a test proves them yet (the preview opens SPEC.md at that requirement), and **＋ new** first:
+- **An existing one** opens the feature build with that requirement's text: its line to the next requirement, plus every
+  other line of SPEC.md that names it (its edge cases, its open questions).
+- **A new one**: you describe it on the draft page in your words; one request (main tier, SPEC.md as context) turns it
+  into a requirement (title, "The system must…", 2-6 Given/When/Then criteria, edge cases, the questions only you can
+  answer). A confirmation shows it; **Add and build** writes it into SPEC.md **in the document's own style** (heading
+  `### FR-n:` or bullet `- **FR-n**`, the next free id), its edge cases under `## Edge cases` and its questions under
+  `## Open questions` (numbered on from the last `Qn`); the old SPEC.md goes to the trash.
+
+The feature build plans the smallest set of files that makes the requirement work for the user: the domain it needs,
+the interface that reaches it (when there is one), the tests of its acceptance criteria, **following the patterns the
+code already uses** (same folders, naming, state management, error handling), on top of the project as it is
+(`<project>`, like the layers). Existing files it changes come back whole and keep what the rest uses. The wiring check
+and the use phase run, with scenarios **from that requirement alone**. Features are additive: one feature's replan or
+clean never touches another's files. One feature run is kept at a time; picking another requirement starts afresh.
+
+**Recipes** (`r`): prefab tasks, plain Markdown files in `agent/kit/presets/recipes/<group>/` (add your own: the header
+of the presets plus one `<!-- input: key | question -->` line per value, and a body with `## Make`, `## Rules`, `## Tests`
+using `{{key}}`, `{{key_snake}}`, `{{key_camel}}`, `{{key_pascal}}`, `{{key_kebab}}`). Only the recipes whose `for:`
+fits STACK.md are listed (`go+server` = both, `go+!server` = a Go project that is not a server). Picking one asks its
+values, fills it and opens the recipe build: the recipe says **what** to make, STACK.md and the existing code say
+**where and how** (its paths are only a hint when the project already does it differently). Recipes skip the wiring check
+and the use phase. They are also in the library (`/`).
+
+| Group | Recipes |
+|---|---|
+| flutter | screen with its state (Riverpod Notifier or Bloc/Cubit), route and widget test · data feature (model, repository interface + implementation, provider) · form with validation |
+| go | HTTP endpoint (handler, service, route, httptest) · entity with its repository (port, in-memory + SQL adapter, contract tests) · CLI subcommand · Bubble Tea screen (teatest golden) |
+| web | UI component (states, tokens, accessibility) · page with its route and data |
+| typescript, python, rust | API route / HTTP endpoint with validation, service and tests |
+| general | module with its tests (any stack) |
+
+**Coverage** (`v`, 0 tokens): a report in a split, read from the documents and the code:
+
+| Section | How it is checked |
+|---|---|
+| Requirements | every FR-n of SPEC.md's Requirements; proved when a test file names it (`FR-3`, not `FR-30`) or a build plan's `verifies` does and that file exists. `⏎` on an untested one opens its feature build |
+| STACK.md names the manifest lacks | package.json: the tools the build knows; pubspec.yaml, go.mod, Cargo.toml, pyproject.toml: the package names the Stack table writes in backticks |
+| DESIGN.md tokens no code uses | the first column of the Color tables and every `--css-variable`, searched in every spelling (`text-muted`, `text_muted`, `textMuted`, `TextMuted`) |
+| Folders no document mentions | top-level folders and those one level under `lib/`, `src/`, `internal/`, `cmd/`, `app/`, `pkg/`…: the layout drifted from STACK.md |
+
+`⏎` opens the place a line is about, `r` reads again, `q` closes. Ask tests to name the requirement they prove
+(`// FR-3: …`): the builds' tests do.
+
+**Records** (0 tokens, `settings.agent.kit.build.adr` / `.progress`):
+- **Decisions** (`docs/adr/NNNN-title.md`): when a review is accepted, the plan's decisions that no earlier ADR records
+  are written as one ADR (Status, Context, Decision, Consequences: the files created and changed) and indexed in
+  `docs/adr/README.md`. A build that decides nothing new writes nothing. **Every later plan follows them**: the
+  decisions still in force go to the plan request as `<decisions>` (oldest first; the newest kept past ~4000 characters),
+  and the plan lists only new choices. When a build truly must reverse one, the plan says so as a decision of its own
+  (`Supersedes ADR 0002: Bloc for state because …`): its ADR's Status says `supersedes ADR 0002`, the index marks 0002
+  `superseded by 0005`, and 0002 is no longer sent to plans. An ADR is never edited. The feed's plan line says how many
+  it followed (`follows 3 ADRs`).
+- **PROGRESS.md** at the root, rewritten whenever a run settles: `Now` (the last build, how it ended, how to resume it),
+  `Done` (a log, one line per finished build, kept across rewrites), `Open` (files not written, failing checks, issues the
+  use phase found, SPEC.md's open questions), `Next` (the requirements no test proves yet). Any agent reads it to go on
+  where the last one stopped.
+
+Both are linked from AGENTS.md's "Read first" the first time, and neither is ever read as code by a layer build.
 
 | Phase | What happens | Your keys |
 |---|---|---|
@@ -626,10 +711,10 @@ monospace cells and glyph sets, spacing in cells, borders as box drawing, motion
   which leftovers go to the trash). `X` cleans the build after a confirmation that lists them: every file it wrote goes to
   the trash (`<leader>Fu` brings them back), empty folders it made are removed, the saved run is forgotten; the four
   documents are never touched.
-- **Nothing is lost**: the run is saved after every step. Closing Neovim with a plan in review and running `<leader>aSb`
-  again brings the review back with the plan on screen; a run stopped mid-write continues from the first file not written.
+- **Nothing is lost**: the run is saved after every step. Closing Neovim with a plan in review and running `<leader>aSbb`
+  (or the layer's key) again brings the review back with the plan on screen; a run stopped mid-write continues from the first file not written.
 - **Leave it running**: `q` closes the tab, the build goes on; the statusline shows `⠹ build 7/25 · $0.031` from any buffer,
-  a notice says how it ended, `<leader>aSb` brings the view back exactly where it is.
+  a notice says how it ended, its key (`<leader>aSbb`, or the layer's) brings the view back exactly where it is.
 - **Resilient**: the run is saved after every step (state dir, per project). Closing Neovim mid-build and opening it again
   offers to continue from the first file not written; the spend so far is kept.
 - **Transparent**: money, tokens in/out, the share read from the cache and the time, live; per file its lines and cost;

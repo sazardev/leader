@@ -311,4 +311,33 @@ Do NOT write an "Engineering principles" section: it is appended afterwards with
   }
 end
 
+--- One new requirement for SPEC.md from what the user wrote: JSON the kit renders in SPEC.md's own style (feature.lua)
+---@param draft string
+---@param spec string the current SPEC.md (its terms, entities and ids)
+---@param next_id string "FR-8"
+---@return table
+function M.feature(draft, spec, next_id)
+  local lang = (require("core.settings").agent.kit or {}).language or "English"
+  return {
+    action = "kit_feature",
+    tier = "main",
+    system = [[You add ONE requirement to a project's SPEC.md, the specification coding agents implement from.
+Output ONLY one JSON object, no prose, no ``` fence:
+{"title": "<2-5 words>",
+ "statement": "<one sentence: The system must…>",
+ "criteria": ["Given <state>, when <action>, then <exactly what the user sees or gets>"],
+ "edge_cases": ["<what can go wrong>: <what must happen>"],
+ "questions": ["<a gap only the user can answer, as a question>"],
+ "builds_on": ["<FR-n of SPEC.md this one relies on>"]}
+Rules:
+- Keep the user's intent and words; use the terms, entities and screens SPEC.md already names. Do not add features they did not ask for.
+- 2-6 acceptance criteria, each one testable as written: concrete values, what is shown, errors with their text.
+- Never fill a gap with an invention: it goes to `questions` (an empty list when there is none).]]
+      .. ("\nWrite every string in %s, including what the user wrote in another language."):format(lang),
+    prompt = block("spec", spec)
+      .. block("draft", draft)
+      .. ("This requirement will be %s. Answer the JSON object."):format(next_id),
+  }
+end
+
 return M

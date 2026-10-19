@@ -95,6 +95,7 @@ function M.choose(items, opts, on_select)
       return {
         value = item.value,
         path = item.path,
+        lnum = item.lnum, -- the preview opens the file at that line (a requirement in SPEC.md)
         ordinal = item.label .. " " .. (item.desc or "") .. " " .. (item.search or ""),
         display = function()
           if not with_desc then

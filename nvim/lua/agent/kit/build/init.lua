@@ -1,6 +1,8 @@
--- ── Build with agent (<leader>aSb) ───────────────────────────────────────────
--- The project from its four documents (AGENTS.md, STACK.md, DESIGN.md, SPEC.md: it says which is missing and its key), in
--- phases you can watch and steer from the build tab (build/view.lua):
+-- ── Build with agent (<leader>aSb…) ──────────────────────────────────────────
+-- The project from its four documents (AGENTS.md, STACK.md, DESIGN.md, SPEC.md: it says which is missing and its key), or
+-- one layer of it from the document that describes it (scope.lua: foundation from STACK.md, domain from SPEC.md, design
+-- from DESIGN.md, each on top of the files the project already has), in phases you can watch and steer from the build
+-- tab (build/view.lua):
 --   ready   pre-flight: the documents, the model of each phase (plan · files · fixes, main or light tier), fix rounds
 --   plan    one request: the ordered files, their documents and the earlier files they use (plan.lua)
 --   review  the plan with what each file will cost; skip files, change models; Enter starts (this IS the confirmation)
@@ -12,7 +14,7 @@
 --           step, one verdict request); what fails is fixed, the same scenarios replayed (`use_rounds`)
 --   look    the rendered screens against DESIGN.md (Go teatest golden files), `look_rounds` times at most
 -- The run lives in build/state.lua, not in the window: closing the tab (q) leaves it running, the statusline shows it,
--- <leader>aSb brings the view back, `x` stops it. It is saved after every step: a build cut short (Neovim closed) resumes.
+-- its key (<leader>aSbb, or the layer's) brings the view back, `x` stops it. It is saved after every step: a build cut short (Neovim closed) resumes.
 -- Every request goes through the spend guard (no question per file once the review is accepted; the caps still apply)
 -- and lands in the history (<leader>ah: kit_build_plan, kit_build_file, kit_build_fix, kit_build_scenarios, kit_build_use).
 -- An answer that is not a clean file (a fence with prose, echoed tags, tool-call markup) is cleaned (clean.lua) and, when
@@ -25,6 +27,7 @@ local look_mod = require "agent.kit.build.look"
 local log = require "utils.log"
 local plan_mod = require "agent.kit.build.plan"
 local prompt = require "agent.kit.build.prompt"
+local scopes = require "agent.kit.build.scope"
 local state = require "agent.kit.build.state"
 local verify = require "agent.kit.build.verify"
 local wiring = require "agent.kit.build.wiring"
@@ -63,6 +66,8 @@ end
 --- What is running now: the request's process (to stop it) and when this stretch of running began
 local live = { handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {}, review_at = nil }
 
+local record -- forward (below: ADR and PROGRESS.md)
+
 ---@return BuildRun
 local function run()
   return state.run --[[@as BuildRun]]
@@ -75,49 +80,68 @@ end
 
 -- ── Documents, manifest, estimates ───────────────────────────────────────────
 
---- The four documents at the root: their text by id, and the files missing
+--- The documents a build reads, at the root: their text by id, and the files it needs that are missing (the whole
+--- build needs all four; a layer only its own, scope.lua, and reads the others it uses when they are there)
 ---@param root string
+---@param scope string?
 ---@return table<string, string>, string[]
-function M.docs(root)
+function M.docs(root, scope)
+  local s = scopes.get(scope)
   local docs, missing = {}, {}
   for _, d in ipairs(compose.DOCS) do
-    local text = require("utils.project").read(root .. "/" .. d.file)
-    if text and vim.trim(text) ~= "" then
-      docs[d.id] = text
-    else
-      missing[#missing + 1] = d.file
+    if vim.tbl_contains(s.docs, d.id) then
+      local text = require("utils.project").read(root .. "/" .. d.file)
+      if text and vim.trim(text) ~= "" then
+        docs[d.id] = text
+      elseif vim.tbl_contains(s.required, d.id) then
+        missing[#missing + 1] = d.file
+      end
     end
   end
   return docs, missing
 end
 
 ---@param docs table<string, string>
+---@param scope string?
 ---@return { file: string, chars: integer }[]
-function M.doc_sizes(docs)
-  return vim.tbl_map(function(d)
-    return { file = d.file, chars = #(docs[d.id] or "") }
-  end, compose.DOCS)
+function M.doc_sizes(docs, scope)
+  local s = scopes.get(scope)
+  local out = {}
+  for _, d in ipairs(compose.DOCS) do
+    if vim.tbl_contains(s.required, d.id) or docs[d.id] then
+      out[#out + 1] = { file = d.file, chars = #(docs[d.id] or "") }
+    end
+  end
+  return out
 end
 
---- Where the list of files the last build of `root` wrote is kept (state dir, not the repository)
+--- Where the list of files the last build of `root` wrote is kept (state dir, not the repository), one per scope: a
+--- domain build's replan only drops the domain's own old files
 ---@param root string
+---@param scope string?
 ---@return string
-function M.manifest_path(root)
-  return vim.fn.stdpath "state" .. "/agent-build/" .. vim.fn.sha256(root):sub(1, 16) .. ".json"
+function M.manifest_path(root, scope)
+  local suffix = scope and scope ~= "all" and ("." .. scope) or ""
+  return vim.fn.stdpath "state" .. "/agent-build/" .. vim.fn.sha256(root):sub(1, 16) .. suffix .. ".json"
 end
 
 ---@param root string
+---@param scope string?
 ---@return string[]
-function M.previous(root)
-  local text = require("utils.project").read(M.manifest_path(root))
+function M.previous(root, scope)
+  local text = require("utils.project").read(M.manifest_path(root, scope))
   local ok, list = pcall(vim.json.decode, text or "")
   return ok and type(list) == "table" and list or {}
 end
 
 ---@param root string
+---@param scope string?
 ---@param paths string[]
-local function remember(root, paths)
-  local path = M.manifest_path(root)
+local function remember(root, scope, paths)
+  if scopes.get(scope).additive then -- a feature or a recipe adds to the project: nothing of it is ever stale
+    return
+  end
+  local path = M.manifest_path(root, scope)
   vim.fn.mkdir(vim.fs.dirname(path), "p")
   local f = io.open(path, "w")
   if f then
@@ -307,10 +331,11 @@ local function finish(phase, outcome, kind, note)
   if note then
     state.feed(kind or "info", note)
   end
+  record()
   state.save()
   state.changed()
   local msg = ("Build %s: %s · $%.3f · %dm%02ds"):format(
-    r.name,
+    r.task and (r.name .. " " .. r.task.id) or r.scope and (r.name .. " " .. r.scope) or r.name,
     outcome,
     r.totals.cost,
     math.floor(secs / 60),
@@ -386,13 +411,17 @@ local function usage_text(usage, ms)
   return table.concat(parts, " · ")
 end
 
---- The texts written so far (read from disk for what an earlier session wrote)
+--- The texts written so far (read from disk for what an earlier session wrote), over the project's files a layer build
+--- builds on: every request sees their API, and a file that needs one sees it whole
 ---@return table<string, string>
 local function written()
   if live.written then
     return live.written
   end
   live.written = {}
+  for _, p in ipairs(run().existing or {}) do
+    live.written[p] = require("utils.project").read(run().root .. "/" .. p)
+  end
   for _, f in ipairs(run().files) do
     if f.state == "done" or f.state == "fixed" then
       live.written[f.path] = require("utils.project").read(run().root .. "/" .. f.path)
@@ -401,11 +430,71 @@ local function written()
   return live.written
 end
 
+--- The paths a check's errors and a diagnosis may name: the plan's files, and the project's files a layer build builds on
+--- (a domain that needs a dependency fixes the foundation's manifest)
+---@return string[]
+local function owned()
+  local r = run()
+  local out = vim.tbl_map(function(f)
+    return f.path
+  end, r.files)
+  for _, p in ipairs(r.existing or {}) do
+    if not state.file(p) then
+      out[#out + 1] = p
+    end
+  end
+  return out
+end
+
+--- The files this build created (what a replan may drop and a clean sends to the trash): not those a layer only changed
+---@return string[]
+local function created()
+  local out = {}
+  for _, f in ipairs(run().files) do
+    if not f.existed then
+      out[#out + 1] = f.path
+    end
+  end
+  return out
+end
+
 --- The last request sent for a file (what `p` shows in the view)
 ---@param path string
 ---@return { system: string, prompt: string }?
 function M.sent(path)
   return live.prompts[path]
+end
+
+--- The documents the use phase reads: a feature's scenarios come from its requirement alone (not the whole SPEC.md)
+---@return table<string, string>
+local function use_docs()
+  local r = run()
+  if r.scope == "feature" and r.task and live.docs then
+    return vim.tbl_extend("force", live.docs, { spec = r.task.text })
+  end
+  return live.docs
+end
+
+--- The build's records for the next person or agent, 0 tokens, never in the build's way: the plan's decisions as an ADR
+--- once the review is accepted (agent/kit/adr.lua), PROGRESS.md whenever the run settles (agent/kit/progress.lua)
+---@param what "adr"?
+record = function(what)
+  local settings = require("core.settings").agent.kit.build or {}
+  local r = run()
+  if what == "adr" and settings.adr ~= false then
+    local ok, path = pcall(require("agent.kit.adr").record, r)
+    if ok and path then
+      state.feed("info", "decisions recorded: " .. path)
+    elseif not ok then
+      state.feed("fail", "ADR not written: " .. tostring(path))
+    end
+  end
+  if settings.progress ~= false then
+    local ok, why = pcall(require("agent.kit.progress").record, r)
+    if not ok then
+      state.feed("fail", "PROGRESS.md not written: " .. tostring(why))
+    end
+  end
 end
 
 local check, look, use -- forward
@@ -541,9 +630,7 @@ local function fix(blamed, output)
   local r = run()
   r.fix_round = r.fix_round + 1
   r.phase = "fix"
-  local planned = vim.tbl_map(function(f)
-    return f.path
-  end, r.files)
+  local planned = owned()
   state.feed("step", ("round %d · diagnosing"):format(r.fix_round), M.model "fixes", "Fix")
   local dreq = diagnose.request(output, blamed, r.plan, live.docs, written(), live.user)
   live.prompts["diagnosis"] = { system = dreq.system, prompt = dreq.prompt }
@@ -629,9 +716,7 @@ look = function()
   end
   r.looks = (r.looks or 0) + 1
   local last = r.looks >= (settings.look_rounds or 2)
-  local planned = vim.tbl_map(function(f)
-    return f.path
-  end, r.files)
+  local planned = owned()
   state.feed(
     "step",
     ("%d screen%s against DESIGN.md · look %d"):format(#renders, #renders == 1 and "" or "s", r.looks),
@@ -700,6 +785,10 @@ use = function()
   if settings.use == false or r.use.done or not r.plan then
     return look()
   end
+  if not scopes.get(r.scope).use or not (live.docs and live.docs.spec) then -- no interface yet, or nothing to try
+    r.use.done = true
+    return look()
+  end
   local use_mod = require "agent.kit.build.use"
   local scenario = require "agent.kit.build.use.scenario"
   local judge = require "agent.kit.build.use.judge"
@@ -711,9 +800,7 @@ use = function()
     return look()
   end
   local kind = ctx.launch.kind
-  local planned = vim.tbl_map(function(f)
-    return f.path
-  end, r.files)
+  local planned = owned()
   r.phase = "use"
 
   local function judged(results)
@@ -733,7 +820,7 @@ use = function()
       results,
       wiring.report(values),
       r.plan,
-      live.docs,
+      use_docs(),
       scenario.controls(written(), r.plan),
       prompt.api(written())
     )
@@ -840,7 +927,7 @@ use = function()
   if r.use.scenarios and r.use.kind == kind then
     return play(r.use.scenarios)
   end
-  local req = scenario.request(kind, r.plan, live.docs, written())
+  local req = scenario.request(kind, r.plan, use_docs(), written())
   live.prompts["scenarios"] = { system = req.system, prompt = req.prompt }
   state.feed("step", "what a user will try, from SPEC.md and DESIGN.md", M.model "use", "Use")
   state.feed("in", "scenarios", ("%s · %s chars"):format(kind, size(#req.system + #req.prompt)))
@@ -884,7 +971,9 @@ check = function()
   local r = run()
   r.phase, r.current = "check", nil
   local checks = verify.checks(r.root, verify.package_manager_hint(live.docs and live.docs.stack))
-  if r.plan then -- after the tools: a name the plan promised to others that only its own file (or a test) uses
+  -- after the tools: a name the plan promised to others that only its own file (or a test) uses (not for a foundation or
+  -- a domain: nothing calls them yet by design)
+  if r.plan and scopes.get(r.scope).wiring then
     checks[#checks + 1] = {
       label = "the interface uses what the plan exports",
       fn = function()
@@ -910,12 +999,7 @@ check = function()
       return
     end
     if ok then
-      remember(
-        r.root,
-        vim.tbl_map(function(f)
-          return f.path
-        end, r.files)
-      )
+      remember(r.root, r.scope, created())
       return use()
     end
     local fixer = failed and failed.autofix
@@ -933,9 +1017,7 @@ check = function()
       return check()
     end
     state.feed("fail", failed and failed.label or "check", (output or ""):sub(1, 1200))
-    local planned = vim.tbl_map(function(f)
-      return f.path
-    end, r.files)
+    local planned = owned()
     local outside = vim.tbl_filter(function(p) -- only the project's own (not a library's file in a stack trace)
       return vim.uv.fs_stat(r.root .. "/" .. p) ~= nil
     end, verify.outside(output or "", planned))
@@ -1099,17 +1181,45 @@ local function plan()
   local r = run()
   r.phase = "plan"
   begin()
-  local req = plan_mod.request(live.docs)
+  local s = scopes.get(r.scope)
+  -- a layer builds on what is there (without what this scope wrote last time: its new plan replaces that)
+  local existing = s.existing and scopes.existing(r.root, not s.additive and M.previous(r.root, r.scope) or nil) or {}
+  r.existing = vim.tbl_keys(existing)
+  table.sort(r.existing)
+  live.written = existing
+  -- the decisions earlier builds accepted (their ADRs): the plan follows them, or says which one it supersedes
+  local adr = require "agent.kit.adr"
+  local decisions = adr.summary(adr.read(r.root))
+  local req = plan_mod.request(live.docs, r.scope, existing, r.task, decisions)
   live.prompts["plan.json"] = { system = req.system, prompt = req.prompt }
-  state.feed("step", "the documents become a list of files", M.model "plan", "Plan")
-  state.feed("in", "plan", ("agents stack design spec · %s chars"):format(size(#req.system + #req.prompt)))
+  local read = vim.tbl_filter(function(id)
+    return live.docs[id] ~= nil
+  end, plan_mod.DOCS)
+  state.feed(
+    "step",
+    s.from
+        and ("%s from %s · on %d existing file%s"):format(s.label, s.from, #r.existing, #r.existing == 1 and "" or "s")
+      or "the documents become a list of files",
+    M.model "plan",
+    "Plan"
+  )
+  local followed = select(2, decisions:gsub("\nADR %d+ · ", ""))
+  state.feed(
+    "in",
+    "plan",
+    ("%s%s · %s chars"):format(
+      table.concat(read, " "),
+      followed > 0 and (" · follows %d ADR%s"):format(followed, followed == 1 and "" or "s") or "",
+      size(#req.system + #req.prompt)
+    )
+  )
   view().code_start("plan.md", "planning")
   -- the plan read while it is made: first the model's thinking (a long plan thinks for a minute before writing), then the
   -- JSON that has arrived, rendered as plan.md (what is complete so far); a 1 s tick keeps the clock moving in between
   local so_far, thought, thinks, last_draw, t_plan = "", "", 0, 0, vim.uv.hrtime()
   -- what the model was given, shown while it thinks (the claude CLI streams the thinking without its text)
   local given = { "## Read", "" }
-  for _, d in ipairs(M.doc_sizes(live.docs)) do
+  for _, d in ipairs(M.doc_sizes(live.docs, r.scope)) do
     given[#given + 1] = ("- %s · %s chars"):format(d.file, size(d.chars))
   end
   vim.list_extend(given, {
@@ -1174,15 +1284,19 @@ local function plan()
     if not ok then
       return finish("ready", "✗ the plan failed", "fail", text)
     end
-    local parsed, why = plan_mod.parse(text)
+    local parsed, why = plan_mod.parse(text, existing, r.scope)
+    if parsed then
+      parsed.task = r.task -- every file request names the requirement or recipe (prompt.system)
+    end
     if not parsed then
       return finish("ready", "✗ the plan failed", "fail", why)
     end
     r.plan = parsed
     r.files = vim.tbl_map(function(f)
-      return vim.tbl_extend("force", f, { state = "pending" })
+      -- `existed`: a file of the project a layer changes (never this build's own: a replan or a clean keeps it)
+      return vim.tbl_extend("force", f, { state = "pending", existed = existing[f.path] ~= nil or nil })
     end, parsed.files)
-    r.stale = M.stale(r.root, M.previous(r.root), parsed)
+    r.stale = not s.additive and M.stale(r.root, M.previous(r.root, r.scope), parsed) or {}
     r.replaced = #vim.tbl_filter(function(f)
       return vim.uv.fs_stat(r.root .. "/" .. f.path) ~= nil
     end, parsed.files)
@@ -1263,7 +1377,7 @@ function M.go()
   if r.phase == "done" then
     return log.info "Build: done · r checks again · n plans a new build"
   end
-  live.docs = live.docs or M.docs(r.root)
+  live.docs = live.docs or M.docs(r.root, r.scope)
   r.outcome = nil
   if r.phase == "ready" or not r.plan then
     return plan()
@@ -1288,12 +1402,8 @@ function M.go()
       )
       r.stale = {}
     end
-    remember(
-      r.root,
-      vim.tbl_map(function(f)
-        return f.path
-      end, r.files)
-    )
+    remember(r.root, r.scope, created())
+    record "adr"
     local _, total = state.progress()
     local est = r.estimate and r.estimate.cost and ("~$%.3f before the cache"):format(r.estimate.cost) or nil
     state.feed("step", ("%d files · %s"):format(total, M.model "files"), est, "Write")
@@ -1323,7 +1433,7 @@ function M.recheck()
   if not r or r.running or not r.plan then
     return log.info "Build: nothing to check (the build has no plan yet)"
   end
-  live.docs = live.docs or M.docs(r.root)
+  live.docs = live.docs or M.docs(r.root, r.scope)
   live.written = nil
   r.fix_round, live.autofixed, r.outcome = 0, {}, nil
   live.stuck, live.last_signature = 0, nil
@@ -1376,11 +1486,11 @@ local function fresh_run()
   if not r or r.running then
     return nil
   end
-  local docs = M.docs(r.root)
+  local docs = M.docs(r.root, r.scope)
   live.docs, live.written, live.prompts, live.autofixed = docs, nil, {}, {}
   live.stuck, live.last_signature, live.review_at = 0, nil, nil
   local tiers, max = r.tiers, r.max_fixes
-  local new = state.new(r.root, M.doc_sizes(docs))
+  local new = state.new(r.root, M.doc_sizes(docs, r.scope), r.scope, r.task)
   new.tiers, new.max_fixes = tiers, max
   return new
 end
@@ -1411,18 +1521,18 @@ function M.clean()
     end
   end
   for _, f in ipairs(r.files) do
-    if f.state == "done" or f.state == "fixed" or f.state == "failed" or f.state == "writing" then
+    if not f.existed and (f.state == "done" or f.state == "fixed" or f.state == "failed" or f.state == "writing") then
       add(f.path)
     end
   end
-  for _, p in ipairs(M.previous(r.root)) do
+  for _, p in ipairs(M.previous(r.root, r.scope)) do
     add(p)
   end
   table.sort(paths)
   local modal = require "utils.modal"
   local lines = {
     { { ("%d file%s this build wrote go to the trash"):format(#paths, #paths == 1 and "" or "s"), modal.hl.file } },
-    { { "<leader>Fu brings them back · the four documents stay", modal.hl.muted } },
+    { { "<leader>Fu brings them back · the documents stay", modal.hl.muted } },
     "",
   }
   for i = 1, math.min(#paths, 8) do
@@ -1452,8 +1562,8 @@ function M.clean()
     for _, d in ipairs(list) do
       vim.uv.fs_rmdir(r.root .. "/" .. d)
     end
-    os.remove(state.path(r.root))
-    os.remove(M.manifest_path(r.root))
+    os.remove(state.path(r.root, r.scope))
+    os.remove(M.manifest_path(r.root, r.scope))
     fresh_run()
     view().code_done(
       "plan.md",
@@ -1484,40 +1594,123 @@ end
 
 -- ── Entry ────────────────────────────────────────────────────────────────────
 
---- <leader>aSb: the build view of this project. A run going on is shown as it is; a saved one that can go on is offered
---- to resume; otherwise the pre-flight of a new one.
-function M.open()
+--- What a layer's (or a task's) pre-flight shows in the code pane: what it builds and from which document
+---@param s BuildScope
+---@param task BuildTask?
+---@return string
+local function intro(s, task)
+  local what = {
+    foundation = "The manifest, the layout, the tooling and a minimal entry point that runs: what the domain and the design are built on. No features yet.",
+    domain = "The entities, rules and use cases SPEC.md describes, with their tests, on top of the files the project has. No interface.",
+    design = "The theme, styles, components and screens DESIGN.md describes, wired to the domain the project has (or sample data when it has none).",
+    feature = "This requirement end to end, on top of the project as it is: the domain it needs, the interface that reaches it, the tests of its acceptance criteria, following the patterns the code already uses.",
+    recipe = "This recipe applied to the project as it is, where STACK.md and the existing code put each kind of file.",
+  }
+  local out = {
+    ("# Build · %s"):format(task and task.title or s.label),
+    "",
+    ("From %s. %s"):format(task and s.name == "feature" and (task.id .. " of SPEC.md") or s.from, what[s.name] or ""),
+    "",
+  }
+  if task then
+    vim.list_extend(out, vim.split(vim.trim(task.text), "\n", { plain = true }))
+    out[#out + 1] = ""
+  end
+  out[#out + 1] =
+    "⏎ plans it: the review shows every file (and the existing ones it changes) before anything is written."
+  return table.concat(out, "\n") .. "\n"
+end
+
+---@param a BuildTask?
+---@param b BuildTask?
+---@return boolean
+local function same_task(a, b)
+  return (a and a.id) == (b and b.id)
+end
+
+--- <leader>aSb…: the build view of this project, for one scope (scope.lua: "all" = the whole project, a layer, or a task
+--- scope with its `task`: a requirement, a recipe). A run of that scope (and task) going on is shown as it is; a saved one
+--- that can go on is offered to resume; otherwise the pre-flight of a new one.
+---@param scope string?
+---@param task BuildTask?
+function M.open(scope, task)
+  local s = scopes.get(type(scope) == "string" and scope or nil)
+  local name = s.name ~= "all" and s.name or nil
   local root = require("agent.kit.snapshot").root()
-  if state.run and state.run.root == root then
+  if
+    state.run
+    and state.run.root == root
+    and state.run.scope == name
+    and (task == nil or same_task(state.run.task, task))
+  then
     return view().open()
   end
   if state.run and state.run.running then
-    return log.warn(("Build: %s is still building (x in its view stops it)"):format(state.run.name))
+    return log.warn(
+      ("Build: %s is still building (%s shows it, x there stops it)"):format(
+        state.run.name,
+        scopes.keys(state.run.scope)
+      )
+    )
   end
-  local docs, missing = M.docs(root)
+  local docs, missing = M.docs(root, s.name)
   if #missing > 0 then
     local how = vim.tbl_map(function(f)
       return ("%s (<leader>aS%s)"):format(f, KEYS[f])
     end, missing)
-    return log.error("Build: missing " .. table.concat(how, ", ") .. ". The build reads all four documents.")
+    local reads = s.name == "all" and "The build reads all four documents."
+      or ("The %s build is built from %s."):format(s.label, s.from)
+    return log.error("Build: missing " .. table.concat(how, ", ") .. ". " .. reads)
   end
   live.docs, live.written, live.prompts, live.autofixed = docs, nil, {}, {}
-  local saved = state.load(root)
+  local saved = state.load(root, name)
+  if saved and task and not same_task(saved.task, task) then -- one run per task scope: another task starts afresh
+    if state.resumable(saved) then
+      log.info(
+        ("Build: the unfinished %s build is set aside for %s"):format(saved.task and saved.task.id or name, task.id)
+      )
+    end
+    saved = nil
+  end
   if state.resumable(saved) then
     state.run = saved
-    saved.docs = M.doc_sizes(docs)
+    saved.docs = M.doc_sizes(docs, name)
     saved.outcome = saved.phase == "review" and "■ the plan is waiting · ⏎ builds · n replans"
       or ("■ paused at %s · ⏎ continues · n replans"):format(
         saved.phase == "stopped" and (saved.at or "write") or saved.phase
       )
     M.reestimate()
+  elseif vim.tbl_contains(scopes.TASKS, s.name) and not task then
+    return log.info(
+      ("Build: a %s build needs its %s (%s)"):format(
+        s.label,
+        s.name == "feature" and "requirement" or "recipe",
+        scopes.keys(s.name)
+      )
+    )
   else
-    state.new(root, M.doc_sizes(docs))
+    state.new(root, M.doc_sizes(docs, name), name, task)
   end
   view().open()
   if state.run.plan then -- a run with a plan comes back with it on screen (closing Neovim loses nothing)
     M.show_plan()
+  elseif name then
+    view().code_done("plan.md", intro(s, state.run.task), state.run.task and state.run.task.id or s.label, true)
   end
+end
+
+--- The menu's layers: <leader>aSbb (all), aSbt (foundation, STACK.md), aSbs (domain, SPEC.md), aSbd (design, DESIGN.md)
+function M.all()
+  M.open "all"
+end
+function M.foundation()
+  M.open "foundation"
+end
+function M.domain()
+  M.open "domain"
+end
+function M.design()
+  M.open "design"
 end
 
 --- `P`: the plan, in the code pane (what the build writes against), in any phase
@@ -1529,8 +1722,8 @@ function M.show_plan()
   view().code_done("plan.md", M.plan_text(r.plan), "the plan", true)
 end
 
---- The menu's `b` and older callers
-M.run = M.open
+--- Older callers: the whole build
+M.run = M.all
 
 --- <leader>aSB: check again (opens the view of the saved run when there is no live one)
 function M.check_again()
@@ -1538,7 +1731,7 @@ function M.check_again()
   if not (state.run and state.run.root == root) then
     local saved = state.load(root)
     if not saved or not saved.plan then
-      return log.info "Build: no build here yet (<leader>aSb)"
+      return log.info "Build: no build here yet (<leader>aSbb, or a layer: bt bs bd)"
     end
     state.run = saved
   end

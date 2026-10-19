@@ -18,6 +18,7 @@ M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "use", "done" }
 ---@field sent integer?     characters sent
 ---@field api integer?      characters of the API index it carried
 ---@field estimate integer? input tokens estimated before it ran
+---@field existed boolean?  a project file a layer build changes (scope.lua), not one it created
 
 ---@class BuildFeed
 ---@field kind "step"|"in"|"out"|"info"|"fail"
@@ -28,6 +29,9 @@ M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "use", "done" }
 ---@class BuildRun
 ---@field root string
 ---@field name string
+---@field scope string?          what this build covers (scope.lua; nil = the whole project)
+---@field existing string[]?     the project's files a layer build built on (read again from disk on a resume)
+---@field task BuildTask?        the requirement or recipe of a task build (feature, recipe)
 ---@field phase string           one of PHASES, or "stopped"/"failed" (where it ended)
 ---@field outcome string?        the last line: "✓ built · …", "✗ …"
 ---@field tiers { plan: string, files: string, fixes: string, use: string }   "main"|"light" per phase
@@ -74,12 +78,16 @@ end
 
 ---@param root string
 ---@param docs { file: string, chars: integer }[]
+---@param scope string? "all" (default) or a layer (scope.lua)
+---@param task BuildTask? what a task scope builds
 ---@return BuildRun
-function M.new(root, docs)
+function M.new(root, docs, scope, task)
   local settings = (require("core.settings").agent.kit or {}).build or {}
   M.run = {
     root = root,
     name = vim.fs.basename(root),
+    scope = scope and scope ~= "all" and scope or nil,
+    task = task,
     phase = "ready",
     tiers = {
       plan = settings.plan or "main",
@@ -153,10 +161,13 @@ end
 
 -- ── Saved per project ────────────────────────────────────────────────────────
 
+--- Where a project's run is saved: one per scope, so a domain build and the whole build never overwrite each other
 ---@param root string
+---@param scope string? nil/"all" = the whole build (the name it always had)
 ---@return string
-function M.path(root)
-  return vim.fn.stdpath "state" .. "/agent-build/" .. vim.fn.sha256(root):sub(1, 16) .. ".run.json"
+function M.path(root, scope)
+  local suffix = scope and scope ~= "all" and ("." .. scope) or ""
+  return vim.fn.stdpath "state" .. "/agent-build/" .. vim.fn.sha256(root):sub(1, 16) .. suffix .. ".run.json"
 end
 
 --- Saves the run (the feed is kept short: the history has every prompt and answer)
@@ -168,7 +179,7 @@ function M.save()
   local copy = vim.deepcopy(run)
   copy.running = false
   copy.feed = vim.list_slice(copy.feed, math.max(1, #copy.feed - 200))
-  local path = M.path(run.root)
+  local path = M.path(run.root, run.scope)
   vim.fn.mkdir(vim.fs.dirname(path), "p")
   local ok, json = pcall(vim.json.encode, copy)
   if ok then
@@ -182,16 +193,23 @@ end
 
 --- The saved run of a project, if any
 ---@param root string
+---@param scope string?
 ---@return BuildRun?
-function M.load(root)
-  local f = io.open(M.path(root), "r")
+function M.load(root, scope)
+  local f = io.open(M.path(root, scope), "r")
   if not f then
     return nil
   end
   local text = f:read "*a"
   f:close()
   local ok, run = pcall(vim.json.decode, text, { luanil = { object = true, array = true } })
-  if ok and type(run) == "table" and run.root == root and type(run.files) == "table" then
+  if
+    ok
+    and type(run) == "table"
+    and run.root == root
+    and type(run.files) == "table"
+    and (run.scope or "all") == (scope or "all")
+  then
     run.running = false
     return run
   end
@@ -225,12 +243,16 @@ function M.statusline()
   end
   local spin = SPIN[math.floor(vim.uv.hrtime() / 1e8) % #SPIN + 1]
   local done, total = M.progress()
-  local what = (run.phase == "write" and ("build %d/%d"):format(done, total))
-    or (run.phase == "plan" and "build planning")
-    or (run.phase == "check" and "build checking")
-    or (run.phase == "fix" and ("build fixing %d"):format(run.fix_round))
-    or (run.phase == "use" and "build using the app")
-    or ("build " .. run.phase)
+  -- "build FR-8", "build screen-riverpod:Profile", "build domain"
+  local build = run.task and ("build " .. run.task.id:gsub("^.*/", ""))
+    or run.scope and ("build " .. run.scope)
+    or "build"
+  local what = (run.phase == "write" and ("%s %d/%d"):format(build, done, total))
+    or (run.phase == "plan" and (build .. " planning"))
+    or (run.phase == "check" and (build .. " checking"))
+    or (run.phase == "fix" and ("%s fixing %d"):format(build, run.fix_round))
+    or (run.phase == "use" and (build .. " using the app"))
+    or (build .. " " .. run.phase)
   return (" %s %s · $%.3f "):format(spin, what, run.totals.cost)
 end
 

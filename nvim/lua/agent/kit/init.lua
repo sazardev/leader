@@ -95,6 +95,27 @@ function M.link(root)
   return added
 end
 
+--- AGENTS.md gets a "Read first" line for a record the agent keeps (PROGRESS.md, the ADR index), once; true when added
+---@param root string
+---@param file string
+---@param about string
+---@return boolean
+function M.link_file(root, file, about)
+  local path = root .. "/AGENTS.md"
+  local text = require("utils.project").read(path)
+  local new = text and not unsaved(path) and compose.link_file(text, file, about)
+  if not new then
+    return false
+  end
+  local f = io.open(path, "w")
+  if not f then
+    return false
+  end
+  f:write(new)
+  f:close()
+  return true
+end
+
 --- After a document is written: open it, link it from AGENTS.md, say what happened
 ---@param root string
 ---@param file string
@@ -976,6 +997,45 @@ end
 --- <leader>aS/: every preset in one search (use, embed, copy, open): agent/kit/library.lua
 function M.find()
   require("agent.kit.library").open()
+end
+
+-- ── Records ──────────────────────────────────────────────────────────────────
+
+--- <leader>aSP: what the builds recorded (PROGRESS.md, the ADR index and every ADR), with a preview; Enter opens one
+function M.progress()
+  local root = snapshot.root()
+  local items = {}
+  local progress = root .. "/" .. require("agent.kit.progress").FILE
+  if exists(progress) then
+    items[#items + 1] =
+      { label = "PROGRESS.md", desc = "where the work stands: now · done · open · next", path = progress }
+  end
+  local adr = require "agent.kit.adr"
+  if exists(root .. "/" .. adr.INDEX) then
+    items[#items + 1] = { label = "decisions", desc = "the index of every ADR", path = root .. "/" .. adr.INDEX }
+  end
+  local names = vim.tbl_keys(adr.read(root))
+  table.sort(names, function(a, b)
+    return a > b -- newest first
+  end)
+  for _, name in ipairs(names) do
+    local path = root .. "/" .. adr.DIR .. "/" .. name
+    local title = (require("utils.project").read(path) or ""):match "^# ([^\n]+)" or name
+    items[#items + 1] = { label = name:match "^(%d+)" or name, desc = title:gsub("^%d+%.%s*", ""), path = path }
+  end
+  if #items == 0 then
+    return log.info "Setup: no records yet: the first build writes PROGRESS.md and its decisions (<leader>aSb…)"
+  end
+  for _, item in ipairs(items) do
+    item.value = item.path
+  end
+  require("tasks.picker").choose(
+    items,
+    { title = "Records · " .. vim.fn.fnamemodify(root, ":~"), preview = true, width = 12 },
+    function(path)
+      vim.cmd.edit(vim.fn.fnameescape(path))
+    end
+  )
 end
 
 -- ── Overview ─────────────────────────────────────────────────────────────────

@@ -340,7 +340,14 @@ local function left(run)
   if not (V.show_code or V.show_feed) and win_ok(V.wl) then
     inner = math.max(LEFT_W, math.min(100, vim.api.nvim_win_get_width(V.wl) - 4))
   end
-  add(lines, marks, "")
+  -- a layer build says which one ("domain · from SPEC.md"); the whole build keeps the blank line
+  local scope = require("agent.kit.build.scope").title(run.scope, run.task)
+  add(
+    lines,
+    marks,
+    scope ~= "" and ("  " .. scope) or "",
+    scope ~= "" and { { 2, 2 + #scope, "KitBuildTitle" } } or nil
+  )
   local chip_text, chip_hls = chips(run)
   add(lines, marks, chip_text, chip_hls)
   add(lines, marks, "")
@@ -877,7 +884,11 @@ local function close()
   end
   local run = state.run
   if run and run.running then
-    require("utils.log").info "Build: still running · the statusline shows it · <leader>aSb brings the view back"
+    require("utils.log").info(
+      ("Build: still running · the statusline shows it · %s brings the view back"):format(
+        require("agent.kit.build.scope").keys(run.scope)
+      )
+    )
   end
 end
 

@@ -74,6 +74,9 @@ local function bind_global(ctx)
   local ok, wk = pcall(require, "which-key")
   if ok then
     wk.add { { "<leader>" .. ctx.prefix, group = ctx.name, mode = { "n", "x" } } }
+    for key, name in pairs(ctx.groups or {}) do
+      wk.add { { "<leader>" .. ctx.prefix .. key, group = name, mode = { "n", "x" } } }
+    end
   end
 end
 

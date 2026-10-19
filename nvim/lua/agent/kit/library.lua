@@ -14,7 +14,7 @@ local presets = require "agent.kit.presets"
 local M = {}
 
 ---@class KitEntry
----@field kind "stack"|"design"|"stack add-on"|"design add-on"|"principle"
+---@field kind "stack"|"design"|"stack add-on"|"design add-on"|"principle"|"recipe"
 ---@field preset KitPreset
 ---@field category string?   stack/design category id
 ---@field where string       what the list shows next to the name ("backend", "deploy", …)
@@ -43,6 +43,9 @@ function M.entries(dir)
   end
   for _, p in ipairs(presets.list("principles", dir)) do
     out[#out + 1] = { kind = "principle", preset = p, where = p.core and "core" or "" }
+  end
+  for _, r in ipairs(require("agent.kit.recipes").all(dir)) do
+    out[#out + 1] = { kind = "recipe", preset = r, where = r.group }
   end
   return out
 end
@@ -81,6 +84,8 @@ function M.use(e)
     return kit.stack { preset = e.preset, category = e.category }
   elseif e.kind == "design" then
     return kit.design { preset = e.preset, category = e.category }
+  elseif e.kind == "recipe" then -- its values, then its build (<leader>aSr)
+    return require("agent.kit.recipes").start(e.preset --[[@as KitRecipe]])
   end
   local root = require("agent.kit.snapshot").root()
   local file = (e.kind == "design add-on") and "DESIGN.md" or "STACK.md"

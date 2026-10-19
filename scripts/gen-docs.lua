@@ -29,6 +29,7 @@ local PAGES = {
   { "editing", "Undo and clipboard", "docs/cheatsheets/editing.md", "Features" },
   { "tasks", "Project tasks", "docs/cheatsheets/tasks.md", "Features" },
   { "gitignore", ".gitignore", "docs/cheatsheets/gitignore.md", "Features" },
+  { "release", "Release", "docs/cheatsheets/release.md", "Features" },
   { "typescript", "TypeScript / JS", "docs/cheatsheets/typescript.md", "Languages" },
   { "python", "Python", "docs/cheatsheets/python.md", "Languages" },
   { "rust", "Rust", "docs/cheatsheets/rust.md", "Languages" },

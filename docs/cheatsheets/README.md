@@ -15,6 +15,7 @@
 | [editing.md](editing.md) | **Undo, clipboard and yank history** (`<leader>u`): undo word by word, redo keys, undo tree, the file at the previous save, yank list |
 | [gitignore.md](gitignore.md) | **.gitignore** (`<leader>Gi`): what it detects, the topics, how it merges with an existing file |
 | [tasks.md](tasks.md) | **Makefile tasks** (`<leader>R`): the picker, writing targets it can list, the preset Makefiles per language |
+| [release.md](release.md) | **Release kit** (`<leader>GR`): changelog and next version from Conventional Commits, PR description, release checklist |
 | [typescript.md](typescript.md) | TypeScript / JavaScript / TSX |
 | [python.md](python.md) | Python |
 | [rust.md](rust.md) | Rust |

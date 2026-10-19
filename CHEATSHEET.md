@@ -132,7 +132,14 @@ _Where: global_
 
 | Key | Action |
 |---|---|
-| `<leader>aSb` | setup build |
+| `<leader>aSbb` | setup build all |
+| `<leader>aSbt` | setup build foundation |
+| `<leader>aSbs` | setup build domain |
+| `<leader>aSbd` | setup build design |
+| `<leader>aSbf` | setup build feature |
+| `<leader>aSr` | setup recipe |
+| `<leader>aSv` | setup coverage |
+| `<leader>aSP` | setup progress |
 | `<leader>aSB` | setup recheck |
 | `<leader>aS/` | setup find |
 | `<leader>aSo` | setup overview |
@@ -291,6 +298,9 @@ _Where: files inside a git repo_
 | `<leader>Ga` | amend |
 | `<leader>Gv` | review staged |
 | `<leader>Gi` | ignore rules |
+| `<leader>GRc` | release changelog |
+| `<leader>GRp` | release PR description |
+| `<leader>GRl` | release checklist |
 | `<leader>Gt` | status |
 | `<leader>Gb` | blame |
 | `<leader>Gd` | diff |
@@ -614,16 +624,23 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSA` | n | Setup agents template |
 | `<leader>aSB` | n | Setup recheck |
 | `<leader>aSD` | n | Setup design write |
+| `<leader>aSP` | n | Setup progress |
 | `<leader>aST` | n | Setup stack write |
 | `<leader>aSa` | n | Setup agents |
-| `<leader>aSb` | n | Setup build |
+| `<leader>aSbb` | n | Setup build all |
+| `<leader>aSbd` | n | Setup build design |
+| `<leader>aSbf` | n | Setup build feature |
+| `<leader>aSbs` | n | Setup build domain |
+| `<leader>aSbt` | n | Setup build foundation |
 | `<leader>aSc` | n | Setup claude link |
 | `<leader>aSd` | n | Setup design |
 | `<leader>aSk` | n | Setup stack addons |
 | `<leader>aSo` | n | Setup overview |
 | `<leader>aSp` | n | Setup principles |
+| `<leader>aSr` | n | Setup recipe |
 | `<leader>aSs` | n | Setup spec |
 | `<leader>aSt` | n | Setup stack |
+| `<leader>aSv` | n | Setup coverage |
 | `<leader>aSw` | n | Setup screens |
 | `<leader>aTf` | n,x | Test fix |
 | `<leader>aTg` | n | Test gaps |

@@ -1318,12 +1318,17 @@ for _, e in ipairs(all) do
 end
 ok(
   "library: every kind is there",
-  kinds.stack and kinds.design and kinds["stack add-on"] and kinds["design add-on"] and kinds.principle
+  kinds.stack and kinds.design and kinds["stack add-on"] and kinds["design add-on"] and kinds.principle and kinds.recipe
 )
 eq(
   "library: as many as the folders hold",
   #all,
-  #presets.all "stack" + #presets.all "design" + kinds["stack add-on"] + kinds["design add-on"] + #principles
+  #presets.all "stack"
+    + #presets.all "design"
+    + kinds["stack add-on"]
+    + kinds["design add-on"]
+    + #principles
+    + #require("agent.kit.recipes").all()
 )
 local libroot = project("library", {
   ["STACK.md"] = "# STACK.md: x\n\n## Stack\n\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Language | Go | x |\n\n## Rules for agents\n\n- r\n",
@@ -1668,7 +1673,7 @@ eq(
   vim.tbl_map(function(m)
     return m[1]
   end, menu.maps),
-  { "b", "B", "/", "o", "a", "A", "c", "t", "T", "k", "p", "d", "D", "w", "s" }
+  { "bb", "bt", "bs", "bd", "bf", "r", "v", "P", "B", "/", "o", "a", "A", "c", "t", "T", "k", "p", "d", "D", "w", "s" }
 )
 eq("menu: Service lives on aU now", require("menus.agent_service").prefix, "aU")
 

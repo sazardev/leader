@@ -379,9 +379,10 @@ local function head(path, max)
   return table.concat(lines, "\n")
 end
 
+--- The project's files: git's list (tracked and untracked, not ignored) in a repository, else a shallow walk
 ---@param root string
 ---@return string[]
-local function list_files(root)
+function M.list_files(root)
   local res = vim
     .system({ "git", "ls-files", "--cached", "--others", "--exclude-standard" }, { cwd = root, text = true })
     :wait()
@@ -427,6 +428,10 @@ end
 ---@param dir string?
 ---@return string
 function M.root(dir)
+  local build = package.loaded["agent.kit.build.state"]
+  if not dir and build and build.run and vim.api.nvim_buf_get_name(0):match "^build://" then
+    return build.run.root -- in the build tab (or the coverage of it): the project that is being built
+  end
   dir = dir or require("utils.project").file_dir()
   if dir == "" or vim.fn.isdirectory(dir) == 0 then
     dir = vim.fn.getcwd()
@@ -437,7 +442,7 @@ end
 ---@param root string
 ---@return KitFacts
 function M.collect(root)
-  local files = list_files(root)
+  local files = M.list_files(root)
   local has = set(files)
   local manifests = {}
   for _, name in ipairs(M.MANIFESTS) do

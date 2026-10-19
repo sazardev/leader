@@ -537,6 +537,36 @@ end
 
 M.LINKS = "Read first"
 
+--- `rows` added at the end of AGENTS.md's "Read first" (the section made after the title when there is none)
+---@param lines string[]
+---@param rows string[]
+---@return string
+local function insert_links(lines, rows)
+  local first, last = section(lines, M.LINKS)
+  if not first then
+    local at = #lines + 1 -- after the title and its first paragraph
+    for i = 2, #lines do
+      if lines[i]:match "^##%s" then
+        at = i
+        break
+      end
+    end
+    local block = vim.list_extend({ "## " .. M.LINKS, "" }, rows)
+    block[#block + 1] = ""
+    for k = #block, 1, -1 do
+      table.insert(lines, at, block[k])
+    end
+    return join(lines)
+  end
+  while last > first and lines[last] == "" do
+    last = last - 1
+  end
+  for k = #rows, 1, -1 do
+    table.insert(lines, last + 1, rows[k])
+  end
+  return join(lines)
+end
+
 --- AGENTS.md with a line in "Read first" for each document that is there and is not linked yet. Returns the text and the
 --- files it added (empty: nothing to change).
 ---@param text string
@@ -554,29 +584,19 @@ function M.link_docs(text, present)
   if #added == 0 then
     return join(lines), added
   end
-  local first, last = section(lines, M.LINKS)
-  if not first then
-    local at = #lines + 1 -- after the title and its first paragraph
-    for i = 2, #lines do
-      if lines[i]:match "^##%s" then
-        at = i
-        break
-      end
-    end
-    local block = vim.list_extend({ "## " .. M.LINKS, "" }, rows)
-    block[#block + 1] = ""
-    for k = #block, 1, -1 do
-      table.insert(lines, at, block[k])
-    end
-    return join(lines), added
+  return insert_links(lines, rows), added
+end
+
+--- AGENTS.md with a "Read first" line for one more file (PROGRESS.md, docs/adr/README.md): nil when it is linked already
+---@param text string
+---@param file string
+---@param about string
+---@return string?
+function M.link_file(text, file, about)
+  if text:find(file, 1, true) then
+    return nil
   end
-  while last > first and lines[last] == "" do
-    last = last - 1
-  end
-  for k = #rows, 1, -1 do
-    table.insert(lines, last + 1, rows[k])
-  end
-  return join(lines), added
+  return insert_links(lines_of(text), { ("- [%s](%s): %s."):format(file, file, about) })
 end
 
 --- The design preset a description names ("like Linear but warmer" → Linear): the longest name found, as a whole word
