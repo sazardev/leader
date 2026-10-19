@@ -123,8 +123,9 @@ eq(
 )
 require("core.settings").agent.claude.prompt_cache = false
 
--- opencode parser + build
+-- opencode parser + build (the CLI line decides the shape: the tests force the old one, then the 2.x one)
 local oc = require "agent.backends.opencode"
+oc.set_major(1)
 local q = oc.parser()
 local e1 =
   q.feed '{"type":"step_start","part":{"type":"step-start"}}\n{"type":"text","part":{"id":"p1","type":"text","text":"Hel"}}\n'
@@ -157,6 +158,42 @@ eq("opencode: argv", {
   ospec.cmd[#ospec.cmd - 1],
 }, { "nvim-explain", "high", "PROMPT", "--" })
 
+-- opencode 2.x: `agents`/`system`/`permissions`, the variant rides in `-m` and `run --standalone` brings the env
+oc.set_major(2)
+local o2 = oc.build { system = "SYS", prompt = "PROMPT", model = "opencode-go/x", action = "explain", effort = "high" }
+local cfg2 = vim.json.decode(o2.env.OPENCODE_CONFIG_CONTENT)
+eq(
+  "opencode v2: ephemeral agent (system + deny-all permissions, no tools)",
+  { cfg2.agents["nvim-explain"].system, cfg2.agents["nvim-explain"].permissions, cfg2.agent },
+  { "SYS", { { action = "*", resource = "*", effect = "deny" } }, nil }
+)
+eq("opencode v2: argv (variant in the model, --standalone, no --pure)", {
+  o2.cmd[1],
+  o2.cmd[2],
+  o2.cmd[vim.fn.index(o2.cmd, "-m") + 2],
+  o2.cmd[vim.fn.index(o2.cmd, "--agent") + 2],
+  vim.fn.index(o2.cmd, "--standalone") > 0,
+  vim.fn.index(o2.cmd, "--pure"),
+  o2.cmd[#o2.cmd - 1],
+  o2.cmd[#o2.cmd],
+}, { "opencode", "run", "opencode-go/x#high", "nvim-explain", true, -1, "--", "PROMPT" })
+do -- attach swaps `--standalone` for `--server` and the agent comes from the message
+  local own = require("core.settings").agent.opencode
+  own.attach = "http://localhost:4096"
+  local oa = oc.build { system = "S", prompt = "P", model = "opencode-go/x", action = "ask" }
+  eq("opencode v2: attach uses --server and the plan agent", {
+    oa.cmd[vim.fn.index(oa.cmd, "--server") + 2],
+    oa.cmd[vim.fn.index(oa.cmd, "--agent") + 2],
+    vim.fn.index(oa.cmd, "--standalone"),
+    oa.cmd[#oa.cmd]:find("P", 1, true) ~= nil,
+  }, { "http://localhost:4096", "plan", -1, true })
+  own.attach = nil
+end
+local qe2 = oc.parser()
+qe2.feed '{"type":"error","error":{"type":"unknown","message":"Agent not found: \\"nvim-x\\""}}\n'
+eq("opencode v2: error events carry `message` directly", qe2.finish(1, "").err, 'Agent not found: "nvim-x"')
+oc.set_major(1)
+
 -- opencode: the global MCP servers are turned off (their schemas were ~20k input tokens); JSONC tolerated
 do
   local xdg = vim.fn.tempname()
@@ -176,6 +213,14 @@ do
   vim.env.XDG_CONFIG_HOME = xdg
   local mcp = oc.config().mcp
   eq("opencode: global MCP servers disabled", { mcp.chrome, mcp.dart }, { { enabled = false }, { enabled = false } })
+  oc.set_major(2)
+  local mcp2 = oc.config().mcp.servers
+  eq(
+    "opencode v2: the servers are re-declared disabled (full entry, legacy `enabled` dropped)",
+    { mcp2.chrome.disabled, mcp2.chrome.type, mcp2.chrome.command[1], mcp2.chrome.enabled == nil, mcp2.dart.disabled },
+    { true, "local", "x", true, true }
+  )
+  oc.set_major(1)
   local own = require("core.settings").agent.opencode
   own.mcp = true
   eq("opencode: mcp = true leaves them alone", oc.config(), nil)

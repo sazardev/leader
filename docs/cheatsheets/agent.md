@@ -154,13 +154,19 @@ first available one in `agent.order` is used.
   ~20k input tokens and ~2 s per action. With `agent.opencode.serve` (default) a **private `opencode serve`** (free loopback
   port, random password, no MCP, stopped on exit, off in light mode) boots in the background and actions talk to its HTTP
   API with curl on a session created ahead: ~2 s per action instead of ~8 s. The first action (while it boots) is cold.
-  Models matching `agent.opencode.no_thinking` (default `deepseek`, `haiku`, `minimax-m3`) run with thinking off: deepseek-v4.1-flash spent 300-1400
+  **The CLI line is detected** (`opencode --version`): 2.x changes the inline schema (`agents`/`system`/`permissions`), takes
+  the variant in `-m provider/model#level`, needs `run --standalone` (without it the background service, which never sees
+  `OPENCODE_CONFIG_CONTENT`, answers and the requested agent is "not found") and has no `--pure` equivalent. Its warm path is
+  off until `opencode serve`'s **v2 HTTP API** is driven, so every action pays the private-server boot (~3 s measured on 2.0.31)
+  and the run's JSON stream carries no usage events in our tests (the report shows tokens as —).
+  In 1.x, models matching `agent.opencode.no_thinking` (default `deepseek`, `haiku`, `minimax-m3`) run with thinking off: deepseek-v4.1-flash spent 300-1400
   reasoning tokens (4-15 s) on small functions; it costs some quality, `{}` turns it back on. It is per model because glm/cat-jam reject the parameter.
+  (2.x has no such option: reasoning is chosen with the model's variants, `effort` in `<leader>am`.)
   The shortlist (deepseek-v4.1-flash, minimax-m3, claude-haiku-5-5, glm-5.3-flash, gpt-6-luna) was picked by benchmarking all opencode-go
   models on four graded tasks (two `implement` checked with `go test`, a `review` with a seeded bug, a `review` of clean code that must
   answer `OK`): 4/4, 1.4-3 s warm, ~$0.0002 per action. Haiku keeps requests 30 days; Gemini and Muse Spark train on prompts (left out).
   DeepSeek costs double at Peak (01-04 and 06-10 UTC, Mon-Fri). Only one run per task, so differences under ~0.5 s are noise.
-  `agent.opencode.attach` points at a server of your own instead, but `opencode run --attach` printed no text in v1.19.
+  `agent.opencode.attach` points at a server of your own instead (`--server` on 2.x), but `opencode run --attach` printed no text in v1.19.
   `agent.opencode.agent` uses an agent of your own. If opencode does not find the requested agent it warns and falls back to the default one, which
   DOES have tools: here that is treated as an error.
 - Each opencode session stays in its list: titled `nvim <action>` in the cold path, `nvim agent` on the private server.

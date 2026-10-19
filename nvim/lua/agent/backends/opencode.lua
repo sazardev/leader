@@ -6,6 +6,9 @@
 -- a private one is managed and spoken to over HTTP (opencode_server.lua: ~1.5 s per action instead of ~8 s). Your global MCP servers are turned off for these runs
 -- (`settings.mcp = true` keeps them): their tool schemas were ~20k input tokens and ~2 s per action.
 -- Runs in the neutral directory (agent/sandbox) so the repo's AGENTS.md is not loaded.
+-- The 2.x CLI changed the shape: `agents`/`system`/`permissions` in the inline config, `run --standalone` (the
+-- background service never sees OPENCODE_CONFIG_CONTENT) and no `--pure`/`--variant`/`--attach`. `v2()` picks it;
+-- the warm server stays v1-only until its v2 HTTP API is driven (2.x pays the private-server boot per action).
 local settings = require("core.settings").agent.opencode
 local ndjson = require "agent.backends.ndjson"
 local sandbox = require "agent.sandbox"
@@ -35,6 +38,31 @@ local TOOLS = {
   skill = false,
 } -- stylua: ignore
 local PERMISSIONS = { edit = "deny", bash = "deny", webfetch = "deny" }
+
+-- opencode 2.x rewrote the CLI: `--pure`, `--variant` and `--attach` are gone, the inline agent uses
+-- `agents`/`system`/`permissions` and `run` only reads OPENCODE_CONFIG_CONTENT with `--standalone` (without it the
+-- background service, which never saw the env, answers and the agent is "not found"). Both lines are supported.
+local DENY_ALL = { { action = "*", resource = "*", effect = "deny" } } -- stylua: ignore
+
+local major -- nil until probed (the tests force it with M.set_major)
+---@return boolean
+local function v2()
+  if major == nil then
+    major = 0
+    local out = vim.fn.system { "opencode", "--version" }
+    local n = type(out) == "string" and out:match "(%d+)%." or nil
+    if n then
+      major = tonumber(n) or 0
+    end
+  end
+  return major >= 2
+end
+
+--- Forced by the tests; nil = probe `opencode --version`
+---@param n integer?
+function M.set_major(n)
+  major = n
+end
 
 ---@return boolean
 function M.available()
@@ -68,10 +96,12 @@ function M.models(cb)
   end)
 end
 
---- Names of the MCP servers in the user's global opencode config. Inline config merges over it, so
---- turning them off needs their names. Tolerant of JSONC (comments, trailing commas); `{}` if unreadable.
----@return string[]
-local function global_mcp_names()
+--- MCP servers of the user's global opencode config: name → definition. The inline config merges over it, so
+--- turning them off needs each definition: 2.x ignores the legacy `{enabled = false}` ("omitted enabled-only
+--- legacy MCP entry") and discards a bare `{disabled = true}` ("malformed"): re-declare the server disabled.
+--- Tolerant of JSONC (comments, trailing commas); `{}` if unreadable.
+---@return table<string, table>
+local function global_mcp_servers()
   local dir = (vim.env.XDG_CONFIG_HOME or vim.fn.expand "~/.config") .. "/opencode"
   for _, file in ipairs { "opencode.jsonc", "opencode.json" } do
     local f = io.open(dir .. "/" .. file, "r")
@@ -82,7 +112,18 @@ local function global_mcp_names()
       raw = raw:gsub("/%*.-%*/", ""):gsub("%s//[^\n]*", ""):gsub("^//[^\n]*", ""):gsub(",(%s*[}%]])", "%1")
       local ok, cfg = pcall(vim.json.decode, raw)
       if ok and type(cfg) == "table" and type(cfg.mcp) == "table" then
-        return vim.tbl_keys(cfg.mcp)
+        local out = {}
+        for name, def in pairs(type(cfg.mcp.servers) == "table" and cfg.mcp.servers or {}) do
+          if type(def) == "table" then
+            out[name] = def
+          end
+        end
+        for name, def in pairs(cfg.mcp) do
+          if name ~= "servers" and name ~= "timeout" and type(def) == "table" then
+            out[name] = def
+          end
+        end
+        return out
       end
     end
   end
@@ -93,14 +134,30 @@ end
 ---@param agents table?
 ---@return table?
 function M.config(agents)
-  local cfg = { agent = agents }
+  local cfg = v2() and { agents = agents } or { agent = agents }
   if not settings.mcp then
+    local servers = global_mcp_servers()
     local mcp = {}
-    for _, name in ipairs(global_mcp_names()) do
-      mcp[name] = { enabled = false }
-    end
-    if next(mcp) then
-      cfg.mcp = mcp
+    if v2() then
+      for name, def in pairs(servers) do
+        -- a bare legacy {enabled = ...} has nothing to re-declare: v2 would skip it as malformed
+        if type(def.type) == "string" then
+          local off = vim.deepcopy(def)
+          off.enabled = nil
+          off.disabled = true
+          mcp[name] = off
+        end
+      end
+      if next(mcp) then
+        cfg.mcp = { servers = mcp }
+      end
+    else
+      for name in pairs(servers) do
+        mcp[name] = { enabled = false }
+      end
+      if next(mcp) then
+        cfg.mcp = mcp
+      end
     end
   end
   return next(cfg) and cfg or nil
@@ -136,9 +193,10 @@ local function server_config()
   }
 end
 
---- Starts the private server in the background (no-op if it is running, disabled or light mode)
+--- Starts the private server in the background (no-op if it is running, disabled or light mode; v2 runs cold:
+--- its `serve` speaks the v2 API, which opencode_server.lua does not drive yet)
 function M.warm()
-  if server.enabled(settings) and M.available() then
+  if not v2() and server.enabled(settings) and M.available() then
     server.start(server_config())
   end
 end
@@ -152,7 +210,8 @@ function M.build(req)
 
   M.warm()
   local provider, model = req.model:match "^([^/]+)/(.+)$"
-  local warm = not own_agent
+  local warm = not v2()
+    and not own_agent
     and provider
     and server.post {
       agent = thinking_off(req.model) and server.AGENT_FAST or server.AGENT,
@@ -171,38 +230,53 @@ function M.build(req)
     local cfg = not settings.attach and M.config()
     env = cfg and { OPENCODE_CONFIG_CONTENT = vim.json.encode(cfg) } or nil
   else
-    env = {
-      OPENCODE_CONFIG_CONTENT = vim.json.encode(M.config {
-        [agent] = {
+    -- the action travels as an ephemeral agent: v1 uses `agent`/`prompt`/`tools`/`permission` per tool, v2
+    -- `agents`/`system` and one deny-everything permissions rule (tools are gone from the schema)
+    local own = v2()
+        and {
           description = "Inline nvim agent (" .. req.action .. ")",
           mode = "primary",
-          prompt = req.system,
-          tools = TOOLS,
-          permission = PERMISSIONS,
-          options = thinking_off(req.model) and NO_THINKING or nil,
-        },
-      }),
-    }
+          system = req.system,
+          permissions = DENY_ALL,
+        }
+      or {
+        description = "Inline nvim agent (" .. req.action .. ")",
+        mode = "primary",
+        prompt = req.system,
+        tools = TOOLS,
+        permission = PERMISSIONS,
+        options = thinking_off(req.model) and NO_THINKING or nil,
+      }
+    env = { OPENCODE_CONFIG_CONTENT = vim.json.encode(M.config { [agent] = own }) }
   end
 
-  local cmd = {
-    "opencode",
-    "run",
-    "--pure",
-    "--format",
-    "json",
-    "--title",
-    "nvim " .. req.action,
-    "-m",
-    req.model,
-    "--agent",
-    agent,
-  }
-  if settings.attach then
-    vim.list_extend(cmd, { "--attach", settings.attach })
-  end
-  if req.effort then
-    vim.list_extend(cmd, { "--variant", req.effort })
+  local cmd
+  if v2() then
+    -- `#variant` replaces v1's `--variant`; `--server` replaces `--attach`; `--standalone` is what makes the
+    -- inline config (env) reach the process instead of the already-running background service
+    local mdl = req.effort and (req.model .. "#" .. req.effort) or req.model
+    cmd = { "opencode", "run", "--format", "json", "--title", "nvim " .. req.action, "-m", mdl, "--agent", agent }
+    vim.list_extend(cmd, settings.attach and { "--server", settings.attach } or { "--standalone" })
+  else
+    cmd = {
+      "opencode",
+      "run",
+      "--pure",
+      "--format",
+      "json",
+      "--title",
+      "nvim " .. req.action,
+      "-m",
+      req.model,
+      "--agent",
+      agent,
+    }
+    if settings.attach then
+      vim.list_extend(cmd, { "--attach", settings.attach })
+    end
+    if req.effort then
+      vim.list_extend(cmd, { "--variant", req.effort })
+    end
   end
   vim.list_extend(cmd, { "--", prompt })
   return { cmd = cmd, env = env, cwd = sandbox.dir() }
@@ -265,7 +339,8 @@ function M.parser()
       add_usage(part.tokens, part.cost)
     elseif ev.type == "error" then
       local e = ev.error or {}
-      err = (e.data and e.data.message) or e.name or "OpenCode error"
+      -- v1: {name, data.message}; v2: {type, message}
+      err = (e.data and e.data.message) or e.message or e.name or "OpenCode error"
     end
   end)
 
