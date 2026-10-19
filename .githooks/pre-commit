@@ -2,7 +2,7 @@
 # Keeps the generated documentation up to date and adds it to the commit:
 #   · CHEATSHEET.md, from the real keymaps, when the commit touches the nvim config;
 #   · docs/docs/index.html (the web documentation), from the Markdown being committed (README.md, CHEATSHEET.md,
-#     AGENTS.md, docs/cheatsheets/), read from the index so unstaged work never reaches the page.
+#     CHANGELOG.md, AGENTS.md, docs/cheatsheets/), read from the index so unstaged work never reaches the page.
 # Never blocks the commit: if nvim or the plugins are missing, it only warns.
 # Enable once per clone: git config core.hooksPath .githooks
 ROOT="$(git rev-parse --show-toplevel)"
@@ -17,7 +17,7 @@ if printf '%s\n' "$staged" | grep -q '^nvim/'; then
 fi
 
 # after the cheatsheet: it is one of the pages
-if git diff --cached --name-only | grep -qE '^(nvim/|README\.md|CHEATSHEET\.md|AGENTS\.md|docs/cheatsheets/|scripts/gen-docs\.lua)'; then
+if git diff --cached --name-only | grep -qE '^(nvim/|README\.md|CHEATSHEET\.md|CHANGELOG\.md|AGENTS\.md|docs/cheatsheets/|scripts/gen-docs\.lua)'; then
   if "$ROOT/scripts/gen-docs.sh" >/dev/null; then
     git add "$ROOT/docs/docs/index.html"
   else

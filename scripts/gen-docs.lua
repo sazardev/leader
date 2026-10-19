@@ -1,6 +1,6 @@
 -- ── docs/docs/index.html from the repository's Markdown ──────────────────────
 -- The web documentation (the landing page's /docs/) is GENERATED: README.md, CHEATSHEET.md (itself generated from the
--- real keymaps), every guide in docs/cheatsheets/ and AGENTS.md, rendered into one static page with the landing's flat
+-- real keymaps), CHANGELOG.md, every guide in docs/cheatsheets/ and AGENTS.md, rendered into one static page with the landing's flat
 -- look (same palette and fonts, no external requests, no build step to view it). Never edit the HTML: edit the Markdown.
 --
 --   nvim -u NONE -l scripts/gen-docs.lua            write docs/docs/index.html
@@ -23,6 +23,7 @@ local PAGES = {
   { "overview", "Overview", "README.md", "Start" },
   { "guides", "Workflows", "docs/cheatsheets/README.md", "Start" },
   { "keys", "Every key", "CHEATSHEET.md", "Start" },
+  { "changelog", "Changelog", "CHANGELOG.md", "Start" },
   { "agent", "AI agent", "docs/cheatsheets/agent.md", "Features" },
   { "go", "Go", "docs/cheatsheets/go.md", "Features" },
   { "dart-flutter", "Dart / Flutter", "docs/cheatsheets/dart-flutter.md", "Features" },
