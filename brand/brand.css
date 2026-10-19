@@ -1,0 +1,111 @@
+/* The brand kit's layer on top of the landing's stylesheet (brand.js injects it from docs/index.html first, so the palette,
+   Geist and the flat rules are the site's own). Everything here is prefixed `b-` because the landing already owns names like
+   .row, .tile and .sub. Sizes come from --u (1% of the canvas's short side); positions are set in px by brand.js. */
+html,body{margin:0;background:transparent;overflow:hidden}
+body{display:block}
+
+/* ── the canvas and its color schemes (each is one of the landing's panels) ───────────────────── */
+.b-cv{position:relative;overflow:hidden;background:var(--bgc);color:var(--fgc);font:400 calc(var(--u)*3)/1.4 Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.b-cv *{box-sizing:border-box}
+.b-cv.transparent{background:transparent}
+.b-s-bg{--bgc:var(--bg);--fgc:var(--fg);--dimc:var(--dim);--acc:var(--green);--chip:var(--soft);--chipf:var(--fg);--tile:var(--deep);--tilef:var(--fg);--hot:var(--green);--hotf:var(--on)}
+.b-s-deep{--bgc:var(--deep);--fgc:var(--fg);--dimc:var(--dim);--acc:var(--green);--chip:var(--soft);--chipf:var(--fg);--tile:var(--soft);--tilef:var(--fg);--hot:var(--green);--hotf:var(--on)}
+.b-s-yellow,.b-s-aqua,.b-s-green{--fgc:var(--on);--dimc:color-mix(in srgb,var(--on) 62%,transparent);--acc:color-mix(in srgb,var(--on) 58%,transparent);--chip:var(--on);--chipf:var(--fg);--tile:var(--on);--tilef:var(--fg);--hot:var(--fg);--hotf:var(--on)}
+.b-s-bg,.b-s-deep{--lit:var(--green);--unlit:color-mix(in srgb,var(--fg) 20%,transparent)}
+.b-s-yellow,.b-s-aqua,.b-s-green{--lit:var(--on);--unlit:color-mix(in srgb,var(--on) 22%,transparent)}
+.b-s-yellow{--bgc:var(--yellow)} .b-s-aqua{--bgc:var(--aqua)} .b-s-green{--bgc:var(--green)}
+
+/* ── type: the landing's voice ─────────────────────────────────────────────────────────────────── */
+.b-abs{position:absolute}
+.b-eb{font:500 calc(var(--u)*1.8) "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--dimc);white-space:nowrap}
+.b-hl{margin:0;font-weight:600;letter-spacing:-.055em;line-height:.94}
+.b-hl .b-ln{display:block;padding-bottom:.08em;margin-bottom:-.08em}
+.b-hl .b-ln>span{display:inline-block;white-space:nowrap}
+.b-hl .b-ln.ac{color:var(--acc)}
+.b-sub{margin:0;color:var(--dimc);letter-spacing:-.02em;line-height:1.35}
+.b-sub b{color:var(--fgc);font-weight:500}
+.b-mono{font-family:"Geist Mono",monospace;letter-spacing:.06em;color:var(--dimc)}
+.b-col{position:absolute;display:flex;flex-direction:column;align-items:flex-start;overflow:visible}
+
+/* ── brand row: the mark + the name, with the handle on the right ──────────────────────────────── */
+.b-brand{position:absolute;display:flex;align-items:center;justify-content:space-between;color:var(--fgc)}
+.b-logo{display:flex;align-items:center;gap:calc(var(--u)*1.6)}
+.b-logo b{font-weight:600;letter-spacing:-.03em;line-height:1}
+.b-logo svg{display:block}
+
+/* ── dots: the signature texture ───────────────────────────────────────────────────────────────── */
+.b-ghost{position:absolute;color:var(--fgc);pointer-events:none}
+.b-ghost svg{display:block}
+.b-field{position:absolute;inset:0;pointer-events:none;color:var(--fgc);opacity:.16;
+  background-image:radial-gradient(circle,currentColor 0 var(--dr,1.6px),transparent calc(var(--dr,1.6px) + .6px));background-size:var(--dp,24px) var(--dp,24px);
+  -webkit-mask-image:var(--mask,none);mask-image:var(--mask,none)}
+
+/* ── keycaps (flat chips, like the landing's) ──────────────────────────────────────────────────── */
+.b-kb{display:flex;gap:calc(var(--u)*.7)}
+.b-kb span{font:600 calc(var(--u)*2.6)/1 "Geist Mono",monospace;background:var(--chip);color:var(--chipf);padding:calc(var(--u)*1.5) calc(var(--u)*2);min-width:2.5em;text-align:center}
+
+/* ── screenshots: the real editor, flat, square ───────────────────────────────────────────────── */
+.b-shot{position:absolute;overflow:hidden;background:var(--deep)}
+.b-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:0 0}
+.b-shot .b-chip{position:absolute;left:0;bottom:0;background:var(--soft);color:var(--fg);padding:calc(var(--u)*.7) calc(var(--u)*1.5);font:500 calc(var(--u)*1.6) "Geist Mono",monospace;letter-spacing:.04em;white-space:nowrap}
+
+/* ── tiles (Press Space) ───────────────────────────────────────────────────────────────────────── */
+.b-tile{background:var(--tile);color:var(--tilef);padding:calc(var(--u)*2.2) calc(var(--u)*2.6);display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:0}
+.b-tile.hot{background:var(--hot);color:var(--hotf)}
+.b-tile b{font:600 1em/.9 "Geist Mono",monospace;letter-spacing:-.06em}
+.b-tile span{font-size:calc(var(--u)*2.3);opacity:.68;letter-spacing:-.01em}
+
+/* ── rows (Decided for you) ────────────────────────────────────────────────────────────────────── */
+.b-rows{position:absolute;display:grid;gap:calc(var(--u)*1)}
+.b-row{padding:calc(var(--u)*2.4) calc(var(--u)*3);min-width:0}
+.b-row.hot{background:var(--hot);color:var(--hotf)}
+.b-row h3{margin:0;font-weight:600;letter-spacing:-.05em;line-height:1}
+.b-row p{margin:calc(var(--u)*1.2) 0 0;color:var(--dimc);letter-spacing:-.01em;line-height:1.3}
+.b-row.hot p{color:color-mix(in srgb,var(--hotf) 72%,transparent)}
+
+/* ── install command ───────────────────────────────────────────────────────────────────────────── */
+.b-cmd{display:flex;align-items:stretch;background:var(--on);color:var(--fg);width:100%}
+.b-s-bg .b-cmd,.b-s-deep .b-cmd{background:var(--soft)}
+.b-cmd code{flex:1;min-width:0;padding:calc(var(--u)*2.4) calc(var(--u)*3);font-family:"Geist Mono",monospace;overflow-wrap:break-word;line-height:1.5}
+.b-cmd code i{font-style:normal;color:var(--green)}
+.b-cmd .b-btn{display:flex;align-items:center;padding:0 calc(var(--u)*3.4);background:var(--green);color:var(--on);font-weight:600}
+.b-s-green .b-cmd .b-btn{background:var(--fg);color:var(--on)}
+.b-fine{margin:calc(var(--u)*2.6) 0 0;color:var(--dimc)}
+.b-fine code{font:.92em "Geist Mono",monospace;background:color-mix(in srgb,var(--fgc) 12%,transparent);padding:.12em .5em}
+
+/* ── carousel footer: where you are, and a swipe cue ───────────────────────────────────────────── */
+.b-pg{position:absolute;display:flex;align-items:center;justify-content:space-between;color:var(--fgc)}
+.b-pg .b-dots{display:flex;gap:calc(var(--u)*1.2)}
+.b-pg .b-dots i{display:block;width:calc(var(--u)*1.5);height:calc(var(--u)*1.5);border-radius:50%;background:currentColor;opacity:.22}
+.b-pg .b-dots i.on{opacity:1;background:var(--acc)}
+.b-s-yellow .b-pg .b-dots i.on,.b-s-aqua .b-pg .b-dots i.on,.b-s-green .b-pg .b-dots i.on{background:var(--fgc)}
+
+/* ── brand board ───────────────────────────────────────────────────────────────────────────────── */
+.b-sw{position:absolute;display:flex;flex-direction:column;justify-content:flex-end;padding:calc(var(--u)*1.3) calc(var(--u)*1.6);font:500 calc(var(--u)*1.5) "Geist Mono",monospace;letter-spacing:.04em}
+.b-note{margin:0;color:var(--dimc);letter-spacing:-.01em;line-height:1.4}
+
+/* ── contact sheets ────────────────────────────────────────────────────────────────────────────── */
+.b-sheet{background:#161616;color:#ebdbb2;padding:48px;font:14px "Geist Mono",monospace;width:1920px}
+.b-sheet h1{font:600 44px Geist,sans-serif;letter-spacing:-.04em;margin:0 0 6px;color:#ebdbb2}
+.b-sheet p{margin:0 0 28px;color:#a89984;font:15px Geist,sans-serif;max-width:980px}
+.b-sheet .g{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end}
+.b-sheet figure{margin:0}
+.b-sheet figure img{display:block;background:repeating-conic-gradient(#222 0 25%,#262626 0 50%) 0 0/16px 16px}
+.b-sheet figcaption{margin-top:6px;color:#a89984;font-size:12px;letter-spacing:.04em}
+
+/* wallpapers */
+.b-wp{position:absolute;inset:0;display:block}
+.b-wp>svg{display:block;position:absolute;inset:0}
+.b-wp svg{display:block}
+.b-keytile{position:absolute;background:var(--tile);color:var(--tilef);display:flex;flex-direction:column;justify-content:space-between;padding:calc(var(--u)*2.2) calc(var(--u)*2.6)}
+.b-keytile.hot{background:var(--hot);color:var(--hotf)}
+.b-keytile b{font:600 1em/.9 "Geist Mono",monospace;letter-spacing:-.06em}
+.b-keytile span{font:500 calc(var(--u)*1.7) "Geist Mono",monospace;letter-spacing:.06em;opacity:.65;text-transform:uppercase}
+
+.b-hl-mono{font-family:"Geist Mono",monospace!important;font-weight:600;letter-spacing:-.05em}
+.b-code{position:absolute;display:flex;gap:1.6em;background:var(--deep);color:var(--fg);font-family:"Geist Mono",monospace;line-height:1.7;overflow:hidden;box-sizing:border-box}
+.b-code pre{margin:0;font:inherit;white-space:pre;tab-size:4}
+.b-code .b-ln-no{color:var(--faint);text-align:right;user-select:none}
+.b-s-deep .b-code{background:var(--soft)}
+.b-kc{display:inline-flex;align-items:center;justify-content:center;min-width:1.7em;padding:.18em .42em;background:var(--chip);color:var(--chipf);font:600 1em/1 "Geist Mono",monospace;flex:none}
+.b-kl{color:var(--fgc);font-weight:500;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
