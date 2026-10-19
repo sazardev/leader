@@ -34,6 +34,8 @@ local PAGES = {
   { "typescript", "TypeScript / JS", "docs/cheatsheets/typescript.md", "Languages" },
   { "python", "Python", "docs/cheatsheets/python.md", "Languages" },
   { "rust", "Rust", "docs/cheatsheets/rust.md", "Languages" },
+  { "sql", "SQL", "docs/cheatsheets/sql.md", "Languages" },
+  { "swift", "Swift", "docs/cheatsheets/swift.md", "Languages" },
   { "java-kotlin", "Java / Kotlin", "docs/cheatsheets/java-kotlin.md", "Languages" },
   { "lua", "Lua", "docs/cheatsheets/lua.md", "Languages" },
   { "markdown", "Markdown", "docs/cheatsheets/markdown.md", "Languages" },

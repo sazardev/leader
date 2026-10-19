@@ -1,0 +1,3 @@
+# The Python the project runs on (uv, pyenv and setup-python read it)
+# target: .python-version
+{{python}}

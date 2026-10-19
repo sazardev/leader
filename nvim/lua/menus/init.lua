@@ -51,7 +51,8 @@ local function bind(buf, ctx)
   vim.b[buf].menu_contexts = seen
 
   for _, m in ipairs(ctx.maps) do
-    vim.keymap.set("n", "<leader>" .. ctx.prefix .. m[1], m[3], { buffer = buf, desc = M.desc(ctx, m[2]) })
+    -- optional 4th element: mapping modes (normal only by default; SQL runs a visual selection)
+    vim.keymap.set(m[4] or "n", "<leader>" .. ctx.prefix .. m[1], m[3], { buffer = buf, desc = M.desc(ctx, m[2]) })
   end
   -- group name in which-key, only for this buffer
   local ok, wk = pcall(require, "which-key")

@@ -1,0 +1,5 @@
+# clippy: thresholds for its complexity lints (the lints to deny go in Cargo.toml's [lints.clippy])
+# target: clippy.toml
+cognitive-complexity-threshold = 20
+too-many-arguments-threshold = 6
+type-complexity-threshold = 250

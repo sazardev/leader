@@ -6,6 +6,7 @@ return {
   event = "BufWritePre",
   opts = {
     formatters_by_ft = require("languages").formatters(),
+    formatters = require("languages").formatter_options(), -- per-formatter options the languages declare
     -- a function, so <leader>Sf (settings panel) can turn it off and on without a restart
     format_on_save = function()
       if save.enabled then

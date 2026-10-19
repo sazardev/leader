@@ -16,9 +16,11 @@
 | [gitignore.md](gitignore.md) | **.gitignore** (`<leader>Gi`): what it detects, the topics, how it merges with an existing file |
 | [tasks.md](tasks.md) | **Makefile tasks** (`<leader>R`): the picker, writing targets it can list, the preset Makefiles per language |
 | [release.md](release.md) | **Release kit** (`<leader>GR`): changelog and next version from Conventional Commits, PR description, release checklist |
-| [typescript.md](typescript.md) | TypeScript / JavaScript / TSX |
-| [python.md](python.md) | Python |
-| [rust.md](rust.md) | Rust |
+| [typescript.md](typescript.md) | **TypeScript / JavaScript** (`<leader>t`): scripts, typecheck to quickfix, tests in the editor (vitest, jest, bun), biome or prettier, setup |
+| [python.md](python.md) | **Python** (`<leader>p`): basedpyright + ruff, uv, tests in the editor (pytest), debugpy, setup |
+| [rust.md](rust.md) | **Rust** (`<leader>r`): rust-analyzer with clippy, cargo, tests in the editor, macros, codelldb, setup |
+| [sql.md](sql.md) | **SQL** (`<leader>Q`): run the statement under the cursor against PostgreSQL or SQLite, explain, schema |
+| [swift.md](swift.md) | **Swift** (`<leader>i`): SwiftPM, sourcekit-lsp, tests in the editor (XCTest, Swift Testing), setup |
 | [dart-flutter.md](dart-flutter.md) | **Dart / Flutter** (`<leader>d`): run and debug, tests inside the editor, build_runner, completion for Riverpod/freezed, pub |
 | [java-kotlin.md](java-kotlin.md) | Java and Kotlin (Gradle / Maven) |
 | [lua.md](lua.md) | Lua (the config itself) |
@@ -28,7 +30,7 @@
 
 ## How the leader works
 
-Each language has **its own letter** under `<leader>` and **only exists in buffers of that filetype**;
+Each language has **its own letter** under `<leader>` (g Go, d Dart, t TypeScript, p Python, r Rust, Q SQL, i Swift…) and **only exists in buffers of that filetype**;
 `<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files) and `<leader>C` (comments) are global.
 Press `<leader>` and which-key shows only what applies to the current file (no delay).
 

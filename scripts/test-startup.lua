@@ -27,6 +27,11 @@ local FILES = {
   ["data.json"] = { "{}" },
   ["app_en.arb"] = { "{}" },
   ["style.css"] = { "a {}" },
+  ["query.sql"] = { "select 1;" },
+  ["main.swift"] = { "let x = 1" },
+  ["Makefile"] = { "all:", "\techo ok" },
+  ["test_app.py"] = { "def test_a():", "    assert True" },
+  ["app.test.tsx"] = { 'it("renders", () => {})' },
 }
 
 local function step(fn)

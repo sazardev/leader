@@ -19,19 +19,46 @@ local il = dofile(root .. "/scripts/install-local.lua")
 
 local names = il.language_names(root)
 eq(
-  "names: come from the language registry (lua first, 19 in total)",
+  "names: come from the language registry (lua first, 22 in total)",
   { names[1], names[2], #names },
-  { "lua", "go", 19 }
+  { "lua", "go", 22 }
 )
 
 local settings = il.plan({ langs = "go, typescript" }, names)
-eq("--lang: everything that is neither lua nor requested gets disabled", {
+eq("--lang: everything that is neither the base nor requested gets disabled", {
   vim.tbl_contains(settings.languages.disabled, "go"),
   vim.tbl_contains(settings.languages.disabled, "typescript"),
   vim.tbl_contains(settings.languages.disabled, "lua"),
+  vim.tbl_contains(settings.languages.disabled, "markdown"),
   vim.tbl_contains(settings.languages.disabled, "rust"),
   #settings.languages.disabled,
-}, { false, false, false, true, 16 })
+}, { false, false, false, false, true, 15 })
+local packs = il.packs(root)
+local covered = {}
+for _, n in ipairs(packs.base) do
+  covered[n] = true
+end
+for _, p in ipairs(packs.packs) do
+  for _, n in ipairs(p.langs) do
+    covered[n] = true
+  end
+end
+eq(
+  "packs: every language of the registry is in the base or a pack (none unreachable from the installer)",
+  vim.tbl_filter(function(n)
+    return not covered[n]
+  end, names),
+  {}
+)
+local web = il.plan({ langs = "python,web" }, names)
+eq("--lang: a pack keeps its languages", {
+  vim.tbl_contains(web.languages.disabled, "python"),
+  vim.tbl_contains(web.languages.disabled, "tailwind"),
+  vim.tbl_contains(web.languages.disabled, "astro"),
+  vim.tbl_contains(web.languages.disabled, "go"),
+}, { false, false, false, true })
+eq("--lang all: nothing disabled", il.plan({ langs = "all" }, names).languages.disabled, {})
+eq("--lang none: only the base", #il.plan({ langs = "none" }, names).languages.disabled, #names - #packs.base)
 local bad, err = il.plan({ langs = "go,cobol" }, names)
 eq(
   "--lang: an unknown one is an error with the list of available ones",

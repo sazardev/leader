@@ -1,0 +1,58 @@
+{
+  "XCTest case": {
+    "prefix": [
+      "xctestcase"
+    ],
+    "body": [
+      "import XCTest",
+      "@testable import ${1:Module}",
+      "",
+      "final class ${2:Name}Tests: XCTestCase {",
+      "\tfunc test${3:Behaviour}() throws {",
+      "\t\t${0:XCTAssertEqual(1, 1)}",
+      "\t}",
+      "}"
+    ],
+    "description": "an XCTestCase class"
+  },
+  "Swift Testing test": {
+    "prefix": [
+      "swifttest"
+    ],
+    "body": [
+      "@Test(\"${1:does something}\")",
+      "func ${2:doesSomething}() ${3:throws }{",
+      "\t#expect(${0:true})",
+      "}"
+    ],
+    "description": "a Swift Testing @Test"
+  },
+  "Swift Testing suite": {
+    "prefix": [
+      "swiftsuite"
+    ],
+    "body": [
+      "import Testing",
+      "@testable import ${1:Module}",
+      "",
+      "@Suite struct ${2:Name}Tests {",
+      "\t@Test func ${3:doesSomething}() {",
+      "\t\t#expect(${0:true})",
+      "\t}",
+      "}"
+    ],
+    "description": "a Swift Testing @Suite"
+  },
+  "error enum": {
+    "prefix": [
+      "errorenum"
+    ],
+    "body": [
+      "enum ${1:Name}Error: Error, Equatable {",
+      "\tcase ${2:notFound}(${3:String})",
+      "\t${0}",
+      "}"
+    ],
+    "description": "an error enum"
+  }
+}

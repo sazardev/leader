@@ -1,0 +1,37 @@
+{
+  "vitest describe": {
+    "prefix": [
+      "describetest"
+    ],
+    "body": [
+      "describe(\"${1:subject}\", () => {",
+      "\tit(\"${2:does something}\", () => {",
+      "\t\t${0:expect(result).toBe(expected);}",
+      "\t});",
+      "});"
+    ],
+    "description": "describe + it"
+  },
+  "test case": {
+    "prefix": [
+      "ittest"
+    ],
+    "body": [
+      "it(\"${1:does something}\", ${2:async }() => {",
+      "\t${0}",
+      "});"
+    ],
+    "description": "one test"
+  },
+  "async function": {
+    "prefix": [
+      "asyncfunction"
+    ],
+    "body": [
+      "export async function ${1:name}(${2:input}) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "an exported async function"
+  }
+}

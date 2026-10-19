@@ -1,0 +1,7 @@
+# What a Rust image never needs: the target folder (built inside), git, env files
+# target: .dockerignore
+target
+.git
+.env
+.env.*
+*.log

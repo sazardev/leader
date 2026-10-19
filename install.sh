@@ -6,10 +6,14 @@
 #   curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go --theme catppuccin
 #
 # That clones the repo into ~/.local/share/my-nvim-setup (override: NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH) and
-# runs its install.sh. From a clone: ./install.sh [options]. It never asks anything (use --ask to be prompted); an existing
-# nvim config is moved to nvim.bak-<date>, never deleted.
+# runs its install.sh. From a clone: ./install.sh [options]. In a terminal it asks one thing, which languages to set up (a
+# checklist of packs, the ones this machine already uses checked); everything else it just does (--ask prompts for the
+# system packages too). An existing nvim config is moved to nvim.bak-<date>, never deleted.
 #
-#   --lang go,typescript   only those languages (the rest are disabled in lua/local.lua)
+#   --lang python,sql      those language packs (go dart typescript web python rust sql swift jvm infra yarnspinner) or
+#                          single languages; `all` for every one. Skips the checklist. The base (Lua, Markdown, JSON,
+#                          YAML, TOML) is always on; only the languages that are on download their LSPs and tools
+#   -y, --yes              asks nothing: the packs found on this machine (also what happens with no terminal)
 #   --theme catppuccin     default theme (lua/local.lua)
 #   --light | --no-light   forces light mode (no resident LSP) or turns it off; without this, it is detected by RAM
 #   --agent MODE           AI agent: `auto` (default: the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`...; `none` skips it
@@ -56,10 +60,10 @@ CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 TARGET="$CONFIG_HOME/nvim"
 MIN_NVIM="0.11"
 
-YES=1 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT="auto"
+YES=1 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT="auto" QUIET=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    -y | --yes) YES=1 ;;
+    -y | --yes) YES=1 QUIET=1 ;;
     --ask) YES=0 ;;
     --dry-run) DRY=1 ;;
     --no-deps) DEPS=0 ;;
@@ -99,6 +103,64 @@ OS="$(uname -s)"
 SUDO=""
 [ "$(id -u)" != 0 ] && have sudo && SUDO="sudo"
 printf '%snvim config%s %s · %s%s\n' "$B" "$N" "$(cat "$ROOT/VERSION" 2>/dev/null || echo dev)" "$OS" "$([ -r /proc/version ] && grep -qi microsoft /proc/version && echo ' (WSL)')"
+
+# ── 0. Languages: the one question ────────────────────────────────────────────
+# The packs come from nvim/lua/languages/packs.lua (one per line: read here with sed, nvim may not be installed yet).
+# Checked to start with: the packs whose tools are on this machine. With --lang, --yes or no terminal it does not ask:
+# --lang decides, otherwise the detected packs (--dry-run asks too: answering changes nothing). With a lua/local.lua already there it is not asked again
+# (that file is yours: change languages in the settings panel, <leader>Sp → Languages).
+PACK_IDS=() PACK_LABELS=() PACK_DETECT=() PACK_ON=()
+read_packs() {
+  local line id label detect
+  while IFS= read -r line; do
+    id="$(printf '%s' "$line" | sed -n 's/.*{ id = "\([^"]*\)".*/\1/p')"
+    [ -n "$id" ] || continue
+    label="$(printf '%s' "$line" | sed -n 's/.*label = "\([^"]*\)".*/\1/p')"
+    detect="$(printf '%s' "$line" | sed -n 's/.*detect = { \([^}]*\)}.*/\1/p' | tr -d '",')"
+    PACK_IDS+=("$id") PACK_LABELS+=("$label") PACK_DETECT+=("$detect")
+    local on=0 cmd
+    for cmd in $detect; do have "$cmd" && on=1; done
+    PACK_ON+=("$on")
+  done <"$ROOT/nvim/lua/languages/packs.lua"
+}
+detected_langs() {
+  local out="" i
+  for i in "${!PACK_IDS[@]}"; do [ "${PACK_ON[$i]}" = 1 ] && out="${out:+$out,}${PACK_IDS[$i]}"; done
+  printf '%s' "${out:-none}"
+}
+choose_langs() {
+  local i ans tok found c
+  while :; do
+    printf '\n  %sWhich languages?%s The base is always on: Lua, Markdown, JSON, YAML, TOML.\n' "$B" "$N"
+    printf '  Only the checked ones download their LSPs, formatters and linters. Checked to start: found on this machine.\n\n'
+    for i in "${!PACK_IDS[@]}"; do
+      found=""
+      for c in ${PACK_DETECT[$i]}; do have "$c" && found="$found$c "; done
+      printf '  %3d  [%s] %-34s %s\n' "$((i + 1))" "$([ "${PACK_ON[$i]}" = 1 ] && echo x || echo ' ')" "${PACK_LABELS[$i]}" "$found"
+    done
+    printf '\n  Toggle by number (e.g. 3 7), a = all, n = none, Enter = continue: '
+    IFS= read -r ans </dev/tty || ans=""
+    [ -z "$ans" ] && break
+    for tok in $ans; do
+      case "$tok" in
+        a | all) for i in "${!PACK_ON[@]}"; do PACK_ON[$i]=1; done ;;
+        n | none) for i in "${!PACK_ON[@]}"; do PACK_ON[$i]=0; done ;;
+        *[!0-9]*) printf '  %s!%s %s is not a number\n' "$Y" "$N" "$tok" ;;
+        *) i=$((tok - 1)); [ "$i" -ge 0 ] && [ "$i" -lt "${#PACK_IDS[@]}" ] && PACK_ON[$i]=$((1 - PACK_ON[$i])) ;;
+      esac
+    done
+  done
+}
+if [ -z "$LANGS" ] && [ ! -f "$ROOT/nvim/lua/local.lua" ]; then
+  read_packs
+  if [ "$QUIET" = 0 ] && { : </dev/tty; } 2>/dev/null; then
+    choose_langs
+  fi
+  LANGS="$(detected_langs)"
+  printf '  %s✔%s languages: %s\n' "$G" "$N" "$LANGS"
+elif [ -z "$LANGS" ]; then
+  printf '  %s✔%s languages: kept from lua/local.lua (change them in <leader>Sp → Languages)\n' "$G" "$N"
+fi
 
 # ── 1. System packages ────────────────────────────────────────────────────────
 # Required: git curl unzip tar gzip + C compiler (treesitter). Recommended: ripgrep (Telescope), node/npm (LSPs and
@@ -205,10 +267,17 @@ if [ -n "$LANGS$THEME$LIGHT" ]; then
 fi
 
 # Warnings about runtimes that Mason/plugins use for the chosen languages (they do not block: they just avoid surprises)
-want() { [ -z "$LANGS" ] || case ",$LANGS," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
+LANG_NAMES="$LANGS"
+if [ -n "$LANGS" ] && have nvim; then
+  LANG_NAMES="$(nvim -u NONE --headless -l "$ROOT/scripts/install-local.lua" --expand "$LANGS" 2>/dev/null | tr -d '\r' || echo "$LANGS")"
+fi
+want() { [ -z "$LANG_NAMES" ] || case ",$LANG_NAMES," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 want go && ! have go && warn "Go is active but there is no \`go\` in PATH: go.nvim and gopls will not be able to install their tools (https://go.dev/dl)"
 { want typescript || want html || want css || want json; } && ! have npm && warn "no node/npm: the JS/TS/web LSPs and prettier will not be installed"
 want rust && ! have cargo && warn "Rust is active but there is no cargo/rustup (https://rustup.rs)"
+want python && ! have uv && warn "Python is active and uv is not installed: the menu runs through python3 (uv: https://docs.astral.sh/uv)"
+want sql && ! have psql && ! have sqlite3 && warn "SQL is active but neither psql nor sqlite3 is installed: queries cannot run"
+want swift && ! have swift && warn "Swift is active but there is no swift toolchain (https://swift.org/install): no LSP, format or build"
 
 # ── 5. Plugins, LSPs/formatters/linters and parsers ────────────────────────────
 if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then

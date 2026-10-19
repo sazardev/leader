@@ -1,0 +1,6 @@
+# The toolchain the project builds with: stable, with rustfmt, clippy and rust-analyzer's sources
+# target: rust-toolchain.toml
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy", "rust-src"]
+profile = "minimal"

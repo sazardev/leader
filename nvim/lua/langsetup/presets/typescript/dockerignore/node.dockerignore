@@ -1,0 +1,13 @@
+# What a Node image never needs: dependencies (installed inside), build output, git, env files, editor state
+# target: .dockerignore
+node_modules
+dist
+build
+coverage
+.git
+.env
+.env.*
+*.log
+.DS_Store
+.vscode
+.idea

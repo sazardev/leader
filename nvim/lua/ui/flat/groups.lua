@@ -301,6 +301,11 @@ function M.build(t)
   g.DartTestSkip = { fg = t.faint }
   g.DartTestRunning = { fg = t.yellow }
   g.DartTestTime = { fg = t.faint, italic = true }
+  -- tests of the other languages (langtest/): the same marks as Dart's
+  g.LangTestPass = { fg = t.green }
+  g.LangTestFail = { fg = t.red, bold = true }
+  g.LangTestSkip = { fg = t.faint }
+  g.LangTestRunning = { fg = t.yellow }
 
   g.MultiCursorCursor = { fg = t.on, bg = t.purple }
   g.MultiCursorVisual = g.Visual

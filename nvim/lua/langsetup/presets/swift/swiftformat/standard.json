@@ -1,0 +1,16 @@
+// swift-format: 4 spaces, 120 columns, ordered imports, the rules that keep code uniform
+// target: .swift-format
+{
+  "version": 1,
+  "lineLength": 120,
+  "indentation": { "spaces": 4 },
+  "maximumBlankLines": 1,
+  "respectsExistingLineBreaks": true,
+  "lineBreakBeforeEachArgument": false,
+  "rules": {
+    "OrderedImports": true,
+    "NoAccessLevelOnExtensionDeclaration": true,
+    "UseLetInEveryBoundCaseVariable": true,
+    "AlwaysUseLowerCamelCase": true
+  }
+}

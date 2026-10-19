@@ -1,0 +1,6 @@
+# rustfmt: 100 columns, the edition of the crate, field init and try shorthands (stable options only)
+# target: rustfmt.toml
+edition = "{{edition}}"
+max_width = 100
+use_field_init_shorthand = true
+use_try_shorthand = true

@@ -51,7 +51,23 @@ local defaults = {
 
   -- Languages (see lua/languages/): disable by name the ones you do not use.
   languages = {
-    disabled = {},
+    disabled = {}, -- registry names that are off (the installer writes it to local.lua)
+    packs = {}, -- { python = true, sql = false }: a pack on/off from the settings panel wins over `disabled`
+  },
+
+  -- SQL (<leader>Q, lua/sqlrun/): the connections are found in the project (DATABASE_URL in .env or the environment,
+  -- the SQLite files under the root); the ones here come first
+  sql = {
+    connections = {}, -- { { name = "local", url = "postgres://app@localhost/app" }, { name = "data", sqlite = "data/app.db" } }
+    dialect = "postgres", -- what the formatter speaks when the project has no connection: "postgres" | "sqlite"
+    timeout_ms = 30000, -- a query that takes longer is stopped
+    results_height = 15, -- lines of the results split
+    confirm_risky = true, -- DELETE/UPDATE with no WHERE, DROP, TRUNCATE ask before they run
+  },
+
+  -- Tests inside the editor for Python, TypeScript/JavaScript, Rust and Swift (lua/langtest/; Dart: lua/darttest/)
+  tests = {
+    timeout_ms = 600000, -- a run that takes longer is stopped
   },
 
   -- Sessions (persistence.nvim saves on exit; see core/autocmds/session.lua)

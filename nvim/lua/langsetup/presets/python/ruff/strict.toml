@@ -1,0 +1,18 @@
+# ruff, strict: the standard set plus naming, annotations, pathlib, return checks, pytest style and security rules
+# target: ruff.toml
+line-length = 100
+target-version = "py{{pyver}}"
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "C4", "RUF", "ANN", "PTH", "RET", "PT", "S", "ERA", "PL"]
+ignore = ["E501", "ANN401", "PLR0913"]
+
+[lint.per-file-ignores]
+"tests/**" = ["S101", "ANN", "PLR2004"]
+
+[lint.isort]
+known-first-party = ["{{package}}"]
+
+[format]
+quote-style = "double"
+docstring-code-format = true

@@ -5,11 +5,13 @@
 #   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1))) -Lang go -Theme catppuccin
 #
 # That fetches the repo into %LOCALAPPDATA%\my-nvim-setup (override: $env:NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH)
-# and runs its install.ps1. From a clone: ./install.ps1 [-NoPlugins] [-Lang go,typescript] [-Theme catppuccin]
-# [-Light | -NoLight] [-Agent auto|none|claude/haiku] (same options as install.sh; -Agent defaults to auto).
+# and runs its install.ps1. From a clone: ./install.ps1 [-NoPlugins] [-Lang python,sql] [-Theme catppuccin]
+# [-Light | -NoLight] [-Agent auto|none|claude/haiku] [-Yes] (same options as install.sh; -Agent defaults to auto).
+# In a console it asks one thing, which language packs to set up (the ones found on this machine checked); -Lang or
+# -Yes skip the question (-Yes: the detected packs).
 # Requirements: Neovim >= 0.11, git (or just curl/tar for the fetch) and a C compiler (for example
 # `winget install -e --id MartinStorsjo.LLVM-MinGW.UCRT` or Visual Studio Build Tools). Optional: ripgrep, node, cmake.
-param([switch]$NoPlugins, [string]$Lang = '', [string]$Theme = '', [switch]$Light, [switch]$NoLight, [string]$Agent = 'auto')
+param([switch]$NoPlugins, [string]$Lang = '', [string]$Theme = '', [switch]$Light, [switch]$NoLight, [string]$Agent = 'auto', [switch]$Yes)
 $ErrorActionPreference = 'Stop'
 
 # One command: run from a pipe ($PSScriptRoot is empty) there is no repo next to the script, so fetch it and hand over
@@ -63,6 +65,36 @@ if ($item -and $item.LinkType -and ($item.Target -eq $want)) {
 if (Test-Path (Join-Path $Root '.git')) {
   git -C $Root config core.hooksPath .githooks
   Write-Host '  git hooks enabled (.githooks)'
+}
+
+# Languages: the one question, like install.sh (packs from nvim/lua/languages/packs.lua via install-local.lua --packs)
+if (-not $Lang -and -not (Test-Path (Join-Path $Root 'nvim/lua/local.lua'))) {
+  $packs = @(& nvim -u NONE --headless -l (Join-Path $Root 'scripts/install-local.lua') --packs 2>$null | ForEach-Object {
+      $f = "$_".Split("`t")
+      if ($f.Count -ge 2) { [pscustomobject]@{ Id = $f[0]; Label = $f[1]; Detect = @($f[2] -split ' ' | Where-Object { $_ }); On = $false } }
+    })
+  foreach ($p in $packs) { $p.On = [bool]($p.Detect | Where-Object { Get-Command $_ -ErrorAction SilentlyContinue }) }
+  $interactive = -not $Yes -and [Environment]::UserInteractive -and -not [Console]::IsInputRedirected
+  while ($interactive) {
+    Write-Host "`n  Which languages? The base is always on: Lua, Markdown, JSON, YAML, TOML."
+    Write-Host "  Only the checked ones download their LSPs, formatters and linters. Checked to start: found on this machine.`n"
+    for ($i = 0; $i -lt $packs.Count; $i++) {
+      Write-Host ('  {0,3}  [{1}] {2}' -f ($i + 1), $(if ($packs[$i].On) { 'x' } else { ' ' }), $packs[$i].Label)
+    }
+    $ans = Read-Host "`n  Toggle by number (e.g. 3 7), a = all, n = none, Enter = continue"
+    if (-not $ans) { break }
+    foreach ($t in ($ans -split '\s+' | Where-Object { $_ })) {
+      if ($t -in 'a', 'all') { $packs | ForEach-Object { $_.On = $true } }
+      elseif ($t -in 'n', 'none') { $packs | ForEach-Object { $_.On = $false } }
+      elseif ($t -match '^\d+$' -and [int]$t -ge 1 -and [int]$t -le $packs.Count) { $packs[[int]$t - 1].On = -not $packs[[int]$t - 1].On }
+      else { Write-Warning "$t is not a number of the list" }
+    }
+  }
+  $Lang = (@($packs | Where-Object { $_.On } | ForEach-Object { $_.Id }) -join ',')
+  if (-not $Lang) { $Lang = 'none' }
+  Write-Host "  languages: $Lang"
+} elseif (-not $Lang) {
+  Write-Host '  languages: kept from lua/local.lua (change them in <leader>Sp -> Languages)'
 }
 
 # Per-machine settings (lua/local.lua): the same implementation as install.sh

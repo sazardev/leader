@@ -1,0 +1,8 @@
+// Prettier: 100 columns, double quotes, trailing commas everywhere
+// target: .prettierrc.json
+{
+  "printWidth": 100,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "semi": true
+}

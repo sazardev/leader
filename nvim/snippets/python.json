@@ -1,0 +1,82 @@
+{
+  "pytest test": {
+    "prefix": [
+      "testfunction"
+    ],
+    "body": [
+      "def test_${1:behaviour}() -> None:",
+      "\t${2:result = }",
+      "\tassert ${0:result}"
+    ],
+    "description": "a pytest test"
+  },
+  "pytest parametrize": {
+    "prefix": [
+      "parametrize"
+    ],
+    "body": [
+      "@pytest.mark.parametrize(",
+      "\t(\"${1:value}\", \"${2:expected}\"),",
+      "\t[",
+      "\t\t(${3}, ${4}),",
+      "\t],",
+      ")",
+      "def test_${5:name}($1, $2) -> None:",
+      "\tassert ${0}"
+    ],
+    "description": "a parametrized pytest test"
+  },
+  "pytest fixture": {
+    "prefix": [
+      "fixture"
+    ],
+    "body": [
+      "@pytest.fixture",
+      "def ${1:name}() -> ${2:Iterator[Thing]}:",
+      "\t${3:thing = Thing()}",
+      "\tyield ${4:thing}",
+      "\t${0}"
+    ],
+    "description": "a pytest fixture with teardown"
+  },
+  "dataclass": {
+    "prefix": [
+      "dataclass"
+    ],
+    "body": [
+      "@dataclass(frozen=True, slots=True)",
+      "class ${1:Name}:",
+      "\t${2:field}: ${3:str}",
+      "\t${0}"
+    ],
+    "description": "a frozen dataclass"
+  },
+  "main guard": {
+    "prefix": [
+      "ifmain"
+    ],
+    "body": [
+      "def main() -> None:",
+      "\t${0:pass}",
+      "",
+      "",
+      "if __name__ == \"__main__\":",
+      "\tmain()"
+    ],
+    "description": "main() and the __main__ guard"
+  },
+  "typed exception": {
+    "prefix": [
+      "exception"
+    ],
+    "body": [
+      "class ${1:Name}Error(Exception):",
+      "\t\"\"\"${2:What went wrong.}\"\"\"",
+      "",
+      "\tdef __init__(self, ${3:detail}: ${4:str}) -> None:",
+      "\t\tsuper().__init__(f\"${5:message}: {$3}\")",
+      "\t\tself.$3 = $3"
+    ],
+    "description": "an exception with its data"
+  }
+}

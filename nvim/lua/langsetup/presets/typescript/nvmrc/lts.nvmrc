@@ -1,0 +1,3 @@
+# The Node major version the project runs on (nvm, fnm, mise and setup-node read it)
+# target: .nvmrc
+{{node}}

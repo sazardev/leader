@@ -1,0 +1,15 @@
+# ruff: pycodestyle, pyflakes, isort, pyupgrade, bugbear, simplify; 100 columns, double quotes
+# target: ruff.toml
+line-length = 100
+target-version = "py{{pyver}}"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "RUF"]
+ignore = ["E501"]
+
+[lint.isort]
+known-first-party = ["{{package}}"]
+
+[format]
+quote-style = "double"
+docstring-code-format = true

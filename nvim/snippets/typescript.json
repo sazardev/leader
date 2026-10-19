@@ -1,0 +1,77 @@
+{
+  "vitest describe": {
+    "prefix": [
+      "describetest"
+    ],
+    "body": [
+      "describe(\"${1:subject}\", () => {",
+      "\tit(\"${2:does something}\", () => {",
+      "\t\t${0:expect(result).toBe(expected);}",
+      "\t});",
+      "});"
+    ],
+    "description": "describe + it"
+  },
+  "test case": {
+    "prefix": [
+      "ittest"
+    ],
+    "body": [
+      "it(\"${1:does something}\", ${2:async }() => {",
+      "\t${0}",
+      "});"
+    ],
+    "description": "one test"
+  },
+  "zod schema": {
+    "prefix": [
+      "zodschema"
+    ],
+    "body": [
+      "export const ${1:Name}Schema = z.object({",
+      "\t${2:id}: z.${3:string}(),",
+      "\t${0}",
+      "});",
+      "",
+      "export type $1 = z.infer<typeof $1Schema>;"
+    ],
+    "description": "a zod schema and its type"
+  },
+  "result type": {
+    "prefix": [
+      "resulttype"
+    ],
+    "body": [
+      "export type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };"
+    ],
+    "description": "a Result union"
+  },
+  "async function": {
+    "prefix": [
+      "asyncfunction"
+    ],
+    "body": [
+      "export async function ${1:name}(${2:input}: ${3:Input}): Promise<${4:Output}> {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "an exported async function"
+  },
+  "exhaustive switch": {
+    "prefix": [
+      "exhaustive"
+    ],
+    "body": [
+      "switch (${1:value}.${2:kind}) {",
+      "\tcase \"${3:a}\":",
+      "\t\t${0}",
+      "\t\tbreak;",
+      "\tdefault: {",
+      "\t\tconst unreachable: never = $1;",
+      "\t\tthrow new Error(`unhandled: ${String(unreachable)}`);",
+      "\t}",
+      "}"
+    ],
+    "description": "a switch the compiler checks is exhaustive"
+  }
+}

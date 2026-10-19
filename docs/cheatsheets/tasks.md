@@ -68,6 +68,12 @@ the picker shows them at once.
 line is a `# description` comment (it stays in the created Makefile), every target has `## text`, recipes use **tabs**.
 `scripts/test-tasks.sh` runs a real `make` over every preset.
 
+## Editing a Makefile
+
+Makefiles get their own treesitter parser and `checkmake` (pack `infra`) for the usual mistakes (a target with no
+`.PHONY`, no `all`/`clean`/`test`); Neovim keeps real tabs in them. A target documented with `## text` on its line is
+what the picker shows next to its name.
+
 ## Good to know
 
 - Targets run in the **same terminal** as `<leader>ao` reads, so a failing build can go straight to the agent's "fix from

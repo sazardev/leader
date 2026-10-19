@@ -35,8 +35,10 @@ which-key only shows what belongs to the current buffer.
 | `<leader>p` | Python | `python` |
 | `<leader>R` | Run | global |
 | `<leader>r` | Rust | `rust` |
+| `<leader>Q` | SQL | `sql` |
 | `<leader>P` | Session | global |
 | `<leader>S` | Settings | global |
+| `<leader>i` | Swift | `swift` |
 | `<leader>t` | TypeScript / JavaScript | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
 
 ### Agent — `<leader>a`
@@ -154,6 +156,7 @@ _Where: global_
 | `<leader>aSD` | setup design write |
 | `<leader>aSw` | setup screens |
 | `<leader>aSs` | setup spec |
+| `<leader>aSm` | setup spec modules |
 
 ### Agent Tests — `<leader>aT`
 
@@ -410,11 +413,42 @@ _Where: `python`_
 |---|---|
 | `<leader>pr` | run file |
 | `<leader>pi` | REPL with the file |
-| `<leader>pm` | pytest (whole project) |
-| `<leader>pt` | pytest (current file) |
-| `<leader>pv` | ruff check . |
-| `<leader>px` | ruff check --fix . |
-| `<leader>pf` | ruff format (current file) |
+| `<leader>pv` | ruff check |
+| `<leader>px` | ruff fix |
+| `<leader>pf` | format |
+| `<leader>po` | organize imports |
+| `<leader>pa` | uv add package |
+| `<leader>pu` | uv sync |
+| `<leader>pU` | uv lock upgrade |
+| `<leader>pR` | uv remove package |
+| `<leader>pc` | coverage |
+| `<leader>pe` | interpreter in use |
+| `<leader>pm` | test under cursor |
+| `<leader>pM` | test file |
+| `<leader>pA` | test all |
+| `<leader>p.` | test again |
+| `<leader>pT` | test file toggle |
+| `<leader>pO` | test output |
+| `<leader>pDd` | debug program |
+| `<leader>pDt` | debug test under cursor |
+| `<leader>pDb` | debug breakpoint toggle |
+| `<leader>pDB` | debug breakpoint condition |
+| `<leader>pDc` | debug continue |
+| `<leader>pDn` | debug step over |
+| `<leader>pDi` | debug step into |
+| `<leader>pDo` | debug step out |
+| `<leader>pDu` | debug panel |
+| `<leader>pSr` | setup ruff config |
+| `<leader>pSt` | setup pytest config |
+| `<leader>pSv` | setup .python-version |
+| `<leader>pSd` | setup Dockerfile (uv) |
+| `<leader>pSi` | setup .dockerignore |
+| `<leader>pSc` | setup GitHub Actions CI |
+| `<leader>pSh` | setup pre-commit hooks |
+| `<leader>pSe` | setup .editorconfig |
+| `<leader>pSp` | setup several files |
+| `<leader>pSm` | setup Makefile |
+| `<leader>pSg` | setup gitignore |
 
 ### Run — `<leader>R`
 
@@ -440,11 +474,59 @@ _Where: `rust`_
 |---|---|
 | `<leader>rr` | cargo run |
 | `<leader>rb` | cargo build |
-| `<leader>rm` | cargo test |
 | `<leader>rc` | cargo check |
 | `<leader>rv` | cargo clippy |
-| `<leader>rx` | cargo clippy --fix --allow-dirty |
-| `<leader>rf` | cargo fmt |
+| `<leader>rx` | cargo clippy --fix |
+| `<leader>rf` | format |
+| `<leader>ra` | cargo add crates |
+| `<leader>rR` | cargo remove crates |
+| `<leader>ru` | cargo update |
+| `<leader>ro` | cargo doc --open |
+| `<leader>re` | expand macro under cursor |
+| `<leader>rp` | open Cargo.toml |
+| `<leader>rE` | explain error code |
+| `<leader>rm` | test under cursor |
+| `<leader>rM` | test file |
+| `<leader>rA` | test all |
+| `<leader>r.` | test again |
+| `<leader>rT` | test file toggle |
+| `<leader>rO` | test output |
+| `<leader>rDd` | debug program |
+| `<leader>rDt` | debug test under cursor |
+| `<leader>rDb` | debug breakpoint toggle |
+| `<leader>rDB` | debug breakpoint condition |
+| `<leader>rDc` | debug continue |
+| `<leader>rDn` | debug step over |
+| `<leader>rDi` | debug step into |
+| `<leader>rDo` | debug step out |
+| `<leader>rDu` | debug panel |
+| `<leader>rSf` | setup rustfmt config |
+| `<leader>rSt` | setup rust-toolchain |
+| `<leader>rSl` | setup clippy config |
+| `<leader>rSy` | setup cargo-deny (licenses, advisories) |
+| `<leader>rSd` | setup Dockerfile |
+| `<leader>rSi` | setup .dockerignore |
+| `<leader>rSc` | setup GitHub Actions CI |
+| `<leader>rSe` | setup .editorconfig |
+| `<leader>rSp` | setup several files |
+| `<leader>rSm` | setup Makefile |
+| `<leader>rSg` | setup gitignore |
+
+### SQL — `<leader>Q`
+
+_Where: `sql`_
+
+| Key | Action |
+|---|---|
+| `<leader>Qr` | run statement or selection |
+| `<leader>Qa` | run file |
+| `<leader>Qe` | explain |
+| `<leader>QE` | explain analyze |
+| `<leader>Qt` | tables |
+| `<leader>Qd` | describe table under cursor |
+| `<leader>Qc` | connection |
+| `<leader>Ql` | last run again |
+| `<leader>Qf` | format |
 
 ### Session — `<leader>P`
 
@@ -472,6 +554,46 @@ _Where: global_
 | `<leader>Si` | info |
 | `<leader>Su` | update config |
 
+### Swift — `<leader>i`
+
+_Where: `swift`_
+
+| Key | Action |
+|---|---|
+| `<leader>ir` | run |
+| `<leader>ib` | build |
+| `<leader>iB` | build release |
+| `<leader>if` | format |
+| `<leader>iF` | format the package |
+| `<leader>iv` | swiftlint |
+| `<leader>iu` | package update |
+| `<leader>ip` | package resolve |
+| `<leader>ic` | package clean |
+| `<leader>io` | open Package.swift |
+| `<leader>im` | test under cursor |
+| `<leader>iM` | test file |
+| `<leader>iA` | test all |
+| `<leader>i.` | test again |
+| `<leader>iT` | test file toggle |
+| `<leader>iO` | test output |
+| `<leader>iDd` | debug program |
+| `<leader>iDb` | debug breakpoint toggle |
+| `<leader>iDB` | debug breakpoint condition |
+| `<leader>iDc` | debug continue |
+| `<leader>iDn` | debug step over |
+| `<leader>iDi` | debug step into |
+| `<leader>iDo` | debug step out |
+| `<leader>iDu` | debug panel |
+| `<leader>iSf` | setup swift-format config |
+| `<leader>iSl` | setup SwiftLint config |
+| `<leader>iSd` | setup Dockerfile |
+| `<leader>iSi` | setup .dockerignore |
+| `<leader>iSc` | setup GitHub Actions CI |
+| `<leader>iSe` | setup .editorconfig |
+| `<leader>iSp` | setup several files |
+| `<leader>iSm` | setup Makefile |
+| `<leader>iSg` | setup gitignore |
+
 ### TypeScript / JavaScript — `<leader>t`
 
 _Where: `typescript`, `typescriptreact`, `javascript`, `javascriptreact`_
@@ -481,13 +603,37 @@ _Where: `typescript`, `typescriptreact`, `javascript`, `javascriptreact`_
 | `<leader>tr` | run a package.json script (picker) |
 | `<leader>td` | dev (script `dev`) |
 | `<leader>tb` | build (script `build`) |
-| `<leader>tm` | test (package manager) |
 | `<leader>tv` | lint (script `lint`, else eslint .) |
-| `<leader>tc` | typecheck (tsc --noEmit) |
+| `<leader>tc` | typecheck to the quickfix list |
 | `<leader>tx` | eslint --fix (current file) |
 | `<leader>tf` | format |
 | `<leader>to` | organize imports |
+| `<leader>tI` | add missing imports |
+| `<leader>tF` | fix all (TypeScript's quick fixes) |
+| `<leader>tg` | go to source definition |
 | `<leader>ti` | install dependencies |
+| `<leader>ta` | add packages |
+| `<leader>tR` | remove packages |
+| `<leader>tu` | outdated packages |
+| `<leader>tm` | test under cursor |
+| `<leader>tM` | test file |
+| `<leader>tA` | test all |
+| `<leader>t.` | test again |
+| `<leader>tT` | test file toggle |
+| `<leader>tO` | test output |
+| `<leader>tSt` | setup tsconfig |
+| `<leader>tSb` | setup Biome (lint + format) |
+| `<leader>tSl` | setup ESLint (typescript-eslint) |
+| `<leader>tSf` | setup Prettier |
+| `<leader>tSv` | setup Vitest config |
+| `<leader>tSd` | setup Dockerfile |
+| `<leader>tSi` | setup .dockerignore |
+| `<leader>tSc` | setup GitHub Actions CI |
+| `<leader>tSn` | setup .nvmrc |
+| `<leader>tSe` | setup .editorconfig |
+| `<leader>tSp` | setup several files |
+| `<leader>tSm` | setup Makefile |
+| `<leader>tSg` | setup gitignore |
 
 ## LSP (when a server attaches)
 
@@ -635,6 +781,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSc` | n | Setup claude link |
 | `<leader>aSd` | n | Setup design |
 | `<leader>aSk` | n | Setup stack addons |
+| `<leader>aSm` | n | Setup spec modules |
 | `<leader>aSo` | n | Setup overview |
 | `<leader>aSp` | n | Setup principles |
 | `<leader>aSr` | n | Setup recipe |

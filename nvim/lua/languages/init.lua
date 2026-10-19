@@ -12,6 +12,7 @@
 --   formatters  table<ft, string[]> conform
 --   linters     table<ft, string[]> nvim-lint
 --   linters_light table<ft, string[]> replaces `linters` in light mode
+--   formatter_options table<name, table> conform options of a formatter (`require_cwd`, `prepend_args`…), merged
 --   setup_lint  fun(lint)           registers custom linters
 --   menu        { name, prefix, maps = {{key, desc, fn}...} }  leader menu
 local settings = require "core.settings"
@@ -39,11 +40,28 @@ local NAMES = {
   "python",
   "java",
   "kotlin",
+  "sql",
+  "swift",
+  "make",
   "yarnspinner",
 }
 
 ---@type table[]?
 local cache
+
+--- Is a language off? A pack turned on or off in the settings panel (`languages.packs.<id>`) decides for its
+--- languages; otherwise `languages.disabled` (what the installer wrote in local.lua)
+---@param name string
+---@return boolean
+function M.disabled(name)
+  local chosen = settings.languages.packs or {}
+  for _, p in ipairs(require("languages.packs").packs) do
+    if chosen[p.id] ~= nil and vim.tbl_contains(p.langs, name) then
+      return not chosen[p.id]
+    end
+  end
+  return vim.tbl_contains(settings.languages.disabled, name)
+end
 
 ---@return table[]
 local function all()
@@ -52,7 +70,7 @@ local function all()
   end
   cache = {}
   for _, name in ipairs(NAMES) do
-    if not vim.tbl_contains(settings.languages.disabled, name) then
+    if not M.disabled(name) then
       local spec = require("languages." .. name)
       spec.name = spec.name or name
       table.insert(cache, spec)
@@ -135,6 +153,18 @@ end
 ---@return table<string, string[]>
 function M.formatters()
   return merge_by_filetype { "formatters" }
+end
+
+--- conform options per formatter, from every language that declares some (later languages win on the same key)
+---@return table<string, table>
+function M.formatter_options()
+  local out = {}
+  for _, lang in ipairs(all()) do
+    for name, opts in pairs(lang.formatter_options or {}) do
+      out[name] = vim.tbl_deep_extend("force", out[name] or {}, opts)
+    end
+  end
+  return out
 end
 
 --- In light mode `linters_light` replaces `linters` only for the fts it defines

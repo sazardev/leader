@@ -16,14 +16,17 @@ curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/insta
 
 Windows (PowerShell): `irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1 | iex`
 
-It needs nothing from you: no clone, no prompts. It fetches the repo into `~/.local/share/my-nvim-setup` and does everything
-(idempotent: run it again any time to bring it up to date):
+It asks **one thing**: which languages to set up, as a checklist of packs (Go, Dart / Flutter, TypeScript / JavaScript,
+Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked;
+Enter keeps them. Only the languages you keep download their LSPs, formatters and linters (the base, Lua, Markdown,
+JSON, YAML, TOML, is always on). Change them later in `<Space>Sp` → Languages. No clone needed: it fetches the repo into
+`~/.local/share/my-nvim-setup` and does everything else (idempotent: run it again any time to bring it up to date):
 
 1. installs whatever is missing from the system (git, curl, C compiler, ripgrep, node, cmake) and **Neovim ≥ 0.11** if you don't have it
    (in `~/.local/opt`, without `sudo`; with brew on macOS);
 2. links `nvim/` as your config (`~/.config/nvim`); an existing one is moved to `nvim.bak-<date>`, never deleted;
 3. enables the git hooks (`.githooks`: cheatsheet always up to date and conventional commits);
-4. writes your **per-machine settings** (`nvim/lua/local.lua`, git-ignored) if you pass the options below;
+4. writes your **per-machine settings** (`nvim/lua/local.lua`, git-ignored): the languages you chose and the options below;
 5. installs the plugins at the versions pinned in `nvim/lazy-lock.json` (in parallel), the LSPs/formatters/linters (Mason) and builds the
    treesitter parsers (`tree-sitter-cli` comes from Mason), reporting the time each step took;
 6. **sets up the AI agent** with the best backend it finds (Claude Code, OpenCode, Ollama…); `--agent none` skips it.
@@ -31,7 +34,7 @@ It needs nothing from you: no clone, no prompts. It fetches the repo into `~/.lo
 Options go after `bash -s --`, for example a Go laptop, fully configured:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go,lua --theme gruvbox
+curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go,sql --theme gruvbox
 ```
 
 Prefer to clone it yourself (to hack on it)? `git clone https://github.com/sazardev/my-nvim-setup && cd my-nvim-setup && ./install.sh` does exactly
@@ -44,7 +47,8 @@ There is also a landing page, `docs/index.html` (flat and square like the config
 | Option | Effect |
 |---|---|
 | `--ask` | prompts before installing system packages or Neovim (by default it asks nothing) |
-| `--lang go,typescript` | only those languages (+ lua): the rest are disabled in `local.lua`, so nothing you don't use gets installed |
+| `--lang python,sql` | those packs (`go dart typescript web python rust sql swift jvm infra yarnspinner`) or single languages, `all` for every one; skips the checklist |
+| `--yes` | asks nothing: the packs found on this machine (also what happens with no terminal) |
 | `--theme catppuccin` | default theme (`local.lua`) |
 | `--light` / `--no-light` | forces light mode (no resident LSP) or turns it off; without this it is detected by RAM (≤ 2 GB) |
 | `--agent auto` | the AI agent (`auto` is the default and picks the best available), `claude/haiku`, `ollama/qwen2.5-coder:7b@light`…; `none` skips it |
@@ -53,11 +57,11 @@ There is also a landing page, `docs/index.html` (flat and square like the config
 | `--dry-run` | shows what it would do |
 
 ```sh
-./install.sh --lang go,lua --theme gruvbox --agent claude/haiku   # from a clone: a Go laptop, everything configured
+./install.sh --lang go,sql --theme gruvbox --agent claude/haiku   # from a clone: a Go laptop, everything configured
 ./install.sh --dry-run --no-deps --lang rust                      # see what it would do
 ```
 
-Available languages: `lua go typescript html css tailwind json yaml toml markdown docker prisma astro dart rust python java kotlin yarnspinner`.
+Single languages also work with `--lang`: `lua go typescript html css tailwind json yaml toml markdown docker prisma astro dart rust python java kotlin sql swift make yarnspinner`.
 If `local.lua` already exists it is **left untouched**: the installer tells you what to add (it is yours and may hold other settings).
 
 **Native Windows** (PowerShell): `./install.ps1 [-Lang go,typescript] [-Theme x] [-Light|-NoLight] [-Agent auto] [-NoPlugins]` creates the
@@ -78,7 +82,7 @@ junction at `%LOCALAPPDATA%\nvim` and does the same steps (written but not teste
 
 | Area | Contents |
 |---|---|
-| Languages | Go, TypeScript/JS/TSX, HTML/CSS/Tailwind/Astro, Python, Rust, Dart/Flutter, Java/Kotlin, Lua, Markdown, JSON/YAML/TOML, Docker, Prisma, YarnSpinner. Each one declares its LSP, formatter, linter, parsers and its `<leader>` menu (it only exists in buffers of that filetype) |
+| Languages | Go, TypeScript/JS/TSX, HTML/CSS/Tailwind/Astro, Python, Rust, SQL (PostgreSQL, SQLite), Swift (SwiftPM), Dart/Flutter, Java/Kotlin, Lua, Markdown, JSON/YAML/TOML, Docker, Make, Prisma, YarnSpinner. Each one declares its LSP, formatter, linter, parsers and its `<leader>` menu (it only exists in buffers of that filetype). Python, TypeScript, Rust and Swift share **tests in the editor** (the test under the cursor, marks per test, failures on their line), **project setup** presets and **debugging**; SQL runs the statement under the cursor against your database |
 | Editing | **undo word by word** (like VS Code), `U`/`Ctrl+Y` redo, undo tree, the file at the previous save, a clipboard that `x`/`c` don't overwrite and a **yank history** (`[y`/`]y` after a paste, `<leader>uy`), blink.cmp, mini.pairs/surround/move, multicursor, flash (jumps), treesitter textobjects, folds (ufo) with foldable long comments, custom snippets |
 | Navigation | Telescope (+fzf), nvim-tree, harpoon, aerial (symbols), grug-far (global replace), file history |
 | Git | gitsigns, diffview, git-conflict, git-blame (off by default) and **conventional commits** (see below) |

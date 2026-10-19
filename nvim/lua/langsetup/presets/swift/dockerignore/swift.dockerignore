@@ -1,0 +1,9 @@
+# What a Swift image never needs: the build folder (built inside), Xcode state, git, env files
+# target: .dockerignore
+.build
+.swiftpm
+*.xcodeproj
+xcuserdata
+.git
+.env
+.env.*

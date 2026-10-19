@@ -1,0 +1,59 @@
+{
+  "create table": {
+    "prefix": [
+      "createtable"
+    ],
+    "body": [
+      "create table ${1:items} (",
+      "\tid bigint generated always as identity primary key,",
+      "\t${2:name} text not null,",
+      "\tcreated_at timestamptz not null default now(),",
+      "\tupdated_at timestamptz not null default now()",
+      ");"
+    ],
+    "description": "a PostgreSQL table with id and timestamps"
+  },
+  "create index": {
+    "prefix": [
+      "createindex"
+    ],
+    "body": [
+      "create index ${1:items}_${2:name}_idx on $1 ($2);"
+    ],
+    "description": "an index"
+  },
+  "upsert": {
+    "prefix": [
+      "upsert"
+    ],
+    "body": [
+      "insert into ${1:items} (${2:id}, ${3:name})",
+      "values (${4}, ${5})",
+      "on conflict ($2) do update set $3 = excluded.$3;"
+    ],
+    "description": "insert or update (PostgreSQL, SQLite)"
+  },
+  "with query": {
+    "prefix": [
+      "withquery"
+    ],
+    "body": [
+      "with ${1:recent} as (",
+      "\tselect ${2:*} from ${3:items} where ${4:created_at > now() - interval '7 days'}",
+      ")",
+      "select ${0:*} from $1;"
+    ],
+    "description": "a query with a CTE"
+  },
+  "transaction": {
+    "prefix": [
+      "transaction"
+    ],
+    "body": [
+      "begin;",
+      "${0}",
+      "commit;"
+    ],
+    "description": "a transaction"
+  }
+}

@@ -1,0 +1,13 @@
+# SwiftLint: the default rules plus a few opt-in ones, generated and build folders excluded
+# target: .swiftlint.yml
+excluded:
+  - .build
+  - Package.swift
+opt_in_rules:
+  - empty_count
+  - first_where
+  - sorted_imports
+  - unused_import
+line_length:
+  warning: 120
+  error: 160
