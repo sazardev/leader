@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leader — the video</title>
+<!-- The landing's own stylesheet is injected first (engine.js reads it from docs/index.html), so palette, Geist, the
+     editor mock and every float look exactly like the site. video.css only adds the stage, the cards and the captions. -->
+<link rel="stylesheet" href="video.css">
+</head>
+<body>
+<div class="viewport" id="viewport">
+  <div class="stage" id="stage">
+    <div class="layer-ed" id="layer-ed">
+      <div class="cap" id="cap"></div>
+      <div class="frame" id="frame"><div class="cam" id="cam">
+        <div class="ed" id="ed">
+          <div class="code" id="code"></div>
+          <div class="wk" id="wk"></div>
+          <div class="cp" id="cp"></div>
+          <div class="ov2" id="ov2"></div>
+          <div class="note" id="note"></div>
+          <div class="keys" id="edkeys"></div>
+          <div class="sl" id="sl"></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <header class="vbar" id="vbar"></header>
+    <div class="vprog" id="vprog"></div>
+  </div>
+</div>
+<div class="ctl" id="ctl">
+  <button id="play">Play</button>
+  <span id="time">0.0 / 0.0</span>
+  <input id="scrub" type="range" min="0" max="1000" value="0">
+  <select id="jump"></select>
+</div>
+<script src="engine.js"></script>
+<script src="story.js"></script>
+<script>VIDEO.start(STORY);</script>
+</body>
+</html>
