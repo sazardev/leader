@@ -296,6 +296,23 @@ local defaults = {
       max_errors = 20, -- errors read from the output (the rest is ignored)
       terminal_lines = 600, -- lines of the last terminal that are read
     },
+    -- Troubleshooting agent (agent/doctor): evidence gathered for free, one confirmed request, at most `max_rounds` more when
+    -- the model asks to look at something (read-only tools)
+    doctor = {
+      terminal_lines = 600, -- lines of the last terminal that are read
+      max_output_chars = 9000, -- characters of the failing output that are sent (the rest is cut around the errors)
+      max_frames = 6, -- project files a stack trace points into whose code is sent
+      frame_context = 8, -- lines of code each side of a frame
+      max_rounds = 2, -- extra requests when the model asks for more evidence
+      command_timeout_ms = 180000, -- a command run to be diagnosed
+      tool_output_chars = 3000, -- characters of each tool result sent back to the model
+    },
+    -- Merge conflicts (agent/conflict): what is read from git to tell the model what each side was doing
+    conflict = {
+      max_conflicts = 12, -- conflicts of a file sent in one batch (the rest is left for another round)
+      diff_chars = 5000, -- characters of each side's changes against the common ancestor
+      log = 8, -- commit subjects of each side
+    },
     -- Multi-file changes (agent/plan): one plan call (signatures only), you edit the plan, then one proposal per step
     plan = {
       max_files = 10,
