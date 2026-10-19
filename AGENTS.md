@@ -1,14 +1,14 @@
-# my-nvim-setup
+# Leader
 
 Neovim + NvChad v2.5 config — not an application. No CI or build system; the only automatic checks are `scripts/gen-cheatsheet.sh --check` and `scripts/test-agent.sh` (agent parsers and target, no network).
 
 ## Repo structure
 
-- `install.sh` / `install.ps1` — ONE-COMMAND installer (Linux/WSL/macOS · Windows; `curl … | bash` bootstraps by fetching the repo into `~/.local/share/my-nvim-setup`, non-interactive by default, `--ask` prompts, `--agent` defaults to `auto`, plugins via `Lazy! restore`, per-step timings): dependencies, Neovim ≥ 0.11, `nvim/` link, hooks, plugins, Mason and parsers; `--lang a,b` leaves only those languages (writes `languages.disabled` to `lua/local.lua`, without overwriting an existing one). Per-machine options: `--lang`, `--theme`, `--light/--no-light` (written to `lua/local.lua` by `scripts/install-local.lua`, ONE implementation shared by `install.sh` and `install.ps1`, never overwriting an existing `local.lua`) and `--agent auto|backend/model|none` (uses `scripts/agent-setup.sh`; skipped with `--no-plugins`). Uses `scripts/install-mason.lua`, `scripts/install-treesitter.lua` and `install-local.lua`; tests in `scripts/test-install.sh`; `scripts/test.sh` runs all the suites. `VERSION` is the config version (bumped with `chore(release)` + tag `vX.Y.Z`)
+- `install.sh` / `install.ps1` — ONE-COMMAND installer (Linux/WSL/macOS · Windows; `curl … | bash` bootstraps by fetching the repo into `~/.local/share/leader`, non-interactive by default, `--ask` prompts, `--agent` defaults to `auto`, plugins via `Lazy! restore`, per-step timings): dependencies, Neovim ≥ 0.11, `nvim/` link, hooks, plugins, Mason and parsers; `--lang a,b` leaves only those languages (writes `languages.disabled` to `lua/local.lua`, without overwriting an existing one). Per-machine options: `--lang`, `--theme`, `--light/--no-light` (written to `lua/local.lua` by `scripts/install-local.lua`, ONE implementation shared by `install.sh` and `install.ps1`, never overwriting an existing `local.lua`) and `--agent auto|backend/model|none` (uses `scripts/agent-setup.sh`; skipped with `--no-plugins`). Uses `scripts/install-mason.lua`, `scripts/install-treesitter.lua` and `install-local.lua`; tests in `scripts/test-install.sh`; `scripts/test.sh` runs all the suites. `VERSION` is the config version (bumped with `chore(release)` + tag `vX.Y.Z`)
 - `nvim/` — mirrors `%LOCALAPPDATA%\nvim` on Windows. Symlink it (or use the installer):
 
   ```powershell
-  New-Item -ItemType Junction -Path "$env:LOCALAPPDATA\nvim" -Target "C:\path\to\my-nvim-setup\nvim"
+  New-Item -ItemType Junction -Path "$env:LOCALAPPDATA\nvim" -Target "C:\path\to\leader\nvim"
   ```
 
 - `.agents/skills/caveman*` — OpenCode skills (lockfile: `skills-lock.json`)

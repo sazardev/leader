@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docs — my-nvim-setup</title>
-<meta name="description" content="Documentation of my-nvim-setup: install, every key, the AI agent, Go, Dart / Flutter, project tasks and how the config is built.">
+<title>Docs — Leader</title>
+<meta name="description" content="Documentation of Leader: install, every key, the AI agent, Go, Dart / Flutter, project tasks and how the config is built.">
 <meta name="theme-color" content="#282828">
 <link rel="preload" href="../fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23282828'/%3E%3Cpath d='M8 25V7l16 18V7' fill='none' stroke='%23b8bb26' stroke-width='3.4'/%3E%3C/svg%3E">
@@ -169,7 +169,7 @@ footer a{color:var(--dim)}
 </head>
 <body>
 <header class="bar">
-  <a class="logo" href="../"><i></i>my-nvim-setup <b>/ docs</b></a>
+  <a class="logo" href="../"><i></i>Leader <b>/ docs</b></a>
   <div class="search">
     <input id="q" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-label="Search">
     <span class="k">/</span>
@@ -177,7 +177,7 @@ footer a{color:var(--dim)}
   </div>
   <nav>
     <a class="home" href="../">Home</a>
-    <a href="https://github.com/sazardev/my-nvim-setup" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/sazardev/leader" target="_blank" rel="noopener">GitHub</a>
     <button id="theme" aria-label="Light or dark">Theme</button>
     <button id="menu" aria-label="Menu">Menu</button>
   </nav>
@@ -214,19 +214,19 @@ footer a{color:var(--dim)}
 </aside>
 <main id="main">
 <section class="page" id="overview" data-title="Overview">
-<p class="crumb">Start · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/README.md" target="_blank" rel="noopener">README.md</a></p>
+<p class="crumb">Start · <a href="https://github.com/sazardev/leader/blob/master/README.md" target="_blank" rel="noopener">README.md</a></p>
 <h1>Overview</h1>
-<p>A <strong>Neovim</strong> config on top of NvChad v2.5, designed as a small <strong>framework</strong>: you clone it, run a script and get an editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.</p>
-<p><code>v1.4.0</code> · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · <a href="https://sazardev.github.io/my-nvim-setup/docs/" target="_blank" rel="noopener">documentation</a></p>
+<p><strong>Leader</strong> is a <strong>Neovim</strong> config on top of NvChad v2.5, designed as a small <strong>framework</strong>: you clone it, run a script and get an editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.</p>
+<p><code>v1.4.0</code> · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · <a href="https://sazardev.github.io/leader/docs/" target="_blank" rel="noopener">documentation</a></p>
 <h2 id="overview--installation"><a href="#overview--installation">Installation</a></h2>
 <p><strong>One command, everything done</strong> (Linux, WSL, macOS):</p>
-<pre data-lang="sh"><code>curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash</code></pre>
-<p>Windows (PowerShell): <code>irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1 | iex</code></p>
-<p>It asks <strong>one thing</strong>: which languages to set up, as a checklist of packs (Go, Dart / Flutter, TypeScript / JavaScript, Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked; Enter keeps them. Only the languages you keep download their LSPs, formatters and linters (the base, Lua, Markdown, JSON, YAML, TOML, is always on). Change them later in <code>&lt;Space&gt;Sp</code> → Languages. No clone needed: it fetches the repo into <code>~/.local/share/my-nvim-setup</code> and does everything else (idempotent: run it again any time to bring it up to date):</p>
+<pre data-lang="sh"><code>curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash</code></pre>
+<p>Windows (PowerShell): <code>irm https://raw.githubusercontent.com/sazardev/leader/master/install.ps1 | iex</code></p>
+<p>It asks <strong>one thing</strong>: which languages to set up, as a checklist of packs (Go, Dart / Flutter, TypeScript / JavaScript, Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked; Enter keeps them. Only the languages you keep download their LSPs, formatters and linters (the base, Lua, Markdown, JSON, YAML, TOML, is always on). Change them later in <code>&lt;Space&gt;Sp</code> → Languages. No clone needed: it fetches the repo into <code>~/.local/share/leader</code> and does everything else (idempotent: run it again any time to bring it up to date):</p>
 <ol><li>installs whatever is missing from the system (git, curl, C compiler, ripgrep, node, cmake) and <strong>Neovim ≥ 0.11</strong> if you don't have it (in <code>~/.local/opt</code>, without <code>sudo</code>; with brew on macOS);</li><li>links <code>nvim/</code> as your config (<code>~/.config/nvim</code>); an existing one is moved to <code>nvim.bak-&lt;date&gt;</code>, never deleted;</li><li>enables the git hooks (<code>.githooks</code>: cheatsheet always up to date and conventional commits);</li><li>writes your <strong>per-machine settings</strong> (<code>nvim/lua/local.lua</code>, git-ignored): the languages you chose and the options below;</li><li>installs the plugins at the versions pinned in <code>nvim/lazy-lock.json</code> (in parallel), the LSPs/formatters/linters (Mason) and builds the treesitter parsers (<code>tree-sitter-cli</code> comes from Mason), reporting the time each step took;</li><li><strong>sets up the AI agent</strong> with the best backend it finds (Claude Code, OpenCode, Ollama…); <code>--agent none</code> skips it.</li></ol>
 <p>Options go after <code>bash -s --</code>, for example a Go laptop, fully configured:</p>
-<pre data-lang="sh"><code>curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go,sql --theme gruvbox</code></pre>
-<p>Prefer to clone it yourself (to hack on it)? <code>git clone https://github.com/sazardev/my-nvim-setup &amp;&amp; cd my-nvim-setup &amp;&amp; ./install.sh</code> does exactly the same. Override the fetch with <code>NVIM_CONFIG_DIR</code>, <code>NVIM_CONFIG_REPO</code> and <code>NVIM_CONFIG_BRANCH</code>.</p>
+<pre data-lang="sh"><code>curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash -s -- --lang go,sql --theme gruvbox</code></pre>
+<p>Prefer to clone it yourself (to hack on it)? <code>git clone https://github.com/sazardev/leader &amp;&amp; cd leader &amp;&amp; ./install.sh</code> does exactly the same. Override the fetch with <code>NVIM_CONFIG_DIR</code>, <code>NVIM_CONFIG_REPO</code> and <code>NVIM_CONFIG_BRANCH</code>.</p>
 <p>Then open <code>nvim</code>. Press <code>&lt;Space&gt;</code> and which-key shows you the menus.</p>
 <p>There is also a landing page, <code>docs/index.html</code> (flat and square like the config, no build, self-hosted Geist in <code>docs/fonts/</code>, dark/light with <code>t</code>), and the documentation at <code>docs/docs/index.html</code> (generated from the Markdown by <code>scripts/gen-docs.sh</code>); serve <code>docs/</code> with GitHub Pages (<code>cd docs &amp;&amp; python3 -m http.server</code>).</p>
 <div class="tbl"><table><thead><tr><th>Option</th><th>Effect</th></tr></thead><tbody><tr><td><code>--ask</code></td><td>prompts before installing system packages or Neovim (by default it asks nothing)</td></tr><tr><td><code>--lang python,sql</code></td><td>those packs (<code>go dart typescript web python rust sql swift jvm infra yarnspinner</code>) or single languages, <code>all</code> for every one; skips the checklist</td></tr><tr><td><code>--yes</code></td><td>asks nothing: the packs found on this machine (also what happens with no terminal)</td></tr><tr><td><code>--theme catppuccin</code></td><td>default theme (<code>local.lua</code>)</td></tr><tr><td><code>--light</code> / <code>--no-light</code></td><td>forces light mode (no resident LSP) or turns it off; without this it is detected by RAM (≤ 2 GB)</td></tr><tr><td><code>--agent auto</code></td><td>the AI agent (<code>auto</code> is the default and picks the best available), <code>claude/haiku</code>, <code>ollama/qwen2.5-coder:7b@light</code>…; <code>none</code> skips it</td></tr><tr><td><code>--no-deps</code></td><td>doesn't touch system packages or Neovim</td></tr><tr><td><code>--no-plugins</code></td><td>only links; plugins and tools install themselves the first time you open nvim</td></tr><tr><td><code>--dry-run</code></td><td>shows what it would do</td></tr></tbody></table></div>
@@ -267,7 +267,7 @@ return {
 <p>The principles (the same across the whole repo) and where they show:</p>
 <ul><li><strong>One responsibility per module</strong>: the pure parts (<code>commit/conventional.lua</code>, <code>utils/goindex.lua</code>, <code>agent/protocol.lua</code>) kept apart from what touches git, the LSP or the UI (<code>commit/git.lua</code>, <code>commit/panel.lua</code>); one presenter per output kind (<code>agent/output/</code>).</li><li><strong>Open for extension, closed for modification</strong>: discovered registries (<code>languages/</code>, <code>agent/actions/</code>, <code>agent/backends/</code>, <code>agent/lenses/</code>); adding one doesn't force editing the others. The agent pipeline is extended with action hooks (<code>retarget</code>, <code>merge</code>, <code>reveal</code>, <code>prepare</code>), with guards (<code>agent/guards/</code>) and with events (<code>agent/events.lua</code>: verification, batches and the proposal queue subscribe; the presenter that accepts a proposal knows none of them).</li><li><strong>Dependencies point to abstractions</strong>: each piece talks to a small contract (a backend's <code>build</code>/<code>parser</code>, a context provider's <code>collect(target, done)</code>, a Go helper's <code>declaration_items(range, frag)</code>), not to its neighbor's implementation.</li><li><strong>Configurable things in a single place</strong>: <code>core/settings.lua</code>; the scripts (<code>install.sh</code>, <code>install.ps1</code>) share the same settings logic (<code>scripts/install-local.lua</code>) instead of duplicating it.</li></ul>
 <h2 id="overview--keys-and-documentation"><a href="#overview--keys-and-documentation">Keys and documentation</a></h2>
-<ul><li><strong><a href="https://sazardev.github.io/my-nvim-setup/docs/" target="_blank" rel="noopener">The documentation site</a></strong>: everything below in one searchable page (<code>/</code> to search). It is generated from these Markdown files (<code>scripts/gen-docs.sh</code>; the pre-commit hook regenerates it).</li><li><a href="#keys"><code>CHEATSHEET.md</code></a>: <strong>all</strong> the keys. It is generated from the real keymaps (<code>scripts/gen-cheatsheet.sh</code>; the pre-commit hook regenerates it). Inside nvim, the dashboard's <em>Mappings</em> button shows the same.</li><li><a href="#guides"><code>docs/cheatsheets/</code></a>: what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.</li><li><a href="#internals"><code>AGENTS.md</code></a> / <a href="https://github.com/sazardev/my-nvim-setup/blob/master/CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a>: architecture and pitfalls for whoever touches the config (people or agents).</li></ul>
+<ul><li><strong><a href="https://sazardev.github.io/leader/docs/" target="_blank" rel="noopener">The documentation site</a></strong>: everything below in one searchable page (<code>/</code> to search). It is generated from these Markdown files (<code>scripts/gen-docs.sh</code>; the pre-commit hook regenerates it).</li><li><a href="#keys"><code>CHEATSHEET.md</code></a>: <strong>all</strong> the keys. It is generated from the real keymaps (<code>scripts/gen-cheatsheet.sh</code>; the pre-commit hook regenerates it). Inside nvim, the dashboard's <em>Mappings</em> button shows the same.</li><li><a href="#guides"><code>docs/cheatsheets/</code></a>: what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.</li><li><a href="#internals"><code>AGENTS.md</code></a> / <a href="https://github.com/sazardev/leader/blob/master/CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a>: architecture and pitfalls for whoever touches the config (people or agents).</li></ul>
 <h2 id="overview--structure"><a href="#overview--structure">Structure</a></h2>
 <pre><code>install.sh · install.ps1      installation (Linux/WSL/macOS · Windows)
 VERSION                       config version
@@ -291,7 +291,7 @@ docs/cheatsheets/             per-language and agent documentation
 <ul><li>Update: re-run the install command (or <code>git pull &amp;&amp; ./install.sh</code>): it brings the plugins to the versions pinned in <code>lazy-lock.json</code>; the config reloads itself when nvim opens.</li><li>Check: <code>scripts/test.sh</code> runs everything (agent and commits, Go helpers, installer and up-to-date cheatsheet; no network or tokens); each suite can also be run on its own: <code>scripts/test-agent.sh</code>, <code>scripts/test-go.sh</code>, <code>scripts/test-install.sh</code>, <code>scripts/gen-cheatsheet.sh --check</code>.</li><li>Commits: Conventional Commits format (<code>feat(scope): subject</code>); the <code>commit-msg</code> hook validates it and <code>&lt;leader&gt;Gc</code> / <code>Gm</code> / <code>GM</code> assist with it.</li></ul>
 </section>
 <section class="page" id="guides" data-title="Workflows">
-<p class="crumb">Start · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/README.md" target="_blank" rel="noopener">docs/cheatsheets/README.md</a></p>
+<p class="crumb">Start · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/README.md" target="_blank" rel="noopener">docs/cheatsheets/README.md</a></p>
 <h1>Workflows</h1>
 <blockquote><strong>Keys: <a href="#keys"><code>CHEATSHEET.md</code></a></strong> (repo root) — the <strong>only</strong> source. It is <strong>generated</strong> by reading the real keymaps (<code>scripts/gen-cheatsheet.sh</code>) and regenerated on every commit; it is not edited by hand and its tables are not duplicated here. Inside nvim, the dashboard's <strong>Mappings</strong> button (<code>NvCheatsheet</code>) shows the same thing live.  These pages hold <strong>what the code doesn't say</strong>: what each thing does, workflows, tools, pitfalls. <code>&lt;leader&gt;</code> = <code>Space</code>.</blockquote>
 <div class="tbl"><table><thead><tr><th>Cheatsheet</th><th>What it covers</th></tr></thead><tbody><tr><td><a href="#go">go.md</a></td><td><strong>Go in depth</strong>: struct tags, snippets, contextual completion, <code>&lt;leader&gt;g</code> menu</td></tr><tr><td><a href="#agent">agent.md</a></td><td><strong>Inline agent</strong> (<code>&lt;leader&gt;a</code>): one-shot implement/review/explain/convert... with Claude, OpenCode or a local model (Ollama, OpenAI-compatible servers)</td></tr><tr><td><a href="#editing">editing.md</a></td><td><strong>Undo, clipboard and yank history</strong> (<code>&lt;leader&gt;u</code>): undo word by word, redo keys, undo tree, the file at the previous save, yank list</td></tr><tr><td><a href="#gitignore">gitignore.md</a></td><td><strong>.gitignore</strong> (<code>&lt;leader&gt;Gi</code>): what it detects, the topics, how it merges with an existing file</td></tr><tr><td><a href="#tasks">tasks.md</a></td><td><strong>Makefile tasks</strong> (<code>&lt;leader&gt;R</code>): the picker, writing targets it can list, the preset Makefiles per language</td></tr><tr><td><a href="#release">release.md</a></td><td><strong>Release kit</strong> (<code>&lt;leader&gt;GR</code>): changelog and next version from Conventional Commits, PR description, release checklist</td></tr><tr><td><a href="#typescript">typescript.md</a></td><td><strong>TypeScript / JavaScript</strong> (<code>&lt;leader&gt;t</code>): scripts, typecheck to quickfix, tests in the editor (vitest, jest, bun), biome or prettier, setup</td></tr><tr><td><a href="#python">python.md</a></td><td><strong>Python</strong> (<code>&lt;leader&gt;p</code>): basedpyright + ruff, uv, tests in the editor (pytest), debugpy, setup</td></tr><tr><td><a href="#rust">rust.md</a></td><td><strong>Rust</strong> (<code>&lt;leader&gt;r</code>): rust-analyzer with clippy, cargo, tests in the editor, macros, codelldb, setup</td></tr><tr><td><a href="#sql">sql.md</a></td><td><strong>SQL</strong> (<code>&lt;leader&gt;Q</code>): run the statement under the cursor against PostgreSQL or SQLite, explain, schema</td></tr><tr><td><a href="#swift">swift.md</a></td><td><strong>Swift</strong> (<code>&lt;leader&gt;i</code>): SwiftPM, sourcekit-lsp, tests in the editor (XCTest, Swift Testing), setup</td></tr><tr><td><a href="#dart-flutter">dart-flutter.md</a></td><td><strong>Dart / Flutter</strong> (<code>&lt;leader&gt;d</code>): run and debug, tests inside the editor, build_runner, completion for Riverpod/freezed, pub</td></tr><tr><td><a href="#java-kotlin">java-kotlin.md</a></td><td>Java and Kotlin (Gradle / Maven)</td></tr><tr><td><a href="#lua">lua.md</a></td><td>Lua (the config itself)</td></tr><tr><td><a href="#markdown">markdown.md</a></td><td>Markdown</td></tr><tr><td><a href="#web">web.md</a></td><td>HTML, CSS, Tailwind, Astro</td></tr><tr><td><a href="#data-formats">data-formats.md</a></td><td>JSON, YAML, TOML, Docker, Prisma, YarnSpinner</td></tr></tbody></table></div>
@@ -307,7 +307,7 @@ docs/cheatsheets/             per-language and agent documentation
 <ul><li><strong>Language</strong>: <code>lua/languages/&lt;name&gt;.lua</code> + add it to <code>NAMES</code> in <code>languages/init.lua</code> + its page here.</li><li><strong>Plugin</strong>: one file in <code>lua/plugins/&lt;group&gt;/</code>.</li><li><strong>New keymap</strong>: give it a <code>desc</code> of <strong>2+ words starting with its section</strong> (<code>&quot;Harpoon add file&quot;</code>); the generator and NvCheatsheet group by the first word and drop single-word ones.</li><li><strong>Go snippet</strong>: <code>nvim/snippets/go.json</code> (VSCode format).</li><li>After changing keys or menus: nothing to edit by hand; <code>scripts/gen-cheatsheet.sh</code> regenerates <code>CHEATSHEET.md</code> (the <code>pre-commit</code> hook does it on its own).</li></ul>
 </section>
 <section class="page" id="keys" data-title="Every key">
-<p class="crumb">Start · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/CHEATSHEET.md" target="_blank" rel="noopener">CHEATSHEET.md</a></p>
+<p class="crumb">Start · <a href="https://github.com/sazardev/leader/blob/master/CHEATSHEET.md" target="_blank" rel="noopener">CHEATSHEET.md</a></p>
 <h1>Every key</h1>
 <blockquote>Generated from the config's real keymaps (<code>nvim_get_keymap</code>, <code>menus/</code>, <code>servers/on_attach.lua</code>). Regenerated automatically on every commit (<code>.githooks/pre-commit</code>). <code>&lt;leader&gt;</code> = <code>Space</code>. This is the ONLY source of keys. What can't be derived from code (what each thing does, workflows, tools): <a href="#guides"><code>docs/cheatsheets/</code></a>.</blockquote>
 <h2 id="keys--leader-menus"><a href="#keys--leader-menus">Leader menus</a></h2>
@@ -460,7 +460,7 @@ docs/cheatsheets/             per-language and agent documentation
 <div class="tbl"><table><thead><tr><th>Key</th><th>Action</th></tr></thead><tbody><tr><td><code>grn</code></td><td>rename symbol</td></tr><tr><td><code>gra</code></td><td>code action</td></tr><tr><td><code>gri</code></td><td>go to implementation</td></tr><tr><td><code>grt</code></td><td>go to type definition</td></tr><tr><td><code>gO</code></td><td>document symbols</td></tr><tr><td><code>K</code></td><td>hover (documentation)</td></tr><tr><td><code>gx</code></td><td>open the URL or path under the cursor</td></tr><tr><td><code>gc / gcc</code></td><td>comment (operator / line)</td></tr></tbody></table></div>
 </section>
 <section class="page" id="changelog" data-title="Changelog">
-<p class="crumb">Start · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a></p>
+<p class="crumb">Start · <a href="https://github.com/sazardev/leader/blob/master/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a></p>
 <h1>Changelog</h1>
 <p>All notable changes, newest first. Generated from the Conventional Commits since each tag (&lt;leader&gt;GRc).</p>
 <h2 id="changelog--160---2026-10-19"><a href="#changelog--160---2026-10-19">[1.6.0] - 2026-10-19</a></h2>
@@ -514,7 +514,7 @@ docs/cheatsheets/             per-language and agent documentation
 <ul><li>docs(readme): README nuevo con instalación, filosofía y estructura (c36b153)</li><li>refactor(i18n): pasa a inglés los textos de UI (keymaps, menús, notificaciones) (8136b19)</li><li>chore(lock): add persistence, diffview, treesitter-context and refresh plugin versions (fb79e18)</li><li>docs: document sessions, diffview and treesitter-context in AGENTS.md (b49eae4)</li><li>new art! (607c7ba)</li><li>refactor: modular architecture, contextual leader menus, and config cleanup (f3f2dd1)</li><li>refactor: trim unused plugins and keymaps, add global replace (73fb3d6)</li><li>unify visual: single borders, zero icons, fix diagnostics (f1ebbad)</li><li>docs for go! (e3719b4)</li><li>Remove Copilot plugin and dependencies (5ceb0fa)</li><li>Add Go tooling keymaps, fix treesitter highlighting, brighten gruvbox syntax colors (a8e5bb2)</li><li>update config (c4f50b2)</li><li>update config (81c1348)</li><li>update config (2e53d5b)</li><li>update config (b454716)</li><li>update config (d9a5192)</li><li>update config (1bd0135)</li><li>update config (0227935)</li><li>update config (dc6de83)</li><li>update (33b096d)</li><li>update chadrc (61586bd)</li><li>update (53069e6)</li><li>add AGENTS.md (f9a64be)</li><li>update config files and README (7c45f1e)</li><li>update config files (b4dba20)</li><li>Initial commit (68e950e)</li></ul>
 </section>
 <section class="page" id="agent" data-title="AI agent">
-<p class="crumb">Features · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/agent.md" target="_blank" rel="noopener">docs/cheatsheets/agent.md</a></p>
+<p class="crumb">Features · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/agent.md" target="_blank" rel="noopener">docs/cheatsheets/agent.md</a></p>
 <h1>AI agent</h1>
 <p><strong>One-shot</strong> actions on what you are looking at: a function, a class or a selection. No chat, no sidebar, no conversation. Every action has a closed prompt, a bounded context and an output with a fixed format, so it is predictable and cheap. Keys: <a href="#keys"><code>CHEATSHEET.md</code></a> (<strong>Agent</strong> menu).</p>
 <h2 id="agent--flow"><a href="#agent--flow">Flow</a></h2>
@@ -697,7 +697,7 @@ return { agent = { custom = {
 <ul><li>Each lens has a <strong>gate</strong>: if the code contains nothing of its topic (a function without threads for <code>c</code>, without I/O for <code>s</code>, without changes for <code>a</code>) it warns <code>skipped (0 tokens)</code> and does not call the model.</li><li>Minimal context per lens (rules and signatures of what it calls; <code>c</code> adds types; <code>a</code> adds the diff): the output is ≤ 8 lines.</li><li>Adding a lens = one file in <code>agent/lenses/actions/</code> (<code>key</code>, <code>title</code>, <code>focus</code>, <code>gate</code>) and its name in <code>NAMES</code>.</li><li>Change the model of one: <code>agent.tiers.lens_security = &quot;light&quot;</code>.</li></ul>
 </section>
 <section class="page" id="editing" data-title="Undo and clipboard">
-<p class="crumb">Features · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/editing.md" target="_blank" rel="noopener">docs/cheatsheets/editing.md</a></p>
+<p class="crumb">Features · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/editing.md" target="_blank" rel="noopener">docs/cheatsheets/editing.md</a></p>
 <h1>Undo and clipboard</h1>
 <p>Undo and paste behave closer to VS Code without changing how Vim works underneath. Nothing runs in the background, and nothing is loaded until you use it. Keys: <a href="#keys"><code>CHEATSHEET.md</code></a> (sections <strong>History</strong> and <strong>Clipboard</strong>).</p>
 <h2 id="editing--undo-word-by-word"><a href="#editing--undo-word-by-word">Undo word by word</a></h2>
@@ -721,7 +721,7 @@ return { agent = { custom = {
 <ul><li><strong>WSL / SSH: text copied outside nvim.</strong> Copying from nvim reaches the system clipboard (OSC 52). Pasting from the system clipboard is <strong>Ctrl+Shift+V</strong> in the terminal, because the terminal does not let nvim read it (<code>p</code> pastes nvim's own clipboard).</li><li><code>[y</code> only works right after a paste. Once anything else changes the buffer it tells you to paste first.</li></ul>
 </section>
 <section class="page" id="tasks" data-title="Project tasks">
-<p class="crumb">Features · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/tasks.md" target="_blank" rel="noopener">docs/cheatsheets/tasks.md</a></p>
+<p class="crumb">Features · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/tasks.md" target="_blank" rel="noopener">docs/cheatsheets/tasks.md</a></p>
 <h1>Project tasks</h1>
 <p>The targets of the project's <code>Makefile</code> in one picker, run in the integrated terminal. It asks <code>make</code>, so it costs <strong>0 tokens</strong> and nothing stays running. Keys: <a href="#keys"><code>CHEATSHEET.md</code></a> (section <strong>Run</strong>).</p>
 <p><strong>It works with a Makefile and only with a Makefile.</strong> Without one, every key says so and does nothing, except <code>&lt;leader&gt;Rc</code>, which creates one.</p>
@@ -753,7 +753,7 @@ clean:
 <ul><li>Targets run in the <strong>same terminal</strong> as <code>&lt;leader&gt;ao</code> reads, so a failing build can go straight to the agent's &quot;fix from output&quot;. <code>&lt;leader&gt;Rq</code> puts the file:line errors of that output in the quickfix for free.</li><li>If a target is still running, the next one asks before it is typed into it (<code>Stop it and run</code>). <code>&lt;leader&gt;Rs</code> sends Ctrl-C.</li><li><code>&lt;leader&gt;Rl</code> repeats the last target of the project (it survives a restart); <code>&lt;leader&gt;Ra</code> edits its arguments first.</li></ul>
 </section>
 <section class="page" id="gitignore" data-title=".gitignore">
-<p class="crumb">Features · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/gitignore.md" target="_blank" rel="noopener">docs/cheatsheets/gitignore.md</a></p>
+<p class="crumb">Features · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/gitignore.md" target="_blank" rel="noopener">docs/cheatsheets/gitignore.md</a></p>
 <h1>.gitignore</h1>
 <p>Writes a <code>.gitignore</code> from what the project is made of. 0 tokens, nothing resident. Keys: <a href="#keys"><code>CHEATSHEET.md</code></a> (section <strong>Git</strong>, <code>ignore rules</code>).</p>
 <h2 id="gitignore--what-it-looks-at"><a href="#gitignore--what-it-looks-at">What it looks at</a></h2>
@@ -773,7 +773,7 @@ clean:
 <p>Tests: <code>scripts/test-gitignore.sh</code>.</p>
 </section>
 <section class="page" id="release" data-title="Release">
-<p class="crumb">Features · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/release.md" target="_blank" rel="noopener">docs/cheatsheets/release.md</a></p>
+<p class="crumb">Features · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/release.md" target="_blank" rel="noopener">docs/cheatsheets/release.md</a></p>
 <h1>Release</h1>
 <p>The steps around a release that are always the same, inside a git repository. Changelog and checklist cost 0 tokens; the PR description is one light-tier request. Nothing is ever tagged, pushed, posted or published from here: those lines are shown for you to run. Keys: <a href="#keys"><code>CHEATSHEET.md</code></a> (section <strong>Git</strong>, <code>release …</code>).</p>
 <h2 id="release--changelog-c"><a href="#release--changelog-c">Changelog (<code>c</code>)</a></h2>
@@ -791,7 +791,7 @@ clean:
 <ul><li>Subjects that are not Conventional Commits still appear, under Other changes, and never bump more than a patch: keep using the commit panel (<code>&lt;leader&gt;Gc</code>), which validates them.</li><li>The changelog follows tags: tag every release, or the next changelog includes the previous one's commits.</li></ul>
 </section>
 <section class="page" id="go" data-title="Go">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/go.md" target="_blank" rel="noopener">docs/cheatsheets/go.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/go.md" target="_blank" rel="noopener">docs/cheatsheets/go.md</a></p>
 <h1>Go</h1>
 <h2 id="go--tools"><a href="#go--tools">Tools</a></h2>
 <div class="tbl"><table><thead><tr><th>What</th><th>With</th></tr></thead><tbody><tr><td>LSP</td><td>gopls (gofumpt, staticcheck, placeholders, analyses: unusedparams, shadow, unusedwrite, useany; inlay hints)</td></tr><tr><td>Format (on save and <code>&lt;leader&gt;fm</code>)</td><td><code>goimports</code> then <code>gofumpt</code></td></tr><tr><td>Lint</td><td><code>golangci-lint</code> (in light mode: <code>go vet</code>); does not run when leaving insert</td></tr><tr><td>Extra</td><td>go.nvim (<code>GoAddTag</code>, <code>GoFillStruct</code>, <code>GoIfErr</code>, <code>GoAddTest</code>...), treesitter, gomodifytags</td></tr></tbody></table></div>
@@ -932,7 +932,7 @@ type Repository interface {
 <ul><li>If the treesitter tree comes out broken (unclosed brace), the filter prefers to <strong>show everything</strong> rather than hide something useful.</li><li>To tweak or add <code>func</code>/<code>type</code>/<code>method</code> variants: <code>FUNCS</code>, <code>TYPES</code> and <code>METHODS</code> tables in <code>utils/gosmart.lua</code>.</li><li>To add a statement snippet: <code>snippets/go.json</code>, and if it only applies inside functions, add its name to <code>FUNC_ONLY</code> in <code>gosmart.lua</code>.</li></ul>
 </section>
 <section class="page" id="dart-flutter" data-title="Dart / Flutter">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/dart-flutter.md" target="_blank" rel="noopener">docs/cheatsheets/dart-flutter.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/dart-flutter.md" target="_blank" rel="noopener">docs/cheatsheets/dart-flutter.md</a></p>
 <h1>Dart / Flutter</h1>
 <p>Filetype: <code>dart</code>. The keys are in <a href="#keys"><code>CHEATSHEET.md</code></a> (generated; not duplicated here).</p>
 <h2 id="dart-flutter--tools"><a href="#dart-flutter--tools">Tools</a></h2>
@@ -966,7 +966,7 @@ type Repository interface {
 <ul><li>Requires <code>pubspec.yaml</code>: it detects whether the project is Flutter (<code>flutter:</code> block) or plain Dart and uses the right command (<code>flutter test</code> / <code>dart test</code>, etc.).</li><li>The Dart debug adapter pauses &quot;on entry&quot; and resumes by itself: calling <code>continue</code> there gets nvim-dap's &quot;not focused on any stopped thread&quot; question.</li><li>Neovim's snippet parser rejects nested placeholders (<code>${1:Future&lt;${2:T}&gt;}</code>): keep one placeholder per type.</li></ul>
 </section>
 <section class="page" id="typescript" data-title="TypeScript / JS">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/typescript.md" target="_blank" rel="noopener">docs/cheatsheets/typescript.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/typescript.md" target="_blank" rel="noopener">docs/cheatsheets/typescript.md</a></p>
 <h1>TypeScript / JS</h1>
 <p>Filetypes: <code>typescript</code>, <code>typescriptreact</code>, <code>javascript</code>, <code>javascriptreact</code>. Pack <code>typescript</code>.</p>
 <h2 id="typescript--tools"><a href="#typescript--tools">Tools</a></h2>
@@ -981,7 +981,7 @@ type Repository interface {
 <ul><li>Biome and Prettier never both format: Biome only runs where a <code>biome.json</code> is.</li><li><code>npx --no-install</code> fails when the tool is not in <code>node_modules</code>: install it in the project first.</li></ul>
 </section>
 <section class="page" id="python" data-title="Python">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/python.md" target="_blank" rel="noopener">docs/cheatsheets/python.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/python.md" target="_blank" rel="noopener">docs/cheatsheets/python.md</a></p>
 <h1>Python</h1>
 <p>Filetype: <code>python</code>. Pack <code>python</code> (installer checklist, or <code>&lt;leader&gt;Sp</code> → Languages).</p>
 <h2 id="python--tools"><a href="#python--tools">Tools</a></h2>
@@ -996,7 +996,7 @@ type Repository interface {
 <ul><li>basedpyright needs the dependencies installed in the <code>.venv</code> to resolve imports: <code>uv sync</code> first.</li><li>Tests from a class that does not start with <code>Test</code> are not collected by pytest, so they get no mark either.</li></ul>
 </section>
 <section class="page" id="rust" data-title="Rust">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/rust.md" target="_blank" rel="noopener">docs/cheatsheets/rust.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/rust.md" target="_blank" rel="noopener">docs/cheatsheets/rust.md</a></p>
 <h1>Rust</h1>
 <p>Filetype: <code>rust</code>. Pack <code>rust</code>.</p>
 <h2 id="rust--tools"><a href="#rust--tools">Tools</a></h2>
@@ -1010,7 +1010,7 @@ type Repository interface {
 <ul><li>The first rust-analyzer start indexes the crate and its dependencies: the first diagnostics take a moment.</li><li>clippy as the check runs on save; on a very large workspace switch it back with a <code>.neoconf.json</code> (<code>&quot;rust-analyzer&quot;: { &quot;check&quot;: { &quot;command&quot;: &quot;check&quot; } }</code>).</li></ul>
 </section>
 <section class="page" id="sql" data-title="SQL">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/sql.md" target="_blank" rel="noopener">docs/cheatsheets/sql.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/sql.md" target="_blank" rel="noopener">docs/cheatsheets/sql.md</a></p>
 <h1>SQL</h1>
 <p>Filetype: <code>sql</code>. Pack <code>sql</code>.</p>
 <h2 id="sql--tools"><a href="#sql--tools">Tools</a></h2>
@@ -1028,7 +1028,7 @@ type Repository interface {
 <ul><li>psql reads <code>~/.pgpass</code> and <code>PG*</code> variables as usual: a URL without a password works when those have it.</li><li>A long query stops after <code>settings.sql.timeout_ms</code> (30 s).</li></ul>
 </section>
 <section class="page" id="swift" data-title="Swift">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/swift.md" target="_blank" rel="noopener">docs/cheatsheets/swift.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/swift.md" target="_blank" rel="noopener">docs/cheatsheets/swift.md</a></p>
 <h1>Swift</h1>
 <p>Filetype: <code>swift</code>. Pack <code>swift</code>. For packages, CLIs and servers on Linux/WSL or macOS; Xcode projects are not covered.</p>
 <h2 id="swift--tools"><a href="#swift--tools">Tools</a></h2>
@@ -1041,7 +1041,7 @@ type Repository interface {
 <p><code>xctestcase</code>, <code>swifttest</code>, <code>swiftsuite</code>, <code>errorenum</code>.</p>
 </section>
 <section class="page" id="java-kotlin" data-title="Java / Kotlin">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/java-kotlin.md" target="_blank" rel="noopener">docs/cheatsheets/java-kotlin.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/java-kotlin.md" target="_blank" rel="noopener">docs/cheatsheets/java-kotlin.md</a></p>
 <h1>Java / Kotlin</h1>
 <p>Filetypes: <code>java</code>, <code>kotlin</code>. They share the same actions (Gradle or Maven).</p>
 <h2 id="java-kotlin--tools"><a href="#java-kotlin--tools">Tools</a></h2>
@@ -1053,7 +1053,7 @@ type Repository interface {
 <div class="tbl wide"><table><thead><tr><th>Action</th><th>Gradle</th><th>Maven</th></tr></thead><tbody><tr><td>run</td><td data-label="Gradle"><code>run</code></td><td data-label="Maven"><code>spring-boot:run</code> if the <code>pom</code> uses Spring Boot; otherwise <code>compile exec:java</code></td></tr><tr><td>build</td><td data-label="Gradle"><code>build</code></td><td data-label="Maven"><code>package</code></td></tr><tr><td>test</td><td data-label="Gradle"><code>test</code></td><td data-label="Maven"><code>test</code></td></tr><tr><td>check / verify</td><td data-label="Gradle"><code>check</code></td><td data-label="Maven"><code>verify</code></td></tr><tr><td>clean</td><td data-label="Gradle"><code>clean</code></td><td data-label="Maven"><code>clean</code></td></tr></tbody></table></div>
 </section>
 <section class="page" id="lua" data-title="Lua">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/lua.md" target="_blank" rel="noopener">docs/cheatsheets/lua.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/lua.md" target="_blank" rel="noopener">docs/cheatsheets/lua.md</a></p>
 <h1>Lua</h1>
 <p>Filetype: <code>lua</code>.</p>
 <h2 id="lua--tools"><a href="#lua--tools">Tools</a></h2>
@@ -1068,7 +1068,7 @@ type Repository interface {
 <p>It reloads Lua, but does <strong>not</strong> install/remove plugins or treesitter parsers.</p>
 </section>
 <section class="page" id="markdown" data-title="Markdown">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/markdown.md" target="_blank" rel="noopener">docs/cheatsheets/markdown.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/markdown.md" target="_blank" rel="noopener">docs/cheatsheets/markdown.md</a></p>
 <h1>Markdown</h1>
 <p>Filetype: <code>markdown</code>.</p>
 <h2 id="markdown--tools"><a href="#markdown--tools">Tools</a></h2>
@@ -1078,7 +1078,7 @@ type Repository interface {
 <ul><li>The diagnostics toggle hides the linter's diagnostics <strong>only in this buffer</strong> (the linter keeps running).</li><li>With spell checking on (es, en): <code>]s</code> / <code>[s</code> jump between errors and <code>z=</code> suggests corrections (native Vim).</li></ul>
 </section>
 <section class="page" id="web" data-title="Web">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/web.md" target="_blank" rel="noopener">docs/cheatsheets/web.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/web.md" target="_blank" rel="noopener">docs/cheatsheets/web.md</a></p>
 <h1>Web</h1>
 <h2 id="web--html"><a href="#web--html">HTML</a></h2>
 <div class="tbl"><table><thead><tr><th>What</th><th>With</th></tr></thead><tbody><tr><td>LSP</td><td><code>html</code> and <code>emmet_ls</code> (expands Emmet abbreviations: <code>ul&gt;li*3</code> + completion)</td></tr><tr><td>Format (on save and <code>&lt;leader&gt;fm</code>)</td><td><code>prettier</code></td></tr><tr><td>Extra</td><td><code>nvim-ts-autotag</code>: typing <code>&lt;div&gt;</code> closes <code>&lt;/div&gt;</code> and renames its pair</td></tr></tbody></table></div>
@@ -1092,7 +1092,7 @@ type Repository interface {
 <div class="tbl"><table><thead><tr><th>What</th><th>With</th></tr></thead><tbody><tr><td>LSP</td><td><code>astro-language-server</code></td></tr><tr><td>Format</td><td><code>prettier</code> — <strong>requires <code>prettier-plugin-astro</code></strong> in the project (<code>node_modules</code>) or installed globally; Mason only installs <code>prettier</code></td></tr></tbody></table></div>
 </section>
 <section class="page" id="data-formats" data-title="Data formats">
-<p class="crumb">Languages · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/docs/cheatsheets/data-formats.md" target="_blank" rel="noopener">docs/cheatsheets/data-formats.md</a></p>
+<p class="crumb">Languages · <a href="https://github.com/sazardev/leader/blob/master/docs/cheatsheets/data-formats.md" target="_blank" rel="noopener">docs/cheatsheets/data-formats.md</a></p>
 <h1>Data formats</h1>
 <p>They have no leader menu; they rely on LSP, format on save (<code>&lt;leader&gt;fm</code>) and linters.</p>
 <div class="tbl wide"><table><thead><tr><th>Language</th><th>LSP</th><th>Format</th><th>Lint</th><th>Notes</th></tr></thead><tbody><tr><td><strong>JSON</strong></td><td data-label="LSP"><code>jsonls</code> + SchemaStore (automatic schemas for <code>package.json</code>, <code>tsconfig</code>, etc.)</td><td data-label="Format"><code>prettier</code></td><td data-label="Lint"><code>jsonlint</code></td><td data-label="Notes"></td></tr><tr><td><strong>YAML</strong></td><td data-label="LSP">—</td><td data-label="Format"><code>prettier</code></td><td data-label="Lint">—</td><td data-label="Notes">treesitter only</td></tr><tr><td><strong>TOML</strong></td><td data-label="LSP">—</td><td data-label="Format"><code>prettier</code></td><td data-label="Lint">—</td><td data-label="Notes">treesitter only</td></tr><tr><td><strong>Dockerfile</strong></td><td data-label="LSP"><code>dockerls</code> and <code>docker_compose_language_service</code></td><td data-label="Format">—</td><td data-label="Lint">—</td><td data-label="Notes"><code>lazydocker</code> available via <code>TermExec</code></td></tr><tr><td><strong>Prisma</strong></td><td data-label="LSP"><code>prismals</code></td><td data-label="Format">via the LSP (<code>lsp_format = &quot;fallback&quot;</code>)</td><td data-label="Lint">—</td><td data-label="Notes">no formatter in conform</td></tr><tr><td><strong>YarnSpinner</strong> (<code>*.yarn</code>)</td><td data-label="LSP">—</td><td data-label="Format">—</td><td data-label="Lint"><code>ysc</code> (optional)</td><td data-label="Notes">see below</td></tr></tbody></table></div>
@@ -1100,11 +1100,11 @@ type Repository interface {
 <ul><li><code>ftdetect/yarnspinner.vim</code>: <code>*.yarn</code> → filetype <code>yarnspinner</code>.</li><li><code>syntax/yarnspinner.vim</code>: highlighting for dialogue scripts.</li><li>The <strong><code>ysc</code> linter is optional</strong>: it is only enabled if it is on the PATH (<code>dotnet tool install -g yarn-spinner</code>, requires <code>dotnet</code>). Error format: <code>path(lnum,col): severity CODE: message</code>.</li></ul>
 </section>
 <section class="page" id="internals" data-title="Architecture">
-<p class="crumb">Internals · <a href="https://github.com/sazardev/my-nvim-setup/blob/master/AGENTS.md" target="_blank" rel="noopener">AGENTS.md</a></p>
+<p class="crumb">Internals · <a href="https://github.com/sazardev/leader/blob/master/AGENTS.md" target="_blank" rel="noopener">AGENTS.md</a></p>
 <h1>Architecture</h1>
 <p>Neovim + NvChad v2.5 config — not an application. No CI or build system; the only automatic checks are <code>scripts/gen-cheatsheet.sh --check</code> and <code>scripts/test-agent.sh</code> (agent parsers and target, no network).</p>
 <h2 id="internals--repo-structure"><a href="#internals--repo-structure">Repo structure</a></h2>
-<ul><li><code>install.sh</code> / <code>install.ps1</code> — ONE-COMMAND installer (Linux/WSL/macOS · Windows; <code>curl … | bash</code> bootstraps by fetching the repo into <code>~/.local/share/my-nvim-setup</code>, non-interactive by default, <code>--ask</code> prompts, <code>--agent</code> defaults to <code>auto</code>, plugins via <code>Lazy! restore</code>, per-step timings): dependencies, Neovim ≥ 0.11, <code>nvim/</code> link, hooks, plugins, Mason and parsers; <code>--lang a,b</code> leaves only those languages (writes <code>languages.disabled</code> to <code>lua/local.lua</code>, without overwriting an existing one). Per-machine options: <code>--lang</code>, <code>--theme</code>, <code>--light/--no-light</code> (written to <code>lua/local.lua</code> by <code>scripts/install-local.lua</code>, ONE implementation shared by <code>install.sh</code> and <code>install.ps1</code>, never overwriting an existing <code>local.lua</code>) and <code>--agent auto|backend/model|none</code> (uses <code>scripts/agent-setup.sh</code>; skipped with <code>--no-plugins</code>). Uses <code>scripts/install-mason.lua</code>, <code>scripts/install-treesitter.lua</code> and <code>install-local.lua</code>; tests in <code>scripts/test-install.sh</code>; <code>scripts/test.sh</code> runs all the suites. <code>VERSION</code> is the config version (bumped with <code>chore(release)</code> + tag <code>vX.Y.Z</code>)</li><li><code>nvim/</code> — mirrors <code>%LOCALAPPDATA%\nvim</code> on Windows. Symlink it (or use the installer):<pre data-lang="powershell"><code>New-Item -ItemType Junction -Path &quot;$env:LOCALAPPDATA\nvim&quot; -Target &quot;C:\path\to\my-nvim-setup\nvim&quot;</code></pre></li><li><code>.agents/skills/caveman*</code> — OpenCode skills (lockfile: <code>skills-lock.json</code>)</li><li><code>CHEATSHEET.md</code> — <strong>GENERATED</strong>, don't edit: all the keys (leader menus, LSP, completion, nvim-tree, globals) read from the real keymaps by <code>scripts/gen-cheatsheet.sh</code>; the <code>.githooks/pre-commit</code> hook regenerates it if the commit touches <code>nvim/</code>. <code>scripts/gen-cheatsheet.sh --check</code> fails if it is stale. It is the ONLY source of keys: don't copy key tables into the docs</li><li><code>docs/cheatsheets/</code> — only what is NOT derived from code (what each thing does, workflows, tools, pitfalls): <code>README.md</code> + one page per language (<code>go.md</code> is the most detailed). When changing a language's menus, snippets or tools, update its page; no key tables (those come from the code)</li><li><code>scripts/</code> — <code>gen-cheatsheet.sh</code> (+ <code>.lua</code>): cheatsheet generator (headless nvim with the real config, ignores <code>local.lua</code> via <code>NVIM_NO_LOCAL=1</code>)</li><li><code>scripts/test-agent.sh</code> (+ <code>test-agent.lua</code>, <code>test-agent-backends.lua</code>, <code>fake-llm.py</code>): inline agent tests (protocol, parsers, diff, target, local backends and setup against fake Ollama/OpenAI servers); no network or tokens</li><li><code>scripts/agent-setup.sh</code>: setup of local backends and models from the terminal (report, <code>--start</code>, <code>--pull</code>, <code>--auto</code>, <code>--use</code>, <code>--json</code>)</li><li><code>.gitignore</code> — excludes <code>.claude/</code> (machine-specific Claude config)</li></ul>
+<ul><li><code>install.sh</code> / <code>install.ps1</code> — ONE-COMMAND installer (Linux/WSL/macOS · Windows; <code>curl … | bash</code> bootstraps by fetching the repo into <code>~/.local/share/leader</code>, non-interactive by default, <code>--ask</code> prompts, <code>--agent</code> defaults to <code>auto</code>, plugins via <code>Lazy! restore</code>, per-step timings): dependencies, Neovim ≥ 0.11, <code>nvim/</code> link, hooks, plugins, Mason and parsers; <code>--lang a,b</code> leaves only those languages (writes <code>languages.disabled</code> to <code>lua/local.lua</code>, without overwriting an existing one). Per-machine options: <code>--lang</code>, <code>--theme</code>, <code>--light/--no-light</code> (written to <code>lua/local.lua</code> by <code>scripts/install-local.lua</code>, ONE implementation shared by <code>install.sh</code> and <code>install.ps1</code>, never overwriting an existing <code>local.lua</code>) and <code>--agent auto|backend/model|none</code> (uses <code>scripts/agent-setup.sh</code>; skipped with <code>--no-plugins</code>). Uses <code>scripts/install-mason.lua</code>, <code>scripts/install-treesitter.lua</code> and <code>install-local.lua</code>; tests in <code>scripts/test-install.sh</code>; <code>scripts/test.sh</code> runs all the suites. <code>VERSION</code> is the config version (bumped with <code>chore(release)</code> + tag <code>vX.Y.Z</code>)</li><li><code>nvim/</code> — mirrors <code>%LOCALAPPDATA%\nvim</code> on Windows. Symlink it (or use the installer):<pre data-lang="powershell"><code>New-Item -ItemType Junction -Path &quot;$env:LOCALAPPDATA\nvim&quot; -Target &quot;C:\path\to\leader\nvim&quot;</code></pre></li><li><code>.agents/skills/caveman*</code> — OpenCode skills (lockfile: <code>skills-lock.json</code>)</li><li><code>CHEATSHEET.md</code> — <strong>GENERATED</strong>, don't edit: all the keys (leader menus, LSP, completion, nvim-tree, globals) read from the real keymaps by <code>scripts/gen-cheatsheet.sh</code>; the <code>.githooks/pre-commit</code> hook regenerates it if the commit touches <code>nvim/</code>. <code>scripts/gen-cheatsheet.sh --check</code> fails if it is stale. It is the ONLY source of keys: don't copy key tables into the docs</li><li><code>docs/cheatsheets/</code> — only what is NOT derived from code (what each thing does, workflows, tools, pitfalls): <code>README.md</code> + one page per language (<code>go.md</code> is the most detailed). When changing a language's menus, snippets or tools, update its page; no key tables (those come from the code)</li><li><code>scripts/</code> — <code>gen-cheatsheet.sh</code> (+ <code>.lua</code>): cheatsheet generator (headless nvim with the real config, ignores <code>local.lua</code> via <code>NVIM_NO_LOCAL=1</code>)</li><li><code>scripts/test-agent.sh</code> (+ <code>test-agent.lua</code>, <code>test-agent-backends.lua</code>, <code>fake-llm.py</code>): inline agent tests (protocol, parsers, diff, target, local backends and setup against fake Ollama/OpenAI servers); no network or tokens</li><li><code>scripts/agent-setup.sh</code>: setup of local backends and models from the terminal (report, <code>--start</code>, <code>--pull</code>, <code>--auto</code>, <code>--use</code>, <code>--json</code>)</li><li><code>.gitignore</code> — excludes <code>.claude/</code> (machine-specific Claude config)</li></ul>
 <h2 id="internals--how-it-works"><a href="#internals--how-it-works">How it works</a></h2>
 <ul><li>Plugins auto-install via <code>lazy.nvim</code> on first open</li><li>Activate the auto-reload hook once per clone: <code>git config core.hooksPath .githooks</code> (the hook picks the right data dir for Windows or Linux)</li><li>LSP servers and tools (gopls, vtsls, stylua, prettier, eslint_d, dart, etc.) auto-install via <code>mason-tool-installer</code></li><li>No manual setup beyond the symlink (or <code>./install.sh</code>, which also leaves plugins, tools and parsers already installed). A plugin with a heavy <code>build</code> that depends on a language must carry <code>enabled</code> according to <code>languages.disabled</code> (see <code>plugins/languages/go.lua</code>), otherwise <code>--lang</code> would install its tools anyway</li><li><strong>Auto-reload</strong>: <code>.githooks/post-merge</code> creates a marker on <code>git pull</code>; <code>core/autocmds/reload.lua</code> detects it on <code>UIEnter</code> and runs <code>luafile $MYVIMRC</code> to reload config automatically</li></ul>
 <h2 id="internals--architecture"><a href="#internals--architecture">Architecture</a></h2>
@@ -1190,7 +1190,7 @@ type Repository interface {
     var t = pageOf(id);
     pages.forEach(function (p) { p.classList.toggle("on", p === t.page); });
     navs.forEach(function (n) { n.classList.toggle("on", n.dataset.page === t.page.id); });
-    document.title = t.page.dataset.title + " — my-nvim-setup docs";
+    document.title = t.page.dataset.title + " — Leader docs";
     pager(t.page);
     if (t.el) {
       t.el.scrollIntoView();

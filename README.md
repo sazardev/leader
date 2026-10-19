@@ -1,26 +1,26 @@
-# my-nvim-setup
+# Leader
 
-A **Neovim** config on top of NvChad v2.5, designed as a small **framework**: you clone it, run a script and get an
+**Leader** is a **Neovim** config on top of NvChad v2.5, designed as a small **framework**: you clone it, run a script and get an
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-`v1.4.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/my-nvim-setup/docs/)
+`v1.4.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/leader/docs/)
 
 ## Installation
 
 **One command, everything done** (Linux, WSL, macOS):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash
 ```
 
-Windows (PowerShell): `irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1 | iex`
+Windows (PowerShell): `irm https://raw.githubusercontent.com/sazardev/leader/master/install.ps1 | iex`
 
 It asks **one thing**: which languages to set up, as a checklist of packs (Go, Dart / Flutter, TypeScript / JavaScript,
 Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked;
 Enter keeps them. Only the languages you keep download their LSPs, formatters and linters (the base, Lua, Markdown,
 JSON, YAML, TOML, is always on). Change them later in `<Space>Sp` → Languages. No clone needed: it fetches the repo into
-`~/.local/share/my-nvim-setup` and does everything else (idempotent: run it again any time to bring it up to date):
+`~/.local/share/leader` and does everything else (idempotent: run it again any time to bring it up to date):
 
 1. installs whatever is missing from the system (git, curl, C compiler, ripgrep, node, cmake) and **Neovim ≥ 0.11** if you don't have it
    (in `~/.local/opt`, without `sudo`; with brew on macOS);
@@ -34,10 +34,10 @@ JSON, YAML, TOML, is always on). Change them later in `<Space>Sp` → Languages.
 Options go after `bash -s --`, for example a Go laptop, fully configured:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go,sql --theme gruvbox
+curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash -s -- --lang go,sql --theme gruvbox
 ```
 
-Prefer to clone it yourself (to hack on it)? `git clone https://github.com/sazardev/my-nvim-setup && cd my-nvim-setup && ./install.sh` does exactly
+Prefer to clone it yourself (to hack on it)? `git clone https://github.com/sazardev/leader && cd leader && ./install.sh` does exactly
 the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVIM_CONFIG_BRANCH`.
 
 Then open `nvim`. Press `<Space>` and which-key shows you the menus.
@@ -200,7 +200,7 @@ The principles (the same across the whole repo) and where they show:
 
 ## Keys and documentation
 
-- **[The documentation site](https://sazardev.github.io/my-nvim-setup/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
+- **[The documentation site](https://sazardev.github.io/leader/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
 - [`CHEATSHEET.md`](CHEATSHEET.md): **all** the keys. It is generated from the real keymaps (`scripts/gen-cheatsheet.sh`; the pre-commit hook regenerates it). Inside nvim, the dashboard's *Mappings* button shows the same.
 - [`docs/cheatsheets/`](docs/cheatsheets/README.md): what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.
 - [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md): architecture and pitfalls for whoever touches the config (people or agents).

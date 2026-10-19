@@ -1,10 +1,10 @@
 # Installs this Neovim config on Windows in ONE command: junction at %LOCALAPPDATA%\nvim, git hooks, plugins, LSPs/formatters,
 # parsers and the AI agent. Idempotent.
 #
-#   irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1 | iex
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.ps1))) -Lang go -Theme catppuccin
+#   irm https://raw.githubusercontent.com/sazardev/leader/master/install.ps1 | iex
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/sazardev/leader/master/install.ps1))) -Lang go -Theme catppuccin
 #
-# That fetches the repo into %LOCALAPPDATA%\my-nvim-setup (override: $env:NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH)
+# That fetches the repo into %LOCALAPPDATA%\leader (override: $env:NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH)
 # and runs its install.ps1. From a clone: ./install.ps1 [-NoPlugins] [-Lang python,sql] [-Theme catppuccin]
 # [-Light | -NoLight] [-Agent auto|none|claude/haiku] [-Yes] (same options as install.sh; -Agent defaults to auto).
 # In a console it asks one thing, which language packs to set up (the ones found on this machine checked); -Lang or
@@ -17,16 +17,26 @@ $ErrorActionPreference = 'Stop'
 # One command: run from a pipe ($PSScriptRoot is empty) there is no repo next to the script, so fetch it and hand over
 $Root = $PSScriptRoot
 if (-not $Root -or -not (Test-Path (Join-Path $Root 'nvim'))) {
-  $repo = if ($env:NVIM_CONFIG_REPO) { $env:NVIM_CONFIG_REPO } else { 'https://github.com/sazardev/my-nvim-setup.git' }
+  $repo = if ($env:NVIM_CONFIG_REPO) { $env:NVIM_CONFIG_REPO } else { 'https://github.com/sazardev/leader.git' }
   $branch = if ($env:NVIM_CONFIG_BRANCH) { $env:NVIM_CONFIG_BRANCH } else { 'master' }
-  $dest = if ($env:NVIM_CONFIG_DIR) { $env:NVIM_CONFIG_DIR } else { Join-Path $env:LOCALAPPDATA 'my-nvim-setup' }
+  $dest = if ($env:NVIM_CONFIG_DIR) { $env:NVIM_CONFIG_DIR } else { Join-Path $env:LOCALAPPDATA 'leader' }
+  # the project used to be called my-nvim-setup: move an existing default install to the new folder (same clone, same
+  # history), repoint its remote and drop the nvim junction that pointed into the old folder; the link step recreates it
+  $old = Join-Path $env:LOCALAPPDATA 'my-nvim-setup'
+  if (-not $env:NVIM_CONFIG_DIR -and (Test-Path (Join-Path $old '.git')) -and -not (Test-Path $dest)) {
+    Move-Item $old $dest
+    Write-Host "nvim config: moved $old -> $dest (the project is now called Leader)"
+    if ((Get-Command git -ErrorAction SilentlyContinue) -and ((git -C $dest remote get-url origin 2>$null) -eq 'https://github.com/sazardev/my-nvim-setup.git')) { git -C $dest remote set-url origin $repo }
+    $lnk = Get-Item (Join-Path $env:LOCALAPPDATA 'nvim') -ErrorAction SilentlyContinue
+    if ($lnk -and $lnk.LinkType -and ($lnk.Target -join '').Replace('\', '/').TrimEnd('/') -eq (Join-Path $old 'nvim').Replace('\', '/')) { $lnk.Delete() }
+  }
   Write-Host "nvim config: fetching $repo -> $dest"
   if (Get-Command git -ErrorAction SilentlyContinue) {
     if (Test-Path (Join-Path $dest '.git')) { git -C $dest pull --ff-only -q }
     elseif (-not (Test-Path $dest)) { git clone -q --depth 1 --branch $branch $repo $dest }
   } else {
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
-    $tar = Join-Path $env:TEMP 'my-nvim-setup.tar.gz'
+    $tar = Join-Path $env:TEMP 'leader.tar.gz'
     Invoke-WebRequest "$($repo -replace '\.git$','')/archive/refs/heads/$branch.tar.gz" -OutFile $tar
     tar -xzf $tar --strip-components=1 -C $dest
   }

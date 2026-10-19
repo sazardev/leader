@@ -2,10 +2,10 @@
 # Installs this Neovim config ready to work, in ONE command: dependencies, Neovim, link, plugins, LSPs/formatters,
 # parsers and the AI agent. Linux, WSL and macOS. Idempotent: run it again whenever you want (it brings everything up to date).
 #
-#   curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/sazardev/my-nvim-setup/master/install.sh | bash -s -- --lang go --theme catppuccin
+#   curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash -s -- --lang go --theme catppuccin
 #
-# That clones the repo into ~/.local/share/my-nvim-setup (override: NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH) and
+# That clones the repo into ~/.local/share/leader (override: NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH) and
 # runs its install.sh. From a clone: ./install.sh [options]. In a terminal it asks one thing, which languages to set up (a
 # checklist of packs, the ones this machine already uses checked); everything else it just does (--ask prompts for the
 # system packages too). An existing nvim config is moved to nvim.bak-<date>, never deleted.
@@ -27,9 +27,9 @@ set -euo pipefail
 
 # ── 0. One command: when run from a pipe (curl | bash) there is no repo next to the script, so fetch it and hand over ──
 bootstrap() {
-  local repo="${NVIM_CONFIG_REPO:-https://github.com/sazardev/my-nvim-setup.git}"
+  local repo="${NVIM_CONFIG_REPO:-https://github.com/sazardev/leader.git}"
   local branch="${NVIM_CONFIG_BRANCH:-master}"
-  local dest="${NVIM_CONFIG_DIR:-$HOME/.local/share/my-nvim-setup}"
+  local dest="${NVIM_CONFIG_DIR:-$HOME/.local/share/leader}"
   local a
   for a in "$@"; do
     if [ "$a" = --dry-run ]; then
@@ -38,6 +38,16 @@ bootstrap() {
     fi
   done
   command -v curl >/dev/null 2>&1 || { echo "install: curl is required" >&2; exit 1; }
+  # the project used to be called my-nvim-setup: move an existing default install to the new folder (same clone, same
+  # history), repoint its remote and drop the nvim link that pointed into the old folder; the link step recreates it
+  local old="$HOME/.local/share/my-nvim-setup" link="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+  if [ -z "${NVIM_CONFIG_DIR:-}" ] && [ -d "$old/.git" ] && [ ! -e "$dest" ] && mv "$old" "$dest"; then
+    printf 'nvim config: moved %s → %s (the project is now called Leader)\n' "$old" "$dest"
+    if command -v git >/dev/null 2>&1 && [ "$(git -C "$dest" remote get-url origin 2>/dev/null)" = "https://github.com/sazardev/my-nvim-setup.git" ]; then
+      git -C "$dest" remote set-url origin "$repo"
+    fi
+    [ -L "$link" ] && [ "$(readlink "$link")" = "$old/nvim" ] && rm -f "$link"
+  fi
   printf 'nvim config: fetching %s → %s\n' "$repo" "$dest"
   if [ -d "$dest/.git" ] && command -v git >/dev/null 2>&1; then
     git -C "$dest" pull --ff-only -q || echo "install: could not fast-forward $dest (local changes?); using it as is" >&2

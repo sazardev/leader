@@ -13,7 +13,7 @@
 -- blockquotes, rules, code spans, bold, italics and links (links between the docs become anchors of this page).
 local ROOT = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 local OUT = ROOT .. "/docs/docs/index.html"
-local REPO = "https://github.com/sazardev/my-nvim-setup/blob/master/"
+local REPO = "https://github.com/sazardev/leader/blob/master/"
 
 local check = vim.tbl_contains(arg, "--check")
 local worktree = vim.tbl_contains(arg, "--worktree")
@@ -392,8 +392,8 @@ local TEMPLATE = [==[<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docs — my-nvim-setup</title>
-<meta name="description" content="Documentation of my-nvim-setup: install, every key, the AI agent, Go, Dart / Flutter, project tasks and how the config is built.">
+<title>Docs — Leader</title>
+<meta name="description" content="Documentation of Leader: install, every key, the AI agent, Go, Dart / Flutter, project tasks and how the config is built.">
 <meta name="theme-color" content="#282828">
 <link rel="preload" href="../fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23282828'/%3E%3Cpath d='M8 25V7l16 18V7' fill='none' stroke='%23b8bb26' stroke-width='3.4'/%3E%3C/svg%3E">
@@ -558,7 +558,7 @@ footer a{color:var(--dim)}
 </head>
 <body>
 <header class="bar">
-  <a class="logo" href="../"><i></i>my-nvim-setup <b>/ docs</b></a>
+  <a class="logo" href="../"><i></i>Leader <b>/ docs</b></a>
   <div class="search">
     <input id="q" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-label="Search">
     <span class="k">/</span>
@@ -566,7 +566,7 @@ footer a{color:var(--dim)}
   </div>
   <nav>
     <a class="home" href="../">Home</a>
-    <a href="https://github.com/sazardev/my-nvim-setup" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/sazardev/leader" target="_blank" rel="noopener">GitHub</a>
     <button id="theme" aria-label="Light or dark">Theme</button>
     <button id="menu" aria-label="Menu">Menu</button>
   </nav>
@@ -611,7 +611,7 @@ footer a{color:var(--dim)}
     var t = pageOf(id);
     pages.forEach(function (p) { p.classList.toggle("on", p === t.page); });
     navs.forEach(function (n) { n.classList.toggle("on", n.dataset.page === t.page.id); });
-    document.title = t.page.dataset.title + " — my-nvim-setup docs";
+    document.title = t.page.dataset.title + " — Leader docs";
     pager(t.page);
     if (t.el) {
       t.el.scrollIntoView();
