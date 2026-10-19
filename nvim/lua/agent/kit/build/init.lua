@@ -360,6 +360,7 @@ local function call(req, phase, on_text, cb)
     req.tier, req.effort = "main", "high"
   end
   req.on_text = on_text
+  req.quiet = true -- the build has its own statusline chip
   req.preapproved = phase ~= "plan" -- the review was the yes; the plan request itself is small
   live.handle = require("agent").complete(req, function(ok, text, usage)
     live.handle = nil

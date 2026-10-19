@@ -36,20 +36,30 @@ function M.diagnostic_count(severity)
 end
 
 -- ── Agent ────────────────────────────────────────────────────────────────────
---- Spinner while agent actions are running. It does not load the agent: if it was never used
+--- Spinner while agent actions are running, and while a one-shot request is (the project documents, commit draft, review:
+--- "⠹ screens · thinking · 12s"; its outcome stays a few seconds). It does not load the agent: if it was never used
 --- (module not loaded) there is nothing to show.
 ---@return table lualine component
 function M.agent_status()
+  local function text()
+    local jobs, calls = package.loaded["agent.jobs"], package.loaded["agent.calls"]
+    if jobs and #jobs.running() > 0 then
+      return jobs.statusline()
+    end
+    return calls and calls.statusline() or ""
+  end
   return {
-    function()
-      local jobs = package.loaded["agent.jobs"]
-      return jobs and jobs.statusline() or ""
-    end,
+    text,
     cond = function()
-      local jobs = package.loaded["agent.jobs"]
-      return jobs ~= nil and #jobs.running() > 0
+      return text() ~= ""
     end,
-    color = "AgentStatus",
+    color = function()
+      local jobs, calls = package.loaded["agent.jobs"], package.loaded["agent.calls"]
+      if jobs and #jobs.running() > 0 then
+        return "AgentStatus"
+      end
+      return calls and calls.statusline_group() or "AgentStatus"
+    end,
     padding = 0,
   }
 end

@@ -3,6 +3,7 @@
 -- model as the actions (selection), but with no job, presenter or anchors; the caller
 -- receives the text. Used from the facade: `require("agent").complete`.
 local backends = require "agent.backends"
+local calls = require "agent.calls"
 local selection = require "agent.selection"
 local settings = require("core.settings").agent
 local text = require "agent.text"
@@ -23,6 +24,7 @@ local function launch(sel, req, cb)
     action = req.action,
     cache = req.cache,
   }
+  local call = calls.start(req, sel.model and selection.label(sel))
   local parser = backend.parser { on_think = req.on_think } -- backends that do not stream thinking ignore it
   local t0 = vim.uv.hrtime()
 
@@ -45,6 +47,10 @@ local function launch(sel, req, cb)
   }, function(out)
     vim.schedule(function()
       local result = parser.finish(out.code, out.stderr or "")
+      calls.finish(call, result.ok)
+      if call.cancelled then
+        return cb(false, "cancelled")
+      end
       local killed = out.code == 124 or out.code == 143 or out.signal == 15
       local ms = math.floor((vim.uv.hrtime() - t0) / 1e6)
       if killed and not result.ok then
@@ -61,9 +67,11 @@ local function launch(sel, req, cb)
   end)
 
   if not ok then
+    calls.finish(call, false)
     cb(false, tostring(handle))
     return nil
   end
+  call.handle = handle
   return handle
 end
 

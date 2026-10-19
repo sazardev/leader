@@ -28,7 +28,7 @@ local function cancel_running()
   for _, job in ipairs(running) do
     require("agent.runner").cancel(job)
   end
-  return #running
+  return #running + require("agent.calls").cancel() -- one-shot requests (documents, commit draft...) too
 end
 
 --- Cancels the running jobs
