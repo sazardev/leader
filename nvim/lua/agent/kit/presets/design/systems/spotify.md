@@ -103,4 +103,3 @@ Fonts: system sans-serif (approx. Spotify Circular / platform UI) for UI text, a
 - Use the accent sparingly (play, primary actions, focus); keep surfaces black and neutral.
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/spotify.md

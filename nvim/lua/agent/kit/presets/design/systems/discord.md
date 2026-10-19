@@ -102,4 +102,3 @@ Fonts: system sans-serif (approx. gg sans / platform UI) for UI text, and a mono
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
 - Respect user theme and accessibility settings.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/discord.md

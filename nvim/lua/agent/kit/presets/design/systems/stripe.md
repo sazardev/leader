@@ -103,4 +103,3 @@ payloads (approx. system mono). (approx.)
 - Use the accent sparingly (primary actions, focus, links); keep surfaces clean and low-contrast.
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/stripe.md

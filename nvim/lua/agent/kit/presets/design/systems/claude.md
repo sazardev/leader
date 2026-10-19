@@ -103,4 +103,3 @@ Inter / system UI), and a monospace for code (approx. JetBrains Mono / system mo
 - Use the accent sparingly (primary actions, focus, links); keep surfaces warm and low-contrast.
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/claude.md

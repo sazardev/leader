@@ -103,4 +103,3 @@ Fonts: system sans-serif (approx. Inter / platform UI) for all UI text, and a mo
 - Use the accent sparingly (primary actions, focus, links); keep surfaces dark and high-contrast.
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/grok.md

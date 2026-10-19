@@ -107,4 +107,3 @@ Fonts: SF Pro (SF Pro Text for body, SF Pro Display for large) on Apple platform
 - Prefer translucency and materials for layering; keep shadows soft.
 - Keep motion purposeful and physics-based; respect Reduce Motion.
 - Every interactive element needs an accessible label and role.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/apple.md

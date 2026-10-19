@@ -102,4 +102,3 @@ Fonts: system sans-serif (approx. Inter / platform UI) for UI text, and a monosp
 - Use the accent sparingly (selection, primary actions, focus); keep surfaces neutral.
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/figma.md

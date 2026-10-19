@@ -103,4 +103,3 @@ Fonts: system sans-serif (approx. Söhne / Inter / platform UI) for all UI text,
 - Use the accent sparingly (primary actions, focus, links); keep surfaces neutral and clean.
 - Prefer subtle borders and lightness steps over shadows; floating layers are the only elevated surfaces.
 - Every new action is keyboard reachable and shown in its tooltip/menu row.
-filePath: /home/sazar/Documents/my-nvim-setup/nvim/lua/agent/kit/presets/design/systems/chatgpt.md
