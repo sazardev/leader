@@ -28,7 +28,13 @@ local SYSTEM = table.concat({
 ---@param root string
 ---@return string
 local function staged_raw(root)
-  return (git.run({ "diff", "--cached", "-U1", "--no-color", "--no-ext-diff", "--no-renames" }, root))
+  -- a/ b/ forced: the parser keys on them and `diff.mnemonicPrefix` in a global config writes c/ i/ w/ instead
+  return (
+    git.run(
+      { "diff", "--cached", "-U1", "--no-color", "--no-ext-diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/" },
+      root
+    )
+  )
 end
 
 --- Writes the findings where they will be seen: diagnostics in open files, persisted for the rest, and a quickfix list

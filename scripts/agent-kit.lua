@@ -39,6 +39,8 @@ function K.project(files)
   vim.cmd.cd(dir)
   local git = { "git", "-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", "-c", "commit.gpgsign=false" }
   vim.fn.system { "git", "-C", dir, "init", "-q" }
+  -- the diff parsers run under a repo that uses mnemonic prefixes (c/ i/ w/), like a global `diff.mnemonicPrefix`
+  vim.fn.system { "git", "-C", dir, "config", "diff.mnemonicPrefix", "true" }
   vim.fn.system(vim.list_extend(vim.deepcopy(git), { "add", "-A" }))
   vim.fn.system(vim.list_extend(vim.deepcopy(git), { "commit", "-qm", "base" }))
   K.dir = dir

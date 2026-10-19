@@ -218,7 +218,11 @@ end
 ---@param max integer character cap
 ---@return string diff, integer total_chars, boolean truncated  total = what it would take without trimming
 function M.diff_for_ai(root, max)
-  local raw = M.run({ "diff", "--cached", "-U1", "--no-color", "--no-ext-diff", "--no-renames" }, root)
+  -- a/ b/ forced: the parser below keys on them and `diff.mnemonicPrefix` in a global config writes c/ i/ w/ instead (empty diff)
+  local raw = M.run(
+    { "diff", "--cached", "-U1", "--no-color", "--no-ext-diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/" },
+    root
+  )
   local files = {}
   for _, line in ipairs(vim.split(raw, "\n", { plain = true })) do
     local path = line:match "^diff %-%-git a/.- b/(.+)$"
