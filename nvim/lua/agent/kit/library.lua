@@ -14,7 +14,8 @@ local presets = require "agent.kit.presets"
 local M = {}
 
 ---@class KitEntry
----@field kind "stack"|"design"|"stack add-on"|"design add-on"|"principle"|"recipe"|"spec module"
+---@field kind "stack"|"design"|"stack add-on"|"design add-on"|"principle"|"recipe"|"spec module"|"spec kit"
+---@field extra string?      more words the search looks in (a module's requirement titles…)
 ---@field preset KitPreset
 ---@field category string?   stack/design category id
 ---@field where string       what the list shows next to the name ("backend", "deploy", …)
@@ -47,8 +48,23 @@ function M.entries(dir)
   for _, r in ipairs(require("agent.kit.recipes").all(dir)) do
     out[#out + 1] = { kind = "recipe", preset = r, where = r.group }
   end
+  local labels = {}
+  for _, g in ipairs(require("agent.kit.specmodules").GROUPS) do
+    labels[g.id] = g.label
+  end
+  for _, k in ipairs(require("agent.kit.specmodules").kits(dir)) do
+    out[#out + 1] = { kind = "spec kit", preset = k, where = "starter kit", extra = table.concat(k.modules, " ") }
+  end
   for _, m in ipairs(require("agent.kit.specmodules").all(dir)) do
-    out[#out + 1] = { kind = "spec module", preset = m, where = m.group }
+    local titles = vim.tbl_map(function(r)
+      return r.title
+    end, m.requirements)
+    out[#out + 1] = {
+      kind = "spec module",
+      preset = m,
+      where = labels[m.group] or m.group,
+      extra = table.concat(vim.list_extend({ table.concat(m.tech, " "), table.concat(m.design, " ") }, titles), " "),
+    }
   end
   return out
 end
@@ -89,8 +105,10 @@ function M.use(e)
     return kit.design { preset = e.preset, category = e.category }
   elseif e.kind == "recipe" then -- its values, then its build (<leader>aSr)
     return require("agent.kit.recipes").start(e.preset --[[@as KitRecipe]])
-  elseif e.kind == "spec module" then -- into SPEC.md, after a confirmation (<leader>aSm)
+  elseif e.kind == "spec module" then -- the marketplace with it picked (<leader>aSm)
     return require("agent.kit.specmodules").use(e.preset --[[@as SpecModule]])
+  elseif e.kind == "spec kit" then
+    return require("agent.kit.specmodules").use_kit(e.preset --[[@as SpecKit]])
   end
   local root = require("agent.kit.snapshot").root()
   local file = (e.kind == "design add-on") and "DESIGN.md" or "STACK.md"
@@ -156,7 +174,7 @@ function M.open()
         desc = where,
         path = e.preset.path,
         value = e,
-        search = e.preset.id .. " " .. e.preset.desc .. " " .. (e.category or ""),
+        search = e.preset.id .. " " .. e.preset.desc .. " " .. (e.category or "") .. " " .. (e.extra or ""),
       }
     end, entries),
     {

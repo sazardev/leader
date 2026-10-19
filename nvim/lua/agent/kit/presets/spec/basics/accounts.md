@@ -1,6 +1,8 @@
 <!-- name: Accounts and sign-in -->
 <!-- desc: sign up, sign in, sessions, password reset, email verification, lockout -->
 <!-- for: all -->
+<!-- tech: auth database email -->
+<!-- design: auth-screens forms -->
 
 ## Requirements
 

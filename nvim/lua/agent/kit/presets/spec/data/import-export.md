@@ -1,6 +1,8 @@
 <!-- name: Import and export -->
 <!-- desc: CSV/JSON import with a preview and row errors, exports of what the user owns -->
 <!-- for: all -->
+<!-- tech: jobs storage -->
+<!-- design: file-upload-ui forms -->
 
 ## Requirements
 

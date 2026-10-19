@@ -1,6 +1,8 @@
 <!-- name: Offline and sync -->
 <!-- desc: work without a connection: local copy, queued changes, sync, conflicts, what the user sees -->
 <!-- for: all -->
+<!-- tech: database -->
+<!-- design: toasts-feedback -->
 
 ## Requirements
 

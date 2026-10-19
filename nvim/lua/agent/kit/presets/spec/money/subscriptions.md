@@ -2,6 +2,8 @@
 <!-- desc: plans, trials, renewals, failed renewals, upgrades and downgrades, cancelling -->
 <!-- for: all -->
 <!-- needs: accounts payments -->
+<!-- tech: payments email jobs -->
+<!-- design: pricing-checkout settings-screens -->
 
 ## Requirements
 

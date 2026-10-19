@@ -46,6 +46,7 @@ local maps = {
   { "p", "setup principles", kit "principles" },
   { "d", "setup design", kit "design" },
   { "D", "setup design write", kit "design_prompt" },
+  { "K", "setup design addons", kit "design_customize" },
   { "w", "setup screens", kit "screens" },
   { "s", "setup spec", kit "spec" },
   { "m", "setup spec modules", kit_module("specmodules", "open") },

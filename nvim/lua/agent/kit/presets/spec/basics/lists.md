@@ -1,6 +1,8 @@
 <!-- name: Lists, search and deleting -->
 <!-- desc: pagination, empty states, search, sorting and filters, delete with undo and a trash -->
 <!-- for: all -->
+<!-- tech: database search -->
+<!-- design: data-tables search-and-filters empty-states -->
 
 ## Requirements
 

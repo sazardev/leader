@@ -19,7 +19,10 @@ M.GROUPS = {
   { id = "basics", label = "Every app" },
   { id = "collaboration", label = "Teams" },
   { id = "data", label = "Data" },
-  { id = "money", label = "Money" },
+  { id = "money", label = "Money and commerce" },
+  { id = "security", label = "Security" },
+  { id = "platform", label = "Platform" },
+  { id = "quality", label = "Quality" }, -- non-functional: accessibility, speed, reliability
 }
 
 ---@class SpecModuleReq
@@ -30,6 +33,8 @@ M.GROUPS = {
 ---@class SpecModule: KitPreset
 ---@field group string
 ---@field needs string[]
+---@field tech string[]
+---@field design string[]
 ---@field requirements SpecModuleReq[]
 ---@field edge_cases { req: string?, text: string }[]
 ---@field questions { req: string?, text: string }[]
@@ -45,6 +50,23 @@ local function tagged(line)
   return nil, vim.trim(line)
 end
 
+--- The `<!-- key: a b c -->` header lines of a file as lists (any key; the preset parser keeps only the ones it knows)
+---@param text string
+---@return table<string, string[]>
+local function header_lists(text)
+  local out = {}
+  for line in text:gmatch "[^\n]+" do
+    if not line:match "^<!%-%-" then
+      break
+    end
+    local key, list = line:match "^<!%-%-%s*([%w_]+):%s*(.-)%s*%-%->"
+    if key then
+      out[key] = vim.split(list, "[%s,]+", { trimempty = true })
+    end
+  end
+  return out
+end
+
 --- A module from its file; nil when it has no desc or no requirement
 ---@param id string "basics/accounts"
 ---@param text string
@@ -55,16 +77,8 @@ function M.parse(id, text, path)
   if not preset then
     return nil
   end
-  local needs = {}
-  for line in text:gmatch "[^\n]+" do
-    if not line:match "^<!%-%-" then
-      break
-    end
-    local list = line:match "^<!%-%-%s*needs:%s*(.-)%s*%-%->"
-    if list then
-      needs = vim.split(list, "[%s,]+", { trimempty = true })
-    end
-  end
+  local head = header_lists(text)
+  local needs = head.needs or {}
   local body = "\n" .. preset.body .. "\n## "
   local reqs = {}
   local current
@@ -97,6 +111,8 @@ function M.parse(id, text, path)
   local module = preset --[[@as SpecModule]]
   module.group = id:match "^([^/]+)/" or "basics"
   module.needs = needs
+  module.tech = head.tech or {} -- STACK.md add-on axes it pairs with (presets.AXES ids): auth, email, payments…
+  module.design = head.design or {} -- DESIGN.md `patterns` add-ons it pairs with: forms, data-tables…
   module.requirements = reqs
   module.edge_cases = items "Edge cases"
   module.questions = items "Open questions"
@@ -140,6 +156,51 @@ function M.all(dir)
   return out
 end
 
+--- Names for the `tech` and `design` hints: the add-on axes' labels and the screen patterns' names
+---@return { axes: table<string, string>, patterns: table<string, string> }
+function M.labels()
+  local presets = require "agent.kit.presets"
+  local out = { axes = {}, patterns = {} }
+  for _, a in ipairs(presets.AXES) do
+    out.axes[a.id] = a.label
+  end
+  for _, p in ipairs(presets.list "design-addons/patterns") do
+    out.patterns[p.id] = p.name
+  end
+  return out
+end
+
+---@class SpecKit: KitPreset
+---@field modules string[] keys of the modules it picks
+---@field tech string[]
+---@field design string[]
+---@field stacks string[] stack preset ids it is usually built on (a hint)
+
+--- The starter kits: a product type as a set of modules (presets/spec-kits/<id>.md), by name
+---@param dir string? tests point it at their own
+---@return SpecKit[]
+function M.kits(dir)
+  local root = (dir or require("agent.kit.presets").dir()) .. "/spec-kits"
+  local out = {}
+  for file, kind in vim.fs.dir(root) do
+    if kind == "file" and file:match "%.md$" then
+      local path = root .. "/" .. file
+      local text = require("utils.project").read(path) or ""
+      local kit = require("agent.kit.presets").parse(file:sub(1, -4), text, path)
+      local head = header_lists(text)
+      if kit and head.modules then
+        kit = kit --[[@as SpecKit]]
+        kit.modules, kit.tech, kit.design, kit.stacks = head.modules, head.tech or {}, head.design or {}, head.stacks or {}
+        out[#out + 1] = kit
+      end
+    end
+  end
+  table.sort(out, function(a, b)
+    return a.name:lower() < b.name:lower()
+  end)
+  return out
+end
+
 --- The short name a module is marked and needed by: "basics/accounts" → "accounts"
 ---@param module SpecModule
 ---@return string
@@ -162,6 +223,43 @@ function M.titles(spec)
   for _, r in ipairs(require("agent.kit.coverage").requirements(spec)) do
     local title = r.title:match "^(.-):%s" or r.title
     out[norm(title)] = r.id
+  end
+  return out
+end
+
+--- The modules SPEC.md talks about without having them: a word of the module's key (payments → payment…) or one of its
+--- requirement titles appears in the text. Only what is not there yet; key → the word found (pure, 0 tokens)
+---@param spec string
+---@param all SpecModule[]
+---@param applied table<string, boolean>
+---@return table<string, string>
+function M.suggest(spec, all, applied)
+  local text = " " .. spec:lower():gsub("<!%-%-.-%-%->", " "):gsub("[^%w]+", " ") .. " "
+  local out = {}
+  for _, m in ipairs(all) do
+    local key = M.key(m)
+    if not applied[key] then
+      local candidates = {}
+      local phrase = key:gsub("%-", " ")
+      if not phrase:find " " and #phrase >= 6 then
+        candidates[#candidates + 1] = { phrase:gsub("s$", ""), true } -- a stem: payment(s), notification(s)
+      elseif phrase:find " " then
+        candidates[#candidates + 1] = { phrase, false }
+      end
+      for _, r in ipairs(m.requirements) do
+        local title = norm(r.title)
+        if #title >= 7 then
+          candidates[#candidates + 1] = { title, false }
+        end
+      end
+      for _, c in ipairs(candidates) do
+        local word = c[1]
+        if text:find(" " .. word .. (c[2] and "" or " "), 1, true) then
+          out[key] = word
+          break
+        end
+      end
+    end
   end
   return out
 end
@@ -220,6 +318,27 @@ function M.resolve(chosen, modules, applied)
     visit(k)
   end
   return out, pulled
+end
+
+--- A copy of a module with only the requirements you keep; the edge cases and questions of a left-out one go with it
+---@param module SpecModule
+---@param left_out table<string, boolean>? titles
+---@return SpecModule
+function M.restrict(module, left_out)
+  if not left_out or next(left_out) == nil then
+    return module
+  end
+  local copy = vim.deepcopy(module)
+  copy.requirements = vim.tbl_filter(function(r)
+    return not left_out[r.title]
+  end, module.requirements)
+  local function kept(list)
+    return vim.tbl_filter(function(x)
+      return not (x.req and left_out[x.req])
+    end, list)
+  end
+  copy.edge_cases, copy.questions = kept(module.edge_cases), kept(module.questions)
+  return copy
 end
 
 ---@class SpecModuleResult
@@ -297,12 +416,56 @@ function M.apply_all(spec, list)
   return spec, total
 end
 
+--- Everything a choice does to SPEC.md (pure): the modules with what they need, minus what SPEC.md has and what you left
+--- out of each, the text that results and what came in
+---@param spec string
+---@param all SpecModule[]
+---@param chosen string[] keys
+---@param left_out table<string, table<string, boolean>>? key → titles of requirements not wanted
+---@return { list: SpecModule[], pulled: string[], spec: string, result: SpecModuleResult }
+function M.plan(spec, all, chosen, left_out)
+  left_out = left_out or {}
+  local list, pulled = M.resolve(chosen, all, M.applied(spec, all))
+  local restricted = vim.tbl_map(function(m)
+    return M.restrict(m, left_out[M.key(m)])
+  end, list)
+  restricted = vim.tbl_filter(function(m)
+    return #m.requirements > 0
+  end, restricted)
+  local new, result = M.apply_all(spec, restricted)
+  return { list = restricted, pulled = pulled, spec = new, result = result }
+end
+
+--- The lines `new` has that `old` does not, hunk by hunk with an empty line between hunks (what a preview shows)
+---@param old string
+---@param new string
+---@return string[]
+function M.added_lines(old, new)
+  ---@type integer[][]
+  local hunks = (vim.text and vim.text.diff or vim.diff)(old .. "\n", new .. "\n", { result_type = "indices" })
+  local lines = vim.split(new, "\n", { plain = true })
+  local out = {}
+  for _, h in ipairs(hunks) do
+    if h[4] > 0 then
+      if #out > 0 then
+        out[#out + 1] = ""
+      end
+      for i = h[3], h[3] + h[4] - 1 do
+        out[#out + 1] = lines[i]
+      end
+    end
+  end
+  return out
+end
+
 --- Asks, writes SPEC.md (the old one to the trash), says what came in
 ---@param root string
 ---@param spec string
 ---@param list SpecModule[]
 ---@param pulled string[]
-local function confirm(root, spec, list, pulled)
+---@param hooks { on_cancel: fun()?, on_written: fun()? }? the marketplace stays open under the question and closes once written
+local function confirm(root, spec, list, pulled, hooks)
+  hooks = hooks or {}
   local log = require "utils.log"
   local new, r = M.apply_all(spec, list)
   if #r.ids == 0 and r.edge == 0 and r.questions == 0 then
@@ -337,7 +500,10 @@ local function confirm(root, spec, list, pulled)
     lines[#lines + 1] =
       { { "already in SPEC.md, kept as you wrote it: " .. table.concat(r.skipped, ", "), modal.hl.muted } }
   end
-  modal.confirm(lines, { title = "Add to SPEC.md", confirm = "Add" }, function()
+  modal.confirm(lines, { title = "Add to SPEC.md", confirm = "Add", on_cancel = hooks.on_cancel }, function()
+    if hooks.on_written then
+      hooks.on_written()
+    end
     local path, why = require("agent.kit").write(root, "SPEC.md", new, true)
     if not path then
       return log.warn("Setup: " .. why)
@@ -364,59 +530,53 @@ local function spec_here()
   return root, spec
 end
 
---- One module, from the library (`/` → ⏎)
+--- One module, from the library (`/` → ⏎): the marketplace with it picked, to read it and see what SPEC.md gets
 ---@param module SpecModule
 function M.use(module)
-  local root, spec = spec_here()
-  if not root then
-    return
-  end
-  local all = M.all()
-  local list, pulled = M.resolve({ M.key(module) }, all, M.applied(spec, all))
-  if #list == 0 then
-    return require("utils.log").info(("Setup: SPEC.md already has %s"):format(module.name))
-  end
-  confirm(root, spec, list, pulled)
+  M.open { pick = { M.key(module) } }
 end
 
---- <leader>aSm: the modules by group (those SPEC.md has say so), checked ones go in after a confirmation
-function M.open()
+--- One starter kit, from the library: the marketplace with its modules picked
+---@param kit SpecKit
+function M.use_kit(kit)
+  M.open { pick = kit.modules }
+end
+
+--- <leader>aSm: the marketplace (specmarket.lua): read each module, pick, leave requirements out, see what SPEC.md gets
+---@param opts { pick: string[]? }? `pick`: modules already picked (from a kit or a module found in the library)
+---@return MarketState?
+function M.open(opts)
   local root, spec = spec_here()
   if not root then
     return
   end
   local all = M.all()
-  local applied = M.applied(spec, all)
-  local labels = {}
-  for _, g in ipairs(M.GROUPS) do
-    labels[g.id] = g.label
-  end
-  local items = vim.tbl_map(function(m)
-    local there = applied[M.key(m)]
-    local needs = #m.needs > 0 and (" · needs " .. table.concat(m.needs, ", ")) or ""
-    return {
-      label = m.name,
-      desc = there and "in SPEC.md"
-        or (("%d requirements · %d questions%s"):format(#m.requirements, #m.questions, needs)),
-      group = labels[m.group] or m.group,
-    }
-  end, all)
-  require("utils.modal").checklist(items, {
-    title = "SPEC.md modules",
-    intro = { "What every app repeats, with its edge cases. Where the answer is yours, it comes as a question." },
-    confirm = "Add",
-    clean = true,
-  }, function(chosen)
-    local keys = {}
-    for _, i in ipairs(chosen) do
-      keys[#keys + 1] = M.key(all[i])
-    end
-    local list, pulled = M.resolve(keys, all, applied)
-    if #list == 0 then
-      return require("utils.log").info "Setup: nothing new to add"
-    end
-    confirm(root, spec, list, pulled)
-  end)
+  local market = require "agent.kit.specmarket"
+  return market.new {
+    root = root,
+    spec = spec,
+    all = all,
+    kits = M.kits(),
+    labels = M.labels(),
+    pick = opts and opts.pick,
+    applied = M.applied(spec, all),
+    on_add = function(plan, st)
+      if #plan.list == 0 then
+        return require("utils.log").info "Setup: nothing new to add"
+      end
+      local win = vim.api.nvim_get_current_win()
+      confirm(root, spec, plan.list, plan.pulled, {
+        on_cancel = function() -- back to the marketplace as it was
+          if vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_set_current_win(win)
+          end
+        end,
+        on_written = function()
+          market.close(st)
+        end,
+      })
+    end,
+  }
 end
 
 return M

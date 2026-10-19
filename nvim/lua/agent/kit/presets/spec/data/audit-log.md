@@ -2,6 +2,8 @@
 <!-- desc: who changed what and when, read-only history, what is never logged, retention -->
 <!-- for: all -->
 <!-- needs: accounts -->
+<!-- tech: database -->
+<!-- design: data-tables -->
 
 ## Requirements
 

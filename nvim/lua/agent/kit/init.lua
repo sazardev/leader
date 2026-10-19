@@ -182,6 +182,7 @@ local function ask(req, id, done, failed)
     return log.warn "Setup: no agent backend found (<leader>am)"
   end
   busy[file] = true
+  req.label = "writing " .. file
   log.info(("Setup: writing %s with %s…"):format(file, require("agent.selection").label(sel)))
   require("agent").complete(req, function(ok, text)
     busy[file] = nil
@@ -400,41 +401,35 @@ local function apply(text, list, checked)
   return text, names
 end
 
---- The customize step: one clean list in groups (one-of groups are radios), the best picks checked.
---- `checked` = what to start from (keys); `done(checked)` gets the new set; `back` makes Esc go to the step before.
+--- The customize step: a full-screen marketplace (addonmarket.lua) with the choices in groups (one-of groups are radios), the
+--- best picks checked, each one readable before you take it. `checked` = what to start from (keys); `done(checked)` gets the new
+--- set; `back` makes Esc go to the step before. `ctx`: `doc` (STACK.md or DESIGN.md), and `base` (the document text the
+--- choices will be merged into) to show what they would write with `p`.
 ---@param list KitChoice[]
 ---@param checked table<string, boolean>
 ---@param title string
 ---@param done fun(checked: table<string, boolean>)
 ---@param back fun()?
-function M.customize(list, checked, title, done, back)
+---@param ctx { doc: string?, base: string?, focus: string[]?, why: string? }?
+function M.customize(list, checked, title, done, back, ctx)
   if #list == 0 then
     return done {}
   end
-  local exclusive = {}
-  for _, c in ipairs(list) do
-    exclusive[c.group] = c.group == "Package manager" or presets.exclusive(c.group)
-  end
-  require("utils.modal").checklist(
-    vim.tbl_map(function(c)
-      return { label = c.name, group = c.group, checked = checked[c.key] == true }
-    end, list),
-    {
-      title = title,
-      clean = true,
-      exclusive = exclusive,
-      confirm = "Next",
-      footer = "  space toggle · a all",
-      on_cancel = back,
-    },
-    function(indexes)
-      local out = {}
-      for _, i in ipairs(indexes) do
-        out[list[i].key] = true
-      end
-      done(out)
-    end
-  )
+  ctx = ctx or {}
+  require("agent.kit.addonmarket").open {
+    title = title,
+    doc = ctx.doc,
+    list = list,
+    checked = checked,
+    base = ctx.base,
+    focus = ctx.focus,
+    why = ctx.why,
+    apply = ctx.base and function(text, choices_, picked)
+      return (apply(text, choices_, picked))
+    end or nil,
+    done = done,
+    back = back,
+  }
 end
 
 --- The best picks for a stack: pnpm stays, and the add-ons whose `default:` names it (presets.preselect)
@@ -547,7 +542,7 @@ function M.stack(start)
       M.customize(st.list, st.checked, st.preset.name, function(checked)
         st.checked = checked
         step_principles()
-      end, step_stack)
+      end, step_stack, { doc = "STACK.md", base = st.preset.body })
     end
 
     step_principles = function()
@@ -625,7 +620,7 @@ function M.stack_prompt()
         M.customize(st.list, st.checked, "Your stack", function(checked)
           st.checked = checked
           step_principles()
-        end, step_draft)
+        end, step_draft, { doc = "STACK.md" })
       end
 
       step_principles = function()
@@ -665,9 +660,28 @@ function M.stack_prompt()
   )
 end
 
---- Adds add-ons to the STACK.md there (those already in it come checked; unchecking one does not take it out)
-function M.stack_customize()
-  local root = snapshot.root()
+--- The customize list's group labels of some add-on axes (ids → labels)
+---@param axes string[]?
+---@return string[]
+local function axis_labels(axes)
+  local out = {}
+  for _, id in ipairs(axes or {}) do
+    for _, a in ipairs(presets.AXES) do
+      if a.id == id then
+        out[#out + 1] = a.label
+      end
+    end
+  end
+  return out
+end
+
+--- Adds add-ons to the STACK.md there (those already in it come checked; unchecking one does not take it out).
+--- `opts.focus`: the add-on axes (presets.AXES ids) to start on, marked ★ (what a SPEC.md module pairs with); `opts.why`
+--- names who suggests them; `opts.keep_window`: write without opening the file (it was opened from another window)
+---@param opts { focus: string[]?, why: string?, keep_window: boolean?, root: string? }? `root`: when the current buffer is not the project's
+function M.stack_customize(opts)
+  opts = opts or {}
+  local root = opts.root or snapshot.root()
   local path = root .. "/STACK.md"
   local text = require("utils.project").read(path)
   if not text then
@@ -699,9 +713,11 @@ function M.stack_customize()
     f:write(new)
     f:close()
     vim.cmd.checktime()
-    vim.cmd.edit(vim.fn.fnameescape(path))
+    if not opts.keep_window then
+      vim.cmd.edit(vim.fn.fnameescape(path))
+    end
     log.info("Setup: STACK.md · " .. table.concat(names, ", "))
-  end)
+  end, nil, { doc = "STACK.md", base = text, focus = axis_labels(opts.focus), why = opts.why })
 end
 
 -- ── DESIGN.md ────────────────────────────────────────────────────────────────
@@ -742,6 +758,55 @@ local function described_design_tags(text, base)
     end
   end
   return design_tags({ id = "described" }, "styles"), "styles"
+end
+
+--- Adds design add-ons to the DESIGN.md there (those already in it come checked). `opts.pick`: add-on ids to check
+--- (screen patterns a SPEC.md module pairs with); `opts.why` names who suggests them; `opts.keep_window` as above
+---@param opts { pick: string[]?, why: string?, keep_window: boolean?, root: string? }?
+function M.design_customize(opts)
+  opts = opts or {}
+  local path = (opts.root or snapshot.root()) .. "/DESIGN.md"
+  local text = require("utils.project").read(path)
+  if not text then
+    return log.info "Setup: there is no DESIGN.md yet (<leader>aSd from a preset, <leader>aSD described)"
+  end
+  if unsaved(path) then
+    return log.warn "Setup: DESIGN.md has unsaved changes in a buffer: save them first"
+  end
+  local tags = described_design_tags(text, nil)
+  local list = design_choices(tags)
+  if #list == 0 then
+    return log.info "Setup: no add-ons fit this DESIGN.md"
+  end
+  local checked, focus = {}, {}
+  local want = {}
+  for _, id in ipairs(opts.pick or {}) do
+    want[id] = true
+  end
+  for _, c in ipairs(list) do
+    checked[c.key] = c.addon ~= nil and compose.applied(text, c.addon.body)
+    if c.addon and c.addon.axis == "patterns" and want[c.addon.id] then
+      checked[c.key] = true
+      focus[c.group] = true
+    end
+  end
+  M.customize(list, checked, "DESIGN.md", function(new_checked)
+    local new, names = apply(text, list, new_checked)
+    if new == text then
+      return log.info "Setup: DESIGN.md already has all of that"
+    end
+    local f, err = io.open(path, "w")
+    if not f then
+      return log.warn("Setup: " .. tostring(err))
+    end
+    f:write(new)
+    f:close()
+    vim.cmd.checktime()
+    if not opts.keep_window then
+      vim.cmd.edit(vim.fn.fnameescape(path))
+    end
+    log.info("Setup: DESIGN.md · " .. table.concat(names, ", "))
+  end, nil, { doc = "DESIGN.md", base = text, focus = vim.tbl_keys(focus), why = opts.why })
 end
 
 --- A design preset, in steps: kind (design systems, styles, terminal / TUI) → design (preview) → customize (platforms,
@@ -811,7 +876,7 @@ function M.design(start)
           return log.warn("Setup: " .. why)
         end
         written(root, "DESIGN.md", path, replace, (summary(st.preset.name, names, 0):gsub(" · 0 principles", "")))
-      end, step_design)
+      end, step_design, { doc = "DESIGN.md", base = st.preset.body })
     end
 
     if start then
@@ -888,7 +953,7 @@ function M.design_prompt()
             require("agent.kit.draft").forget "design"
             written(root, "DESIGN.md", path, replace, st.base and ("based on " .. st.base.name) or nil)
           end)
-        end, step_draft)
+        end, step_draft, { doc = "DESIGN.md" })
       end
 
       step_draft()
@@ -939,7 +1004,12 @@ function M.screens()
     return log.warn "Setup: no agent backend found (<leader>am)"
   end
   busy["DESIGN.md"] = true
-  log.info(("Setup: drawing the screens with %s…"):format(require("agent.selection").label(sel)))
+  req.label = "drawing screens"
+  log.info(
+    ("Setup: drawing the screens with %s… (the statusline follows it; <leader>ax cancels)"):format(
+      require("agent.selection").label(sel)
+    )
+  )
   require("agent").complete(req, function(ok, text)
     busy["DESIGN.md"] = nil
     local screens = ok and M.screens_of(text)

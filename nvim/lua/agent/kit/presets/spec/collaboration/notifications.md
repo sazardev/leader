@@ -2,6 +2,8 @@
 <!-- desc: in-app, email and push notifications, preferences, unsubscribe, delivery retries -->
 <!-- for: all -->
 <!-- needs: accounts -->
+<!-- tech: email jobs realtime -->
+<!-- design: notification-center toasts-feedback -->
 
 ## Requirements
 

@@ -2,6 +2,8 @@
 <!-- desc: several teams or customers in one app: data kept apart, invitations, members, leaving -->
 <!-- for: all -->
 <!-- needs: accounts roles -->
+<!-- tech: database auth email -->
+<!-- design: navigation-shell settings-screens -->
 
 ## Requirements
 

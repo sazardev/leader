@@ -2,6 +2,8 @@
 <!-- desc: who can see and do what: roles, checks on every action, ownership, changes of role -->
 <!-- for: all -->
 <!-- needs: accounts -->
+<!-- tech: auth -->
+<!-- design: settings-screens -->
 
 ## Requirements
 

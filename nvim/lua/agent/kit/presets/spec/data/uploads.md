@@ -1,6 +1,8 @@
 <!-- name: File uploads -->
 <!-- desc: uploading files and images: limits, progress, previews, failures, who can see them -->
 <!-- for: all -->
+<!-- tech: storage -->
+<!-- design: file-upload-ui -->
 
 ## Requirements
 

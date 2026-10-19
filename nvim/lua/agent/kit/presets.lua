@@ -158,6 +158,20 @@ M.AXES = {
   { id = "typescript", label = "TypeScript", exclusive = false },
   { id = "lint", label = "Lint and format", exclusive = true },
   { id = "styling", label = "Styling", exclusive = true },
+  -- the typical features (what the SPEC.md modules ask for): each has a row of its own in the Stack table
+  { id = "database", label = "Database", exclusive = true },
+  { id = "data-access", label = "Data access", exclusive = true },
+  { id = "auth", label = "Auth", exclusive = true },
+  { id = "payments", label = "Payments", exclusive = true },
+  { id = "email", label = "Email", exclusive = true },
+  { id = "storage", label = "File storage", exclusive = true },
+  { id = "search", label = "Search", exclusive = true },
+  { id = "jobs", label = "Background jobs", exclusive = true },
+  { id = "realtime", label = "Realtime", exclusive = true },
+  { id = "i18n", label = "Internationalization", exclusive = true },
+  { id = "analytics", label = "Analytics and flags", exclusive = false },
+  { id = "unit-testing", label = "Unit tests", exclusive = true },
+  { id = "e2e-testing", label = "End-to-end tests", exclusive = true },
   { id = "deploy", label = "Deploy", exclusive = true },
   { id = "ci", label = "CI", exclusive = true },
   { id = "observability", label = "Observability", exclusive = false },
@@ -174,6 +188,7 @@ M.DESIGN_AXES = {
   { id = "glyphs", label = "Glyphs", exclusive = true },
   { id = "density", label = "Density", exclusive = true },
   { id = "accessibility", label = "Accessibility", exclusive = false },
+  { id = "patterns", label = "Screen patterns", exclusive = false }, -- the screens every product has (forms, tables, empty states…)
   { id = "toolkit", label = "Toolkit", exclusive = true },
 }
 

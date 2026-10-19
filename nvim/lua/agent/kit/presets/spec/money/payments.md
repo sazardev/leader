@@ -2,6 +2,8 @@
 <!-- desc: one-time payments: checkout, failures, receipts, refunds, idempotency, webhooks -->
 <!-- for: all -->
 <!-- needs: accounts -->
+<!-- tech: payments email -->
+<!-- design: pricing-checkout -->
 
 ## Requirements
 
