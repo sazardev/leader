@@ -20,7 +20,7 @@ local function tool(flutter_sub, dart_sub)
 end
 
 return {
-  -- run / debug: a picker of entry points when there are several (lua/dartrun)
+  -- run: on the remembered device and entry point (lua/dartrun); it asks only what is missing
   {
     "r",
     "run",
@@ -35,10 +35,30 @@ return {
       require("dartrun").run(true)
     end,
   },
+  {
+    "s",
+    "run profile",
+    function()
+      require("dartrun").profile()
+    end,
+  },
+  {
+    "D",
+    "run on device",
+    function()
+      require("dartrun").ask()
+    end,
+  },
+  {
+    "H",
+    "hide panels (toggle)",
+    function()
+      require("dartrun.panels").toggle()
+    end,
+  },
   { "h", "hot reload", ex "FlutterReload" },
   { "R", "hot restart", ex "FlutterRestart" },
   { "q", "quit app", ex "FlutterQuit" },
-  { "D", "devices", ex "FlutterDevices" },
   { "e", "emulators", ex "FlutterEmulators" },
   { "o", "widget outline", ex "FlutterOutlineToggle" },
   { "l", "log toggle", ex "FlutterLogToggle" },

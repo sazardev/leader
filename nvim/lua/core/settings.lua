@@ -83,6 +83,13 @@ local defaults = {
 
   -- Project tasks (<leader>R, lua/tasks): the targets of the project's Makefile in one picker; <leader>Rc creates a Makefile
   -- from a preset when there is none. No model.
+  -- Flutter run (lua/dartrun, <leader>d): what a run puts on the screen
+  flutter = {
+    -- the app's log: "hidden" keeps it out of the way (<leader>dl shows it, <leader>dH hides everything), "split" opens
+    -- it in a bottom split at every run
+    log = "hidden",
+  },
+
   tasks = {
     timeout_ms = 8000, -- make is given up on after this long when it lists its targets
   },

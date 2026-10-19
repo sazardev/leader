@@ -15,16 +15,38 @@ Filetype: `dart`. The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (genera
 
 ## Run, hot reload, debug
 
-`<leader>dr` runs the app (`<leader>dd` under the debugger). A package with several entry points (`lib/main.dart`,
-`lib/main_dev.dart`, `lib/main_plank.dart`…) gets a picker with the one you used last first, remembered per project
-(`lua/dartrun`, `stdpath("state")/dartrun.json`); project configurations you declare yourself
-(`require("flutter-tools").setup_project`, with flavors or dart-define) win, and flutter-tools asks among them. While the
-app runs, the statusline shows `▶ <device>`. The app's log opens in a bottom split that keeps the focus in your code
-(`<leader>dl` toggles it) and its errors also arrive as notes. With FVM, the project's SDK (`.fvm/flutter_sdk`) is used
-when it is installed.
+Four keys start an app (`lua/dartrun`):
+
+| Key | Does |
+|---|---|
+| `<leader>dr` | run on the device and entry point you used last, at once |
+| `<leader>dd` | the same, with the debug panel open from the start |
+| `<leader>ds` | the same in **profile** mode (performance: no debugger, `<leader>dt` opens DevTools) |
+| `<leader>dD` | asks the device, the entry point (`lib/main_dev.dart`…) and the mode (debug / profile / release) |
+
+The device, the entry point and the last choice are remembered per project (`stdpath("state")/dartrun.json`), so after
+the first run `r`, `d` and `s` ask nothing; with a device missing they ask only for it (a single connected device is
+taken without asking). Devices come from `flutter devices --machine` (~0.5 s) and are sorted last used, phones,
+emulators, desktop, web; the ones the project has no folder for (`web/`, `ios/`…) are not offered. `<leader>ds` and
+`<leader>dD` while an app runs stop it and start the new one (`r`/`d` never interrupt it). The iOS simulator only
+runs debug (Flutter's own rule; Android emulators do run profile). Project configurations you declare yourself
+(`require("flutter-tools").setup_project`, with flavors or dart-define) win for `r` and `d`; a plain Dart package (no
+Flutter) is run by flutter-tools as before. With FVM, the project's SDK (`.fvm/flutter_sdk`) is used when it is installed.
+
+**Statusline.** A chip follows the app: `◌ Pixel 7` while it builds, `▶ Pixel 7` running, `▶ Pixel 7 · profile` (blue:
+it is not the build you debug), `⏸ Pixel 7` stopped at a breakpoint (yellow). It disappears when the session ends.
+
+**Quiet by default.** A run puts nothing on the screen: the app's log goes to a hidden buffer (`<leader>dl` opens or
+closes it; `settings.flutter.log = "split"` opens it in a bottom split at every run, as before), the debug panel
+(nvim-dap-view) opens with `<leader>dd` or when the app stops at a breakpoint, and its errors still arrive as notes.
+`<leader>dH` hides whatever is open (log, debug panel, widget outline); with nothing open it shows the log.
+
+**Profile in practice.** `<leader>ds` on a phone (or `Linux`/`Chrome`): hot reload keeps working, breakpoints do not.
+Open DevTools with `<leader>dt` for the Performance and CPU tabs. Profile on a simulator or an emulator measures
+the host's speed, not the device's: use a real device for numbers.
 
 It runs through nvim-dap, so a breakpoint (`<leader>db`, `<leader>dB` with a condition) stops it in
-any run; `<leader>dd` does the same explicitly. Saving a `.dart` file hot-reloads the running app and saving
+any run; `<leader>dd` does the same explicitly and opens the panel at once. Saving a `.dart` file hot-reloads the running app and saving
 `pubspec.yaml` runs `pub get` (flutter-tools). While stopped: `<leader>dc` continue, `<leader>dn` step over, `<leader>di`
 into, `<leader>dO` out; the panel (watches, scopes, breakpoints, threads, REPL) opens and closes with the session
 (`<leader>du` toggles it). The launch configuration is flutter-tools' own ("Launch flutter" on `lib/main.dart`, or the

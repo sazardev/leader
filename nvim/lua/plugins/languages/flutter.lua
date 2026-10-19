@@ -42,6 +42,12 @@ return {
       require("flutter-tools.lsp").attach = function() end
     end
     enable_document_colors()
+    require("dartrun").setup()
+    -- log "hidden": flutter-tools opens the split at the first line of output unless it believes it already showed it;
+    -- the lines go to a hidden buffer instead, and <leader>dl opens it
+    if require("core.settings").flutter.log == "hidden" then
+      require("flutter-tools.log").shown = true
+    end
     require("dartgen").setup()
     require("darttest").setup()
     require("dartpub").setup()

@@ -189,10 +189,12 @@ _Where: `dart`_
 |---|---|
 | `<leader>dr` | run |
 | `<leader>dd` | debug |
+| `<leader>ds` | run profile |
+| `<leader>dD` | run on device |
+| `<leader>dH` | hide panels (toggle) |
 | `<leader>dh` | hot reload |
 | `<leader>dR` | hot restart |
 | `<leader>dq` | quit app |
-| `<leader>dD` | devices |
 | `<leader>de` | emulators |
 | `<leader>do` | widget outline |
 | `<leader>dl` | log toggle |

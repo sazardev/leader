@@ -131,7 +131,7 @@ function M.dartgen_status()
   }
 end
 
---- Flutter app (dartrun): "▶ Pixel 7" while it runs
+--- Flutter app (dartrun): "▶ Pixel 7" while it runs, "◌" building, "▶ Pixel 7 · profile", "⏸" at a breakpoint
 function M.flutter_status()
   local function text()
     -- also when the app was started with :FlutterRun: only flutter-tools has to be loaded
@@ -144,7 +144,10 @@ function M.flutter_status()
     cond = function()
       return text() ~= ""
     end,
-    color = "FlutterRunning",
+    color = function()
+      -- lualine evaluates this at setup too, before anything ran
+      return package.loaded["dartrun"] and require("dartrun").statusline_group() or "FlutterRunning"
+    end,
     padding = 0,
   }
 end

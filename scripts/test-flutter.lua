@@ -413,6 +413,73 @@ eq(
 )
 eq("entries: none", drun.entries { "app.dart" }, {})
 
+-- ── run: devices (flutter devices --machine) ────────────────────────────────
+local ddev = require "dartrun.devices"
+local machine = vim.split(
+  [=[Resolving dependencies...
+[
+  {"name":"Pixel 7","id":"AB12","isSupported":true,"targetPlatform":"android-arm64","emulator":false},
+  {"name":"sdk gphone64","id":"emulator-5554","isSupported":true,"targetPlatform":"android-x64","emulator":true},
+  {"name":"iPhone 15","id":"SIM1","isSupported":true,"targetPlatform":"ios","emulator":true},
+  {"name":"Linux","id":"linux","isSupported":true,"targetPlatform":"linux-x64","emulator":false},
+  {"name":"Chrome","id":"chrome","isSupported":true,"targetPlatform":"web-javascript","emulator":false},
+  {"name":"macOS","id":"macos","isSupported":false,"targetPlatform":"darwin","emulator":false}
+]]=],
+  "\n"
+)
+local devs = ddev.parse(machine)
+eq("devices: notices before the JSON are skipped", #devs, 6)
+eq("devices: nothing to parse", ddev.parse { "No devices found" }, {})
+local folders = { android = true, linux = true } -- the project has no ios/ and no web/
+eq(
+  "devices: unsupported and platforms the project lacks are dropped",
+  vim.tbl_map(function(d)
+    return d.id
+  end, ddev.usable(devs, function(f)
+    return folders[f] == true
+  end)),
+  { "AB12", "emulator-5554", "linux" }
+)
+eq(
+  "devices: the last first, then phone, emulators (by name), desktop, web",
+  vim.tbl_map(function(d)
+    return d.id
+  end, ddev.order(devs, "chrome")),
+  { "chrome", "AB12", "SIM1", "emulator-5554", "linux", "macos" }
+)
+local rows = ddev.entries(devs, "AB12", "profile")
+eq("devices: the last one is marked", { rows[1].device.id, rows[1].current }, { "AB12", true })
+local labels = {}
+for _, r in ipairs(rows) do
+  labels[r.device.id] = r.label
+end
+eq("devices: an Android emulator runs profile, no warning", labels["emulator-5554"], "sdk gphone64  android-x64  · emulator")
+eq("devices: the iOS simulator only runs debug, and says so", labels.SIM1, "iPhone 15  ios  · emulator, no profile")
+eq("devices: debug mode adds nothing", ddev.entries(devs, nil, "debug")[3].label:find("no ", 1, true), nil)
+
+-- ── run: the launch configuration (device and mode are TOOL arguments) ──────
+local sdk = { dart_sdk = "/sdk/dart", flutter_sdk = "/sdk" }
+local cfg = drun.launch_config { paths = sdk, root = "/p", target = "lib/main_dev.dart", device = "AB12", mode = "profile" }
+eq("launch: profile goes in toolArgs, after -d", cfg.toolArgs, { "-d", "AB12", "--profile" })
+eq("launch: target, cwd and sdk", { cfg.program, cfg.cwd, cfg.flutterSdkPath }, { "lib/main_dev.dart", "/p", "/sdk" })
+eq("launch: never in args (the adapter would start paused)", cfg.args, nil)
+eq("launch: debug adds no mode", drun.launch_config({ paths = sdk, root = "/p", device = "linux" }).toolArgs, { "-d", "linux" })
+eq("launch: release", drun.launch_config({ paths = sdk, root = "/p", mode = "release" }).toolArgs, { "--release" })
+eq("launch: default target", drun.launch_config({ paths = sdk, root = "/p" }).program, "lib/main.dart")
+
+-- ── run: the statusline chip ────────────────────────────────────────────────
+local dstate = require "dartrun.state"
+eq("chip: nothing runs", dstate.text(nil), "")
+eq("chip: building", dstate.text { device = "Pixel 7", started = false }, "◌ Pixel 7")
+eq("chip: running", dstate.text { device = "Pixel 7", started = true, mode = "debug" }, "▶ Pixel 7")
+eq("chip: profile says so", dstate.text { device = "Pixel 7", started = true, mode = "profile" }, "▶ Pixel 7 · profile")
+eq("chip: stopped at a breakpoint", dstate.text { device = "Linux", started = true, stopped = true }, "⏸ Linux")
+eq("chip: device not known yet", dstate.text { started = true }, "▶ running")
+eq("chip: debug is green", dstate.group { started = true, mode = "debug" }, "FlutterRunning")
+eq("chip: profile is apart", dstate.group { started = true, mode = "profile" }, "FlutterProfile")
+eq("chip: building and stopped are yellow", { dstate.group { started = false }, dstate.group { started = true, stopped = true } }, { "FlutterStarting", "FlutterStarting" })
+eq("chip: no app, no running state", dstate.current(), nil)
+
 -- ── translations: what gen-l10n says went wrong ─────────────────────────────
 eq(
   "l10n: the ICU error line",

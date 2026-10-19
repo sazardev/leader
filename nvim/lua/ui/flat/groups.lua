@@ -293,6 +293,8 @@ function M.build(t)
   g.DartPubMajor = { fg = t.yellow, italic = true }
   g.DartPubWarn = { fg = t.red, bold = true }
   g.FlutterRunning = { fg = t.green, bg = veil(t.green, 0.14), bold = true } -- the app is running (dartrun)
+  g.FlutterStarting = { fg = t.yellow, bg = veil(t.yellow, 0.14), bold = true } -- it is building, or stopped at a breakpoint
+  g.FlutterProfile = { fg = t.blue, bg = veil(t.blue, 0.14), bold = true } -- profile / release: not the build you debug
   -- Dart tests (darttest): the mark on each test line, the time of a passed one, the statusline chip while it runs
   g.DartTestPass = { fg = t.green }
   g.DartTestFail = { fg = t.red, bold = true }
