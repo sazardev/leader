@@ -68,6 +68,7 @@ button{font:inherit;color:inherit;background:none;cursor:pointer}
 .p-go{background:var(--bg);z-index:3}
 .p-kit{background:var(--deep);z-index:3}
 .p-keys{background:var(--aqua);color:var(--on);z-index:3}
+.p-walls{background:var(--bg);z-index:3}
 .p-install{background:var(--green);color:var(--on);z-index:3;min-height:90vh}
 h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .eyebrow{font-family:"Geist Mono",monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:28px}
@@ -107,10 +108,10 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .row h3{font-size:clamp(26px,4vw,58px);font-weight:600;letter-spacing:-.05em;line-height:1}
 .row p{color:var(--dim);font-size:clamp(16px,1.5vw,21px);transition:color .25s}
 .row:hover p{color:color-mix(in srgb,var(--on) 70%,transparent)}
-.p-opin h2,.p-go h2,.p-kit h2,.p-keys h2,.p-install h2{font-size:clamp(44px,7.4vw,112px)}
+.p-opin h2,.p-go h2,.p-kit h2,.p-keys h2,.p-walls h2,.p-install h2{font-size:clamp(44px,7.4vw,112px)}
 
 /* ── go + agent: a real-looking editor, scripted ────────────────────────────────────────────── */
-.p-go h2 span{color:var(--green)}
+.p-go h2 span,.p-walls h2 span{color:var(--green)}
 .stage{display:grid;grid-template-columns:270px 1fr;gap:12px;margin-top:56px;align-items:start}
 .list{list-style:none;display:grid;gap:2px}
 .list .grp{font:500 11px "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:14px 4px 6px;display:flex;justify-content:space-between}
@@ -314,6 +315,12 @@ h1,h2{font-weight:600;letter-spacing:-.055em;line-height:.94}
 .tile:hover span{color:color-mix(in srgb,var(--on) 65%,transparent)}
 .lead{margin-top:28px;font-size:clamp(18px,1.8vw,24px);letter-spacing:-.02em;max-width:34ch;font-weight:500}
 
+/* ── wallpapers: a few real ones, then the page ──────────────────────────────────────────────── */
+.walls{display:flex;gap:12px;align-items:flex-end;margin-top:56px;overflow:hidden}
+.walls img{display:block;flex:none;height:clamp(130px,17vw,250px);width:auto;background:var(--deep)}
+.btn{display:inline-flex;margin-top:44px;padding:18px 30px;background:var(--green);color:var(--on);font-weight:600;font-size:16px;transition:filter .15s}
+.btn:hover{filter:brightness(1.1)}
+
 /* ── install ──────────────────────────────────────────────────────────────────────────────────── */
 .p-install h2{margin-bottom:48px}
 .sub{margin-top:26px;font-size:15px;color:color-mix(in srgb,var(--on) 70%,transparent)}
@@ -350,7 +357,7 @@ footer a:hover{color:var(--fg)}
   <div class="wrap">
     <a class="logo" href="#top"><i></i>Leader</a>
     <nav>
-      <a href="#go">Go</a><a href="#kit">Build</a><a href="#keys">Keys</a><a href="#install">Install</a><a class="docs" href="docs/">Docs</a>
+      <a href="#go">Go</a><a href="#kit">Build</a><a href="#keys">Keys</a><a href="#install">Install</a><a class="docs" href="wallpapers/">Wallpapers</a><a class="docs" href="docs/">Docs</a>
       <button id="theme" aria-label="Choose theme">Theme <span class="k">t</span></button>
     </nav>
   </div>
@@ -436,6 +443,22 @@ footer a:hover{color:var(--fg)}
   </div>
 </section>
 
+<section class="panel p-walls" id="wallpapers">
+  <div class="wrap">
+    <span class="eyebrow rv">Wallpapers</span>
+    <h2 class="rv">Make it<br><span>yours.</span></h2>
+    <p class="lead rv" style="--d:.1s">Dot grids, braille, phrases, one for every language. For your phone and your desktop.</p>
+    <div class="walls rv" style="--d:.2s" aria-hidden="true">
+      <img src="wallpapers/thumbs/desktop/lang-go.webp" width="640" height="360" loading="lazy" alt="">
+      <img src="wallpapers/thumbs/phone/phrase-commit-early.webp" width="300" height="650" loading="lazy" alt="">
+      <img src="wallpapers/thumbs/desktop/braille-tokyo-night.webp" width="640" height="360" loading="lazy" alt="">
+      <img src="wallpapers/thumbs/phone/grid-yellow.webp" width="300" height="650" loading="lazy" alt="">
+      <img src="wallpapers/thumbs/desktop/dots-press-space.webp" width="640" height="360" loading="lazy" alt="">
+    </div>
+    <a class="btn rv" style="--d:.3s" href="wallpapers/">Choose yours</a>
+  </div>
+</section>
+
 <section class="panel p-install" id="install">
   <div class="wrap">
     <span class="eyebrow rv">Install</span>
@@ -453,7 +476,7 @@ footer a:hover{color:var(--fg)}
 <footer>
   <div class="wrap">
     <span>Leader · built on NvChad</span>
-    <span><a href="docs/">Documentation</a> &nbsp;·&nbsp; <a href="docs/#keys">Every key</a> &nbsp;·&nbsp; <a href="docs/#changelog">Changelog</a> &nbsp;·&nbsp; <a href="https://github.com/sazardev/leader">GitHub</a></span>
+    <span><a href="docs/">Documentation</a> &nbsp;·&nbsp; <a href="wallpapers/">Wallpapers</a> &nbsp;·&nbsp; <a href="docs/#keys">Every key</a> &nbsp;·&nbsp; <a href="docs/#changelog">Changelog</a> &nbsp;·&nbsp; <a href="https://github.com/sazardev/leader">GitHub</a></span>
   </div>
 </footer>
 

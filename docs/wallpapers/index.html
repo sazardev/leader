@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wallpapers — Leader</title>
+<meta name="description" content="Free wallpapers in the Leader design for your phone, desktop, ultrawide and 4K screen. Pick a device, pick a look, download.">
+<meta name="theme-color" content="#282828">
+<meta property="og:title" content="Wallpapers — Leader">
+<meta property="og:description" content="Dot grids, braille, phrases, one for every language. For phone, desktop, ultrawide and 4K.">
+<link rel="preload" href="../fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23282828'/%3E%3Cpath d='M8 25V7l16 18V7' fill='none' stroke='%23b8bb26' stroke-width='3.4'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:Geist;src:url(../fonts/Geist-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(../fonts/GeistMono-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
+/* the landing's palette (gruvbox / gruvbox light). Flat: no borders, no radius, no shadows */
+:root,[data-theme=dark]{--bg:#282828;--deep:#202020;--soft:#323232;--fg:#ebdbb2;--dim:#a89984;--faint:#665c54;--green:#b8bb26;--yellow:#fabd2f;--aqua:#8ec07c;--on:#1d2021;color-scheme:dark}
+[data-theme=light]{--bg:#f2e5bc;--deep:#e9dcb3;--soft:#e3d6ad;--fg:#3c3836;--dim:#665c54;--faint:#a89984;--green:#79740e;--yellow:#b57614;--aqua:#427b58;--on:#f9f5d7;color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0;border:0;border-radius:0}
+@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--faint) 75%,transparent) transparent}}
+::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--faint) 75%,transparent)}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font:400 clamp(16px,1.2vw,18px)/1.5 Geist,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;background:none;cursor:pointer}
+::selection{background:var(--green);color:var(--on)} :focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.wrap{width:min(1320px,100% - 48px);margin:0 auto}
+.mono{font-family:"Geist Mono",monospace}
+
+/* top bar, like the landing's */
+.bar{position:sticky;top:0;z-index:20;height:60px;display:flex;align-items:center;background:var(--bg)}
+.bar .wrap{display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:600;letter-spacing:-.02em;font-size:15px;display:flex;align-items:center;gap:10px}
+.logo i{width:12px;height:12px;background:var(--green);display:block}
+.bar nav{display:flex;gap:22px;font-size:14px;color:var(--dim)} .bar nav a:hover{color:var(--fg)}
+
+/* hero */
+.hero{padding:clamp(48px,7vw,92px) 0 24px}
+.eyebrow{font:500 13px "Geist Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:24px}
+h1{font-weight:600;letter-spacing:-.055em;line-height:.94;font-size:clamp(48px,8.4vw,112px)}
+h1 span{display:block} h1 span+span{color:var(--green)}
+.lead{margin-top:30px;font-size:clamp(18px,2vw,26px);letter-spacing:-.02em;line-height:1.35;color:var(--dim);max-width:34ch}
+.lead b{color:var(--fg);font-weight:500}
+
+/* controls */
+.ctrl{background:var(--bg);padding:14px 0 12px}
+.devices{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.devices button{display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px 16px;background:var(--deep);color:var(--dim);transition:background .2s,color .2s}
+.devices button b{font-weight:600;font-size:clamp(16px,1.5vw,20px);letter-spacing:-.02em;color:var(--fg)}
+.devices button small{font:400 12px "Geist Mono",monospace;color:var(--faint)}
+.devices button:hover{color:var(--fg)}
+.devices button.on{background:var(--green);color:var(--on)} .devices button.on b,.devices button.on small{color:var(--on)}
+.devices button.on small{opacity:.7}
+.detect{margin:12px 0 0;font:400 13px "Geist Mono",monospace;color:var(--faint);min-height:19px}
+.detect b{color:var(--dim);font-weight:500}
+.filters{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin-top:14px;align-items:start}
+.filters dt{font:500 11px "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding-top:8px}
+.filters dd{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:6px 11px;font:500 12px "Geist Mono",monospace;background:var(--deep);color:var(--dim);display:inline-flex;align-items:center;gap:7px;transition:background .15s,color .15s}
+.chip:hover{color:var(--fg)} .chip.on{background:var(--fg);color:var(--on)}
+.chip i{display:inline-flex;width:18px;height:10px} .chip i s{flex:1;display:block}
+.chip em{font-style:normal;color:var(--faint)} .chip.on em{color:color-mix(in srgb,var(--on) 60%,transparent)}
+.search{display:flex;gap:10px;align-items:center}
+.search input{background:var(--deep);color:var(--fg);padding:7px 12px;font:400 13px "Geist Mono",monospace;width:min(260px,100%)}
+.search input::placeholder{color:var(--faint)}
+.count{font:400 13px "Geist Mono",monospace;color:var(--dim)}
+.bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:14px}
+.fdet{margin-top:12px} .fdet>summary{list-style:none;cursor:pointer;width:max-content} .fdet>summary::-webkit-details-marker{display:none}
+.fdet[open]>summary{background:var(--fg);color:var(--on)}
+@media(min-width:761px){.fdet>summary{display:none}.filters{margin-top:0}}
+.all{display:inline-flex;gap:10px;align-items:center;padding:7px 14px;background:var(--fg);color:var(--on);font-weight:600;font-size:13px}
+.all small{font:400 12px "Geist Mono",monospace;opacity:.65}
+.all:hover{background:var(--green)}
+
+/* the grid */
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(var(--min,300px),1fr));padding:20px 0 90px}
+.card{display:flex;flex-direction:column;gap:9px;min-width:0}
+.shot{position:relative;display:block;background:var(--deep);overflow:hidden}
+.shot img{display:block;width:100%;height:auto;transition:transform .5s cubic-bezier(.2,.7,.1,1)}
+.shot:hover img{transform:scale(1.03)}
+.dl{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;padding:9px 12px;background:var(--green);color:var(--on);font:600 12px "Geist Mono",monospace;transform:translateY(101%);transition:transform .22s cubic-bezier(.2,.7,.1,1)}
+.shot:hover .dl,.shot:focus-visible .dl{transform:none}
+.dl span:last-child{font-weight:400;opacity:.7}
+@media(hover:none){.dl{transform:none;background:color-mix(in srgb,var(--green) 92%,transparent)}}
+.meta{display:flex;flex-direction:column;gap:2px}
+.meta b{font-weight:600;font-size:15px;letter-spacing:-.02em;line-height:1.2}
+.meta span{font:400 12px "Geist Mono",monospace;color:var(--faint)}
+.also{margin-top:3px;font:400 12px "Geist Mono",monospace;color:var(--faint);display:flex;flex-wrap:wrap;gap:4px 12px}
+.also a{color:var(--dim);text-decoration:underline;text-underline-offset:3px} .also a:hover{color:var(--green)}
+.empty{padding:70px 0;color:var(--dim);grid-column:1/-1;font-size:18px}
+.empty button{color:var(--green);text-decoration:underline;text-underline-offset:3px}
+
+footer{background:var(--deep);padding:34px 0;font-size:14px;color:var(--dim)}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px} footer a:hover{color:var(--fg)}
+
+@media(max-width:760px){
+  .devices{grid-template-columns:repeat(2,1fr)}
+  .filters{grid-template-columns:1fr;margin-top:10px} .filters dt{padding-top:4px}
+  .grid{gap:10px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../"><i></i>Leader</a>
+    <nav><a href="../">Home</a><a href="../docs/">Docs</a><a href="https://github.com/sazardev/leader/releases">Releases</a></nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <span class="eyebrow">Wallpapers</span>
+    <h1><span>Make it</span><span>yours.</span></h1>
+    <p class="lead"><b>Free for your screen.</b> Dot grids, braille, phrases, one for every language. Pick a device, pick a look.</p>
+  </section>
+
+  <div class="ctrl"><div class="wrap">
+    <div class="devices" id="devices" role="tablist" aria-label="Device"></div>
+    <p class="detect" id="detect"></p>
+    <div class="bulk"><span class="count" id="count"></span><a class="all" id="all" href="#"></a></div>
+    <details class="fdet" id="fdet"><summary class="chip">Filters and search</summary>
+      <dl class="filters">
+        <dt>Look</dt><dd id="f-design"></dd>
+        <dt>Colors</dt><dd id="f-color"></dd>
+        <dt>Find</dt><dd class="search"><input id="q" type="search" placeholder="go, nord, braille…" aria-label="Search wallpapers" autocomplete="off"></dd>
+      </dl>
+    </details>
+  </div></div>
+
+  <div class="wrap"><div class="grid" id="grid" aria-live="polite"></div></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Leader · built on NvChad · wallpapers are generated from the brand kit</span>
+    <span><a href="https://github.com/sazardev/leader/releases">All brand assets</a> &nbsp;·&nbsp; <a href="../">Home</a> &nbsp;·&nbsp; <a href="https://github.com/sazardev/leader">GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement, $ = function (id) { return document.getElementById(id); };
+  var saved = null; try { saved = localStorage.getItem("theme"); } catch (e) {}
+  root.dataset.theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+
+  var M = null, S = { device: "desktop", design: "all", palette: "all", tone: "all", q: "" };
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
+
+  /* swatches for the palettes: the landing's own (gruvbox) and the terminal themes' background + green */
+  var SW = { gruvbox: ["#202020", "#b8bb26"], "gruvbox-light": ["#f2e5bc", "#79740e"], yellow: ["#fabd2f", "#1d2021"], green: ["#b8bb26", "#1d2021"], aqua: ["#8ec07c", "#1d2021"],
+    "tokyo-night": ["#1a1b26", "#9ece6a"], "catppuccin-mocha": ["#1e1e2e", "#a6e3a1"], "catppuccin-latte": ["#eff1f5", "#40a02b"], nord: ["#2e3440", "#a3be8c"], dracula: ["#282a36", "#50fa7b"], "one-dark": ["#282c34", "#98c379"],
+    "rose-pine": ["#191724", "#31748f"], kanagawa: ["#1f1f28", "#76946a"], everforest: ["#2d353b", "#a7c080"], "solarized-light": ["#fdf6e3", "#859900"], "solarized-dark": ["#002b36", "#859900"] };
+
+  /* which device is this? Physical pixels, shape and pointer decide; the visitor can always change it */
+  function detect() {
+    var dpr = window.devicePixelRatio || 1, long = Math.max(screen.width, screen.height), short = Math.min(screen.width, screen.height), coarse = matchMedia("(pointer: coarse)").matches;
+    var ratio = long / short, pw = Math.round(long * dpr), ph = Math.round(short * dpr), id = "desktop", why;
+    if (coarse && short < 820) { id = "phone"; why = "a touch screen " + Math.round(short * dpr) + "×" + pw; }
+    else if (ratio >= 2.1) { id = "ultrawide"; why = "an ultrawide screen (" + pw + "×" + ph + ")"; }
+    else if (pw >= 3700) { id = "uhd"; why = "a 4K screen (" + pw + "×" + ph + ")"; }
+    else why = "a " + pw + "×" + ph + " screen";
+    return { id: id, text: "Your device looks like " + why + "." };
+  }
+
+  function pass(it) {
+    var f = it.files[S.device]; if (!f) return false;
+    if (S.design !== "all" && it.design !== S.design) return false;
+    if (S.palette !== "all" && it.palette !== S.palette) return false;
+    if (S.tone !== "all" && it.tone !== S.tone) return false;
+    if (S.q) { var hay = (it.title + " " + it.design + " " + it.palette + " " + (M.designs.filter(function (d) { return d.id === it.design; })[0] || {}).label + " " + (M.palettes.filter(function (p) { return p.id === it.palette; })[0] || {}).label).toLowerCase(); if (S.q.split(/\s+/).some(function (w) { return hay.indexOf(w) < 0; })) return false; }
+    return true;
+  }
+  function dev(id) { return M.devices.filter(function (d) { return d.id === id; })[0]; }
+  function dl(f) { return M.base + f.asset; }
+
+  function paintDevices() {
+    $("devices").innerHTML = M.devices.map(function (d) {
+      return '<button role="tab" data-d="' + d.id + '" class="' + (d.id === S.device ? "on" : "") + '" aria-selected="' + (d.id === S.device) + '"><b>' + esc(d.label) + "</b><small>" + d.size + " · " + d.count + "</small></button>";
+    }).join("");
+  }
+  /* `all` is the label of the "everything" chip (null: none), `isAll` whether it is the active one */
+  function chips(list, key, cur, all, isAll) {
+    return (all ? '<button class="chip' + (isAll ? " on" : "") + '" data-k="' + key + '" data-v="all">' + all + "</button>" : "") + list.map(function (x) {
+      var sw = key === "palette" && SW[x.id] ? '<i><s style="background:' + SW[x.id][0] + '"></s><s style="background:' + SW[x.id][1] + '"></s></i>' : "";
+      return '<button class="chip' + (cur === x.id ? " on" : "") + '" data-k="' + key + '" data-v="' + x.id + '">' + sw + esc(x.label) + " <em>" + x.n + "</em></button>";
+    }).join("");
+  }
+  function paintFilters() {
+    var onDev = M.items.filter(function (it) { return it.files[S.device]; });
+    function n(fn) { return onDev.filter(fn).length; }
+    $("f-design").innerHTML = chips(M.designs.map(function (d) { return { id: d.id, label: d.label, n: n(function (i) { return i.design === d.id; }) }; }).filter(function (x) { return x.n; }), "design", S.design, "All", S.design === "all");
+    var tones = [["dark", "Dark"], ["light", "Light"], ["color", "Color"]].map(function (t) { return { id: t[0], label: t[1], n: n(function (i) { return i.tone === t[0]; }) }; }).filter(function (x) { return x.n; });
+    $("f-color").innerHTML = chips(tones, "tone", S.tone, "All", S.tone === "all" && S.palette === "all") + chips(M.palettes.map(function (p) { return { id: p.id, label: p.label, n: n(function (i) { return i.palette === p.id; }) }; }).filter(function (x) { return x.n; }), "palette", S.palette, null, false);
+  }
+  function paintGrid() {
+    var d = dev(S.device), list = M.items.filter(pass), phone = S.device === "phone";
+    $("grid").style.setProperty("--min", phone ? "150px" : S.device === "ultrawide" ? "340px" : "300px");
+    $("count").textContent = list.length + (list.length === 1 ? " wallpaper" : " wallpapers");
+    $("all").innerHTML = "Download all " + esc(d.label) + " <small>zip · " + d.zipMB + " MB</small>";
+    $("all").href = M.base + d.zip;
+    if (!list.length) { $("grid").innerHTML = '<p class="empty">Nothing matches. <button id="clear">Clear the filters</button></p>'; return; }
+    $("grid").innerHTML = list.map(function (it) {
+      var f = it.files[S.device], pal = M.palettes.filter(function (p) { return p.id === it.palette; })[0], des = M.designs.filter(function (x) { return x.id === it.design; })[0];
+      var also = Object.keys(it.files).filter(function (k) { return k !== S.device; }).map(function (k) { return '<a href="' + esc(dl(it.files[k])) + '" rel="noopener">' + esc(dev(k).label) + "</a>"; }).join("");
+      return '<article class="card"><a class="shot" href="' + esc(dl(f)) + '" rel="noopener" aria-label="Download ' + esc(it.title) + ", " + esc(d.label) + '"><img src="' + esc(f.thumb) + '" width="' + f.tw + '" height="' + f.th + '" loading="lazy" alt="' + esc(it.title) + " wallpaper, " + esc(pal.label) + '">' +
+        '<span class="dl"><span>Download</span><span>' + f.w + "×" + f.h + " · " + f.kb + " KB</span></span></a>" +
+        '<div class="meta"><b>' + esc(it.title) + "</b><span>" + esc(des.label) + " · " + esc(pal.label) + "</span>" + (also ? '<div class="also">Also: ' + also + "</div>" : "") + "</div></article>";
+    }).join("");
+  }
+  function paint() { paintDevices(); paintFilters(); paintGrid(); try { history.replaceState(null, "", "#" + S.device); } catch (e) {} }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.d) { S.device = b.dataset.d; S.design = S.palette = S.tone = "all"; paint(); }
+    else if (b.dataset.k) { S[b.dataset.k] = b.dataset.v; if (b.dataset.k === "tone") S.palette = "all"; if (b.dataset.k === "palette") S.tone = "all"; paintFilters(); paintGrid(); }
+    else if (b.id === "clear") { S.design = S.palette = S.tone = "all"; S.q = ""; $("q").value = ""; paintFilters(); paintGrid(); }
+  });
+  $("q").addEventListener("input", function (e) { S.q = e.target.value.trim().toLowerCase(); paintGrid(); });
+
+  var fdet = $("fdet"), wide = matchMedia("(min-width: 761px)");
+  function openFilters() { fdet.open = wide.matches; } openFilters(); wide.addEventListener("change", openFilters);
+
+  fetch("manifest.json").then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (m) {
+    M = m;
+    var d = detect(), hash = location.hash.replace("#", ""), forced = M.devices.some(function (x) { return x.id === hash; });
+    S.device = forced ? hash : d.id;
+    $("detect").innerHTML = forced ? "Showing <b>" + esc(dev(S.device).label) + "</b> sizes. " + esc(d.text) : esc(d.text) + " Showing <b>" + esc(dev(S.device).label) + "</b> sizes: change it above any time.";
+    paint();
+  }).catch(function () {
+    $("grid").innerHTML = '<p class="empty">The wallpaper list could not be loaded. Everything is also on <a href="https://github.com/sazardev/leader/releases" style="color:var(--green);text-decoration:underline">the releases page</a>.</p>';
+  });
+})();
+</script>
+</body>
+</html>

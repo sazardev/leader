@@ -14,6 +14,17 @@ node brand/render.mjs --list                # the catalog
 Needs Node 22+, Chromium/Chrome (`CHROMIUM=/path` if it is not on PATH) and ffmpeg (only for `favicon.ico`). No npm packages.
 The render checks every text box and prints a warning when a headline gets too small or runs out of its box.
 
+## Publish (release + the site's wallpapers page)
+
+```sh
+node brand/publish.mjs                 # prepare: docs/wallpapers/{manifest.json,thumbs/} + brand/out/release/ (flat assets, zips)
+node brand/publish.mjs --release       # also: tag + GitHub release (brand-1) + upload; --tag brand-2 for the next one
+```
+
+The page `docs/wallpapers/` lets visitors pick a device and a look and downloads each file from the release. The release tag points to
+an orphan commit (not reachable from master) so `git describe --tags`, used by the release kit, ignores it. Push the page and
+`manifest.json` only after the release exists (the links point to it): create the release first, then push.
+
 ## What is in `out/`
 
 - `landscape/` `link-preview/` `square/` `portrait/` `story/` `pinterest/`: every piece in every size (`copy.js` has the list).

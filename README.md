@@ -4,7 +4,7 @@
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-`v1.4.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/leader/docs/)
+`v1.4.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/leader/docs/) · [wallpapers](https://sazardev.github.io/leader/wallpapers/)
 
 ## Installation
 
