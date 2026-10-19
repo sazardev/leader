@@ -332,7 +332,13 @@ do
     cfg.openai.api_key_env = "OPENAI_API_KEY"
     vim.env.TEST_AGENT_KEY = nil
 
-    -- detection against the fake servers
+    -- detection against the fake servers. Hermetic: `http.candidates` probes the usual ports, and a real Ollama
+    -- (or LM Studio) running on this machine would outrank the fake servers in the report
+    local http_backend = require "agent.backends.http"
+    local real_candidates = http_backend.candidates
+    http_backend.candidates = function()
+      return {}
+    end
     local detect = require "agent.setup.detect"
     local found
     detect.run(function(s)
@@ -364,6 +370,7 @@ do
       text2:find("qwen2.5-coder:7b", 1, true) ~= nil,
       text2:find("on GPU", 1, true) ~= nil,
     }, { true, true, true })
+    http_backend.candidates = real_candidates
 
     -- actions: download with progress, start when already up, remember and apply
     local setup_actions = require "agent.setup.actions"
