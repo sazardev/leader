@@ -9,9 +9,7 @@ predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** m
 1. Put the cursor inside a function (or select lines in visual mode) and press `<leader>a` + the action.
 2. The code being sent is highlighted and a spinner turns on the right: `⠋ implement · claude/haiku · 1.2s`.
    Requests with no code to paint (the project documents of `<leader>aS`, including the screens of `<leader>aSw`, the commit
-   draft, the staged review, plans) show their progress in the **statusline** from any buffer: `⠹ drawing screens · thinking · 12s`,
-   then `writing 2.5k chars` once the answer streams in, and `✓ drawing screens · 48s` (or `✗` in red) for a few seconds after it
-   ends. `<leader>ax` cancels them too.
+   draft, the staged review, plans) show a badge in the **statusline** from any buffer: `⠹ drawing screens`, then `✓ drawing screens` (or a red `✗`) for a few seconds after it ends. `<leader>ax` cancels them too.
 3. The result shows up **in the code**, depending on the action:
 
 | Action | Input | Result |
@@ -579,6 +577,13 @@ language over its category), so Enter alone gives a complete setup; change or un
 are one-of groups, squares (`■`/`□`) take any number. Only the add-ons that fit the stack are listed (its main language is
 read from the Stack table, so a Go API is never offered TypeScript tools).
 
+The customize step is a **full-screen marketplace** too (the same keys): the choices by group on the left (`●`/`○` one-of
+groups, `■`/`□` any number), the add-on under the cursor on the right (what it is and what it writes: its Stack rows,
+conventions, commands, rules), and under both what the choice sets (`sets the rows Database, Auth…`). `p` shows exactly the
+text the document would gain, `Space` picks (in a one-of group the others go off), `⏎` goes on, `Esc` goes back, `/`
+filters, `Tab` folds a group, `?` lists the keys. `<leader>aSk` opens it on an existing STACK.md and `<leader>aSK` on an
+existing DESIGN.md.
+
 **Esc goes back one step** (Principles → Customize → stack → kind of project; in `T`, Customize → the page with what you
 wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes.
 
@@ -588,6 +593,19 @@ wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes
 | TypeScript | TypeScript 7 (the native `tsc`, ~10x faster type checks) |
 | Lint and format (one of) | Biome, Oxlint, strict ESLint + typescript-eslint |
 | Styling (one of) | Tailwind CSS 4, CSS Modules + tokens, UnoCSS |
+| Database (one of) | Postgres, SQLite, MySQL, MongoDB, Turso |
+| Data access (one of) | Drizzle, Prisma, sqlc, sqlx, SQLAlchemy |
+| Auth (one of) | Better Auth, Auth.js, Clerk, Supabase Auth, OIDC (Keycloak/Auth0/Entra), own session cookies |
+| Payments (one of) | Stripe, Lemon Squeezy, RevenueCat |
+| Email (one of) | Resend, Postmark, SES, SMTP |
+| File storage (one of) | S3-compatible (S3, R2, MinIO), Cloudinary, local disk |
+| Search (one of) | Meilisearch, Typesense, Postgres full-text |
+| Background jobs (one of) | BullMQ, River, Celery, Inngest, cron only |
+| Realtime (one of) | WebSockets, Server-Sent Events, Ably |
+| Internationalization (one of) | i18next, Flutter gen-l10n, gettext, go-i18n |
+| Analytics and flags | PostHog, Plausible, OpenFeature |
+| Unit tests (one of) | Vitest, Jest, pytest, Go + testify, cargo-nextest |
+| End-to-end tests (one of) | Playwright, Cypress, Maestro |
 | Deploy (one of) | Docker self-hosted + Caddy, Coolify, Fly.io, single binary + systemd, Kubernetes, Cloudflare, Vercel, stores with fastlane, GoReleaser, cargo-dist |
 | CI (one of) | GitHub Actions, GitLab CI, Forgejo / Gitea Actions |
 | Observability | OpenTelemetry, Prometheus + Grafana, Sentry |
@@ -647,16 +665,32 @@ and the use phase run, with scenarios **from that requirement alone**. Features 
 clean never touches another's files. One feature run is kept at a time; picking another requirement starts afresh.
 
 **SPEC.md modules** (`m`, 0 tokens): your SPEC.md stays yours (you write the core of your business); the modules add the
-well-known parts you would otherwise forget. A checklist by group (Every app · Teams · Data · Money) says what each adds
-(`4 requirements · 5 questions · needs accounts`) and which are already `in SPEC.md`; the confirmation sums it up before
-SPEC.md changes (the old one goes to the trash).
+well-known parts you would otherwise forget. It opens as a small **marketplace on the whole screen**: the modules by group
+on the left (`□` not picked, `■` picked, `+` comes with what you picked, `✓` already in SPEC.md), the one under the cursor
+on the right (what it is, its requirements with their criteria, edge cases, and the questions that are yours), and under
+both what SPEC.md would get from your choice (the modules, the FR range, the counts, what came in because another needs it).
+Nothing is written until you add, and the confirmation sums it up first (the old SPEC.md goes to the trash; cancelling it
+brings you back to the marketplace as you left it).
+
+- **List**: `j`/`k` move, `Space` picks, `⏎` reads and customizes, `p` shows what SPEC.md gets, `/` filters by name,
+  description, key or requirement title, `{`/`}` jump between groups, `Tab` folds a group (on a folded title it unfolds
+  it), `h` hides what SPEC.md already has, `t` / `d` open the STACK.md add-ons / DESIGN.md patterns it goes with
+  (below), `A` adds, `?` lists every key, `q` closes. `★` marks a module your SPEC.md already talks about without
+  having it (a word of its name or one of its requirement titles appears in the text: 0 tokens), and its pane says
+  which word.
+- **Read and customize** (`⏎`): `j`/`k` scroll, `Space` keeps or leaves out the requirement under the cursor (its edge cases and
+  questions go with it; leaving every one out drops the module), `Esc`/`h` back to the list.
+- **What SPEC.md gets** (`p`): exactly the text that would be added, as it would read, with what you left out missing; `Esc` goes back.
 
 | Group | Modules |
 |---|---|
-| Every app | accounts and sign-in (sign up, sign in, reset, verification, lockout) · roles and permissions (ownership, changing roles) · lists (pagination, empty states, search and filters, delete with undo and a trash) |
-| Teams | workspaces and invitations (data kept apart, members, leaving) · notifications (in-app, email/push, preferences, unsubscribe) |
-| Data | audit log · file uploads · import and export · offline and sync (queued changes, conflicts) |
-| Money | payments (checkout, receipts, refunds, idempotency, webhooks) · subscriptions (plans, trials, renewals, grace period, upgrades, cancelling) |
+| Every app | accounts and sign-in (sign up, sign in, reset, verification, lockout) · roles and permissions (ownership, changing roles) · lists (pagination, empty states, search and filters, delete with undo and a trash) · profile and preferences · first run and onboarding (empty states) · loading, errors and feedback (waiting, failures, undo) · privacy and personal data (consent, export, deletion) · languages, time zones and currencies · reviews and ratings · favorites and wishlists · multi-step flows · bulk actions |
+| Teams | workspaces and invitations (data kept apart, members, leaving) · notifications (in-app, email/push, preferences, unsubscribe) · comments and mentions · sharing and links (people, links, expiry) · activity feed · chat and direct messages · tasks and boards · calendar and booking · contacts and CRM · support tickets · newsletter |
+| Data | audit log · file uploads · import and export · offline and sync (queued changes, conflicts) · version history (compare, restore) · dashboards and reports · tags and categories · background and scheduled jobs (retries, never twice) · public API and webhooks (keys, signed events, limits) · forms and surveys · content publishing · media gallery · maps and location |
+| Money and commerce | payments (checkout, receipts, refunds, idempotency, webhooks) · subscriptions (plans, trials, renewals, grace period, upgrades, cancelling) · cart and checkout (orders, stock) · invoices and receipts (numbering, credit notes) · coupons and promotions · product catalog · inventory · seats and billing |
+| Security | two-step sign-in and sessions (second factor, devices, recovery) · limits and abuse protection (rate limits, guessing, reports, blocking) |
+| Platform | back office (finding records, acting with care) · feature flags and settings (gradual release) · single sign-on |
+| Quality | accessibility · performance · reliability and backups · observability |
 
 How a module goes in:
 - Each requirement gets the **next FR-n in SPEC.md's own style** (heading or bullet) with its Given/When/Then criteria;
@@ -671,7 +705,27 @@ How a module goes in:
 - Then each new requirement is a `○` in `bf` (build it) and in the coverage (`v`).
 
 Modules are plain files in `agent/kit/presets/spec/<group>/` (`## Requirements` with `### Title`, "The system must…" and
-criteria; `- [Title] …` edge cases and questions; `<!-- needs: … -->`). They are also in the library (`/`).
+criteria; `- [Title] …` edge cases and questions; `<!-- needs: … -->`). They are also in the library (`/`), where the
+search looks at their requirement titles too (`refund` finds payments).
+
+**Starter kits** open the list of the marketplace: a product type as a set of modules (SaaS for teams, marketplace, online
+store, internal tool, blog, booking, community, support desk, API product, consumer mobile app, project tool, forms and
+surveys). `Space` on a kit picks all its modules (`◧` = some picked), `⏎` goes to the first one, and its pane says who it
+is for, what it adds and the decisions to take first. They are files too: `agent/kit/presets/spec-kits/<id>.md` with
+`<!-- modules: key key … -->`.
+
+**Narrow terminals** (under 100 columns): the list and the pane take turns on the whole screen: `⏎`/`l` opens the pane,
+`Esc`/`h` gives the list back.
+
+**What a module goes with**: every module (and kit) names the STACK.md add-on axes and the DESIGN.md screen patterns it
+pairs with (`<!-- tech: auth email -->`, `<!-- design: forms auth-screens -->`), shown in the pane under "Goes with":
+accounts → Auth, Database, Email · Forms, Auth screens. The names are the library's own (`<leader>aSt` / `<leader>aSd`
+customize steps), and a test checks every name exists. In the marketplace `t` opens the STACK.md add-ons **over it**
+(the groups that go with what you picked marked `★`, the cursor on the first; with nothing picked it uses the module or
+kit under the cursor) and `d` the DESIGN.md add-ons with those screen patterns already checked; closing them puts you
+back in the marketplace with your picks. They need a STACK.md / DESIGN.md in the project. DESIGN.md has a new group, **Screen patterns** (forms, data tables,
+empty states, onboarding, settings, navigation shell, toasts, dialogs, command palette, search and filters, dashboards,
+auth screens, pricing and checkout, comments, file upload, notification center).
 
 **Recipes** (`r`): prefab tasks, plain Markdown files in `agent/kit/presets/recipes/<group>/` (add your own: the header
 of the presets plus one `<!-- input: key | question -->` line per value, and a body with `## Make`, `## Rules`, `## Tests`
@@ -683,9 +737,10 @@ and the use phase. They are also in the library (`/`).
 
 | Group | Recipes |
 |---|---|
-| flutter | screen with its state (Riverpod Notifier or Bloc/Cubit), route and widget test · data feature (model, repository interface + implementation, provider) · form with validation |
+| flutter | screen with its state (Riverpod Notifier or Bloc/Cubit), route and widget test · data feature (model, repository interface + implementation, provider) · form with validation · list and detail |
 | go | HTTP endpoint (handler, service, route, httptest) · entity with its repository (port, in-memory + SQL adapter, contract tests) · CLI subcommand · Bubble Tea screen (teatest golden) |
-| web | UI component (states, tokens, accessibility) · page with its route and data |
+| web | UI component (states, tokens, accessibility) · page with its route and data · data table · validated form · settings page |
+| general (typical features) | CRUD resource · auth flow · search endpoint · background job · webhook receiver · file upload · transactional email · feature flag |
 | typescript, python, rust | API route / HTTP endpoint with validation, service and tests |
 | general | module with its tests (any stack) |
 
@@ -804,6 +859,75 @@ Space away. The model writing a STACK.md only gets their names (to keep the layo
 - **Your own presets**: drop a Markdown file in `lua/agent/kit/presets/design/`, `stack/<category>/` (a new folder is a new
   category), `addons/<group>/` (`<!-- for: ts web -->` says which stacks it fits: tags from the stack's words, `presets.tags`) or `principles/`, starting with `<!-- name: … -->` and `<!-- desc: … -->` (`<!-- core: true -->` checks a principle
   by default). `scripts/test-kit.sh` checks every preset has its document's sections.
+
+## Merge conflicts (`<leader>Gx…`, inside a repository)
+
+git-conflict.nvim already chooses ours / theirs / both and jumps between conflicts (`<leader>Go T B N n p l`). The agent adds
+what it cannot do:
+
+| Key | What it does |
+|---|---|
+| `xt` | **trivial** conflicts for free (0 tokens): both sides made the same change, or (with `merge.conflictStyle = diff3`) only one side changed anything; trailing whitespace does not count |
+| `xr` | the conflict under the cursor (or the next one) to the agent |
+| `xR` | every conflict of the file (the trivial ones first, for free): ONE confirmation with the estimate, one proposal per conflict, reviewed in the proposal queue (`]`, `[`, `Y`) |
+| `xf` | the files git lists as unmerged, with how many conflicts each holds |
+| `xs` | `git add` of the current file once no marker is left (asks first) |
+
+Each conflict is sent with the story of the merge, read from git and never changed: which operation is in progress (merge,
+rebase, cherry-pick, revert) and which branches, what each side did (commit subjects touching that file), and what each side
+changed in the file against the common ancestor (stages 1, 2 and 3 of the index). The result has no markers; where both sides
+changed the same thing differently it combines them and says how in the note, and it never drops a side's change silently.
+Nothing is written until you accept the inline diff. Knobs: `settings.agent.conflict` (conflicts per batch, characters of each
+diff, commit subjects).
+
+## Doctor (`<leader>aX`): the app does not build, does not start, or dies
+
+A troubleshooting agent for failures that are not one more squiggle in a function: a build that breaks, a server that will not
+start, a crash at runtime, a project that is off before you compile. Hand it the failure the easy way:
+
+| Key | Evidence |
+|---|---|
+| `xx` | the best at hand: the last terminal if it holds errors, else the quickfix list, else the clipboard, else it asks you to describe it |
+| `xp` | the clipboard (copy the error, press this) |
+| `xc` | a command it runs for you, captured: the project's own build/test/run commands, `docker compose logs`, or one you type (a command that passes says so and stops) |
+| `xd` | in your own words (a page to write on); the last terminal rides along when it looks like errors |
+| `xl` | the end of a log file of the project (or any path) |
+| `xs` | (visual) the selected lines |
+| `xh` | **before compiling**: what the language servers already flag in the project plus every free check below |
+| `xr` | reopens the last case of this project |
+
+How it works, in this order, and what each step costs:
+
+1. **Evidence, free.** Colors off, repeated lines folded into a count, **secrets blacked out** (passwords, tokens, API keys,
+   bearer headers, `user:pass@host`, AWS/GitHub/Slack keys, private keys), the long middle cut so the lines around the first
+   errors and the end of the output survive, the **stack frames that point into the project** turned into code excerpts
+   (Go, Node, Python, Rust, Java… `file:line`; a Python traceback puts the culprit first; `node_modules`, `vendor`, venvs and
+   the standard library are skipped), the toolchain versions the project uses (Node, Go, Python, Rust, Java, Dart, Docker…) and
+   what git says changed lately (status, last commits, the size of the uncommitted diff: "it worked before" starts there).
+2. **Known causes, free.** A table of the usual suspects matched on the output (a missing module, a port in use, the Docker daemon
+   down, `ECONNREFUSED` to a well-known database port, a wrong Node/Go version, a missing `go.sum` entry, no C compiler…) plus
+   checks of the project itself: dependencies not installed, a lockfile older than `package.json`, `.env` missing keys its
+   example has, the Node/Go version the project pins against the one installed, Docker not running, a merge or rebase in
+   progress. They are shown **before any model** with the command that fixes them.
+3. **The model, once.** `⏎` on “Ask the model” shows what is sent (sizes, the model, about how many tokens) and asks. One
+   request reads the evidence, finds the root cause (the first error, not the cascade) and writes ordered steps. If it cannot
+   conclude it may ask to **read a file, search for a string, list a folder or run one read-only command**, at most twice more;
+   that is all it can do: no shell (a command is split into words and checked against an allowlist of diagnostics: versions,
+   package lists, `git status/log/diff`, `docker ps/logs`, `lsof -i :PORT`…), no pipes or redirects, and secret files (`.env`,
+   keys, `.ssh`, `.aws`, `.npmrc`…) are never readable; every refusal goes back to the model as the result. `p` shows the exact
+   text that would be sent.
+4. **Steps.** A step is a **command** (`⏎` runs it captured, in the project folder: its output and exit code come back into the
+   case; `t` runs it in the integrated terminal for interactive things and servers), an **edit** (`⏎`: one proposal with the usual
+   inline diff, accept/reject, the queue; the screen gives way to the code and the step is done when you accept) or a **manual**
+   thing (`Space` marks it). Nothing runs without a yes that shows the exact command; a command that destroys or rewrites
+   something (`rm -rf`, `git push --force`, `git reset --hard`, `DROP DATABASE`, `curl | sh`…) is marked `!` and asked twice.
+5. **Check again.** `r` runs the failing command again (or reads the terminal) and says whether it still fails; if it does, a new
+   case starts carrying what was tried, so the model never suggests it twice. `a` asks a follow-up (what you saw after a step).
+
+The screen is the same full-screen layout as the other markets (list, reading pane, strip; `?` lists the keys; narrow terminals
+show one pane at a time). A case is kept in memory: close it, run something in the terminal, `<leader>aXr` brings it back. When
+the model answers after you closed the screen you are told. Knobs: `settings.agent.doctor` (terminal lines, characters of
+output sent, stack frames, rounds, command timeout, characters per tool result). Runs are in the history (`<leader>ah`).
 
 ## Settings (`settings.agent`, overridable in `local.lua`)
 

@@ -16,6 +16,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>a` | Agent | global |
 | `<leader>aA` | Agent Advanced | global |
 | `<leader>aD` | Agent DDD | global |
+| `<leader>aX` | Agent Doctor | global |
 | `<leader>aL` | Agent Lenses | global |
 | `<leader>aP` | Agent Repository | global |
 | `<leader>aU` | Agent Service | global |
@@ -95,6 +96,21 @@ _Where: global_
 | `<leader>aDd` | ddd diagnose |
 | `<leader>aDc` | ddd clear |
 
+### Agent Doctor — `<leader>aX`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>aXx` | doctor diagnose |
+| `<leader>aXp` | doctor paste |
+| `<leader>aXc` | doctor command |
+| `<leader>aXd` | doctor describe |
+| `<leader>aXl` | doctor log |
+| `<leader>aXh` | doctor health |
+| `<leader>aXs` | doctor selection |
+| `<leader>aXr` | doctor reopen |
+
 ### Agent Lenses — `<leader>aL`
 
 _Where: global_
@@ -154,6 +170,7 @@ _Where: global_
 | `<leader>aSp` | setup principles |
 | `<leader>aSd` | setup design |
 | `<leader>aSD` | setup design write |
+| `<leader>aSK` | setup design addons |
 | `<leader>aSw` | setup screens |
 | `<leader>aSs` | setup spec |
 | `<leader>aSm` | setup spec modules |
@@ -317,6 +334,11 @@ _Where: files inside a git repo_
 | `<leader>Gn` | conflict next |
 | `<leader>Gp` | conflict previous |
 | `<leader>Gl` | conflict list |
+| `<leader>Gxt` | conflict trivial |
+| `<leader>Gxr` | conflict agent |
+| `<leader>GxR` | conflict agent all |
+| `<leader>Gxf` | conflict files |
+| `<leader>Gxs` | conflict resolved |
 
 ### Go — `<leader>g`
 
@@ -770,6 +792,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSA` | n | Setup agents template |
 | `<leader>aSB` | n | Setup recheck |
 | `<leader>aSD` | n | Setup design write |
+| `<leader>aSK` | n | Setup design addons |
 | `<leader>aSP` | n | Setup progress |
 | `<leader>aST` | n | Setup stack write |
 | `<leader>aSa` | n | Setup agents |
@@ -796,6 +819,14 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aUd` | n | Service deps |
 | `<leader>aUi` | n,x | Service implement |
 | `<leader>aUr` | n,x | Service review |
+| `<leader>aXc` | n | Doctor command |
+| `<leader>aXd` | n | Doctor describe |
+| `<leader>aXh` | n | Doctor health |
+| `<leader>aXl` | n | Doctor log |
+| `<leader>aXp` | n | Doctor paste |
+| `<leader>aXr` | n | Doctor reopen |
+| `<leader>aXs` | x | Doctor selection |
+| `<leader>aXx` | n | Doctor diagnose |
 | `<leader>aa` | n,x | Ask |
 | `<leader>ac` | n,x | Clear |
 | `<leader>ad` | n,x | Docs |
