@@ -8,6 +8,10 @@ predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** m
 
 1. Put the cursor inside a function (or select lines in visual mode) and press `<leader>a` + the action.
 2. The code being sent is highlighted and a spinner turns on the right: `⠋ implement · claude/haiku · 1.2s`.
+   Requests with no code to paint (the project documents of `<leader>aS`, including the screens of `<leader>aSw`, the commit
+   draft, the staged review, plans) show their progress in the **statusline** from any buffer: `⠹ drawing screens · thinking · 12s`,
+   then `writing 2.5k chars` once the answer streams in, and `✓ drawing screens · 48s` (or `✗` in red) for a few seconds after it
+   ends. `<leader>ax` cancels them too.
 3. The result shows up **in the code**, depending on the action:
 
 | Action | Input | Result |
@@ -548,6 +552,7 @@ presets or the project's own facts; uppercase ones take what you describe in you
 | `bt` | the foundation | **build one layer** from STACK.md: manifest, layout, tooling, a minimal entry point that runs (below) |
 | `bs` | the domain | **build one layer** from SPEC.md: entities, rules, use cases and their tests, no interface (below) |
 | `bd` | the design | **build one layer** from DESIGN.md: theme, styles, components, screens, wired to the domain the project has (below) |
+| `m` | SPEC.md | **modules**: what every app repeats (accounts, roles, lists, workspaces, notifications, audit log, uploads, import/export, offline, payments, subscriptions) merged into your SPEC.md, with edge cases, and questions where the answer is yours (below) |
 | `bf` | one feature | **build one requirement** end to end: pick an FR of SPEC.md (`○` no test yet, `●` tested) or describe a new one, which becomes the next FR-n in SPEC.md (below) |
 | `r` | a recipe | **prefab task** for your stack (a screen with its state, an endpoint, an entity with its repository, a form…): asks its values, then builds it on the project (below) |
 | `v` | coverage | **0 tokens**: which FR-n have a test, what STACK.md names that the manifest lacks, DESIGN.md tokens no code uses, folders no document mentions (below) |
@@ -640,6 +645,33 @@ code already uses** (same folders, naming, state management, error handling), on
 (`<project>`, like the layers). Existing files it changes come back whole and keep what the rest uses. The wiring check
 and the use phase run, with scenarios **from that requirement alone**. Features are additive: one feature's replan or
 clean never touches another's files. One feature run is kept at a time; picking another requirement starts afresh.
+
+**SPEC.md modules** (`m`, 0 tokens): your SPEC.md stays yours (you write the core of your business); the modules add the
+well-known parts you would otherwise forget. A checklist by group (Every app · Teams · Data · Money) says what each adds
+(`4 requirements · 5 questions · needs accounts`) and which are already `in SPEC.md`; the confirmation sums it up before
+SPEC.md changes (the old one goes to the trash).
+
+| Group | Modules |
+|---|---|
+| Every app | accounts and sign-in (sign up, sign in, reset, verification, lockout) · roles and permissions (ownership, changing roles) · lists (pagination, empty states, search and filters, delete with undo and a trash) |
+| Teams | workspaces and invitations (data kept apart, members, leaving) · notifications (in-app, email/push, preferences, unsubscribe) |
+| Data | audit log · file uploads · import and export · offline and sync (queued changes, conflicts) |
+| Money | payments (checkout, receipts, refunds, idempotency, webhooks) · subscriptions (plans, trials, renewals, grace period, upgrades, cancelling) |
+
+How a module goes in:
+- Each requirement gets the **next FR-n in SPEC.md's own style** (heading or bullet) with its Given/When/Then criteria;
+  its edge cases go under `## Edge cases` and its questions under `## Open questions` (numbered on from your last `Qn`),
+  tagged with its id.
+- **Questions, not invented rules**: lockout limits, roles, taxes, grace periods… come as questions; the build's plan
+  decides them explicitly until you answer.
+- A requirement **you already wrote** (same title, any case or punctuation) is kept as you wrote it, and the module's
+  edge cases and questions for it are tagged with your id.
+- `needs:` pulls what a module builds on (subscriptions → payments → accounts, needs first) and the confirmation says so.
+- `<!-- module: accounts -->` marks where a module went in: applying it again adds nothing. Nothing is ever removed.
+- Then each new requirement is a `○` in `bf` (build it) and in the coverage (`v`).
+
+Modules are plain files in `agent/kit/presets/spec/<group>/` (`## Requirements` with `### Title`, "The system must…" and
+criteria; `- [Title] …` edge cases and questions; `<!-- needs: … -->`). They are also in the library (`/`).
 
 **Recipes** (`r`): prefab tasks, plain Markdown files in `agent/kit/presets/recipes/<group>/` (add your own: the header
 of the presets plus one `<!-- input: key | question -->` line per value, and a body with `## Make`, `## Rules`, `## Tests`

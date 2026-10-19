@@ -145,29 +145,24 @@ local function append(lines, title, rows, gap)
   end
 end
 
---- SPEC.md with the new requirement (pure): in Requirements, its edge cases in Edge cases, its questions in Open
---- questions (numbered on from the last `Qn` when the section numbers them)
----@param spec string
+--- A requirement's edge cases under Edge cases and its questions under Open questions (numbered on from the last `Qn`
+--- when the section numbers them), into `lines` (pure)
+---@param lines string[]
+---@param spec string the text `lines` came from (where the last `Qn` is read)
 ---@param id string
----@param data FeatureData
----@return string
-function M.add(spec, id, data)
-  local style = M.style(spec)
-  local lines = lines_of(spec)
-  while #lines > 0 and lines[#lines] == "" do
-    table.remove(lines)
-  end
-  append(lines, "Requirements", M.render(id, data, style), style.kind == "heading")
-  if #data.edge_cases > 0 then
+---@param edge_cases string[]
+---@param questions string[]
+local function extras(lines, spec, id, edge_cases, questions)
+  if #edge_cases > 0 then
     append(
       lines,
       "Edge cases",
       vim.tbl_map(function(e)
         return ("- (%s) %s"):format(id, e)
-      end, data.edge_cases)
+      end, edge_cases)
     )
   end
-  if #data.questions > 0 then
+  if #questions > 0 then
     local q = 0
     for n in ((spec .. "\n## "):match "\n## Open questions%s*\n(.-)\n## " or ""):gmatch "Q(%d+)" do
       q = math.max(q, tonumber(n))
@@ -181,9 +176,45 @@ function M.add(spec, id, data)
           return ("- Q%d (%s): %s"):format(q, id, question)
         end
         return ("- (%s) %s"):format(id, question)
-      end, data.questions)
+      end, questions)
     )
   end
+end
+
+---@param text string
+---@return string[]
+local function trimmed(text)
+  local lines = lines_of(text)
+  while #lines > 0 and lines[#lines] == "" do
+    table.remove(lines)
+  end
+  return lines
+end
+
+--- SPEC.md with the new requirement (pure): in Requirements, its edge cases in Edge cases, its questions in Open
+--- questions (numbered on from the last `Qn` when the section numbers them)
+---@param spec string
+---@param id string
+---@param data FeatureData
+---@return string
+function M.add(spec, id, data)
+  local style = M.style(spec)
+  local lines = trimmed(spec)
+  append(lines, "Requirements", M.render(id, data, style), style.kind == "heading")
+  extras(lines, spec, id, data.edge_cases, data.questions)
+  return table.concat(lines, "\n") .. "\n"
+end
+
+--- SPEC.md with edge cases and questions for a requirement it already has (pure): the spec modules' extras for one you
+--- wrote yourself
+---@param spec string
+---@param id string
+---@param edge_cases string[]
+---@param questions string[]
+---@return string
+function M.add_extras(spec, id, edge_cases, questions)
+  local lines = trimmed(spec)
+  extras(lines, spec, id, edge_cases, questions)
   return table.concat(lines, "\n") .. "\n"
 end
 
@@ -210,7 +241,8 @@ function M.block(spec, id)
   for j = start + 1, #lines do
     local l = lines[j]
     local other = l:match "^[%s#%-*|]*%**FR%-%d+" and not l:find(pat)
-    if l:match "^##?#?%s" or other or (not heading and l:match "^[-*]%s") then
+    -- the next requirement, a heading, the next bullet of a list, or a spec module's mark (it opens the next block)
+    if l:match "^##?#?%s" or other or (not heading and l:match "^[-*]%s") or l:match "^<!%-%-" then
       break
     end
     out[#out + 1] = l
@@ -269,6 +301,7 @@ local function describe(root, spec)
     if not sel then
       return log.warn "Setup: no agent backend found (<leader>am)"
     end
+    req.label = "writing " .. id
     log.info(("Setup: writing %s with %s…"):format(id, require("agent.selection").label(sel)))
     require("agent").complete(req, function(ok, answer)
       local data, why = ok and M.parse(answer)
