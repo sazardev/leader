@@ -97,6 +97,8 @@ ok(
     and section:find("### Fixes\n\n- empty title crash (b2)", 1, true)
     and section:find("### Other changes\n\n- update readme (f6)", 1, true)
 )
+local typed = changelog.section("1.0.1", "d", { { hash = "h1", type = "chore", scope = "deps", breaking = false, subject = "bump x" } })
+ok("section: other changes written as the commit is", typed:find("- chore(deps): bump x (h1)", 1, true))
 ok("section: a perf that is breaking is not listed twice", select(2, section:gsub("faster search", "")) == 1)
 local fresh = changelog.insert(nil, "2.0.0", section)
 ok(

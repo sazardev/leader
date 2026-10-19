@@ -121,9 +121,13 @@ function M.section(version, date, commits)
     for i, c in ipairs(commits) do
       if not used[i] and g.match(c) then
         used[i] = true
-        local scope = c.scope and ("**" .. c.scope .. ":** ") or ""
-        local kind = (g.title == "Other changes" and c.type ~= "other") and (c.type .. ": ") or ""
-        rows[#rows + 1] = ("- %s%s%s (%s)"):format(kind, scope, c.subject, c.hash)
+        local lead
+        if g.title == "Other changes" and c.type ~= "other" then -- written as the commit is: `chore(deps): …`
+          lead = c.type .. (c.scope and ("(" .. c.scope .. ")") or "") .. ": "
+        else
+          lead = c.scope and ("**" .. c.scope .. ":** ") or ""
+        end
+        rows[#rows + 1] = ("- %s%s (%s)"):format(lead, c.subject, c.hash)
       end
     end
     if #rows > 0 then
@@ -134,7 +138,7 @@ function M.section(version, date, commits)
   return table.concat(out, "\n") .. "\n"
 end
 
-M.HEADER = "# Changelog\n\nAll notable changes, newest first. Generated from the Conventional Commits since each tag.\n"
+M.HEADER = "# Changelog\n\nAll notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).\n"
 
 --- CHANGELOG.md with the section at the top (pure): under the title and its intro; a section of the same version is
 --- replaced
