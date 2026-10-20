@@ -2,6 +2,43 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.11.0] - 2026-10-20
+
+### Highlights
+
+- **Big files stay fast**: past 1.5 MB (or a minified bundle) a file opens as plain text, with no treesitter, LSP, folds,
+  lint or formatter. A 4 MB Lua file opens in ~135 ms instead of ~1.9 s, and its first frame in the window matches a
+  one-line file's.
+- **Saving never freezes**: a buffer over 3000 lines is written at once and formatted in the background. A 15k-line save
+  goes from ~1.2 s to ~20 ms. Linting is debounced, so a burst of Esc and saves lints once.
+- **Stop a language server that takes too long**: `<leader>L` stops the servers of a buffer (also in the middle of
+  "Loading workspace", in ~13 ms), stops all of them, restarts them, pauses everything, or says what is loading. A server
+  that has not answered yet is found too. The editor cannot cache a server's workspace load, so this is the way out.
+- **Code search remembers**: the index is kept on disk, so only the very first search parses every file (~5 s here);
+  every later session loads it in ~120 ms. The first `<leader>ff` of a session is ~2x faster too.
+- **A cleaner, faster start**: the window opens on the themed editor, never on a black frame, and the real editor reaches
+  the screen ~45 ms sooner (graphics driver and Neovim start in parallel with the window, the first frame is warmed).
+- **`leader --reuse file`** opens files in the window that is already running in ~6 ms, without a new window or Neovim.
+  Opt-in; a plain `leader` is unchanged.
+- **Measure it yourself**: `make bench` (startup, first frame, big files, picker, search index) and `make bench-edit`
+  (big paste, undo, save, diagnostics, typing latency), with the findings and limits in `AGENTS.md`.
+
+### Features
+
+- **lsp:** stop, restart and pause language servers (<leader>L) (ecaf792)
+- **gui:** a full-screen theme picker (0770236)
+
+### Performance
+
+- **app:** a faster, cleaner start and a window you can reuse (21d5427)
+- **editor:** big files, saves, lint, search index, picker preload (c185df4)
+
+### Other changes
+
+- chore(bench): make bench and make bench-edit, and what they found (859c6b9)
+- chore(dev): a Makefile and a real-time loop for the app (09ebf01)
+- chore(packaging): point the PKGBUILDs at v1.10.0 (5b5cf42)
+
 ## [1.10.0] - 2026-10-20
 
 ### Highlights
