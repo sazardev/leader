@@ -20,6 +20,7 @@
 #   --ask                  asks before installing system packages or Neovim (default: just does it)
 #   --no-deps              does not install system packages or Neovim
 #   --no-plugins           only links (plugins and tools are installed when nvim is opened)
+#   --app                  also the desktop app (Linux/WSL): builds `leader` and adds it to the application menu (app/install.sh)
 #   --dry-run              shows what it would do without doing anything
 #
 # Native Windows: install.ps1.
@@ -70,7 +71,7 @@ CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 TARGET="$CONFIG_HOME/nvim"
 MIN_NVIM="0.11"
 
-YES=1 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT="auto" QUIET=0
+YES=1 DRY=0 DEPS=1 PLUGINS=1 LANGS="" THEME="" LIGHT="" AGENT="auto" QUIET=0 APP=0
 while [ $# -gt 0 ]; do
   case "$1" in
     -y | --yes) YES=1 QUIET=1 ;;
@@ -78,6 +79,7 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY=1 ;;
     --no-deps) DEPS=0 ;;
     --no-plugins) PLUGINS=0 ;;
+    --app) APP=1 ;;
     --lang) LANGS="${2:-}"; shift ;;
     --lang=*) LANGS="${1#--lang=}" ;;
     --theme) THEME="${2:-}"; shift ;;
@@ -347,6 +349,11 @@ if [ "$AGENT" != none ]; then
       *) "$ROOT/scripts/agent-setup.sh" --use "$AGENT" || warn "could not set $AGENT: <Space>am → Setup inside nvim" ;;
     esac
   fi
+fi
+
+# ── 7. Desktop app (optional, --app) ──────────────────────────────────────────
+if [ "$APP" = 1 ]; then
+  bash "$ROOT/app/install.sh" $([ "$DRY" = 1 ] && echo --dry-run) || warn "the desktop app did not install: run app/install.sh to see why"
 fi
 
 step "Done in $((SECONDS))s"

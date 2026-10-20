@@ -69,6 +69,29 @@ junction at `%LOCALAPPDATA%\nvim` and does the same steps (written but not teste
 
 **Uninstall**: delete the `~/.config/nvim` link (and, if you want, `~/.local/share/nvim`, `~/.local/state/nvim`, `~/.cache/nvim`).
 
+### Desktop app (Linux, WSL)
+
+The same editor in its own window: `leader`, a GPU front-end for Neovim written in Rust (`app/`). It runs your Neovim
+with this config, so everything above works the same, but it draws the screen itself instead of a terminal: one
+draw call per frame, nothing running between keystrokes, and the flat design's half cells and borders drawn as exact
+rectangles. Add `--app` to the installer (or run `app/install.sh` from a clone): it installs Rust with rustup if needed,
+builds `leader` and adds **Leader** to the application menu (`~/.local/bin/leader`, `~/.local/share/applications`).
+
+```sh
+./install.sh --app          # the config + the desktop app
+app/install.sh --uninstall  # remove the app (the config stays)
+```
+
+- Open it with `leader [files…]` (any `nvim` argument works) or from the menu; files dropped on the window open in it.
+- The system clipboard works on its own (`"+y`, `"+p`, `Ctrl+Shift+V`), no wl-copy/xclip/OSC 52 needed.
+- Its own title bar, painted with the editor's background so it is part of it (it steps back while a modal such as Telescope is open), in a smaller type than the code, laid out like Zed's. Leader's dotted N (it ripples on hover; also `F10`) opens the **app menu**: File, Edit, Selection, View, Go, Run, Git (inside a repo), Agent, Window and Help, each a submenu whose items do exactly what Leader's own keys do and show them, plus the **command palette** (`Ctrl+Shift+P`: every menu item and every key of the config in one search). The project's name opens the **projects menu** (every folder you worked in, newest first; switching saves the session and restores the other project's, unsaved files are never dropped) and **Open Project…** (`Ctrl+Shift+O`) a full-screen picker: your recent projects and every git project under your home, with the one under the cursor described on the right (branch and changes, last commit, when you opened it, whether a session brings your windows back, its stack, its README); ⏎ opens it, `o` in a new window, `d` forgets it, plus a folder by path, a new project or a clone. ⌂ goes to the start screen, ↺ opens your recent files. Center: the current file's path, every part clickable. Right, live: what is running (LSP indexing with its progress, installs, a save: a dot spinner and a thin progress line), what is left to install, a macro being recorded, the file's git changes, unusual encodings or line endings; then minimize · maximize · close as three small flat squares. Configure it in `gui.appbar`: `controls`, `buttons = { mark, project, home, history }`, `activity`, `show`, `enabled = false` for the system's title bar.
+- Full mouse: everything you can choose follows the pointer and answers a click. Menus light up the item under the pointer and open submenus as you pass over them; the project picker (and every full-screen list of the config) selects the row under the pointer with its details beside it, opens it on a click, and its key chips are buttons; modals light up their buttons; Telescope (the palette and every picker) selects on hover and opens on a click; the file tree opens a file or a folder with one click; the start screen's buttons follow the pointer. Over menus and pickers the pointer is an arrow, over text an I-beam.
+- A welcome screen on the first launch checks the install (Neovim, plugins, parsers, language tools, font, GPU, clipboard, system tools, AI agent) and installs what is missing with Enter; afterwards the bar's "N to finish" chip or `Ctrl+Shift+W` bring it back.
+- Window keys: `F10` app menu, `Ctrl+Shift+P` command palette, `Ctrl+Shift+O` open a project, `F11` fullscreen, `Ctrl+Shift+Enter` maximize, `Ctrl+Shift+M` minimize, `Ctrl+Shift+N` new window, `Ctrl+Shift+H` home, `Ctrl+Shift+R` recent files, `Ctrl+Shift+W` welcome and checks.
+- Font: `gui.font` in `core/settings.lua` (`guifont` syntax, `"Family:h12"`); `Ctrl+=` / `Ctrl+-` / `Ctrl+0` resize it.
+- WSL: it opens through WSLg on the Windows GPU (Mesa's d3d12 driver), with no setup.
+- `LEADER_TIMING=1 leader` prints where the startup time goes (~170 ms to the first frame on WSLg, GPU start included).
+
 ## Philosophy
 
 - **Fast**: ~20 ms startup (measured headless, with `--startuptime`); `defaults.lazy = true`, plugins loaded by event/filetype/command/key, bytecode cache (`vim.loader`) and unneeded built-in plugins disabled.
