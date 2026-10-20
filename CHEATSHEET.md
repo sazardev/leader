@@ -32,6 +32,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>u` | History | global |
 | `<leader>j` | Java | `java` |
 | `<leader>k` | Kotlin | `kotlin` |
+| `<leader>L` | LSP | global |
 | `<leader>m` | Markdown | `markdown` |
 | `<leader>p` | Python | `python` |
 | `<leader>R` | Run | global |
@@ -411,6 +412,18 @@ _Where: `kotlin`_
 | `<leader>km` | test |
 | `<leader>kv` | check / verify |
 | `<leader>kc` | clean |
+
+### LSP — `<leader>L`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Ls` | stop (this buffer) |
+| `<leader>LS` | stop all (every project) |
+| `<leader>Lr` | restart (this buffer) |
+| `<leader>Lp` | pause or resume everything |
+| `<leader>Li` | info (what is loading) |
 
 ### Markdown — `<leader>m`
 
@@ -985,6 +998,11 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | Key | Mode | Action |
 |---|---|---|
 | `<C-LeftMouse>` | n | Go to DEFINITION (Ctrl+click) |
+| `<leader>LS` | n | Stop all (every project) |
+| `<leader>Li` | n | Info (what is loading) |
+| `<leader>Lp` | n | Pause or resume everything |
+| `<leader>Lr` | n | Restart (this buffer) |
+| `<leader>Ls` | n | Stop (this buffer) |
 
 ### Move
 
