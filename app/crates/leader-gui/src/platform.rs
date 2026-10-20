@@ -84,10 +84,56 @@ pub fn backends() -> wgpu::Backends {
 }
 
 fn state_file() -> Option<std::path::PathBuf> {
+    state_path("window")
+}
+
+fn state_path(name: &str) -> Option<std::path::PathBuf> {
     let base = env::var_os("XDG_STATE_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|| env::var_os("HOME").map(|h| Path::new(&h).join(".local/state")))?;
-    Some(base.join("leader").join("window"))
+    Some(base.join("leader").join(name))
+}
+
+/// What the last run measured about the editor's text: the display scale and one cell, in physical pixels. With it the
+/// next start knows how many columns and rows its window will have before any window or font exists, so Neovim can
+/// start reading its config at once instead of waiting ~45 ms for them (the real size is applied when they are ready).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Cell {
+    pub scale: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl Cell {
+    pub fn parse(text: &str) -> Option<Cell> {
+        let v: Vec<f32> = text.split_whitespace().filter_map(|w| w.parse().ok()).collect();
+        match v.as_slice() {
+            [scale, width, height] if *scale > 0.0 && *width >= 2.0 && *height >= 4.0 => {
+                Some(Cell { scale: *scale, width: *width, height: *height })
+            }
+            _ => None,
+        }
+    }
+
+    pub fn text(&self) -> String {
+        format!("{} {} {}\n", self.scale, self.width, self.height)
+    }
+}
+
+pub fn cached_cell() -> Option<Cell> {
+    state_path("cell").and_then(|p| std::fs::read_to_string(p).ok()).and_then(|t| Cell::parse(&t))
+}
+
+/// Remembers the cell for the next start (written only when it changed).
+pub fn save_cell(cell: &Cell) {
+    if cached_cell().as_ref() == Some(cell) {
+        return;
+    }
+    let Some(path) = state_path("cell") else { return };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::write(path, cell.text());
 }
 
 /// How the window was when it closed: its size (logical px), where it was (physical px, when the system says) and
@@ -148,7 +194,17 @@ pub fn save_window(saved: &Saved) {
 
 #[cfg(test)]
 mod tests {
-    use super::Saved;
+    use super::{Cell, Saved};
+
+    #[test]
+    fn cell_round_trips_and_rejects_nonsense() {
+        let c = Cell { scale: 1.25, width: 10.0, height: 21.0 };
+        assert_eq!(Cell::parse(&c.text()), Some(c));
+        assert_eq!(Cell::parse(""), None);
+        assert_eq!(Cell::parse("1 0 0"), None, "a zero-size cell would divide by zero");
+        assert_eq!(Cell::parse("x y z"), None);
+        assert_eq!(Cell::parse("1 10"), None);
+    }
 
     #[test]
     fn saved_window_round_trips() {

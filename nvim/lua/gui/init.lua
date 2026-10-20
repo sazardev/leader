@@ -940,10 +940,47 @@ function M.update()
   end)
 end
 
+--- Opens what a later `leader --reuse …` handed to this window: a folder becomes the project (its session back), files
+--- are edited, the last one stays in front.
+---@param paths string[] absolute
+function M.open_external(paths)
+  local dir
+  local files = {}
+  for _, p in ipairs(paths or {}) do
+    if vim.fn.isdirectory(p) == 1 then
+      dir = p
+    else
+      files[#files + 1] = p
+    end
+  end
+  if dir then
+    require("gui.projects").switch(dir)
+  end
+  for _, f in ipairs(files) do
+    pcall(vim.cmd.edit, vim.fn.fnameescape(f))
+  end
+end
+
+local released = false
+
+--- Tells the app the first screen is complete: it draws nothing until now, so the window opens on the real editor and
+--- not on Neovim's black default. The redraw first, so the content is on the wire before the notice (same channel, in
+--- order). Once; the app has a deadline in case this never comes.
+function M.release()
+  if released or not vim.g.leader_gui_channel then
+    return
+  end
+  released = true
+  pcall(vim.cmd, "redraw")
+  pcall(vim.rpcnotify, vim.g.leader_gui_channel, "leader_ready")
+end
+
 function M.setup()
   if not vim.g.leader_gui then
     return
   end
+  -- as early as possible: from here on the app waits for `release` before its first frame
+  pcall(vim.rpcnotify, vim.g.leader_gui_channel, "leader_hold")
   -- Neovim's own default is a generic list (Source Code Pro, …): only an explicit choice wins over ours.
   local default = vim.api.nvim_get_option_info2("guifont", {}).default
   if settings.gui.font and (vim.o.guifont == "" or vim.o.guifont == default) then

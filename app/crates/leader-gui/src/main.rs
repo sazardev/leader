@@ -9,6 +9,8 @@ mod input;
 mod platform;
 mod renderer;
 mod scene;
+#[cfg(unix)]
+mod single;
 
 use std::time::Instant;
 
@@ -18,12 +20,17 @@ use crate::app::{App, UserEvent};
 
 const HELP: &str = "leader — the Leader editor in its own window
 
-usage: leader [nvim arguments…]
+usage: leader [--reuse] [nvim arguments…]
+
+  --reuse, -r    open the files in the window that is already running (instant: no new window, no new Neovim);
+                 starts a window as usual when none is. Same as LEADER_REUSE=1.
 
 environment:
   LEADER_NVIM    nvim binary to run (default: nvim on PATH)
   LEADER_FONT    font before the config sets guifont, e.g. \"Iosevka:h13\"
   LEADER_TIMING  print startup timings to stderr
+  LEADER_REUSE   1: always behave like --reuse
+  LEADER_SOCKET  where windows listen for --reuse (default: the runtime folder)
   WGPU_BACKEND   force a GPU backend (vulkan, gl)
 
 window keys:
@@ -46,6 +53,19 @@ fn main() {
         Some("--version" | "-V") => return println!("leader {}", env!("CARGO_PKG_VERSION")),
         _ => {}
     }
+    // `--reuse`: hand the files to the window that is already running and leave before anything is built
+    let flagged = args.iter().any(|a| a == "--reuse" || a == "-r");
+    args.retain(|a| a != "--reuse" && a != "-r");
+    #[cfg(unix)]
+    if (flagged || std::env::var_os("LEADER_REUSE").is_some_and(|v| v != "0"))
+        && std::env::var_os("LEADER_SNAPSHOT").is_none()
+        && let Ok(cwd) = std::env::current_dir()
+        && single::forward(&cwd, &args)
+    {
+        return;
+    }
+    #[cfg(not(unix))]
+    let _ = flagged;
     // Neovim is what runs inside the window: without it there is nothing to draw, and a menu launch has no terminal to say so
     if std::env::var_os("LEADER_NVIM").is_none() && !platform::on_path("nvim") {
         platform::tell(
@@ -69,7 +89,21 @@ fn main() {
         }
     };
     event_loop.set_control_flow(ControlFlow::Wait);
-    let mut app = match App::new(event_loop.create_proxy(), args, font_job, started) {
+    // The graphics driver takes ~100 ms to load: start it now, while the window, the fonts and Neovim come up.
+    let display = event_loop.owned_display_handle();
+    let instance_job = std::thread::Builder::new()
+        .name("gpu-instance".into())
+        .spawn(move || renderer::Renderer::create_instance(display, platform::backends()))
+        .expect("gpu instance thread");
+    // This window takes the files a later `leader --reuse` hands over (never a snapshot run: tests must not hijack it)
+    #[cfg(unix)]
+    if std::env::var_os("LEADER_SNAPSHOT").is_none() {
+        let proxy = event_loop.create_proxy();
+        single::serve(move |request| {
+            let _ = proxy.send_event(UserEvent::Open(request));
+        });
+    }
+    let mut app = match App::new(event_loop.create_proxy(), args, font_job, instance_job, started) {
         Ok(a) => a,
         Err(e) => {
             eprintln!("leader: {e}");

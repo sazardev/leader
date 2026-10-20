@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use leader_nvim::Screen;
+use winit::event_loop::OwnedDisplayHandle;
 use winit::window::Window;
 
 use crate::font::Fonts;
@@ -52,13 +53,68 @@ fn instance_buffer(device: &wgpu::Device, capacity: usize) -> wgpu::Buffer {
     })
 }
 
+/// Draws one throwaway quad into a 1x1 texture so the driver compiles and links the pipeline here, on the GPU thread
+/// while Neovim reads its config, instead of in the first real frame's `submit` (80-110 ms with Mesa's GL on WSL). It
+/// is only a gain because the first frame waits for the config (`App::hold_until`): the GPU thread has slack.
+fn warm_up(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    pipeline: &wgpu::RenderPipeline,
+    bind_group: &wgpu::BindGroup,
+    instances: &wgpu::Buffer,
+    format: wgpu::TextureFormat,
+) {
+    let target = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("warm-up"),
+        size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        view_formats: &[],
+    });
+    let view = target.create_view(&wgpu::TextureViewDescriptor::default());
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("warm-up") });
+    {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("warm-up"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Discard },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        pass.set_pipeline(pipeline);
+        pass.set_bind_group(0, bind_group, &[]);
+        pass.set_vertex_buffer(0, instances.slice(..));
+        pass.draw(0..4, 0..1);
+    }
+    queue.submit([encoder.finish()]);
+    let _ = device.poll(wgpu::PollType::wait_indefinitely());
+}
+
 impl Renderer {
-    pub fn new(window: Arc<Window>, backends: wgpu::Backends) -> Result<Renderer, String> {
-        let size = window.inner_size();
-        let mut desc = wgpu::InstanceDescriptor::new_with_display_handle(Box::new(window.clone()));
+    /// The graphics instance (loads and probes the driver: ~100 ms with Mesa's GL on WSL, 90% of the GPU's startup). It
+    /// needs the display, not a window, so `main` starts it on its own thread before the window exists.
+    pub fn create_instance(display: OwnedDisplayHandle, backends: wgpu::Backends) -> wgpu::Instance {
+        let mut desc = wgpu::InstanceDescriptor::new_with_display_handle(Box::new(display));
         desc.backends = backends;
-        let instance = wgpu::Instance::new(desc);
+        wgpu::Instance::new(desc)
+    }
+
+    pub fn new(window: Arc<Window>, instance: wgpu::Instance) -> Result<Renderer, String> {
+        let size = window.inner_size();
+        let started = std::time::Instant::now();
+        let mut laps = String::new();
+        let mut lap = |what: &str| laps.push_str(&format!(" {what} {:.0}", started.elapsed().as_secs_f64() * 1000.0));
         let surface = instance.create_surface(window).map_err(|e| e.to_string())?;
+        lap("surface");
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
             force_fallback_adapter: false,
@@ -66,6 +122,7 @@ impl Renderer {
             ..Default::default()
         }))
         .map_err(|e| e.to_string())?;
+        lap("adapter");
         let info = adapter.get_info();
         let mut adapter_info = format!("{} ({:?})", info.name, info.backend);
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
@@ -76,6 +133,7 @@ impl Renderer {
         }))
         .map_err(|e| e.to_string())?;
 
+        lap("device");
         let caps = surface.get_capabilities(&adapter);
         let mut config =
             surface.get_default_config(&adapter, size.width.max(1), size.height.max(1)).ok_or("surface not supported by the adapter")?;
@@ -90,6 +148,7 @@ impl Renderer {
         // Lowest latency: never queue more than one frame.
         config.desired_maximum_frame_latency = 1;
         surface.configure(&device, &config);
+        lap("configure");
         adapter_info.push_str(&format!(", {:?}, {:?} of {:?}", config.format, config.present_mode, caps.present_modes));
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -156,6 +215,7 @@ impl Renderer {
             cache: None,
         });
 
+        lap("pipeline");
         let globals = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("globals"),
             size: 16,
@@ -167,6 +227,15 @@ impl Renderer {
         let bind_group = Self::bind(&device, &layout, &globals, &atlas);
         let capacity = 16 * 1024;
         let instances = instance_buffer(&device, capacity);
+        lap("buffers");
+        // (`LEADER_NO_WARM`: bench only, to measure what the warm-up buys)
+        if std::env::var_os("LEADER_NO_WARM").is_none() {
+            warm_up(&device, &queue, &pipeline, &bind_group, &instances, config.format);
+            lap("warm-up");
+        }
+        if std::env::var_os("LEADER_TIMING").is_some() {
+            eprintln!("[leader] gpu thread (ms):{laps}");
+        }
         Ok(Renderer {
             surface,
             device,
@@ -305,12 +374,20 @@ impl Renderer {
             }
             _ => return,
         };
+        let t_acquire = t0.elapsed();
         let target = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
         let encoder = self.encode(screen, count, &target);
         self.queue.submit([encoder.finish()]);
+        let t_submit = t0.elapsed();
         self.queue.present(frame);
         if self.timing {
-            eprintln!("[leader] frame: {count} quads, prepare {t_prepare:?}, total {:?}", t0.elapsed());
+            let t_total = t0.elapsed();
+            eprintln!(
+                "[leader] frame: {count} quads, prepare {t_prepare:?}, acquire +{:?}, submit +{:?}, present +{:?}, total {t_total:?}",
+                t_acquire - t_prepare,
+                t_submit - t_acquire,
+                t_total - t_submit,
+            );
         }
     }
 

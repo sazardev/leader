@@ -78,10 +78,17 @@ function M.setup()
       }
       -- after the start screen's own VimEnter, so whatever opens lands over it
       vim.schedule(function()
-        if what == "enter" then
-          require("gui.projects").enter(dir)
-        elseif what == "ask" then
-          M.ask()
+        local ok, err = pcall(function()
+          if what == "enter" then
+            require("gui.projects").enter(dir)
+          elseif what == "ask" then
+            M.ask()
+          end
+        end)
+        -- whatever opened is on the screen (or failed to): the app may draw its first frame
+        require("gui").release()
+        if not ok then
+          error(err, 0)
         end
       end)
     end,

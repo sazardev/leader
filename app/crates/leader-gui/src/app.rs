@@ -20,7 +20,7 @@ use winit::window::{CursorIcon, ResizeDirection, Window, WindowId};
 
 use crate::appbar::{self, Bar, Hit};
 use crate::clipboard::{self, Clipboard};
-use crate::font::{self, Fonts};
+use crate::font::{self, CellMetrics, Fonts};
 use crate::renderer::Renderer;
 use crate::scene::View;
 use crate::{input, platform};
@@ -34,6 +34,13 @@ pub enum UserEvent {
     Appbar(Value),
     /// A window command from the config's menus (`leader_window`).
     Window(String),
+    /// The config will say when its first screen is complete (`leader_hold`): draw nothing until then.
+    Hold,
+    /// The first screen is complete (`leader_ready`).
+    Ready,
+    /// A later `leader --reuse …` hands this window its files (see `single`).
+    #[cfg(unix)]
+    Open(crate::single::Request),
 }
 
 #[derive(Default)]
@@ -64,6 +71,8 @@ pub struct App {
     started: Instant,
     timing: bool,
     font_job: Option<JoinHandle<FontSystem>>,
+    /// The graphics instance, started before the window (see `Renderer::create_instance`).
+    instance_job: Option<JoinHandle<wgpu::Instance>>,
     nvim: Nvim,
     pending: Arc<AtomicBool>,
     clipboard: Clipboard,
@@ -82,6 +91,17 @@ pub struct App {
     default_guifont: String,
     title: Option<String>,
     first_frame: bool,
+    /// While set, nothing is drawn: the config said it will announce its first complete screen (`leader_ready`), so the
+    /// first thing on the window is the real editor, not Neovim's black default. A deadline keeps a config that never
+    /// announces (or fails first) from leaving the window blank.
+    hold_until: Option<Instant>,
+    /// `leader_ready` arrived (the config's first screen is complete), and whether the first frame after it was marked.
+    ready_seen: bool,
+    content_marked: bool,
+    /// Bench only (`LEADER_NO_HOLD`): draw as soon as Neovim flushes, as a build without the hold would.
+    no_hold: bool,
+    /// Neovim was attached before the window existed (from the last run's cell, see `platform::Cell`).
+    attached_early: bool,
     first_flush: bool,
     blink: Blink,
     /// Started by LEADER_SNAPSHOT (a test): nothing is saved.
@@ -141,11 +161,29 @@ struct Snapshot {
     at: Option<Instant>,
 }
 
+/// The grid of a window of `size` pixels and where it starts: cells that fit under the app bar and inside the padding.
+/// Bottom-aligned: the rows' leftover pixels sit between the bar and the editor, where nobody sees them (the bar is
+/// the editor's color); the statusline keeps its own height on the window's bottom edge. The columns' leftover is
+/// covered by the right edge cells, which stretch (scene.rs).
+fn fit(size: (f32, f32), m: &CellMetrics, scale: f32, bar: &Bar) -> ((u32, u32), (f32, f32)) {
+    let top = bar.height(m);
+    let pad_x = (bar.state.pad_x * scale).round();
+    let pad_bottom = (bar.state.pad_bottom * scale).round();
+    let (w, h) = (size.0 - 2.0 * pad_x, size.1 - top - pad_bottom);
+    let cols = ((w / m.width).floor() as u32).max(1);
+    let rows = ((h / m.height).floor() as u32).max(1);
+    ((cols, rows), (pad_x, (size.1 - pad_bottom - rows as f32 * m.height).floor().max(top)))
+}
+
+/// The longest the first frame waits for the config's `leader_ready` (it normally comes within ~150 ms of Neovim's start).
+const HOLD_MAX: Duration = Duration::from_millis(500);
+
 impl App {
     pub fn new(
         proxy: EventLoopProxy<UserEvent>,
         args: Vec<OsString>,
         font_job: JoinHandle<FontSystem>,
+        instance_job: JoinHandle<wgpu::Instance>,
         started: Instant,
     ) -> Result<App, String> {
         let pending = Arc::new(AtomicBool::new(false));
@@ -157,6 +195,14 @@ impl App {
             "leader_window" => {
                 let name = args.first().and_then(Value::as_str).unwrap_or_default().to_string();
                 let _ = bar_proxy.send_event(UserEvent::Window(name));
+                Ok(Value::Nil)
+            }
+            "leader_hold" => {
+                let _ = bar_proxy.send_event(UserEvent::Hold);
+                Ok(Value::Nil)
+            }
+            "leader_ready" => {
+                let _ = bar_proxy.send_event(UserEvent::Ready);
                 Ok(Value::Nil)
             }
             "leader_appbar" => {
@@ -185,11 +231,33 @@ impl App {
         let default_guifont = nvim.exec_lua(clipboard::SETUP_LUA, vec![chan.into()]).map_err(|e| e.to_string())?;
         let default_guifont = default_guifont.as_str().unwrap_or_default().to_string();
         let timing = std::env::var_os("LEADER_TIMING").is_some();
+        let scripted = std::env::var_os("LEADER_SNAPSHOT").is_some();
+        let bar = Bar::default();
+        // Neovim reads its config only once a UI attaches, and the real grid needs the window and the fonts (~45 ms
+        // later). The last run's cell gives the same grid in almost every start, so attach now with it and let
+        // `resumed` resize in the rare case it differs. A maximized window has a size nobody knows yet: it waits.
+        let saved = if scripted { platform::Saved::default() } else { platform::saved_window() };
+        let early = platform::cached_cell().filter(|_| !saved.maximized).map(|cell| {
+            let (w, h) = saved.size.unwrap_or((1180.0, 760.0));
+            let m = CellMetrics { width: cell.width, height: cell.height, baseline: 0.0, underline: 0.0, stroke: 0.0 };
+            fit((w as f32 * cell.scale, h as f32 * cell.scale), &m, cell.scale, &bar).0
+        });
+        let mut grid = (0, 0);
+        let mut attached_early = false;
+        if let Some((cols, rows)) = early
+            && nvim.attach(cols, rows).is_ok()
+        {
+            attached_early = true;
+            grid = (cols, rows);
+            let _ = nvim.notify("nvim_set_var", vec!["leader_gui_version".into(), env!("CARGO_PKG_VERSION").into()]);
+            let _ = nvim.notify("nvim_ui_set_focus", vec![true.into()]);
+        }
         let app = App {
             proxy,
             started,
             timing,
             font_job: Some(font_job),
+            instance_job: Some(instance_job),
             nvim,
             pending,
             clipboard,
@@ -197,19 +265,24 @@ impl App {
             fonts: None,
             window: None,
             renderer: None,
-            grid: (0, 0),
+            grid,
+            attached_early,
             origin: (0.0, 0.0),
             mods: ModifiersState::empty(),
             focused: true,
             mouse: Mouse::default(),
-            bar: Bar::default(),
+            bar,
             guifont: String::new(),
             default_guifont,
             title: None,
             first_frame: true,
+            hold_until: None,
+            ready_seen: false,
+            content_marked: false,
+            no_hold: std::env::var_os("LEADER_NO_HOLD").is_some(),
             first_flush: true,
             blink: Blink { on: true, next: None, seen: None },
-            scripted: std::env::var_os("LEADER_SNAPSHOT").is_some(),
+            scripted,
             normal: platform::Saved::default(),
             input_at: None,
             snapshot: std::env::var_os("LEADER_SNAPSHOT").map(|p| Snapshot {
@@ -222,7 +295,7 @@ impl App {
                 at: None,
             }),
         };
-        app.mark("nvim spawned");
+        app.mark(if attached_early { "nvim spawned and attached" } else { "nvim spawned" });
         Ok(app)
     }
 
@@ -237,21 +310,10 @@ impl App {
     fn layout(&mut self) -> bool {
         let (Some(window), Some(fonts)) = (&self.window, &self.fonts) else { return false };
         let size = window.inner_size();
-        let m = fonts.metrics;
-        let scale = fonts.scale;
-        let bar = self.bar.height(&m);
-        let pad_x = (self.bar.state.pad_x * scale).round();
-        let pad_bottom = (self.bar.state.pad_bottom * scale).round();
-        let top = bar;
-        let (w, h) = (size.width as f32 - 2.0 * pad_x, size.height as f32 - top - pad_bottom);
-        let cols = ((w / m.width).floor() as u32).max(1);
-        let rows = ((h / m.height).floor() as u32).max(1);
-        // Bottom-aligned: the rows' leftover pixels sit between the bar and the editor, where nobody sees them (the bar
-        // is the editor's color); the statusline keeps its own height on the window's bottom edge. The columns'
-        // leftover is covered by the right edge cells, which stretch (scene.rs).
-        self.origin = (pad_x, (size.height as f32 - pad_bottom - rows as f32 * m.height).floor().max(top));
-        let changed = (cols, rows) != self.grid;
-        self.grid = (cols, rows);
+        let (grid, origin) = fit((size.width as f32, size.height as f32), &fonts.metrics, fonts.scale, &self.bar);
+        self.origin = origin;
+        let changed = grid != self.grid;
+        self.grid = grid;
         changed
     }
 
@@ -266,14 +328,18 @@ impl App {
     /// redraw scheduling, which can add a frame of latency) and on expose/resize.
     fn render(&mut self, event_loop: &ActiveEventLoop) {
         let (Some(renderer), Some(fonts)) = (self.renderer.as_mut(), self.fonts.as_mut()) else { return };
-        // Nothing to show until Neovim drew once (no flash of an empty window).
-        if self.screen.grids.is_empty() {
+        // Nothing to show until Neovim drew once (no flash of an empty window), nor while the config prepares its first screen.
+        if self.screen.grids.is_empty() || self.hold_until.is_some() {
             return;
         }
         let width = self.window.as_ref().map(|w| w.inner_size().width as f32).unwrap_or_default();
         let view =
             View { origin: self.origin, focused: self.focused, cursor_on: self.blink.on, bar: Some(&self.bar), width, scale: fonts.scale };
         renderer.render(&self.screen, fonts, &view);
+        if self.ready_seen && !self.content_marked {
+            self.content_marked = true;
+            self.mark("content frame");
+        }
         if let Some(t) = self.input_at.take().filter(|_| self.timing) {
             eprintln!("[leader] input → frame {:.2} ms", t.elapsed().as_secs_f64() * 1000.0);
         }
@@ -364,7 +430,8 @@ impl App {
             eprintln!("[leader] input → flush {:.2} ms", t.elapsed().as_secs_f64() * 1000.0);
         }
         let spec = self.screen.options.get("guifont").and_then(Value::as_str).unwrap_or_default().to_string();
-        if spec != self.guifont {
+        // (before the fonts exist the spec waits: `resumed` drains once they do)
+        if self.fonts.is_some() && spec != self.guifont {
             self.guifont = spec.clone();
             if !spec.is_empty() && spec != self.default_guifont {
                 self.apply_font(&spec);
@@ -758,6 +825,30 @@ impl App {
     }
 }
 
+impl App {
+    /// Files (and a folder) from a later `leader --reuse`: Neovim opens them, the window comes forward.
+    #[cfg(unix)]
+    fn open_external(&mut self, request: crate::single::Request) {
+        let paths: Vec<Value> = request
+            .args
+            .iter()
+            // `+cmd` and `-flags` are for a Neovim that starts; this one is running
+            .filter(|a| !a.as_encoded_bytes().starts_with(b"+") && !a.as_encoded_bytes().starts_with(b"-"))
+            .map(|a| request.cwd.join(a).to_string_lossy().into_owned().into())
+            .collect();
+        if !paths.is_empty() {
+            let code = "return require('gui').open_external(...)";
+            let _ = self.nvim.notify("nvim_exec_lua", vec![code.into(), Value::Array(vec![Value::Array(paths)])]);
+        }
+        if let Some(w) = &self.window {
+            w.set_minimized(false);
+            w.focus_window();
+            // where the compositor will not hand focus over, the title bar and taskbar blink instead
+            w.request_user_attention(Some(winit::window::UserAttentionType::Informational));
+        }
+    }
+}
+
 impl ApplicationHandler<UserEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_some() {
@@ -802,10 +893,15 @@ impl ApplicationHandler<UserEvent> for App {
             platform::Saved { size: Some((width, height)), position: window.outer_position().ok().map(|p| (p.x, p.y)), maximized: false };
         let gpu_window = window.clone();
         let proxy = self.proxy.clone();
+        let instance_job = self.instance_job.take();
         std::thread::Builder::new()
             .name("gpu".into())
             .spawn(move || {
-                let _ = proxy.send_event(UserEvent::Gpu(Box::new(Renderer::new(gpu_window, platform::backends()))));
+                let renderer = match instance_job.map(|j| j.join()) {
+                    Some(Ok(instance)) => Renderer::new(gpu_window, instance),
+                    _ => Err("the graphics driver did not start".to_string()),
+                };
+                let _ = proxy.send_event(UserEvent::Gpu(Box::new(renderer)));
             })
             .expect("gpu thread");
         let system = self.font_job.take().and_then(|j| j.join().ok()).unwrap_or_else(font::load_system);
@@ -813,6 +909,7 @@ impl ApplicationHandler<UserEvent> for App {
         let fonts = Fonts::new(system, &families, font::DEFAULT_SIZE, window.scale_factor() as f32);
         self.mark(&format!("fonts ready: {} {}pt, cell {}x{}", fonts.family(), fonts.size, fonts.metrics.width, fonts.metrics.height));
         let family = fonts.family().to_string();
+        let (fonts_scale, cell) = (fonts.scale, (fonts.metrics.width, fonts.metrics.height));
         self.fonts = Some(fonts);
         self.window = Some(window);
         // For the config's install checks (lua/gui/checks.lua).
@@ -821,7 +918,18 @@ impl ApplicationHandler<UserEvent> for App {
         // Wayland never tells a window where it is: the settings say "remember position" does nothing there.
         let placed = self.normal.position.is_some();
         let _ = self.nvim.notify("nvim_set_var", vec!["leader_gui_can_position".into(), placed.into()]);
-        self.layout();
+        platform::save_cell(&platform::Cell { scale: fonts_scale, width: cell.0, height: cell.1 });
+        let changed = self.layout();
+        if self.attached_early {
+            // Neovim is already running on the remembered grid: only a different one needs telling
+            if changed {
+                let _ = self.nvim.try_resize(self.grid.0, self.grid.1);
+            }
+            self.mark(&format!("grid {}x{}{}", self.grid.0, self.grid.1, if changed { " (resized)" } else { "" }));
+            // events that arrived before the window and the fonts existed
+            self.drain_nvim(event_loop);
+            return;
+        }
         if let Err(e) = self.nvim.attach(self.grid.0, self.grid.1) {
             eprintln!("leader: nvim_ui_attach failed: {e}");
             event_loop.exit();
@@ -869,7 +977,12 @@ impl ApplicationHandler<UserEvent> for App {
         }
         let snap = self.snapshot.as_ref().and_then(|s| s.keys_at.or(s.at));
         let hover = self.mouse.hover_next.and(self.mouse.hover_sent).map(|t| t + HOVER_WAIT);
-        let next = [self.blink.next, snap, anim, hover].into_iter().flatten().min();
+        if self.hold_until.is_some_and(|t| Instant::now() >= t) {
+            self.hold_until = None;
+            self.mark("first screen deadline");
+            self.render(event_loop);
+        }
+        let next = [self.blink.next, snap, anim, hover, self.hold_until].into_iter().flatten().min();
         event_loop.set_control_flow(match next {
             Some(t) => ControlFlow::WaitUntil(t),
             None => ControlFlow::Wait,
@@ -892,6 +1005,20 @@ impl ApplicationHandler<UserEvent> for App {
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: UserEvent) {
         match event {
             UserEvent::Nvim => self.drain_nvim(event_loop),
+            #[cfg(unix)]
+            UserEvent::Open(request) => self.open_external(request),
+            UserEvent::Hold => {
+                if self.first_frame && !self.no_hold {
+                    self.hold_until = Some(Instant::now() + HOLD_MAX);
+                }
+            }
+            UserEvent::Ready => {
+                self.drain_nvim(event_loop);
+                self.ready_seen = true;
+                self.hold_until = None;
+                self.mark("first screen ready");
+                self.render(event_loop);
+            }
             UserEvent::Window(name) => self.window_command(&name),
             UserEvent::Appbar(v) => {
                 let next = appbar::State::from_value(&v);
