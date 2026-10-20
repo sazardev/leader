@@ -1,5 +1,5 @@
 -- ── Desktop app: is everything installed? ────────────────────────────────────
--- The checks the welcome screen shows (gui/onboarding.lua). Each one is cheap
+-- The checks the setup shows (gui/wizard.lua, its Install and Review steps). Each one is cheap
 -- (no network, no process except `executable()`), says what it found and, when
 -- something is missing, how to get it: `fix` is an Ex command the screen runs
 -- with Enter, `hint` is advice when there is nothing safe to run from here.

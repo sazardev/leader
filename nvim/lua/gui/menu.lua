@@ -24,10 +24,22 @@ local NS = vim.api.nvim_create_namespace "GuiMenu"
 ---@field items GuiMenuItem[]? a submenu
 ---@field sep boolean?    a separator line
 ---@field when (fun(): boolean)? shown only when it returns true
+---@field preview fun()? runs while the item is under the cursor or the pointer (a theme): `opts.revert` undoes it
 
 ---@type { win: integer, buf: integer, col: integer, row: integer, width: integer, items: GuiMenuItem[], parent: integer?, enter: fun(), sub: fun(row: integer, focus: boolean) }[] open menus, root first
 local stack = {}
 local guicursor ---@type string? the cursor shape while no menu was open
+local revert ---@type fun()? undoes the previews when the menus close without a choice
+local preview_timer = vim.uv.new_timer()
+
+---@param it GuiMenuItem?
+local function preview(it)
+  preview_timer:stop()
+  if it and it.preview then
+    -- after a short pause: passing over items with the arrows does not repaint each one
+    preview_timer:start(90, 0, vim.schedule_wrap(it.preview))
+  end
+end
 
 --- "<leader>fw" → "Space f w", "<C-S-r>" → "Ctrl+Shift+R", "<M-i>" → "Alt+I"
 ---@param keys string
@@ -150,6 +162,12 @@ function M.close(level)
     vim.o.guicursor = guicursor
     guicursor = nil
   end
+  if #stack == 0 and revert then
+    preview_timer:stop()
+    local undo = revert
+    revert = nil
+    vim.schedule(undo)
+  end
   if stack[#stack] and vim.api.nvim_win_is_valid(stack[#stack].win) then
     pcall(vim.api.nvim_set_current_win, stack[#stack].win)
   end
@@ -157,6 +175,7 @@ end
 
 ---@param it GuiMenuItem
 local function activate(it)
+  revert = nil -- a choice keeps what the previews showed
   if it.run then
     return it.run()
   end
@@ -221,6 +240,7 @@ open_level = function(items, level, col, row, parent, focus)
     until selectable(r) or r < 1 or r > #items
     if selectable(r) then
       vim.api.nvim_win_set_cursor(win, { r, 0 })
+      preview(items[r])
     end
   end
   local function enter()
@@ -233,6 +253,7 @@ open_level = function(items, level, col, row, parent, focus)
       -- beside this menu, level with its item (the block's padding is one cell on each side)
       return open_level(it.items, level + 1, col + width + 2, row + r - 1, r, true)
     end
+    revert = nil
     M.close()
     vim.schedule(function()
       activate(it)
@@ -267,7 +288,10 @@ open_level = function(items, level, col, row, parent, focus)
       if not it or it.sep then
         return
       end
-      pcall(vim.api.nvim_win_set_cursor, s.win, { pos.line, 0 })
+      if vim.api.nvim_win_get_cursor(s.win)[1] ~= pos.line then
+        pcall(vim.api.nvim_win_set_cursor, s.win, { pos.line, 0 })
+        preview(it)
+      end
       if it.items then
         if not (stack[lvl + 1] and stack[lvl + 1].parent == pos.line) then
           s.sub(pos.line, false)
@@ -336,9 +360,12 @@ open_level = function(items, level, col, row, parent, focus)
 end
 
 ---@param items GuiMenuItem[]
----@param opts? { col: integer? }
+---@param opts? { col: integer?, revert: fun()? } `revert` runs when the menus close without a choice (undo previews)
 function M.open(items, opts)
-  open_level(items, 1, (opts or {}).col or 0, 0)
+  opts = opts or {}
+  M.close()
+  open_level(items, 1, opts.col or 0, 0)
+  revert = opts.revert
 end
 
 --- Every item that does something, with the path of menus to it ("File › Save"), for the command palette.

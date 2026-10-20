@@ -7,7 +7,7 @@
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 command -v nvim >/dev/null 2>&1 || { echo "test-app: nvim is not in PATH" >&2; exit 2; }
 state="$(mktemp -d)"
-out="$(XDG_STATE_HOME="$state" AGENT_TEST_ROOT="$ROOT" NVIM_NO_LOCAL=1 NVIM_LIGHT=1 nvim --headless -c "luafile $ROOT/scripts/test-gui.lua" 2>&1 | tr '\r' '\n')"
+out="$(XDG_STATE_HOME="$state" AGENT_TEST_ROOT="$ROOT" NVIM_NO_LOCAL=1 NVIM_LIGHT=1 timeout 300 nvim --headless -c "luafile $ROOT/scripts/test-gui.lua" 2>&1 | tr '\r' '\n')"
 rm -rf "$state"
 printf '%s\n' "$out" | grep -E '^(FAIL|ALL OK|FAILURES)|E5[0-9]{2}'
 printf '%s\n' "$out" | grep -q 'ALL OK' || exit 1

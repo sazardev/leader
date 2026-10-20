@@ -31,27 +31,109 @@ end)
 check("checks are shaped", shaped, list)
 check("missing counts the failures", checks.missing({ { ok = true }, { ok = false }, { ok = false } }) == 2)
 
--- welcome screen: a failing check with a fix offers Enter, one with only a hint shows it; rows point at their checks
-local onboarding = require("gui.onboarding")
-local fake = {
-	{ id = "plugins", label = "Plugins", ok = false, detail = "2 missing", fix = "Lazy! restore" },
-	{ id = "font", label = "Font", ok = false, detail = "Mono", hint = "use a Nerd Font" },
-	{ id = "nvim", label = "Neovim", ok = true, detail = "0.12" },
-}
-local lines, rows = onboarding.lines(fake)
 local function text(segs)
-	return table.concat(vim.tbl_map(function(s)
-		return s[1]
-	end, segs))
+  return table.concat(vim.tbl_map(function(seg)
+    return seg[1]
+  end, segs))
 end
-local found = {}
-for row, c in pairs(rows) do
-	found[c.id] = text(lines[row])
+
+-- system packages: the command for each Linux family, sudo only when needed, apt refreshes first, unpackaged tools said
+local sysdeps = require "gui.sysdeps"
+local fake = function(present)
+  return function(bin)
+    return vim.tbl_contains(present, bin)
+  end
 end
-check("rows point at their checks", found.plugins and found.font and found.nvim, found)
-check("a fix offers Enter", found.plugins and found.plugins:find("install") ~= nil, found.plugins)
-check("a hint is shown", found.font and found.font:find("Nerd Font") ~= nil, found.font)
-check("the summary counts what is missing", text(lines[1]):find("2 things") ~= nil, text(lines[1]))
+local rg = vim.iter(sysdeps.TOOLS):find(function(t)
+  return t.id == "rg"
+end)
+local cc = vim.iter(sysdeps.TOOLS):find(function(t)
+  return t.id == "cc"
+end)
+local by = function(id)
+  return vim.iter(sysdeps.MANAGERS):find(function(m)
+    return m.id == id
+  end)
+end
+check("pacman command", sysdeps.command(by "pacman", { rg, cc }, false) == "sudo pacman -S --needed --noconfirm ripgrep base-devel", sysdeps.command(by "pacman", { rg, cc }, false))
+check("apt refreshes first", sysdeps.command(by "apt", { rg }, false) == "sudo apt-get update && sudo apt-get install -y ripgrep")
+check("root needs no sudo", sysdeps.command(by "dnf", { rg }, true) == "dnf install -y ripgrep")
+local cmd, skipped = sysdeps.command(by "brew", { rg, cc }, false)
+check("brew has no sudo and says what it lacks", cmd == "brew install ripgrep" and skipped[1] == "C compiler", { cmd, skipped })
+check("manager in order", sysdeps.manager(fake { "dnf", "apt-get" }).id == "apt" and sysdeps.manager(fake {}) == nil)
+local missing = vim.tbl_map(function(t)
+  return t.id
+end, sysdeps.missing(fake { "git", "rg", "cc", "unzip", "fd", "node", "npm", "cmake" }, { go = true, jvm = false }))
+check("missing: only the runtimes of the packs that are on", vim.deep_equal(missing, { "go" }), missing)
+check("node needs node and npm", not sysdeps.present(vim.iter(sysdeps.TOOLS):find(function(t)
+  return t.id == "node"
+end), fake { "node" }))
+check("distro name", sysdeps.distro 'NAME="Arch"\nPRETTY_NAME="Arch Linux"\n' == "Arch Linux")
+
+-- toolbar: the defaults, your choices on top (saved), the chips
+local toolbar = require "gui.toolbar"
+local left, right = toolbar.tools()
+local actions = function(list)
+  return vim.tbl_map(function(t)
+    return t.action
+  end, list)
+end
+check("default left tools", vim.deep_equal(actions(left), { "projects", "home", "history" }), actions(left))
+check("default right tools", vim.deep_equal(actions(right), { "agent", "theme" }), actions(right))
+check("tools carry a tooltip", vim.iter(right):all(function(t)
+  return type(t.tip) == "string" and t.tip ~= ""
+end), right)
+require("gui.state").update { toolbar = { home = false, terminal = true, ["chip.lsp"] = true } }
+left, right = toolbar.tools()
+check("your choices win", not vim.tbl_contains(actions(left), "home") and vim.tbl_contains(actions(right), "terminal"), { actions(left), actions(right) })
+check("chips follow your choices", toolbar.chips({}).lsp == true and toolbar.chips({}).recording == true)
+require("gui.state").update { toolbar = { home = true, terminal = false, ["chip.lsp"] = false } }
+
+-- the setup wizard: every step renders with choices, buttons sit on one row and a click picks by column
+local wizard = require "gui.wizard"
+local wm = wizard.open()
+for i, st in ipairs(wizard.STEPS) do
+  wizard.go(wm, i)
+  check("wizard step " .. st.id .. " has choices", vim.tbl_count(wm.pane_rows) > 0 and wm.step == i, { wm.step, vim.tbl_count(wm.pane_rows) })
+end
+wizard.go(wm, 3)
+local pack_line, pack_id
+for line, item in pairs(wm.pane_rows) do
+  if item.kind == "pack" and (not pack_line or line < pack_line) then
+    pack_line, pack_id = line, item.id
+  end
+end
+local before = wm.packs[pack_id]
+wizard.choose(wm, wm.pane_rows[pack_line])
+check("a pack toggles", wm.packs[pack_id] == not before)
+wizard.choose(wm, wm.pane_rows[pack_line])
+local buttons_row
+for _, item in pairs(wm.pane_rows) do
+  if item.kind == "buttons" then
+    buttons_row = item
+  end
+end
+check("buttons on one row", buttons_row and #buttons_row.chips == 2, buttons_row)
+wizard.choose(wm, buttons_row, buttons_row.chips[2].from + 2)
+check("a click on Back goes back", wm.step == 2, wm.step)
+wizard.choose(wm, buttons_row)
+check("Space on the row takes the first (Next)", wm.step == 3, wm.step)
+require("utils.market").close(wm)
+
+-- the theme menu previews and undoes; the agent menu lists what this machine has
+local appearance = require "appearance"
+local theme_before = appearance.current()
+local titems, trevert = require("gui").theme_menu()
+check("theme menu has dark and light", vim.iter(titems):any(function(it)
+  return it.label == "Dark" and it.items and #it.items > 0
+end))
+local other = vim.iter(titems):find(function(it)
+  return it.label == "Dark"
+end).items[2]
+other.preview()
+trevert()
+check("closing without a choice puts the theme back", appearance.current() == theme_before, appearance.current())
+check("agent menu builds", #require("gui").agent_menu() >= 3)
 
 -- app bar: the path of a real file, folders then the file, and the indent chip
 local gui = require("gui")
@@ -75,8 +157,8 @@ check(
 	type(state.colors.fg) == "string" and state.colors.fg:match("^#%x%x%x%x%x%x$") ~= nil,
 	state.colors
 )
-check("buttons and controls", state.show_buttons.home == true and state.show_buttons.project == true and state.controls == "right", state)
-check("project name", type(state.project) == "string" and state.project ~= "", state.project)
+check("toolbar and controls", #state.left >= 1 and state.left[1].action == "projects" and state.controls == "right", state)
+check("project name on its tool", type(state.left[1].label) == "string" and state.left[1].label ~= "", state.left[1])
 -- a special buffer keeps the file you were on
 vim.cmd("enew")
 vim.bo.buftype = "nofile"

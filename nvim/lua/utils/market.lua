@@ -14,6 +14,7 @@
 --   spec.read(m, row)?        ⏎ in the list (default: the pane takes the focus)
 --   spec.cancel(m)?           Esc / q in the list (default: close)
 --   spec.initial(m)?          the row the cursor starts on (default: the first it can rest on)
+--   spec.pane_click(m, item, line, column)?  a click on a pane line that `pane` returned in its `rows` (a choice, a checkbox)
 --   spec.summary_rows         rows of the strip (default 7)
 -- Under 100 columns the panes take turns (the list, ⏎ opens the pane, Esc goes back) instead of sharing the screen.
 -- The mouse (utils/mouse.lua): the row under the pointer is the one under the cursor (the pane follows), a click reads
@@ -498,11 +499,19 @@ function M.new(spec, state)
       if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) and mouse.follow(m.wins.list, pos.line) then
         m.view = "pane"
         M.refresh(m)
+      elseif pos.winid == m.wins.pane and m.pane_rows[pos.line] ~= nil then
+        mouse.follow(m.wins.pane, pos.line)
       end
     end,
     click = function(pos)
       if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) then
         return read_row(pos.line)
+      end
+      local item = pos.winid == m.wins.pane and m.pane_rows[pos.line]
+      if item ~= nil and item ~= false and spec.pane_click then
+        pcall(vim.api.nvim_set_current_win, m.wins.pane)
+        pcall(vim.api.nvim_win_set_cursor, m.wins.pane, { pos.line, 0 })
+        return spec.pane_click(m, item, pos.line, pos.column)
       end
       local chips = m.chips
       if pos.winid == m.wins.summary and chips and pos.line == chips.row then

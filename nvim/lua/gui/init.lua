@@ -3,7 +3,7 @@
 -- the RPC channel, vim.g.leader_gui_channel) before the config loads and serves
 -- the clipboard itself. Here only what the config decides for it (settings.gui):
 -- the font, what the app bar says and what its buttons do (`action`: home,
--- history, welcome), and the welcome screen (gui/onboarding.lua, with the
+-- history, welcome, theme, agent…), and the guided setup (gui/wizard.lua, with the
 -- install checks of gui/checks.lua). The bar is minimal: the current file's
 -- path, every part clickable (a folder opens Telescope inside it, the file shows
 -- it in the tree), and on the right only what the statusline does NOT already
@@ -152,25 +152,26 @@ function M.state()
     targets[#path + 1] = { file = name }
     kept = { path = path, file = file, targets = targets, buf = buf }
   end
+  local toolbar = require "gui.toolbar"
   local buttons = cfg.buttons or {}
-  local cwd = vim.uv.cwd() or ""
+  local left, right = toolbar.tools(buttons)
   return {
     enabled = cfg.enabled ~= false,
     controls = cfg.controls or "right",
-    project = cwd:match "([^/\\]+)[/\\]*$" or cwd,
-    show_buttons = {
-      mark = buttons.mark ~= false,
-      project = buttons.project ~= false,
-      home = buttons.home ~= false,
-      history = buttons.history ~= false,
-    },
+    mark = buttons.mark ~= false,
+    left = left,
+    right = right,
     activity = cfg.activity ~= false and activity() or nil,
     height = cfg.height or 1.5,
     padding = settings.gui.padding or {},
     path = path,
     file = file,
     modified = file ~= "" and kept ~= nil and vim.api.nvim_buf_is_valid(kept.buf) and vim.bo[kept.buf].modified,
-    chips = chips(t, (rel == "" and kept and vim.api.nvim_buf_is_valid(kept.buf)) and kept.buf or buf, cfg.show or {}),
+    chips = chips(
+      t,
+      (rel == "" and kept and vim.api.nvim_buf_is_valid(kept.buf)) and kept.buf or buf,
+      toolbar.chips(cfg.show or {})
+    ),
     colors = {
       fg = t.fg,
       dim = t.dim,
@@ -322,6 +323,13 @@ function M.app_menu()
       label = "View",
       items = {
         { label = "Command Palette…", hint = "Ctrl+Shift+P", run = M.palette },
+        {
+          label = "Customize Toolbar…",
+          hint = "right click",
+          run = function()
+            M.actions.customize()
+          end,
+        },
         { sep = true },
         { label = "File Tree", keys = "<C-n>" },
         { label = "Outline", hint = ":AerialToggle", run = ex "AerialToggle" },
@@ -334,7 +342,12 @@ function M.app_menu()
         { label = "Zoom Out", hint = "Ctrl+-", run = window "zoom_out" },
         { label = "Reset Zoom", hint = "Ctrl+0", run = window "zoom_reset" },
         { sep = true },
-        { label = "Themes…", run = ex "lua require('nvchad.themes').open()" },
+        {
+          label = "Theme…",
+          run = function()
+            M.actions.theme(0)
+          end,
+        },
         { label = "Light / Dark", keys = "<leader>St" },
         { label = "Fold All", keys = "<leader>za" },
         { label = "Unfold All", keys = "<leader>ze" },
@@ -564,6 +577,132 @@ function M.projects_menu()
   return items
 end
 
+M.THEMES = {
+  dark = {
+    "gruvbox",
+    "catppuccin",
+    "tokyonight",
+    "onedark",
+    "rosepine",
+    "kanagawa",
+    "nord",
+    "everforest",
+    "github_dark",
+    "vesper",
+    "oxocarbon",
+    "nightfox",
+  },
+  light = { "gruvbox_light", "catppuccin-latte", "github_light", "rosepine-dawn", "one_light", "everforest_light" },
+}
+
+--- The theme menu (the bar's brush): the toggle, the terminal's theme, a short list of dark and light ones, previewed
+--- while the pointer or the cursor is on them (closing without a choice puts yours back), and the whole catalog.
+---@return GuiMenuItem[] items, fun() revert
+function M.theme_menu()
+  local appearance = require "appearance"
+  local before = appearance.current()
+  local function list(names)
+    local out = {}
+    for _, name in ipairs(names) do
+      if #vim.api.nvim_get_runtime_file("lua/base46/themes/" .. name .. ".lua", false) > 0 then
+        out[#out + 1] = {
+          label = name,
+          current = name == before,
+          preview = function()
+            pcall(appearance.use, name)
+          end,
+          run = function()
+            pcall(appearance.use, name)
+            require("utils.log").info("Theme: " .. name)
+          end,
+        }
+      end
+    end
+    return out
+  end
+  local items = {
+    { label = "Light / Dark", keys = "<leader>St" },
+    {
+      label = "Terminal Theme",
+      current = before == appearance.TERMINAL,
+      run = function()
+        pcall(appearance.use, appearance.TERMINAL)
+      end,
+    },
+    { sep = true },
+    { label = "Dark", items = list(M.THEMES.dark) },
+    { label = "Light", items = list(M.THEMES.light) },
+    { sep = true },
+    { label = "All Themes…", run = ex "lua require('nvchad.themes').open()" },
+  }
+  return items, function()
+    if appearance.current() ~= before then
+      pcall(appearance.use, before)
+    end
+  end
+end
+
+--- The agent menu (the bar's bolt): every agent this machine has, each with its models (a dot on the one in use),
+--- then the model and effort panel and the setup that finds or installs one.
+---@return GuiMenuItem[]
+function M.agent_menu()
+  local ok, backends = pcall(require, "agent.backends")
+  local items = {}
+  if ok then
+    local selection = require "agent.selection"
+    local cur = selection.current()
+    for _, name in ipairs(backends.names()) do
+      local b = backends.get(name)
+      if b and backends.is_available(name) then
+        local models, done = {}, false
+        pcall(b.models, function(list)
+          models, done = list or {}, true
+        end)
+        vim.wait(800, function()
+          return done
+        end, 20)
+        local sub = {}
+        for _, mdl in ipairs(models) do
+          local id = mdl.id or mdl.name or tostring(mdl)
+          sub[#sub + 1] = {
+            label = id,
+            current = cur ~= nil and cur.backend == name and cur.model == id,
+            run = function()
+              selection.set(name, id)
+              require("utils.log").info(("Agent: %s/%s"):format(name, id))
+              M.update()
+            end,
+          }
+        end
+        if #sub == 0 then
+          sub[1] = { label = "no models listed", hint = "Space a m" }
+        end
+        items[#items + 1] = {
+          label = name,
+          detail = cur and cur.backend == name and (cur.model or "") or "",
+          current = cur ~= nil and cur.backend == name,
+          items = sub,
+        }
+      end
+    end
+  end
+  if #items == 0 then
+    items[1] = { label = "No agent on this machine yet", hint = "" }
+  end
+  vim.list_extend(items, {
+    { sep = true },
+    { label = "Model & Effort…", keys = "<leader>am" },
+    {
+      label = "Find or Install an Agent…",
+      run = function()
+        require("agent.setup").open()
+      end,
+    },
+    { label = "Set Up Leader…", run = M.actions.welcome },
+  })
+  return items
+end
+
 ---@type table<string, fun(col: integer?)>
 M.actions = {
   -- the start screen (its buttons: sessions, files, recent files, word, themes…)
@@ -590,6 +729,23 @@ M.actions = {
   end,
   open_project = function()
     require("gui.picker").open()
+  end,
+  theme = function(col)
+    local items, revert = M.theme_menu()
+    require("gui.menu").open(items, { col = col, revert = revert })
+  end,
+  agent = function(col)
+    require("gui.menu").open(M.agent_menu(), { col = col })
+  end,
+  tree = function()
+    pcall(vim.cmd, "NvimTreeToggle")
+    M.update()
+  end,
+  terminal = feed "<M-i>",
+  problems = feed "<leader>xx",
+  settings = feed "<leader>Sp",
+  customize = function()
+    require("gui.toolbar").customize(M.update)
   end,
   projects = function(col)
     require("gui.menu").open(M.projects_menu(), { col = col })
@@ -661,6 +817,8 @@ function M.setup()
     "ColorScheme",
     "RecordingEnter",
     "RecordingLeave",
+    "BufWinEnter", -- the tree opening or closing lights its toolbar button
+    "WinClosed",
   }, { group = group, callback = M.update })
   vim.api.nvim_create_autocmd("OptionSet", {
     group = group,
