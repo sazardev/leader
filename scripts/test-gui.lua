@@ -807,5 +807,25 @@ check("switch changes folder", projects.normalize(vim.uv.cwd()) == projects.norm
 check("switch remembers it", projects.list()[1].dir == projects.normalize(b), projects.list()[1])
 check("no session: start screen", vim.bo.filetype == "nvdash", vim.bo.filetype)
 
+-- the theme picker (gui/themes.lua): the catalog in dark and light, the cursor on the theme in use, a preview drawn from
+-- the theme's own tokens, and nothing applied until ⏎
+local themes = require "gui.themes"
+local theme_before = require("appearance").current()
+local tm = themes.open()
+check("themes: opens full screen", tm ~= nil and vim.api.nvim_win_is_valid(tm.wins.list))
+local on_row = require("utils.market").current(tm)
+check("themes: the cursor starts on the theme in use", on_row and on_row.theme == theme_before, on_row)
+check(
+  "themes: dark and light groups",
+  #vim.tbl_filter(function(r)
+    return r.group
+  end, tm.rows) >= 2
+)
+local pv = themes.preview(themes.tokens(tm, "gruvbox"), "gruvbox", { width = 60 })
+check("themes: the preview has the palette, the editor and the picker", #pv > 20, #pv)
+vim.api.nvim_feedkeys("j", "xt", false)
+check("themes: moving applies nothing", require("appearance").current() == theme_before)
+require("utils.market").close(tm)
+
 print(failures == 0 and "ALL OK" or ("FAILURES: " .. failures))
 vim.cmd(failures == 0 and "qa!" or "cq!")

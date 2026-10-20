@@ -774,7 +774,7 @@ function M.theme_menu()
     { label = "Dark", items = list(M.THEMES.dark) },
     { label = "Light", items = list(M.THEMES.light) },
     { sep = true },
-    { label = "All Themes…", run = ex "lua require('nvchad.themes').open()" },
+    { label = "All Themes…", run = ex "lua require('gui.themes').open()" },
   }
   return items, function()
     if appearance.current() ~= before then
