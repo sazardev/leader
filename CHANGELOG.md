@@ -2,6 +2,33 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.9.0] - 2026-10-20
+
+### Highlights
+
+- **Projects first, like an IDE**: Leader asks which project to open when it starts (or reopens the last one, or shows the
+  start screen: your choice), `leader <folder>` opens that folder, and starting inside a repo opens that repo. The picker
+  keeps its facts and the list it found on disk, reads git in the background one folder at a time, pins projects (`p`),
+  and a Yazi-like browser (`b`: `h` up, `l` in, `Enter` opens) walks your folders.
+- **Updates, connected**: a `↑ 1.9.0` badge in the bar and a line at the top of the logo's menu when a newer version
+  exists; a page shows what changed version by version and updates on request (the config with `git pull --ff-only`, the
+  app through its installer). One tiny request, never more often than every 12 hours, never updates by itself.
+- **Recent files that belong to the project** you are in, not everything you ever opened (`Ctrl+A` widens it).
+- **Esc closes whatever is extra**: help, quickfix, panels, floats, pickers (from insert too), lone tabs; never the last
+  window. The hidden cursor has one owner list now, so it can no longer stay invisible after pages overlap.
+- **Install progress in numbers**: every language tool with its state, time, bytes and speed, a bar, and a warning
+  when data stops arriving. The window remembers its size, place and maximized state; the frame is yours to pick.
+- **Speed**: hovering never scrolls a list, hovers are coalesced, Telescope no longer leaks a buffer per open, streaming
+  answers redraw at most every 40 ms, and a list that fails to open leaves nothing behind.
+
+### Features
+
+- **gui:** projects first, a folder browser, install progress, Esc (e9ccc65)
+- **app:** keep the window's size, place and maximized state (fd876ef)
+- **ui:** one owner list for the hidden cursor, Esc closes extra windows (0157e10)
+- **update:** detect new versions, show the changelog, update on request (3eac257)
+- **recent:** recent files that belong to the project you are in (9ac6d49)
+
 ## [1.8.0] - 2026-10-20
 
 ### Highlights
