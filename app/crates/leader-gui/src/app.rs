@@ -428,7 +428,11 @@ impl App {
                     self.action_at(&a, hit);
                 }
             }
-            Hit::Action(a) => self.action_at(a.name(), hit),
+            Hit::Tool(side, i) => {
+                if let Some(action) = self.bar.tool(side, i).map(|t| t.action.clone()) {
+                    self.action_at(&action, hit);
+                }
+            }
             Hit::Drag | Hit::Outside => {}
         }
         self.bar.set_hover(None);
@@ -437,6 +441,15 @@ impl App {
 
     /// Mouse buttons on the bar and the window edges; true when consumed (not for Neovim).
     fn on_chrome(&mut self, event_loop: &ActiveEventLoop, state: ElementState, button: MouseButton) -> bool {
+        if button == MouseButton::Right {
+            // a right click anywhere on the bar: what it shows, and in which order (the config's customize panel)
+            let hit = self.bar_hit(self.mouse.pos);
+            if hit != Hit::Outside && state == ElementState::Released && !matches!(hit, Hit::Button(_)) {
+                let col = self.fonts.as_ref().map(|f| ((self.mouse.pos.x as f32 - self.origin.0) / f.metrics.width).max(0.0) as u32);
+                self.action("customize", col.unwrap_or(0));
+            }
+            return hit != Hit::Outside;
+        }
         if button != MouseButton::Left {
             return self.bar_hit(self.mouse.pos) != Hit::Outside;
         }
@@ -450,7 +463,7 @@ impl App {
                 }
                 match self.bar_hit(self.mouse.pos) {
                     Hit::Outside => false,
-                    hit @ (Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Action(_) | Hit::Chip(_)) => {
+                    hit @ (Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Tool(..) | Hit::Chip(_)) => {
                         self.mouse.button = Some(hit);
                         true
                     }
@@ -514,7 +527,7 @@ impl App {
         self.mouse.pos = pos;
         if self.mouse.pressed.is_none() {
             let hit = self.bar_hit(pos);
-            let clickable = matches!(hit, Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Action(_) | Hit::Chip(_));
+            let clickable = matches!(hit, Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Tool(..) | Hit::Chip(_));
             if self.bar.set_hover(clickable.then_some(hit)) {
                 self.render(event_loop);
             }
@@ -622,6 +635,20 @@ impl App {
                     let _ = cmd.spawn();
                 }
             }
+            // A fresh start (new languages, a changed setting that needs it): a new window in the same project, then
+            // this one quits the way the close button does (Neovim asks about unsaved files).
+            name if name.starts_with("restart:") => {
+                if let Ok(exe) = std::env::current_exe() {
+                    let mut cmd = std::process::Command::new(exe);
+                    let dir = &name["restart:".len()..];
+                    if !dir.is_empty() {
+                        cmd.current_dir(dir);
+                    }
+                    if cmd.spawn().is_ok() {
+                        let _ = self.nvim.notify("nvim_command", vec!["confirm qall".into()]);
+                    }
+                }
+            }
             "zoom_in" => self.zoom(1.0),
             "zoom_out" => self.zoom(-1.0),
             "zoom_reset" => self.zoom(0.0),
@@ -655,11 +682,8 @@ impl App {
             _ => None,
         };
         if let Some(a) = action {
-            let hit = match a {
-                "menu" => Hit::Mark,
-                "projects" => Hit::Action(appbar::Action::Projects),
-                _ => Hit::Outside,
-            };
+            // under its button when the toolbar has one (the menus open there), else at the left edge
+            let hit = if a == "menu" { Hit::Mark } else { self.bar.find(a).unwrap_or(Hit::Outside) };
             self.action_at(a, hit);
             return true;
         }

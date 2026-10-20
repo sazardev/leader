@@ -1,10 +1,12 @@
 //! The app bar: our own title bar, part of the editor rather than a frame around it. It is painted with the
 //! editor's own background and steps back (its content fades) while a modal is open. Like Zed's: Leader's mark
-//! opens the app menu (a wave runs through its dots on hover), the project's name opens the projects menu, then
-//! home and recent files; the current file as a centered, clickable path; on the right what is happening right
-//! now (LSP progress, installs, a save; a dot spinner and a thin progress line), only what the statusline does not
-//! already say, and the window controls as three small flat squares. The config decides the content and what
-//! the buttons open (`lua/gui/` sends it as `leader_appbar` over RPC; the menus are its own flat floats).
+//! opens the app menu (a wave runs through its dots on hover); then the tools the config chose for the left (the
+//! project's name, home, recent files…); the current file as a centered, clickable path; on the right what is
+//! happening right now (LSP progress, installs, a save; a dot spinner and a thin progress line), the chips the
+//! config chose, the tools for the right (theme, agent, terminal…) and the window controls as three small flat
+//! squares. Every tool says what it does in a tooltip after a moment under the pointer; a right click on the bar
+//! customizes it. The config decides the content and what each tool opens (`lua/gui/` sends it as
+//! `leader_appbar` over RPC; the menus are its own flat floats).
 use std::time::{Duration, Instant};
 
 use rmpv::Value;
@@ -38,6 +40,21 @@ pub struct Chip {
     pub action: Option<String>,
 }
 
+/// A button of the toolbar: an icon, optionally a label (then a ▾ when it opens a menu), what it does.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Tool {
+    pub icon: String,
+    pub label: Option<String>,
+    /// Shown under the pointer after a moment ("Theme", "Agent · claude/sonnet").
+    pub tip: Option<String>,
+    /// The config's action (`require("gui").action(name, col)`).
+    pub action: String,
+    /// It opens a menu (a ▾ after its label).
+    pub menu: bool,
+    /// Lit like a toggle that is on (the file tree is open…).
+    pub active: bool,
+}
+
 /// Something running (LSP indexing, an install) or just finished (`done`: a check instead of the spinner).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Activity {
@@ -58,12 +75,10 @@ pub struct State {
     pub pad_bottom: f32,
     /// Window controls on the left (false = right, the default).
     pub controls_left: bool,
-    /// The project's name (the folder Neovim is in): the projects menu's button.
-    pub project: String,
     pub show_mark: bool,
-    pub show_project: bool,
-    pub show_home: bool,
-    pub show_history: bool,
+    /// The tools after the mark and before the window controls, in order.
+    pub left: Vec<Tool>,
+    pub right: Vec<Tool>,
     /// Folders of the current file's path, then the file itself.
     pub path: Vec<String>,
     pub file: String,
@@ -81,11 +96,9 @@ impl Default for State {
             pad_x: 0.0,
             pad_bottom: 0.0,
             controls_left: false,
-            project: String::new(),
             show_mark: true,
-            show_project: true,
-            show_home: true,
-            show_history: true,
+            left: Vec::new(),
+            right: Vec::new(),
             path: Vec::new(),
             file: String::new(),
             modified: false,
@@ -110,6 +123,30 @@ fn float(v: Option<&Value>) -> Option<f32> {
 
 fn flag(v: &Value, k: &str, def: bool) -> bool {
     get(v, k).and_then(Value::as_bool).unwrap_or(def)
+}
+
+fn string(v: &Value, k: &str) -> Option<String> {
+    get(v, k).and_then(Value::as_str).filter(|s| !s.is_empty()).map(String::from)
+}
+
+fn tools(v: &Value, k: &str) -> Vec<Tool> {
+    get(v, k)
+        .and_then(Value::as_array)
+        .map(|a| {
+            a.iter()
+                .filter_map(|t| {
+                    Some(Tool {
+                        icon: string(t, "icon").unwrap_or_default(),
+                        label: string(t, "label"),
+                        tip: string(t, "tip"),
+                        action: string(t, "action")?,
+                        menu: flag(t, "menu", false),
+                        active: flag(t, "active", false),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 impl State {
@@ -157,19 +194,15 @@ impl State {
         });
         let padding = get(v, "padding");
         let pad = |k: &str, def: f32| padding.and_then(|p| float(get(p, k))).unwrap_or(def).clamp(0.0, 200.0);
-        let show = get(v, "show_buttons");
-        let shown = |k: &str| show.and_then(|s| get(s, k)).and_then(Value::as_bool).unwrap_or(true);
         State {
             enabled: flag(v, "enabled", true),
             height: float(get(v, "height")).unwrap_or(d.height).clamp(1.2, 4.0),
             pad_x: pad("x", d.pad_x),
             pad_bottom: pad("bottom", d.pad_bottom),
             controls_left: get(v, "controls").and_then(Value::as_str) == Some("left"),
-            project: get(v, "project").and_then(Value::as_str).unwrap_or_default().to_string(),
-            show_mark: shown("mark"),
-            show_project: shown("project"),
-            show_home: shown("home"),
-            show_history: shown("history"),
+            show_mark: flag(v, "mark", true),
+            left: tools(v, "left"),
+            right: tools(v, "right"),
             path: strings("path"),
             file: get(v, "file").and_then(Value::as_str).unwrap_or_default().to_string(),
             modified: flag(v, "modified", false),
@@ -187,22 +220,10 @@ pub enum Button {
     Maximize,
 }
 
-/// What the left side opens (the config decides how: `require("gui").action(name, col)`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Action {
-    Projects,
-    Home,
-    History,
-}
-
-impl Action {
-    pub fn name(self) -> &'static str {
-        match self {
-            Action::Projects => "projects",
-            Action::Home => "home",
-            Action::History => "history",
-        }
-    }
+pub enum Side {
+    Left,
+    Right,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -212,18 +233,21 @@ pub enum Hit {
     Button(Button),
     /// The mark: the app menu.
     Mark,
-    Action(Action),
+    /// A tool of the left or the right side.
+    Tool(Side, usize),
     /// A part of the path: index into the folders, `path.len()` = the file.
     Path(usize),
     /// A chip that has an action.
     Chip(usize),
 }
 
-/// Hover backgrounds fade in, the wave runs through the mark, the bar steps back for a modal, activity comes and goes.
+/// Hover backgrounds fade in, the wave runs through the mark, the bar steps back for a modal, activity comes and goes,
+/// a tooltip waits a moment before it shows.
 const FADE: Duration = Duration::from_millis(140);
 const WAVE: Duration = Duration::from_millis(900);
 const STEP_BACK: Duration = Duration::from_millis(180);
 const ACTIVITY_FADE: Duration = Duration::from_millis(260);
+const TIP_DELAY: Duration = Duration::from_millis(550);
 
 pub struct Bar {
     pub state: State,
@@ -327,8 +351,6 @@ fn text(
 }
 
 const SEP: &str = " › ";
-const HOME_ICON: &str = "\u{f015}";
-const HISTORY_ICON: &str = "\u{f1da}";
 const DONE_ICON: &str = "\u{f00c}";
 const CHEVRON: &str = "\u{f107}";
 
@@ -373,9 +395,9 @@ struct Layout {
     /// The three controls: center x, center y, radius.
     controls: [(Button, f32, f32, f32); 3],
     mark: Option<(f32, f32, f32)>,
-    project: Option<(f32, f32)>,
-    home: Option<(f32, f32)>,
-    history: Option<(f32, f32)>,
+    /// Each tool's x and width, side by side.
+    left: Vec<(f32, f32)>,
+    right: Vec<(f32, f32)>,
     parts: Vec<Part>,
     /// The right side: each chip's x and width; the activity sits before them.
     chips: Vec<(f32, f32)>,
@@ -389,6 +411,19 @@ impl Bar {
 
     pub fn colors(&self, fg: u32, bg: u32) -> Colors {
         self.state.colors.unwrap_or_else(|| fallback(fg, bg))
+    }
+
+    /// The tool that runs `action` (for the shortcuts that open the same menus under their button).
+    pub fn find(&self, action: &str) -> Option<Hit> {
+        let pos = |list: &[Tool]| list.iter().position(|t| t.action == action);
+        pos(&self.state.left).map(|i| Hit::Tool(Side::Left, i)).or_else(|| pos(&self.state.right).map(|i| Hit::Tool(Side::Right, i)))
+    }
+
+    pub fn tool(&self, side: Side, i: usize) -> Option<&Tool> {
+        match side {
+            Side::Left => self.state.left.get(i),
+            Side::Right => self.state.right.get(i),
+        }
     }
 
     /// The pointer moved onto something else; true when the bar must be drawn again.
@@ -439,18 +474,32 @@ impl Bar {
         self.state = state;
     }
 
-    /// Something is moving (a fade, the wave, a spinner): the next frame is needed soon.
+    /// What the tooltip under the pointer says, if one is due.
+    fn tip(&self) -> Option<String> {
+        match self.hover? {
+            Hit::Tool(side, i) => self.tool(side, i).and_then(|t| t.tip.clone()),
+            Hit::Mark => Some("Menu · F10".into()),
+            Hit::Button(Button::Minimize) => Some("Minimize".into()),
+            Hit::Button(Button::Maximize) => Some(if self.maximized { "Restore" } else { "Maximize" }.into()),
+            Hit::Button(Button::Close) => Some("Close".into()),
+            _ => None,
+        }
+    }
+
+    /// Something is moving (a fade, the wave, a spinner, a tooltip about to show): the next frame is needed soon.
     pub fn animating(&mut self) -> bool {
         if self.gone_at.is_some_and(|t| t.elapsed() >= ACTIVITY_FADE) {
             self.shown = None;
             self.gone_at = None;
         }
         let busy = self.shown.as_ref().is_some_and(|a| !a.done);
+        let tip_coming = self.tip().is_some() && self.hover_at.elapsed() < TIP_DELAY + FADE;
         self.hover_at.elapsed() < FADE
             || self.modal_at.elapsed() < STEP_BACK
             || self.wave_at.is_some_and(|t| t.elapsed() < WAVE)
             || self.shown.is_some() && (self.shown_at.elapsed() < ACTIVITY_FADE || self.gone_at.is_some())
             || busy
+            || tip_coming
     }
 
     /// Frames for a spinner need less than the fades: ~30 per second is smooth for dots.
@@ -466,6 +515,17 @@ impl Bar {
 
     fn chips_width(&self, m: &CellMetrics) -> f32 {
         self.state.chips.iter().map(|c| (c.gap + cells(&c.text) as f32 + if c.bg.is_some() { 2.0 } else { 0.0 }) * m.width).sum()
+    }
+
+    fn tool_width(t: &Tool, m: &CellMetrics) -> f32 {
+        match &t.label {
+            // icon (if any), the label, a ▾ for a menu, a cell of air on each side
+            Some(label) => {
+                let icon = if t.icon.is_empty() { 0.0 } else { cells(&t.icon) as f32 + 1.0 };
+                ((icon + cells(label) as f32 + if t.menu { 2.0 } else { 0.0 } + 2.0) * m.width).round()
+            }
+            None => (m.width * 2.4).round(),
+        }
     }
 
     /// `line` = the editor's metrics (the bar's height is counted in its lines), `m` = the bar's own smaller text.
@@ -496,27 +556,32 @@ impl Bar {
             x += (mh * bw / bh).round() + (m.width * 1.0).round();
             at
         });
-        let project = (s.show_project && !s.project.is_empty()).then(|| {
-            let w = (cells(&s.project) as f32 + 3.0) * m.width;
-            let at = (x, w);
-            x += w + (m.width * 0.4).round();
-            at
-        });
-        let icon = (m.width * 2.4).round();
-        let home = s.show_home.then(|| {
-            let at = (x, icon);
-            x += icon;
-            at
-        });
-        let history = s.show_history.then(|| {
-            let at = (x, icon);
-            x += icon;
-            at
-        });
+        let left = s
+            .left
+            .iter()
+            .map(|t| {
+                let w = Self::tool_width(t, m);
+                let at = (x, w);
+                x += w;
+                at
+            })
+            .collect();
         let left_end = x + m.width;
 
-        let right_end = if s.controls_left { width - edge } else { gx - m.width * 1.5 };
-        let mut cx = right_end - self.chips_width(m);
+        let right_end = if s.controls_left { width - edge } else { gx - m.width * 1.2 };
+        let tools_w: f32 = s.right.iter().map(|t| Self::tool_width(t, m)).sum();
+        let mut tx = right_end - tools_w;
+        let right = s
+            .right
+            .iter()
+            .map(|t| {
+                let w = Self::tool_width(t, m);
+                let at = (tx, w);
+                tx += w;
+                at
+            })
+            .collect();
+        let mut cx = right_end - tools_w - self.chips_width(m) - if s.right.is_empty() { 0.0 } else { m.width * 0.5 };
         let activity_x = cx - self.activity_width(m);
         let chips = s
             .chips
@@ -531,7 +596,7 @@ impl Bar {
             .collect();
         let right_start = activity_x - m.width;
 
-        Layout { h, ty, controls, mark, project, home, history, parts: self.parts(m, width, left_end, right_start), chips, activity_x }
+        Layout { h, ty, controls, mark, left, right, parts: self.parts(m, width, left_end, right_start), chips, activity_x }
     }
 
     /// The path centered on the window when it fits between the sides; leading folders give way to "…" when not.
@@ -584,12 +649,11 @@ impl Bar {
         {
             return Hit::Mark;
         }
-        for (slot, action) in [(l.project, Action::Projects), (l.home, Action::Home), (l.history, Action::History)] {
-            if let Some((sx, w)) = slot
-                && x >= sx
-                && x < sx + w
-            {
-                return Hit::Action(action);
+        for (side, list) in [(Side::Left, &l.left), (Side::Right, &l.right)] {
+            for (i, (tx, w)) in list.iter().enumerate() {
+                if x >= *tx && x < tx + w {
+                    return Hit::Tool(side, i);
+                }
             }
         }
         let pad = m.width * 0.5;
@@ -614,9 +678,8 @@ impl Bar {
         let l = self.layout(line, m, width);
         match hit {
             Hit::Mark => l.mark.map(|(x, ..)| x),
-            Hit::Action(Action::Projects) => l.project.map(|(x, _)| x),
-            Hit::Action(Action::Home) => l.home.map(|(x, _)| x),
-            Hit::Action(Action::History) => l.history.map(|(x, _)| x),
+            Hit::Tool(Side::Left, i) => l.left.get(i).map(|(x, _)| *x),
+            Hit::Tool(Side::Right, i) => l.right.get(i).map(|(x, _)| *x),
             Hit::Chip(i) => l.chips.get(i).map(|(x, _)| *x),
             _ => None,
         }
@@ -668,7 +731,7 @@ impl Bar {
         let ink = |col: u32| mix(col, bg, quiet);
         let (fg, dim, faint) = (ink(c.fg), ink(c.dim), ink(c.faint));
 
-        // Window controls: quiet dots; hovering the group colors them and shows what each does.
+        // Window controls: quiet squares; hovering the group colors them and shows what each does.
         let group_lit = [Button::Close, Button::Minimize, Button::Maximize].iter().map(|b| self.lit(Hit::Button(*b))).fold(0.0, f32::max);
         let group_lit =
             if matches!(self.hover, Some(Hit::Button(_))) { group_lit.max(ease(progress(self.hover_at, FADE))) } else { group_lit };
@@ -682,10 +745,10 @@ impl Bar {
             out.push(rect((cx - r).round(), (cy - r).round(), 2.0 * r, 2.0 * r, ink(dot)));
             if group_lit > 0.0 {
                 let sym = mix(color, bg, 0.72);
-                let s = (r * 1.0).round();
-                let line = scale.max(1.0).round();
+                let s = r.round();
+                let stroke = scale.max(1.0).round();
                 let bar_h = |out: &mut Vec<Quad>| {
-                    out.push(quad((cx - s / 2.0).round(), (cy - line / 2.0).round(), s, line, sym, group_lit, scene::RECT))
+                    out.push(quad((cx - s / 2.0).round(), (cy - stroke / 2.0).round(), s, stroke, sym, group_lit, scene::RECT))
                 };
                 match b {
                     Button::Close => out.push(quad(cx - s / 2.0, cy - s / 2.0, s, s, sym, group_lit, scene::CROSS)),
@@ -693,7 +756,7 @@ impl Bar {
                     Button::Maximize if self.maximized => bar_h(out),
                     Button::Maximize => {
                         bar_h(out);
-                        out.push(quad((cx - line / 2.0).round(), (cy - s / 2.0).round(), line, s, sym, group_lit, scene::RECT));
+                        out.push(quad((cx - stroke / 2.0).round(), (cy - s / 2.0).round(), stroke, s, sym, group_lit, scene::RECT));
                     }
                 }
             }
@@ -718,25 +781,30 @@ impl Bar {
             }
         }
 
-        // The project's name: the projects menu (recent projects, open a folder), like Zed's title bar.
-        if let Some((x, w)) = l.project {
-            let lit = self.lit(Hit::Action(Action::Projects));
-            if lit > 0.0 {
-                out.push(quad(x, block_y, w, block_h, hover_bg, lit, scene::RECT));
+        // The tools: an icon (and a label with ▾ for a menu) on a block that fades in on hover; an active one stays lit.
+        for (side, list, places) in [(Side::Left, &self.state.left, &l.left), (Side::Right, &self.state.right, &l.right)] {
+            for (i, (t, (x, w))) in list.iter().zip(places.iter()).enumerate() {
+                let lit = self.lit(Hit::Tool(side, i)).max(if t.active { 0.55 } else { 0.0 });
+                if lit > 0.0 {
+                    out.push(quad(*x, block_y, *w, block_h, hover_bg, lit, scene::RECT));
+                }
+                let ink_t = if t.active { mix(dim, c.accent, 0.8) } else { mix(faint, fg, lit) };
+                match &t.label {
+                    Some(label) => {
+                        let mut tx = x + m.width;
+                        if !t.icon.is_empty() {
+                            tx += text(out, fonts, glyphs, m, &t.icon, tx, ty, ink_t, false)? + m.width;
+                        }
+                        tx += text(out, fonts, glyphs, m, label, tx, ty, mix(dim, fg, 0.6 + 0.4 * lit), true)?;
+                        if t.menu {
+                            text(out, fonts, glyphs, m, CHEVRON, tx + (m.width * 0.4).round(), ty, mix(faint, fg, lit), false)?;
+                        }
+                    }
+                    None => {
+                        text(out, fonts, glyphs, m, &t.icon, (x + (w - m.width) / 2.0).round(), ty, ink_t, false)?;
+                    }
+                }
             }
-            let tx = x + m.width;
-            let after = tx + text(out, fonts, glyphs, m, &self.state.project, tx, ty, mix(dim, fg, 0.6 + 0.4 * lit), true)?;
-            text(out, fonts, glyphs, m, CHEVRON, after + (m.width * 0.4).round(), ty, mix(faint, fg, lit), false)?;
-        }
-
-        // Home and recent files: icons on a block that fades in on hover.
-        for (action, slot, icon) in [(Action::Home, l.home, HOME_ICON), (Action::History, l.history, HISTORY_ICON)] {
-            let Some((x, w)) = slot else { continue };
-            let lit = self.lit(Hit::Action(action));
-            if lit > 0.0 {
-                out.push(quad(x, block_y, w, block_h, hover_bg, lit, scene::RECT));
-            }
-            text(out, fonts, glyphs, m, icon, (x + (w - m.width) / 2.0).round(), ty, mix(faint, fg, lit), false)?;
         }
 
         // The path, centered: folders dimmed, the file bright; the part under the pointer gets a block behind it.
@@ -781,14 +849,14 @@ impl Bar {
                     }
                 }
                 text(out, fonts, glyphs, m, &a.text, x + 2.0 * m.width, ty, tint(dim), false)?;
-                let line = (2.0 * scale).round().max(2.0);
+                let stroke = (2.0 * scale).round().max(2.0);
                 match (a.done, a.percent) {
-                    (false, Some(p)) => out.push(quad(0.0, h - line, width * p / 100.0, line, c.accent, alpha, scene::RECT)),
+                    (false, Some(p)) => out.push(quad(0.0, h - stroke, width * p / 100.0, stroke, c.accent, alpha, scene::RECT)),
                     (false, None) => {
                         // unknown length: a short segment sweeping across
                         let t = (self.shown_at.elapsed().as_secs_f32() * 0.55).fract();
                         let w = width * 0.22;
-                        out.push(quad(-w + t * (width + w), h - line, w, line, c.accent, alpha * 0.8, scene::RECT));
+                        out.push(quad(-w + t * (width + w), h - stroke, w, stroke, c.accent, alpha * 0.8, scene::RECT));
                     }
                     _ => {}
                 }
@@ -809,6 +877,25 @@ impl Bar {
                 text(out, fonts, glyphs, m, &chip.text, *x, ty, ink(chip.fg.unwrap_or(c.dim)), false)?;
             }
         }
+
+        // The tooltip, after a moment under the pointer: a small flat block under the bar, over the editor.
+        if let Some(tip) = self.tip() {
+            let wait = self.hover_at.elapsed();
+            if wait >= TIP_DELAY {
+                let alpha = ease((wait - TIP_DELAY).as_secs_f32() / FADE.as_secs_f32());
+                let anchor = match self.hover {
+                    Some(Hit::Button(b)) => l.controls.iter().find(|c| c.0 == b).map(|c| c.1).unwrap_or(0.0),
+                    Some(hit) => self.anchor(hit, &line, &m, width),
+                    None => 0.0,
+                };
+                let w = (cells(&tip) as f32 + 2.0) * m.width;
+                let x = anchor.min(width - w - m.width).max(m.width / 2.0).round();
+                let y = h + (m.height * 0.3).round();
+                out.push(quad(x, y, w, m.height * 1.5, mix(bg, c.fg, 0.16), alpha, scene::RECT));
+                let text_y = (y + m.height * 0.25).round();
+                text(out, fonts, glyphs, m, &tip, x + m.width, text_y, mix(mix(bg, c.fg, 0.16), c.fg, alpha), false)?;
+            }
+        }
         Ok(())
     }
 }
@@ -821,10 +908,23 @@ mod tests {
         CellMetrics { width: 10.0, height: 20.0, baseline: 15.0, underline: 17.0, stroke: 1.0 }
     }
 
+    fn tool(icon: &str, label: Option<&str>, action: &str) -> Tool {
+        Tool {
+            icon: icon.into(),
+            label: label.map(String::from),
+            tip: Some(action.into()),
+            action: action.into(),
+            menu: label.is_some(),
+            active: false,
+        }
+    }
+
     fn bar(path: &[&str], file: &str) -> Bar {
         let mut b = Bar::default();
         b.state.path = path.iter().map(|s| s.to_string()).collect();
         b.state.file = file.into();
+        b.state.left = vec![tool("", Some("leader"), "projects"), tool("H", None, "home")];
+        b.state.right = vec![tool("T", None, "theme"), tool("A", None, "agent")];
         b
     }
 
@@ -848,14 +948,41 @@ mod tests {
             assert_eq!(b.hit(cx, 15.0, 1000.0, &m, &m), Hit::Button(btn));
         }
         assert!(l.controls.iter().all(|c| c.1 > 900.0), "controls on the right by default");
-        assert_eq!(l.controls[2].0, Button::Close, "close is the last one");
         assert_eq!(b.hit(l.mark.unwrap().0 + 2.0, 10.0, 1000.0, &m, &m), Hit::Mark);
-        assert_eq!(b.hit(l.home.unwrap().0 + 2.0, 10.0, 1000.0, &m, &m), Hit::Action(Action::Home));
-        assert_eq!(b.hit(l.history.unwrap().0 + 2.0, 10.0, 1000.0, &m, &m), Hit::Action(Action::History));
+        assert_eq!(b.hit(l.left[0].0 + 2.0, 10.0, 1000.0, &m, &m), Hit::Tool(Side::Left, 0));
+        assert_eq!(b.hit(l.left[1].0 + 2.0, 10.0, 1000.0, &m, &m), Hit::Tool(Side::Left, 1));
+        assert_eq!(b.hit(l.right[1].0 + 2.0, 10.0, 1000.0, &m, &m), Hit::Tool(Side::Right, 1));
+        assert!(l.right[1].0 + l.right[1].1 <= l.controls[0].1, "right tools sit before the controls");
         assert_eq!(l.parts.iter().map(|p| p.label.as_str()).collect::<Vec<_>>(), vec!["nvim", "lua", "gui.lua"]);
         assert_eq!(b.hit(l.parts[1].x + 1.0, 10.0, 1000.0, &m, &m), Hit::Path(1));
-        assert_eq!(b.hit(900.0, 10.0, 1000.0, &m, &m), Hit::Drag);
         assert_eq!(b.hit(300.0, 40.0, 1000.0, &m, &m), Hit::Outside);
+    }
+
+    #[test]
+    fn finds_tools_by_action() {
+        let b = bar(&[], "a.rs");
+        assert_eq!(b.find("home"), Some(Hit::Tool(Side::Left, 1)));
+        assert_eq!(b.find("agent"), Some(Hit::Tool(Side::Right, 1)));
+        assert_eq!(b.find("nope"), None);
+    }
+
+    #[test]
+    fn a_label_makes_a_wider_tool_with_a_chevron() {
+        let m = metrics();
+        let icon_only = Bar::tool_width(&tool("T", None, "theme"), &m);
+        let labeled = Bar::tool_width(&tool("", Some("leader"), "projects"), &m);
+        assert_eq!(icon_only, 24.0);
+        assert_eq!(labeled, (6.0 + 2.0 + 2.0) * 10.0);
+    }
+
+    #[test]
+    fn tooltips_wait_a_moment() {
+        let mut b = bar(&[], "a.rs");
+        b.set_hover(Some(Hit::Tool(Side::Right, 0)));
+        assert_eq!(b.tip().as_deref(), Some("theme"));
+        assert!(b.animating(), "a frame is due when the tip shows");
+        b.set_hover(Some(Hit::Drag));
+        assert_eq!(b.tip(), None);
     }
 
     #[test]
@@ -868,25 +995,15 @@ mod tests {
     }
 
     #[test]
-    fn hidden_buttons_take_no_room_and_controls_can_go_left() {
+    fn no_tools_and_controls_on_the_left() {
         let mut b = bar(&[], "a.rs");
-        b.state.show_home = false;
-        b.state.show_history = false;
+        b.state.left.clear();
+        b.state.right.clear();
         b.state.show_mark = false;
         b.state.controls_left = true;
         let l = b.layout(&metrics(), &metrics(), 1000.0);
-        assert!(l.mark.is_none() && l.home.is_none() && l.history.is_none() && l.project.is_none());
+        assert!(l.mark.is_none() && l.left.is_empty() && l.right.is_empty());
         assert!(l.controls[0].1 < 60.0, "controls on the left");
-    }
-
-    #[test]
-    fn the_project_opens_its_menu() {
-        let mut b = bar(&[], "a.rs");
-        b.state.project = "leader".into();
-        let l = b.layout(&metrics(), &metrics(), 1000.0);
-        let (x, _) = l.project.unwrap();
-        assert_eq!(b.hit(x + 5.0, 10.0, 1000.0, &metrics(), &metrics()), Hit::Action(Action::Projects));
-        assert!(l.home.unwrap().0 > x, "home comes after the project");
     }
 
     #[test]
@@ -912,14 +1029,6 @@ mod tests {
     }
 
     #[test]
-    fn long_paths_drop_leading_folders() {
-        let b = bar(&["a-very-long-folder", "another-long-one", "src"], "main.rs");
-        let l = b.layout(&metrics(), &metrics(), 480.0);
-        assert_eq!(l.parts[0].index, None, "the … stands in for what was dropped");
-        assert_eq!(l.parts.last().map(|p| p.label.as_str()), Some("main.rs"));
-    }
-
-    #[test]
     fn chips_with_an_action_are_clickable() {
         let mut b = bar(&[], "a.rs");
         b.state.chips = vec![
@@ -929,6 +1038,14 @@ mod tests {
         let l = b.layout(&metrics(), &metrics(), 1000.0);
         assert_eq!(b.hit(l.chips[1].0 + 1.0, 10.0, 1000.0, &metrics(), &metrics()), Hit::Chip(1));
         assert_eq!(b.hit(l.chips[0].0 + 1.0, 10.0, 1000.0, &metrics(), &metrics()), Hit::Drag, "information only");
+    }
+
+    #[test]
+    fn long_paths_drop_leading_folders() {
+        let b = bar(&["a-very-long-folder", "another-long-one", "src"], "main.rs");
+        let l = b.layout(&metrics(), &metrics(), 560.0);
+        assert_eq!(l.parts[0].index, None, "the … stands in for what was dropped");
+        assert_eq!(l.parts.last().map(|p| p.label.as_str()), Some("main.rs"));
     }
 
     #[test]
@@ -946,6 +1063,12 @@ mod tests {
         );
         let chip = Value::Map(vec![("text".into(), "REC @q".into()), ("bg".into(), "#ff0000".into()), ("gap".into(), 1.into())]);
         let activity = Value::Map(vec![("text".into(), "gopls".into()), ("percent".into(), 140.into())]);
+        let theme = Value::Map(vec![
+            ("icon".into(), "T".into()),
+            ("tip".into(), "Theme".into()),
+            ("action".into(), "theme".into()),
+            ("active".into(), true.into()),
+        ]);
         let v = Value::Map(vec![
             ("path".into(), Value::Array(vec!["nvim".into(), "lua".into()])),
             ("file".into(), "gui.lua".into()),
@@ -953,8 +1076,7 @@ mod tests {
             ("chips".into(), Value::Array(vec![chip])),
             ("activity".into(), activity),
             ("controls".into(), "left".into()),
-            ("project".into(), "leader".into()),
-            ("show_buttons".into(), Value::Map(vec![("history".into(), false.into())])),
+            ("right".into(), Value::Array(vec![theme, Value::Map(vec![("icon".into(), "x".into())])])),
             ("padding".into(), Value::Map(vec![("x".into(), 4.into())])),
             ("colors".into(), colors),
         ]);
@@ -962,7 +1084,9 @@ mod tests {
         assert_eq!((s.path.len(), s.file.as_str(), s.modified, s.pad_x, s.pad_bottom), (2, "gui.lua", true, 4.0, 0.0));
         assert_eq!(s.chips, vec![Chip { text: "REC @q".into(), fg: None, bg: Some(0xff0000), gap: 1.0, action: None }]);
         assert_eq!(s.activity, Some(Activity { text: "gopls".into(), percent: Some(100.0), done: false }));
-        assert!(s.controls_left && s.show_home && !s.show_history && s.project == "leader");
+        assert!(s.controls_left && s.show_mark);
+        assert_eq!(s.right.len(), 1, "a tool without an action is dropped");
+        assert_eq!((s.right[0].tip.as_deref(), s.right[0].active), (Some("Theme"), true));
         assert_eq!(s.colors.map(|c| (c.mark, c.green)), Some((0x102030, 0x102030)), "mark and green fall back to the accent");
     }
 }
