@@ -210,6 +210,10 @@ local function fold_now(buf)
   if vim.wo.foldmethod ~= "manual" then
     return 0
   end
+  -- a synchronous full parse grows with the file: past the limit ufo (asynchronous) does it
+  if vim.api.nvim_buf_line_count(buf) > require("core.settings").comments.sync_max_lines then
+    return 0
+  end
   local ranges = M.ranges(buf)
   for _, c in ipairs(ranges) do
     if vim.fn.foldlevel(c.first + 1) > 0 then

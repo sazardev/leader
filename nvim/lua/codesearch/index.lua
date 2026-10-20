@@ -1,8 +1,10 @@
 -- ── Code search: the symbol index ────────────────────────────────────────────
 -- Every named function and type of the project, read with treesitter (the same `textobjects` queries the agent uses, so
 -- every language with a parser works with no per-language code). Built in slices so the editor never freezes, kept in
--- memory per project and refreshed per file by mtime+size: asking again only re-reads what changed.
+-- memory per project (and on disk, codesearch/store.lua) and refreshed per file by mtime+size: asking again, in this
+-- session or the next, only re-reads what changed.
 local rank = require "codesearch.rank"
+local store = require "codesearch.store"
 local scopes = require "agent.context.scopes"
 local settings = require("core.settings").search
 
@@ -85,13 +87,27 @@ end
 ---@param root string
 ---@return table
 local function project(root)
-  projects[root] = projects[root] or { files = {} }
+  projects[root] = projects[root] or { files = store.load(root) or {} }
   return projects[root]
 end
 
 --- Forgets the index of a project (it is rebuilt on the next search)
 ---@param root string?
 function M.drop(root)
+  if root then
+    projects[root] = nil
+    store.delete(root)
+  else
+    for r in pairs(projects) do
+      store.delete(r)
+    end
+    projects = {}
+  end
+end
+
+--- Forgets what is in memory only, as a new session would (the copy on disk stays)
+---@param root string?
+function M.unload(root)
   if root then
     projects[root] = nil
   else
@@ -112,6 +128,7 @@ function M.build(root, cb, progress)
   local capped = math.min(#files, settings.max_files)
   local stats = { files = capped, read = 0, skipped = #files - capped }
   local live, i = {}, 0
+  local removed = 0
 
   local function slice()
     local t0 = vim.uv.hrtime()
@@ -148,6 +165,7 @@ function M.build(root, cb, progress)
         vim.list_extend(list, entry.symbols)
       else
         proj.files[rel] = nil -- deleted or moved since the last time
+        removed = removed + 1
       end
     end
     table.sort(list, function(a, b)
@@ -158,6 +176,12 @@ function M.build(root, cb, progress)
     end)
     proj.list = list
     cb(list, stats)
+    -- after the picker is up: encoding the index is a few ms the user should not wait for
+    if stats.read > 0 or removed > 0 then
+      vim.defer_fn(function()
+        store.save(root, proj.files)
+      end, 50)
+    end
   end
   slice()
 end

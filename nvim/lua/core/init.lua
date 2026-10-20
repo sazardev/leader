@@ -7,6 +7,8 @@ function M.setup()
   require("core.options").setup()
   require("ui.flat").setup()
   require("core.clipboard").setup()
+  require("core.bigfile").setup()
+  require("core.preload").setup()
   require("gui").setup() -- only inside the desktop app (app/)
   require("core.autocmds").setup()
 

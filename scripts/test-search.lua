@@ -155,4 +155,59 @@ ok("refresh: new symbols appear", find "Refund" ~= nil)
 eq("refresh: old symbols of that file go", find "CreateOrder", nil)
 eq("refresh: deleted files go", find "addToCart", nil)
 
+-- ── the index on disk: a new session starts from the last one ───────────────
+local store = require "codesearch.store"
+local settings = require("core.settings").search
+local store_dir = vim.fn.tempname()
+settings.store_dir = store_dir
+settings.persist = true
+index.drop(dir) -- start clean: nothing in memory or on disk for this project
+local function build()
+  local out
+  index.build(dir, function(l, s)
+    out = { list = l, stats = s }
+  end)
+  K.wait(function()
+    return out ~= nil
+  end)
+  return out
+end
+local first = build()
+vim.wait(300, function()
+  return vim.fn.filereadable(store.path(dir)) == 1
+end)
+ok("store: the index is written after a build that read files", vim.fn.filereadable(store.path(dir)) == 1)
+index.unload(dir) -- what a new session has: nothing in memory
+local second = build()
+eq("store: a new session re-reads nothing", second.stats.read, 0)
+eq("store: and finds the same symbols", #second.list, #first.list)
+-- a file that changed since the last session is the only one read again
+index.unload(dir)
+vim.uv.sleep(1100)
+vim.fn.writefile({ "package orders", "func Refund() {}", "func Replace() {}" }, dir .. "/orders/service.go")
+local third_session = build()
+eq("store: only the file changed since the last session is read", third_session.stats.read, 1)
+-- corrupt or foreign files are ignored, never an error
+local f = io.open(store.path(dir), "wb")
+f:write "{ not json"
+f:close()
+index.unload(dir)
+ok("store: a corrupt file is ignored", store.load(dir) == nil)
+eq("store: and the index is rebuilt from scratch", build().stats.read > 0, true)
+local g = io.open(store.path(dir), "wb")
+g:write(vim.json.encode { format = store.FORMAT + 1, root = dir, files = {} })
+g:close()
+ok("store: another format is ignored", store.load(dir) == nil)
+g = io.open(store.path(dir), "wb")
+g:write(vim.json.encode { format = store.FORMAT, root = "/somewhere/else", files = {} })
+g:close()
+ok("store: another folder is ignored", store.load(dir) == nil)
+settings.persist = false
+ok("store: off means nothing is loaded", store.load(dir) == nil)
+eq("store: and nothing is saved", store.save(dir, {}), false)
+settings.persist = true
+index.drop(dir)
+eq("store: drop forgets the copy on disk too", vim.fn.filereadable(store.path(dir)), 0)
+vim.fn.delete(store_dir, "rf")
+
 K.finish()

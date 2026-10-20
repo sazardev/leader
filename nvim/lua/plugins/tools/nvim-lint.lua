@@ -31,18 +31,54 @@ return {
 
     local group = vim.api.nvim_create_augroup("NvimLint", { clear = true })
 
-    vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
+    -- One trailing timer per buffer: a linter is a process (Node ones cost 100-200 ms of CPU just to start), and a
+    -- burst of Esc / saves / the format-after-save rewrite would otherwise start one each (nvim-lint only kills the
+    -- previous run after it was spawned). The first lint of a file (BufReadPost) is immediate.
+    local timers = {}
+    local function lint_soon(buf)
+      local timer = timers[buf]
+      if not timer then
+        timer = vim.uv.new_timer()
+        timers[buf] = timer
+      end
+      timer:stop()
+      timer:start(
+        require("core.settings").lint.debounce_ms,
+        0,
+        vim.schedule_wrap(function()
+          if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_get_current_buf() == buf then
+            vim.api.nvim_buf_call(buf, run)
+          end
+        end)
+      )
+    end
+
+    vim.api.nvim_create_autocmd("BufReadPost", { group = group, callback = run })
+    vim.api.nvim_create_autocmd("BufWritePost", {
       group = group,
-      callback = run,
+      callback = function(ev)
+        lint_soon(ev.buf)
+      end,
+    })
+    vim.api.nvim_create_autocmd("BufDelete", {
+      group = group,
+      callback = function(ev)
+        local timer = timers[ev.buf]
+        if timer then
+          timer:stop()
+          timer:close()
+          timers[ev.buf] = nil
+        end
+      end,
     })
 
     -- InsertLeave: only lightweight linters (golangci-lint analyzes the whole
     -- package and running it on every insert exit saturates the CPU).
     vim.api.nvim_create_autocmd("InsertLeave", {
       group = group,
-      callback = function()
+      callback = function(ev)
         if not vim.tbl_contains(skip_insert_leave, vim.bo.filetype) then
-          run()
+          lint_soon(ev.buf)
         end
       end,
     })

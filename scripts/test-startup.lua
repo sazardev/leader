@@ -68,6 +68,16 @@ vim.defer_fn(function()
       lualine.refresh { place = { "statusline" } }
     end
   end)
+  -- idle preloading: Telescope's modules are in memory a moment after startup (not in light mode, which the test runs in)
+  step(function()
+    local preload = require "core.preload"
+    for _, fn in ipairs(preload.steps()) do
+      fn()
+    end
+    if not package.loaded["telescope.builtin"] then
+      record "preload: telescope.builtin is not loaded after the steps ran"
+    end
+  end)
   -- (not v:errmsg: errors caught on purpose, such as deleting NvChad maps that may not exist, also set it)
   local messages = vim.api.nvim_exec2("messages", { output = true }).output
   for line in messages:gmatch "[^\n]+" do

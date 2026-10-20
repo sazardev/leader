@@ -49,6 +49,22 @@ local defaults = {
     ram_threshold_gb = 2,
   },
 
+  -- Big files (lua/core/bigfile.lua): past these limits the filetype is `bigfile`, so treesitter, LSP, folds, lint and
+  -- formatters never start (a parse costs ~2 µs a line on the main thread). Plain text, instantly.
+  bigfile = {
+    enabled = true,
+    max_bytes = 1500000, -- more than this and the file is not treated as code
+    minified_bytes = 100000, -- a file at least this big whose lines average `minified_line` bytes is a minified bundle
+    minified_line = 1000,
+  },
+
+  -- Idle preloading (lua/core/preload.lua): Telescope's modules load a moment after startup so the first picker opens
+  -- faster. Never in light mode.
+  preload = {
+    enabled = true,
+    delay_ms = 600, -- after startup
+  },
+
   -- Languages (see lua/languages/): disable by name the ones you do not use.
   languages = {
     disabled = {}, -- registry names that are off (the installer writes it to local.lua)
@@ -98,6 +114,7 @@ local defaults = {
     results = 100, -- hits shown
     max_files = 4000, -- the index reads at most this many files
     max_bytes = 400000, -- bigger files (generated, minified) are skipped
+    persist = true, -- keep the index in the state dir: a new session only re-reads the files that changed
     exclude = {
       ".git",
       "node_modules",
@@ -396,7 +413,8 @@ local defaults = {
 
   format_on_save = {
     enabled = true,
-    timeout_ms = 2000,
+    timeout_ms = 2000, -- the longest a save waits for the formatter
+    async_over_lines = 3000, -- a bigger buffer is written at once and formatted afterwards, in the background
   },
 
   -- Desktop app (app/, the `leader` binary): only read when Neovim runs inside it (vim.g.leader_gui)
@@ -470,6 +488,7 @@ local defaults = {
   -- Long comments (menu <leader>C, lua/utils/comments.lua): folded with nvim-ufo
   comments = {
     min_lines = 4, -- a comment (block or consecutive lines) with fewer lines is not folded
+    sync_max_lines = 4000, -- a buffer longer than this is not folded before the first paint (a full parse costs ~2 µs a line); ufo folds it a moment later
     auto_collapse = false, -- INITIAL value of "comments folded"; what you pick with <leader>Cc / <leader>Ce is saved and wins
   },
 
@@ -538,6 +557,7 @@ local defaults = {
 
   lint = {
     skip_insert_leave = { "go" },
+    debounce_ms = 250, -- Esc, saves and the format-after-save rewrite in quick succession lint once, not once each
   },
 
   -- vim.diagnostic.config(...): how LSP/linter errors are shown
