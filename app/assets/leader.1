@@ -1,0 +1,68 @@
+.TH LEADER 1 "" "Leader" "User Commands"
+.SH NAME
+leader \- Neovim with the Leader config in its own GPU window
+.SH SYNOPSIS
+.B leader
+[\fINEOVIM ARGUMENTS\fR...]
+.br
+.B leader \-\-help
+|
+.B \-\-version
+.SH DESCRIPTION
+.B leader
+opens the Leader editor: Neovim with Leader's configuration, drawn by the GPU in a native window with its own app bar,
+menus, command palette and project picker. Everything after the command name goes to Neovim, so files, \fB+cmd\fR and
+\fB\-d\fR work as usual.
+.PP
+The first launch without any Neovim configuration runs
+.BR leader\-setup (1)
+in the window itself, which installs Leader's config.
+.SH ENVIRONMENT
+.TP
+.B LEADER_NVIM
+The Neovim binary to run (default: nvim on PATH).
+.TP
+.B LEADER_FONT
+Font before the config sets guifont, e.g. "Iosevka:h13".
+.TP
+.B LEADER_TIMING
+Print startup timings to stderr.
+.TP
+.B WGPU_BACKEND
+Force a GPU backend (vulkan, gl).
+.SH KEYS
+.TP
+.B F10
+App menu.
+.TP
+.B Ctrl+Shift+P
+Command palette.
+.TP
+.B Ctrl+Shift+O
+Open a project.
+.TP
+.B Ctrl+Shift+N
+New window.
+.TP
+.B F11
+Fullscreen.
+.TP
+.B Ctrl+Shift+W
+Welcome and install checks.
+.TP
+.B Ctrl+= / \- / 0
+Font size.
+.SH FILES
+.TP
+.I ~/.config/nvim
+Leader's configuration (installed by leader\-setup).
+.TP
+.I ~/.local/state/leader/window
+The window's remembered size, place and maximized state.
+.SH SEE ALSO
+.BR leader\-setup (1),
+.BR nvim (1)
+.PP
+https://sazardev.github.io/leader/
+.SH AUTHORS
+sazardev

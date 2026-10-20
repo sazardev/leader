@@ -1,0 +1,23 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Leader
+GenericName=Text Editor
+GenericName[es]=Editor de texto
+Comment=Neovim with the Leader config in its own GPU window
+Comment[es]=Neovim con la configuración de Leader en su propia ventana con GPU
+Exec=@BIN@ %F
+TryExec=@BIN@
+Icon=leader
+Terminal=false
+Categories=Development;TextEditor;IDE;
+Keywords=neovim;nvim;vim;editor;ide;code;programming;go;rust;lua;python;
+MimeType=text/plain;text/x-csrc;text/x-c++src;text/x-go;text/x-python;text/x-rust;text/x-lua;text/markdown;application/json;application/x-shellscript;
+StartupNotify=true
+StartupWMClass=io.github.sazardev.Leader
+Actions=NewWindow;
+
+[Desktop Action NewWindow]
+Name=New Window
+Name[es]=Nueva ventana
+Exec=@BIN@

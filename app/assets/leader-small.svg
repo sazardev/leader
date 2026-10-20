@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Leader's mark for small sizes (16-32 px): the N as one solid stroke, the same as the site's favicon. Flat: no border, no radius. -->
+  <rect width="32" height="32" fill="#282828"/>
+  <path d="M8 25V7l16 18V7" fill="none" stroke="#b8bb26" stroke-width="4" stroke-linecap="square" stroke-linejoin="bevel"/>
+</svg>

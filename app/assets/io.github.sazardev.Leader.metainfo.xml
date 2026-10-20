@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata: what software centers (GNOME Software, KDE Discover, AppCenter) show. The <releases> block is
+     written by app/package.sh from CHANGELOG.md (between the markers). -->
+<component type="desktop-application">
+  <id>io.github.sazardev.Leader</id>
+  <name>Leader</name>
+  <summary>Neovim with a fast, opinionated config in its own GPU window</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.sazardev">
+    <name>sazardev</name>
+  </developer>
+  <description>
+    <p>
+      Leader is Neovim for working: a small, opinionated config that starts in about 20 ms, in a native window drawn
+      with your GPU. Zed-like menus, a command palette, your projects with their sessions, an inline AI agent and the
+      whole of Neovim underneath: every key you know still works.
+    </p>
+    <p>Highlights:</p>
+    <ul>
+      <li>Asks which project to open, with pinned projects and a Yazi-style folder browser</li>
+      <li>Full mouse support next to a keyboard-first design; Esc closes whatever is extra</li>
+      <li>Language servers, formatters and linters installed for the languages you use, with live progress</li>
+      <li>Checks for updates and shows what changed before you update; never updates by itself</li>
+      <li>Runs on Linux (Wayland and X11) and on Windows through WSL</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.sazardev.Leader.desktop</launchable>
+  <icon type="stock">leader</icon>
+  <url type="homepage">https://sazardev.github.io/leader/</url>
+  <url type="bugtracker">https://github.com/sazardev/leader/issues</url>
+  <url type="vcs-browser">https://github.com/sazardev/leader</url>
+  <url type="contact">https://github.com/sazardev/leader/discussions</url>
+  <categories>
+    <category>Development</category>
+    <category>TextEditor</category>
+    <category>IDE</category>
+  </categories>
+  <keywords>
+    <keyword>neovim</keyword>
+    <keyword>vim</keyword>
+    <keyword>editor</keyword>
+    <keyword>ide</keyword>
+  </keywords>
+  <provides>
+    <binary>leader</binary>
+    <binary>leader-setup</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <content_rating type="oars-1.1"/>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source" width="1180" height="760">https://sazardev.github.io/leader/screenshots/editor.png</image>
+      <caption>The editor: a file, the app bar and the statusline</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1180" height="760">https://sazardev.github.io/leader/screenshots/projects.png</image>
+      <caption>Open a project, with its branch, last commit and stack</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1180" height="760">https://sazardev.github.io/leader/screenshots/menu.png</image>
+      <caption>The logo's menu</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1180" height="760">https://sazardev.github.io/leader/screenshots/setup.png</image>
+      <caption>The guided setup</caption>
+    </screenshot>
+  </screenshots>
+  <!--RELEASES-->
+  <!--/RELEASES-->
+</component>

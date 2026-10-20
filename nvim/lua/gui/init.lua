@@ -643,12 +643,26 @@ function M.about()
   if f then
     f:close()
   end
-  require("utils.modal").confirm({
-    "Leader " .. version .. "  ·  app " .. (vim.g.leader_gui_version or "?"),
-    "Neovim " .. tostring(vim.version()),
-    vim.g.leader_gui_gpu or "",
-    "Config: " .. vim.fn.fnamemodify(root, ":~"),
-  }, { title = "About Leader", confirm = "Close" }, function() end)
+  -- the brand's N (brand/dots.js "classicN": 5 x 7 dots), then what this is
+  local N = { "X...X", "XX..X", "X.X.X", "X..XX", "X...X", "X...X", "X...X" }
+  local lines = { { { "" } } } -- the dialog marks its first line: let that be the empty one
+  for _, row in ipairs(N) do
+    local dots = row:gsub(".", function(c)
+      return c == "X" and "● " or "  "
+    end)
+    lines[#lines + 1] = { { "   " .. dots, "GuiWizardOn" } }
+  end
+  lines[#lines + 1] = { { "" } }
+  lines[#lines + 1] = { { "Leader " .. version .. "  ·  app " .. (vim.g.leader_gui_version or "?"), "NvModalKey" } }
+  lines[#lines + 1] = { { "Neovim, for working.", "NvModalMuted" } }
+  lines[#lines + 1] = { { "" } }
+  lines[#lines + 1] = "Neovim " .. tostring(vim.version())
+  if (vim.g.leader_gui_gpu or "") ~= "" then
+    lines[#lines + 1] = (vim.g.leader_gui_gpu:gsub(",.*$", "")) -- the adapter and its API, not the surface format
+  end
+  lines[#lines + 1] = "Config: " .. vim.fn.fnamemodify(root, ":~")
+  lines[#lines + 1] = { { "sazardev.github.io/leader", "NvModalMuted" } }
+  require("utils.modal").confirm(lines, { title = "About Leader", confirm = "Close" }, function() end)
 end
 
 --- The projects menu (the project's name in the bar): the remembered ones, newest first, then the ways to open

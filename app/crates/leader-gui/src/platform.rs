@@ -3,6 +3,49 @@
 use std::env;
 use std::path::Path;
 
+/// The application id: what Wayland and X11 call the window, what the `.desktop` file and the AppStream metadata are
+/// named after, so a launcher pairs the window with its icon and menu entry (`io.github.sazardev.Leader.desktop`).
+pub const APP_ID: &str = "io.github.sazardev.Leader";
+
+/// The 128×128 RGBA window icon (assets/make-icons.sh): X11 and Windows take it from the program, Wayland from the
+/// `.desktop` file.
+pub const WINDOW_ICON: &[u8] = include_bytes!("../../../assets/window-icon-128.rgba");
+
+pub fn window_icon() -> Option<winit::window::Icon> {
+    winit::window::Icon::from_rgba(WINDOW_ICON.to_vec(), 128, 128).ok()
+}
+
+/// Is there no Neovim config at all? Then the first launch runs `leader-setup` in the window's own terminal instead of
+/// opening a bare editor. Another config (the person's own) is left alone.
+pub fn config_missing() -> bool {
+    let base =
+        env::var_os("XDG_CONFIG_HOME").map(std::path::PathBuf::from).or_else(|| env::var_os("HOME").map(|h| Path::new(&h).join(".config")));
+    let Some(dir) = base.map(|b| b.join("nvim")) else { return false };
+    match std::fs::read_dir(&dir) {
+        Ok(mut entries) => entries.next().is_none(),
+        Err(_) => true,
+    }
+}
+
+/// Says something to a person who started the app from a menu (no terminal to print to): stderr, and a desktop
+/// notification when `notify-send` exists.
+pub fn tell(title: &str, body: &str) {
+    eprintln!("leader: {title}. {body}");
+    if on_path("notify-send") {
+        let _ = std::process::Command::new("notify-send").args(["--app-name=Leader", "--icon=leader", title, body]).status();
+    }
+}
+
+/// Is `name` an executable somewhere on PATH?
+pub fn on_path(name: &str) -> bool {
+    env::var_os("PATH").is_some_and(|paths| {
+        env::split_paths(&paths).any(|dir| {
+            let p = dir.join(name);
+            p.is_file()
+        })
+    })
+}
+
 pub fn is_wsl() -> bool {
     Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
         || std::fs::read_to_string("/proc/version").is_ok_and(|v| v.to_lowercase().contains("microsoft"))

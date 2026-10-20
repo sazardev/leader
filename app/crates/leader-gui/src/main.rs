@@ -33,16 +33,31 @@ window keys:
   Ctrl+Shift+M      minimize              Ctrl+Shift+N      new window
   Ctrl+Shift+H      home (start screen)   Ctrl+Shift+R      recent files
   Ctrl+Shift+W      welcome and checks    Ctrl+Shift+V      paste
-  Ctrl+= / - / 0    font size";
+  Ctrl+= / - / 0    font size
+
+first launch without a Neovim config runs `leader-setup` in the window (installs Leader's config).";
 
 fn main() {
     let started = Instant::now();
     platform::prepare_env();
-    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    let mut args: Vec<_> = std::env::args_os().skip(1).collect();
     match args.first().and_then(|a| a.to_str()) {
         Some("--help" | "-h") => return println!("{HELP}"),
         Some("--version" | "-V") => return println!("leader {}", env!("CARGO_PKG_VERSION")),
         _ => {}
+    }
+    // Neovim is what runs inside the window: without it there is nothing to draw, and a menu launch has no terminal to say so
+    if std::env::var_os("LEADER_NVIM").is_none() && !platform::on_path("nvim") {
+        platform::tell(
+            "Neovim is not installed",
+            "Leader needs Neovim 0.11 or newer: install it with your package manager (pacman -S neovim, apt install neovim, brew install neovim) and open Leader again.",
+        );
+        std::process::exit(1);
+    }
+    // First launch with no Neovim config at all: the window's own terminal runs the setup (it asks what it needs), then
+    // Leader opens as itself the next time. Someone else's config is left alone.
+    if args.is_empty() && platform::config_missing() && platform::on_path("leader-setup") {
+        args.push("+terminal leader-setup".into());
     }
     // The font database loads while the window and the GPU start.
     let font_job = std::thread::Builder::new().name("fonts".into()).spawn(font::load_system).expect("font thread");

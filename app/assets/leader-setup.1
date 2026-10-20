@@ -1,0 +1,22 @@
+.TH LEADER-SETUP 1 "" "Leader" "User Commands"
+.SH NAME
+leader\-setup \- install Leader's Neovim configuration
+.SH SYNOPSIS
+.B leader\-setup
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+Installs Leader's configuration for the current user (and Neovim 0.11 or newer, when it is missing) through Leader's
+own installer: the configuration is fetched into
+.IR ~/.local/share/leader ,
+linked as
+.IR ~/.config/nvim ,
+and its plugins and language tools are installed. Run by
+.BR leader (1)
+on the first launch when there is no Neovim configuration. Safe to run again: it brings everything up to date and
+never overwrites someone else's configuration.
+.PP
+Options go to the installer; see
+.B leader\-setup \-\-help
+\.
+.SH SEE ALSO
+.BR leader (1)

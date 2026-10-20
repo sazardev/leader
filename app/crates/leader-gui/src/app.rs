@@ -771,6 +771,7 @@ impl ApplicationHandler<UserEvent> for App {
             .with_inner_size(LogicalSize::new(width, height))
             .with_maximized(saved.maximized)
             .with_min_inner_size(LogicalSize::new(320.0, 200.0))
+            .with_window_icon(platform::window_icon())
             // Our own app bar replaces the system's title bar (settings.gui.appbar.enabled = false brings it back).
             .with_decorations(!self.bar.state.enabled);
         // Back where it was, if that place is still on a screen (a monitor unplugged since would hide the window).
@@ -786,7 +787,7 @@ impl ApplicationHandler<UserEvent> for App {
         #[cfg(target_os = "linux")]
         let attrs = {
             use winit::platform::wayland::WindowAttributesExtWayland;
-            WindowAttributesExtWayland::with_name(attrs, "leader", "leader")
+            WindowAttributesExtWayland::with_name(attrs, platform::APP_ID, "leader")
         };
         let window = match event_loop.create_window(attrs) {
             Ok(w) => Arc::new(w),
