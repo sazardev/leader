@@ -2,6 +2,30 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.10.0] - 2026-10-20
+
+### Highlights
+
+- **Install it the way your system expects**: a `.deb` for Debian, Ubuntu, Mint and Pop!_OS, PKGBUILDs for Arch and CachyOS
+  (prebuilt and from source), the one-command installer for any Linux and WSL, and `./install.sh --app` from a clone. They
+  add the menu entry, the icons, the manual (`man leader`) and `leader-setup`, and uninstalling removes exactly what was
+  installed.
+- **Signed releases**: every file has a SHA-256 and a detached signature by the *Leader Releases* key (fingerprint in
+  `packaging/README.md`). The installer requires a signature made by exactly that key when `gpg` is installed, and refuses
+  a forged or missing one.
+- **The logo, clear**: the N is the window icon, the menu icon at every size (a solid N when small, the dotted one when
+  large) and the art of the About dialog. The app id is `io.github.sazardev.Leader`, so launchers pair the window with
+  its icon and menu entry.
+- **First launch that explains itself**: no Neovim says so in a notification; no Neovim config runs `leader-setup` in the
+  window's own terminal. AppStream metadata, a New Window action, a license (MIT) and a site with Open Graph cards,
+  structured data, a sitemap and real screenshots.
+
+### Features
+
+- **site:** SEO, screenshots, install options for every system (eab5dbc)
+- **packaging:** signed releases, a .deb and Arch PKGBUILDs (3ebec37)
+- **app:** the logo everywhere, an app id, first-launch setup (035cbea)
+
 ## [1.9.0] - 2026-10-20
 
 ### Highlights
