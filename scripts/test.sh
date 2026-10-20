@@ -1,6 +1,6 @@
 #!/bin/sh
 # All the config's tests at once: agent and commits (scripts/test-agent.sh), Go helpers (scripts/test-go.sh),
-# installer (scripts/test-install.sh), flat design (scripts/test-flat.sh), settings panel (scripts/test-prefs.sh), file operations (scripts/test-files.sh), copy diagnostics (scripts/test-diagcopy.sh), undo / clipboard / yank history (scripts/test-history.sh), recent files per project (scripts/test-recent.sh), update detection and changelog (scripts/test-update.sh), Esc closing extra windows (scripts/test-escape.sh), code search (scripts/test-search.sh), project tasks (scripts/test-tasks.sh), .gitignore helper (scripts/test-gitignore.sh), Go project setup (scripts/test-gosetup.sh), Flutter / Dart helpers (scripts/test-flutter.sh), language packs: Python, TypeScript, Rust, SQL, Swift (scripts/test-langs.sh), project documents kit (scripts/test-kit.sh), release kit (scripts/test-release.sh), the desktop app (scripts/test-app.sh, skipped without cargo), the real config loading cleanly (scripts/test-startup.sh), up-to-date cheatsheet (scripts/gen-cheatsheet.sh --check) and up-to-date web docs (scripts/gen-docs.sh --check). No network or tokens.
+# installer (scripts/test-install.sh), flat design (scripts/test-flat.sh), settings panel (scripts/test-prefs.sh), file operations (scripts/test-files.sh), copy diagnostics (scripts/test-diagcopy.sh), undo / clipboard / yank history (scripts/test-history.sh), recent files per project (scripts/test-recent.sh), update detection and changelog (scripts/test-update.sh), Esc closing extra windows (scripts/test-escape.sh), app packaging: metadata, icons, the staged tree, signing key, PKGBUILDs (scripts/test-package.sh), code search (scripts/test-search.sh), project tasks (scripts/test-tasks.sh), .gitignore helper (scripts/test-gitignore.sh), Go project setup (scripts/test-gosetup.sh), Flutter / Dart helpers (scripts/test-flutter.sh), language packs: Python, TypeScript, Rust, SQL, Swift (scripts/test-langs.sh), project documents kit (scripts/test-kit.sh), release kit (scripts/test-release.sh), the desktop app (scripts/test-app.sh, skipped without cargo), the real config loading cleanly (scripts/test-startup.sh), up-to-date cheatsheet (scripts/gen-cheatsheet.sh --check) and up-to-date web docs (scripts/gen-docs.sh --check). No network or tokens.
 # Each suite can still be run on its own. Exits with a code != 0 if any fails.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -27,6 +27,7 @@ run "editing history" "$ROOT/scripts/test-history.sh"
 run "recent files" "$ROOT/scripts/test-recent.sh"
 run "updates" "$ROOT/scripts/test-update.sh"
 run "esc closes" "$ROOT/scripts/test-escape.sh"
+run "app packaging" "$ROOT/scripts/test-package.sh"
 run "code search" "$ROOT/scripts/test-search.sh"
 run "project tasks" "$ROOT/scripts/test-tasks.sh"
 run ".gitignore helper" "$ROOT/scripts/test-gitignore.sh"

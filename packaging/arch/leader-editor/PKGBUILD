@@ -1,0 +1,47 @@
+# Maintainer: sazardev <sazardev@users.noreply.github.com>
+# Built from the tagged source with your own toolchain.
+pkgname=leader-editor
+pkgver=1.10.0
+pkgrel=1
+pkgdesc='Neovim with a fast, opinionated config in its own GPU window'
+arch=('x86_64' 'aarch64')
+url='https://sazardev.github.io/leader/'
+license=('MIT')
+depends=('glibc' 'gcc-libs' 'git' 'curl' 'neovim>=0.11')
+makedepends=('cargo' 'python')
+optdepends=('ripgrep: project search'
+            'fd: file search'
+            'vulkan-icd-loader: GPU drawing (OpenGL works without it)'
+            'wayland: Wayland sessions'
+            'libxkbcommon: keyboard handling')
+provides=('leader')
+conflicts=('leader-editor-bin')
+options=('!lto')
+source=("leader-$pkgver.tar.gz::https://github.com/sazardev/leader/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "leader-$pkgver/app"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "leader-$pkgver/app"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release -p leader-gui
+}
+
+check() {
+  cd "leader-$pkgver/app"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  [ "$(target/release/leader --version)" = "leader $pkgver" ]
+}
+
+package() {
+  cd "leader-$pkgver"
+  bash app/package/stage-tree.sh app/target/release/leader "$pkgdir/usr" "$pkgver"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

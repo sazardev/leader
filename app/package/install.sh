@@ -49,30 +49,41 @@ ask() { # ask "question" → yes by default; --yes or no terminal: yes without a
 }
 version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; }
 
+APP_ID="io.github.sazardev.Leader"
 BIN="$PREFIX/bin/leader"
-DESKTOP="$PREFIX/share/applications/leader.desktop"
-ICON="$PREFIX/share/icons/hicolor/scalable/apps/leader.svg"
+MANIFEST="$PREFIX/share/leader-editor/manifest" # every file this installer put down, so removing it removes exactly those
 refresh_menus() {
   have update-desktop-database && run update-desktop-database -q "$PREFIX/share/applications" 2>/dev/null || true
   have gtk-update-icon-cache && run gtk-update-icon-cache -q -t "$PREFIX/share/icons/hicolor" 2>/dev/null || true
+  have mandb && run mandb -q "$PREFIX/share/man" 2>/dev/null || true
+}
+remove_files() {
+  if [ -r "$MANIFEST" ]; then
+    while IFS= read -r f; do run rm -f "$f"; done <"$MANIFEST"
+    run rm -f "$MANIFEST"
+    run rmdir "$(dirname "$MANIFEST")" 2>/dev/null || true
+  fi
+  # what older versions of this installer put down (before the manifest, and under the old menu entry's name)
+  run rm -f "$BIN" "$PREFIX/bin/leader-setup" "$PREFIX/share/applications/leader.desktop" "$PREFIX/share/applications/$APP_ID.desktop" \
+    "$PREFIX/share/icons/hicolor/scalable/apps/leader.svg"
 }
 
 printf '\n%s  ▌ Leader %s%s  %sthe editor, in its own window%s\n' "$B" "$VERSION" "$N" "$D" "$N"
 
 if [ "$UNINSTALL" = 1 ]; then
   step "Removing the app"
-  run rm -f "$BIN" "$DESKTOP" "$ICON"
+  remove_files
   refresh_menus
-  ok "removed $BIN, its menu entry and its icon (the config in ~/.config/nvim and your files stay)"
+  ok "removed $BIN, leader-setup, its menu entry, icons and manual pages (the config in ~/.config/nvim and your files stay)"
   exit 0
 fi
 
 # ── 1. This machine ──────────────────────────────────────────────────────────
 step "Checking this machine"
 [ "$(uname -s)" = Linux ] || die "this package is for Linux (on macOS or Windows use Leader in a terminal: $REPO)"
-[ "$(uname -m)" = x86_64 ] || die "this package is for x86_64; build it for $(uname -m) with app/install.sh from $REPO"
+[ "$(uname -m)" = x86_64 ] || [ -n "${LEADER_LOCAL_BUILD:-}" ] || die "this package is for x86_64; build it for $(uname -m) with app/install.sh from $REPO"
 glibc="$(ldd --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+$' || echo 0)"
-if version_ge "$glibc" 2.31; then ok "Linux x86_64, glibc $glibc"; else die "glibc $glibc is too old (2.31 or newer: Ubuntu 20.04, Debian 11, Fedora 32…)"; fi
+if [ -n "${LEADER_LOCAL_BUILD:-}" ]; then ok "built on this machine"; elif version_ge "$glibc" 2.31; then ok "Linux x86_64, glibc $glibc"; else die "glibc $glibc is too old (2.31 or newer: Ubuntu 20.04, Debian 11, Fedora 32…)"; fi
 WSL=0
 [ -r /proc/version ] && grep -qi microsoft /proc/version && WSL=1
 if [ "$WSL" = 1 ]; then
@@ -85,14 +96,30 @@ fi
 
 # ── 2. The app ───────────────────────────────────────────────────────────────
 step "Installing the app"
-run install -Dm755 "$HERE/bin/leader" "$BIN"
-run install -Dm644 "$HERE/share/icons/hicolor/scalable/apps/leader.svg" "$ICON"
+# the old menu entry (leader.desktop) goes: the app is io.github.sazardev.Leader now (menu, window class and icon agree)
+run rm -f "$PREFIX/share/applications/leader.desktop"
 if [ "$DRY" = 1 ]; then
-  info "[dry-run] write $DESKTOP"
+  info "[dry-run] copy bin/ and share/ from the package into $PREFIX"
 else
-  mkdir -p "$(dirname "$DESKTOP")"
-  sed "s|@BIN@|$BIN|" "$HERE/share/applications/leader.desktop" >"$DESKTOP"
+  mkdir -p "$(dirname "$MANIFEST")"
+  : >"$MANIFEST"
+  (cd "$HERE" && find bin share -type f) | while read -r f; do
+    dest="$PREFIX/$f"
+    mode=644
+    [ -x "$HERE/$f" ] && mode=755
+    mkdir -p "$(dirname "$dest")"
+    if [ "$f" = "share/applications/$APP_ID.desktop" ]; then
+      # the launcher runs the program where it was put, PATH or not
+      sed "s|^Exec=leader|Exec=$BIN|; s|^TryExec=leader|TryExec=$BIN|" "$HERE/$f" >"$dest"
+      chmod 644 "$dest"
+    else
+      install -m"$mode" "$HERE/$f" "$dest"
+    fi
+    echo "$dest" >>"$MANIFEST"
+  done
+  echo "$MANIFEST" >>"$MANIFEST"
 fi
+DESKTOP="$PREFIX/share/applications/$APP_ID.desktop"
 refresh_menus
 if [ "$DRY" = 1 ] || "$BIN" --version >/dev/null 2>&1; then ok "$BIN"; else die "$BIN does not run here: build it from source with app/install.sh ($REPO)"; fi
 ok "Leader in your applications menu"

@@ -34,22 +34,11 @@ have() { command -v "$1" >/dev/null 2>&1; }
 run() { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else "$@"; fi; }
 
 BIN="$PREFIX/bin/leader"
-DESKTOP="$PREFIX/share/applications/leader.desktop"
-ICON="$PREFIX/share/icons/hicolor/scalable/apps/leader.svg"
-
-refresh_menus() {
-  have update-desktop-database && run update-desktop-database -q "$PREFIX/share/applications" 2>/dev/null || true
-  have gtk-update-icon-cache && run gtk-update-icon-cache -q -t "$PREFIX/share/icons/hicolor" 2>/dev/null || true
-}
-
 printf '\n%s==>%s Leader desktop app\n' "$B" "$N"
 [ "$(uname -s)" = Linux ] || die "the desktop app is Linux-only for now (macOS/Windows: use Leader in a terminal)"
 
 if [ "$UNINSTALL" = 1 ]; then
-  run rm -f "$BIN" "$DESKTOP" "$ICON"
-  refresh_menus
-  ok "removed $BIN, its menu entry and icon"
-  exit 0
+  exec bash "$ROOT/package/install.sh" --uninstall --prefix "$PREFIX"
 fi
 
 # ── Rust ─────────────────────────────────────────────────────────────────────
@@ -74,19 +63,17 @@ run cargo build --release --locked --manifest-path "$ROOT/Cargo.toml" -p leader-
 ok "built in $((SECONDS - T0))s"
 
 # ── Install ──────────────────────────────────────────────────────────────────
-run install -Dm755 "$ROOT/target/release/leader" "$BIN"
-run install -Dm644 "$ROOT/assets/leader.svg" "$ICON"
+# the same files and the same installer as the release package: stage them like it, then run its install.sh
+VERSION="$(cat "$ROOT/../VERSION")"
 if [ "$DRY" = 1 ]; then
-  printf '  [dry-run] write %s\n' "$DESKTOP"
+  printf '  [dry-run] stage the files and run package/install.sh --no-config --prefix %s\n' "$PREFIX"
 else
-  mkdir -p "$(dirname "$DESKTOP")"
-  sed "s|@BIN@|$BIN|" "$ROOT/assets/leader.desktop" >"$DESKTOP"
+  stage="$(mktemp -d)"
+  trap 'rm -rf "$stage"' EXIT
+  pkg="$stage/leader-$VERSION-local"
+  mkdir -p "$pkg"
+  bash "$ROOT/package/stage-tree.sh" "$ROOT/target/release/leader" "$pkg" "$VERSION"
+  install -m755 "$ROOT/package/install.sh" "$pkg/install.sh"
+  echo "$VERSION" >"$pkg/VERSION"
+  LEADER_LOCAL_BUILD=1 bash "$pkg/install.sh" --yes --no-config --prefix "$PREFIX"
 fi
-refresh_menus
-ok "$BIN"
-ok "menu entry: $DESKTOP"
-case ":$PATH:" in *":$PREFIX/bin:"*) ;; *) warn "add $PREFIX/bin to your PATH to run \`leader\` from a shell" ;; esac
-if [ -r /proc/version ] && grep -qi microsoft /proc/version; then
-  ok "WSL: it opens through WSLg on your Windows GPU (d3d12); run \`leader\` from the WSL shell"
-fi
-ok "open it: \`leader [files…]\` (LEADER_TIMING=1 prints the startup timings)"

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Leader's configuration, installed for the current user. The system packages ship the app; the editor it runs
+# (Neovim 0.11+ and Leader's config) lives in the user's home, so it is set up here, by Leader's own installer, at the
+# version this package was built from. `leader` runs this by itself on the first launch without a Neovim config.
+#
+#   leader-setup            install or update (asks what it needs)
+#   leader-setup --yes      ask nothing
+#   leader-setup --help     the installer's options
+set -eu
+VERSION="@VERSION@"
+case "$VERSION" in @*) REF="master" ;; *) REF="v$VERSION" ;; esac
+URL="${LEADER_INSTALLER_URL:-https://raw.githubusercontent.com/sazardev/leader/$REF/install.sh}"
+command -v curl >/dev/null 2>&1 || { echo "leader-setup: curl is required" >&2; exit 1; }
+command -v git >/dev/null 2>&1 || { echo "leader-setup: git is required" >&2; exit 1; }
+echo "Leader $VERSION: setting up the editor for $USER…"
+curl -fsSL "$URL" | bash -s -- "$@"
+status=$?
+if [ "$status" -eq 0 ]; then
+  printf '\nDone. Close this window and open Leader again.\n'
+fi
+exit "$status"
