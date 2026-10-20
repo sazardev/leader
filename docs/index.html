@@ -4,10 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leader — Neovim, for working.</title>
-<meta name="description" content="A tiny, opinionated Neovim framework. ~20 ms startup. One command to install. Built to work, nothing else.">
+<meta name="description" content="Leader is Neovim with a fast, opinionated config, in its own GPU window. ~20 ms startup, Zed-like menus, projects, an inline AI agent. Linux, WSL and macOS. One command to install.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="author" content="sazardev">
 <meta name="theme-color" content="#282828">
+<link rel="canonical" href="https://sazardev.github.io/leader/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Leader">
+<meta property="og:url" content="https://sazardev.github.io/leader/">
 <meta property="og:title" content="Leader — Neovim, for working.">
-<meta property="og:description" content="~20 ms startup. One command. Opinionated on purpose.">
+<meta property="og:description" content="~20 ms startup. Its own GPU window. One command. Opinionated on purpose.">
+<meta property="og:image" content="https://sazardev.github.io/leader/screenshots/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Leader: Neovim in its own window, showing a Lua file with the app bar and statusline">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Leader — Neovim, for working.">
+<meta name="twitter:description" content="~20 ms startup. Its own GPU window. One command. Opinionated on purpose.">
+<meta name="twitter:image" content="https://sazardev.github.io/leader/screenshots/og.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="sitemap" type="application/xml" href="sitemap.xml">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Leader","alternateName":"Leader editor","description":"Neovim with a fast, opinionated config in its own GPU window: ~20 ms startup, Zed-like menus, projects, an inline AI agent.","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, Windows (WSL), macOS","url":"https://sazardev.github.io/leader/","downloadUrl":"https://github.com/sazardev/leader/releases/latest","installUrl":"https://github.com/sazardev/leader/releases/latest/download/leader-installer.sh","license":"https://opensource.org/license/mit","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"sazardev","url":"https://github.com/sazardev"},"image":"https://sazardev.github.io/leader/screenshots/og.png","screenshot":["https://sazardev.github.io/leader/screenshots/editor.png","https://sazardev.github.io/leader/screenshots/projects.png","https://sazardev.github.io/leader/screenshots/menu.png"],"codeRepository":"https://github.com/sazardev/leader","sameAs":["https://github.com/sazardev/leader"]}
+</script>
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23282828'/%3E%3Cpath d='M8 25V7l16 18V7' fill='none' stroke='%23b8bb26' stroke-width='3.4'/%3E%3C/svg%3E">
 <style>
@@ -468,6 +489,7 @@ footer a:hover{color:var(--fg)}
       <button id="copy2">Copy</button>
     </div>
     <p class="sub rv" style="--d:.25s">Linux · macOS · WSL. Windows: <code>irm …/install.ps1 | iex</code>. Add <code>bash -s -- --lang go</code> to pick languages.</p>
+    <p class="sub rv" style="--d:.3s"><b>The desktop app</b> (Linux and WSL, its own GPU window): <code>curl -fsSL https://github.com/sazardev/leader/releases/latest/download/leader-installer.sh | bash</code>. Debian, Ubuntu: the <a href="https://github.com/sazardev/leader/releases/latest">.deb</a>. Arch: the PKGBUILDs in <a href="https://github.com/sazardev/leader/tree/master/packaging/arch">packaging/arch</a>. Every release is <a href="https://github.com/sazardev/leader/blob/master/packaging/README.md">signed and checksummed</a>.</p>
   </div>
 </section>
 

@@ -4,7 +4,7 @@
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-`v1.4.0` · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/leader/docs/) · [wallpapers](https://sazardev.github.io/leader/wallpapers/)
+[latest release](https://github.com/sazardev/leader/releases/latest) · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/leader/docs/) · [wallpapers](https://sazardev.github.io/leader/wallpapers/)
 
 ## Installation
 
@@ -84,6 +84,13 @@ first launch shows the welcome screen.
 ```sh
 curl -fsSL https://github.com/sazardev/leader/releases/latest/download/leader-installer.sh | bash
 ```
+
+From a package: **Debian, Ubuntu, Mint, Pop!_OS** download `leader-editor-amd64.deb` from the
+[latest release](https://github.com/sazardev/leader/releases/latest) and `sudo apt install ./leader-editor-amd64.deb`;
+**Arch, CachyOS, Manjaro** use the PKGBUILDs in [`packaging/arch`](packaging/arch) (`leader-editor-bin` prebuilt,
+`leader-editor` from source; `makepkg -si`). The packages add the menu entry, the icons, the manual (`man leader`) and
+`leader-setup`, which installs the config for your user (the first launch with no Neovim config runs it in the window).
+Every release is signed and checksummed: how to verify it in [`packaging/README.md`](packaging/README.md).
 
 From a clone:
 
