@@ -86,6 +86,21 @@ pub struct State {
     pub chips: Vec<Chip>,
     pub activity: Option<Activity>,
     pub colors: Option<Colors>,
+    /// What the window keeps when it closes (settings.gui.window): its size, its position, being maximized.
+    pub keep: Keep,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Keep {
+    pub size: bool,
+    pub position: bool,
+    pub maximized: bool,
+}
+
+impl Default for Keep {
+    fn default() -> Self {
+        Keep { size: true, position: true, maximized: true }
+    }
 }
 
 impl Default for State {
@@ -97,6 +112,7 @@ impl Default for State {
             pad_bottom: 0.0,
             controls_left: false,
             show_mark: true,
+            keep: Keep::default(),
             left: Vec::new(),
             right: Vec::new(),
             path: Vec::new(),
@@ -209,6 +225,9 @@ impl State {
             chips,
             activity,
             colors,
+            keep: get(v, "window")
+                .map(|w| Keep { size: flag(w, "size", true), position: flag(w, "position", true), maximized: flag(w, "maximized", true) })
+                .unwrap_or_default(),
         }
     }
 }

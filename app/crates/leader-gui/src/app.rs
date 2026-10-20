@@ -44,6 +44,10 @@ struct Mouse {
     last: Option<(u64, u32, u32)>,
     /// Last cell a hover ("move") event was sent for: one event per cell, not per pixel.
     hovered: Option<(u64, u32, u32)>,
+    /// A hover sent and not drawn yet: while it is, a faster pointer only moves `hover_next`, sent once Neovim has
+    /// drawn (or after `HOVER_WAIT`), so a sweep across a list costs one hover per frame, not one per cell crossed.
+    hover_sent: Option<Instant>,
+    hover_next: Option<(u64, u32, u32)>,
     scroll: (f64, f64),
     /// A window button or path part held down (acts on release over the same one).
     button: Option<Hit>,
@@ -51,6 +55,9 @@ struct Mouse {
     bar_click: Option<Instant>,
     icon: Option<CursorIcon>,
 }
+
+/// How long a hover may wait for Neovim to draw the previous one before the pointer's newest cell goes anyway.
+const HOVER_WAIT: Duration = Duration::from_millis(40);
 
 pub struct App {
     proxy: EventLoopProxy<UserEvent>,
@@ -79,6 +86,8 @@ pub struct App {
     blink: Blink,
     /// Started by LEADER_SNAPSHOT (a test): nothing is saved.
     scripted: bool,
+    /// The window as it was when last neither maximized nor fullscreen (what "remember size/position" keeps).
+    normal: platform::Saved,
     /// Last input sent and not drawn yet (LEADER_TIMING prints input → frame latency).
     input_at: Option<Instant>,
     /// `LEADER_SNAPSHOT=out.png`: keys to type after the first frame, then a PNG of the window and quit.
@@ -201,6 +210,7 @@ impl App {
             first_flush: true,
             blink: Blink { on: true, next: None, seen: None },
             scripted: std::env::var_os("LEADER_SNAPSHOT").is_some(),
+            normal: platform::Saved::default(),
             input_at: None,
             snapshot: std::env::var_os("LEADER_SNAPSHOT").map(|p| Snapshot {
                 path: p.into(),
@@ -279,6 +289,20 @@ impl App {
         }
     }
 
+    /// The size and place to reopen with: only taken while the window is neither maximized nor fullscreen, so
+    /// closing a maximized window reopens it maximized over the size it had before.
+    fn note_normal(&mut self) {
+        let Some(w) = &self.window else { return };
+        if w.is_maximized() || w.fullscreen().is_some() || w.is_minimized() == Some(true) {
+            return;
+        }
+        let size = w.inner_size().to_logical::<f64>(w.scale_factor());
+        self.normal.size = Some((size.width, size.height));
+        if let Ok(p) = w.outer_position() {
+            self.normal.position = Some((p.x, p.y));
+        }
+    }
+
     fn redraw(&self) {
         if let Some(w) = &self.window {
             w.request_redraw();
@@ -325,6 +349,7 @@ impl App {
         if !flushed {
             return;
         }
+        self.hover_flush(true);
         if self.first_flush {
             self.first_flush = false;
             self.mark("first flush");
@@ -572,7 +597,29 @@ impl App {
         let Some(cell) = self.screen.grid_at(row, col) else { return };
         if self.mouse.hovered != Some(cell) {
             self.mouse.hovered = Some(cell);
-            self.send_mouse("move", "", cell.0, cell.1, cell.2);
+            if self.mouse.hover_sent.is_some_and(|t| t.elapsed() < HOVER_WAIT) {
+                self.mouse.hover_next = Some(cell);
+            } else {
+                self.send_hover(cell);
+            }
+        }
+    }
+
+    fn send_hover(&mut self, cell: (u64, u32, u32)) {
+        self.mouse.hover_next = None;
+        self.mouse.hover_sent = Some(Instant::now());
+        self.send_mouse("move", "", cell.0, cell.1, cell.2);
+    }
+
+    /// The pointer's latest cell, if a hover waits for the previous one to be drawn.
+    fn hover_flush(&mut self, drawn: bool) {
+        if drawn {
+            self.mouse.hover_sent = None;
+        }
+        if let Some(cell) = self.mouse.hover_next
+            && !self.mouse.hover_sent.is_some_and(|t| t.elapsed() < HOVER_WAIT)
+        {
+            self.send_hover(cell);
         }
     }
 
@@ -716,15 +763,26 @@ impl ApplicationHandler<UserEvent> for App {
         if self.window.is_some() {
             return;
         }
-        let attrs = Window::default_attributes()
+        // Snapshot runs (tests) always start the same: default size, no saved place.
+        let saved = if self.scripted { platform::Saved::default() } else { platform::saved_window() };
+        let (width, height) = saved.size.unwrap_or((1180.0, 760.0));
+        let mut attrs = Window::default_attributes()
             .with_title("Leader")
-            .with_inner_size({
-                let (w, h) = platform::saved_size().unwrap_or((1180.0, 760.0));
-                LogicalSize::new(w, h)
-            })
+            .with_inner_size(LogicalSize::new(width, height))
+            .with_maximized(saved.maximized)
             .with_min_inner_size(LogicalSize::new(320.0, 200.0))
             // Our own app bar replaces the system's title bar (settings.gui.appbar.enabled = false brings it back).
             .with_decorations(!self.bar.state.enabled);
+        // Back where it was, if that place is still on a screen (a monitor unplugged since would hide the window).
+        if let Some((x, y)) = saved.position {
+            let visible = event_loop.available_monitors().any(|m| {
+                let (p, s) = (m.position(), m.size());
+                x >= p.x - 40 && y >= p.y - 10 && x < p.x + s.width as i32 - 80 && y < p.y + s.height as i32 - 40
+            });
+            if visible {
+                attrs = attrs.with_position(winit::dpi::PhysicalPosition::new(x, y));
+            }
+        }
         #[cfg(target_os = "linux")]
         let attrs = {
             use winit::platform::wayland::WindowAttributesExtWayland;
@@ -739,6 +797,8 @@ impl ApplicationHandler<UserEvent> for App {
             }
         };
         self.mark("window created");
+        self.normal =
+            platform::Saved { size: Some((width, height)), position: window.outer_position().ok().map(|p| (p.x, p.y)), maximized: false };
         let gpu_window = window.clone();
         let proxy = self.proxy.clone();
         std::thread::Builder::new()
@@ -757,6 +817,9 @@ impl ApplicationHandler<UserEvent> for App {
         // For the config's install checks (lua/gui/checks.lua).
         let _ = self.nvim.notify("nvim_set_var", vec!["leader_gui_font".into(), family.into()]);
         let _ = self.nvim.notify("nvim_set_var", vec!["leader_gui_version".into(), env!("CARGO_PKG_VERSION").into()]);
+        // Wayland never tells a window where it is: the settings say "remember position" does nothing there.
+        let placed = self.normal.position.is_some();
+        let _ = self.nvim.notify("nvim_set_var", vec!["leader_gui_can_position".into(), placed.into()]);
         self.layout();
         if let Err(e) = self.nvim.attach(self.grid.0, self.grid.1) {
             eprintln!("leader: nvim_ui_attach failed: {e}");
@@ -768,6 +831,8 @@ impl ApplicationHandler<UserEvent> for App {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        // a hover that drew nothing (no flush came back) does not hold the next one for long
+        self.hover_flush(false);
         if self.blink.tick(&self.screen) {
             self.render(event_loop);
         }
@@ -802,7 +867,8 @@ impl ApplicationHandler<UserEvent> for App {
             self.render(event_loop);
         }
         let snap = self.snapshot.as_ref().and_then(|s| s.keys_at.or(s.at));
-        let next = [self.blink.next, snap, anim].into_iter().flatten().min();
+        let hover = self.mouse.hover_next.and(self.mouse.hover_sent).map(|t| t + HOVER_WAIT);
+        let next = [self.blink.next, snap, anim, hover].into_iter().flatten().min();
         event_loop.set_control_flow(match next {
             Some(t) => ControlFlow::WaitUntil(t),
             None => ControlFlow::Wait,
@@ -811,9 +877,14 @@ impl ApplicationHandler<UserEvent> for App {
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         // Snapshot runs (tests) never move the size a person chose.
-        if let (Some(w), false) = (&self.window, self.scripted) {
-            let size = w.inner_size().to_logical::<f64>(w.scale_factor());
-            platform::save_size(size.width, size.height);
+        if let (Some(w), false) = (self.window.clone(), self.scripted) {
+            self.note_normal();
+            let keep = self.bar.state.keep;
+            platform::save_window(&platform::Saved {
+                size: self.normal.size.filter(|_| keep.size),
+                position: self.normal.position.filter(|_| keep.position),
+                maximized: keep.maximized && w.is_maximized(),
+            });
         }
     }
 
@@ -868,8 +939,10 @@ impl ApplicationHandler<UserEvent> for App {
                     r.resize(size.width, size.height);
                 }
                 self.bar.maximized = self.window.as_ref().is_some_and(|w| w.is_maximized());
+                self.note_normal();
                 self.relayout();
             }
+            WindowEvent::Moved(_) => self.note_normal(),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 if let Some(fonts) = self.fonts.as_mut() {
                     let (families, size) = (vec![fonts.family().to_string()], fonts.size);

@@ -47,18 +47,77 @@ fn state_file() -> Option<std::path::PathBuf> {
     Some(base.join("leader").join("window"))
 }
 
-/// Last window size in logical pixels (written on exit), if any.
-pub fn saved_size() -> Option<(f64, f64)> {
-    let text = std::fs::read_to_string(state_file()?).ok()?;
-    let mut it = text.split_whitespace().map(|n| n.parse::<f64>().ok());
-    let (w, h) = (it.next()??, it.next()??);
-    (w >= 200.0 && h >= 120.0).then_some((w, h))
+/// How the window was when it closed: its size (logical px), where it was (physical px, when the system says) and
+/// whether it was maximized. The file holds only what the person wants kept (settings.gui.window).
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct Saved {
+    pub size: Option<(f64, f64)>,
+    pub position: Option<(i32, i32)>,
+    pub maximized: bool,
 }
 
-pub fn save_size(w: f64, h: f64) {
+impl Saved {
+    /// First line `W H` (the old format), then `pos X Y` and `max` when kept.
+    pub fn parse(text: &str) -> Saved {
+        let mut saved = Saved::default();
+        for (i, line) in text.lines().enumerate() {
+            let words: Vec<&str> = line.split_whitespace().collect();
+            match words.as_slice() {
+                ["pos", x, y] => saved.position = x.parse().ok().zip(y.parse().ok()),
+                ["max"] => saved.maximized = true,
+                [w, h] if i == 0 => {
+                    saved.size = w.parse::<f64>().ok().zip(h.parse::<f64>().ok()).filter(|(w, h)| *w >= 200.0 && *h >= 120.0)
+                }
+                _ => {}
+            }
+        }
+        saved
+    }
+
+    pub fn text(&self) -> String {
+        let mut out = String::new();
+        if let Some((w, h)) = self.size {
+            out.push_str(&format!("{} {}\n", w.round(), h.round()));
+        } else {
+            out.push_str("-\n");
+        }
+        if let Some((x, y)) = self.position {
+            out.push_str(&format!("pos {x} {y}\n"));
+        }
+        if self.maximized {
+            out.push_str("max\n");
+        }
+        out
+    }
+}
+
+pub fn saved_window() -> Saved {
+    state_file().and_then(|p| std::fs::read_to_string(p).ok()).map(|t| Saved::parse(&t)).unwrap_or_default()
+}
+
+pub fn save_window(saved: &Saved) {
     let Some(path) = state_file() else { return };
     if let Some(dir) = path.parent() {
         let _ = std::fs::create_dir_all(dir);
     }
-    let _ = std::fs::write(path, format!("{} {}\n", w.round(), h.round()));
+    let _ = std::fs::write(path, saved.text());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Saved;
+
+    #[test]
+    fn saved_window_round_trips() {
+        let s = Saved { size: Some((1200.0, 800.0)), position: Some((-1910, 40)), maximized: true };
+        assert_eq!(Saved::parse(&s.text()), s);
+        let none = Saved::default();
+        assert_eq!(Saved::parse(&none.text()), none);
+    }
+
+    #[test]
+    fn saved_window_reads_the_old_file() {
+        assert_eq!(Saved::parse("1440 900\n").size, Some((1440.0, 900.0)));
+        assert_eq!(Saved::parse("10 10\n").size, None, "too small to be a window");
+    }
 }
