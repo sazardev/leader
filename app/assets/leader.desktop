@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Leader
+GenericName=Text Editor
+Comment=Neovim with the Leader config in its own GPU window
+Exec=@BIN@ %F
+Icon=leader
+Terminal=false
+Categories=Development;TextEditor;IDE;
+Keywords=neovim;nvim;vim;editor;ide;
+MimeType=text/plain;text/x-csrc;text/x-c++src;text/x-go;text/x-python;text/x-rust;text/x-lua;text/markdown;application/json;application/x-shellscript;
+StartupWMClass=leader

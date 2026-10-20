@@ -1,0 +1,22 @@
+[package]
+name = "leader-gui"
+version = "0.0.1"
+edition.workspace = true
+license.workspace = true
+description = "Leader desktop app: a GPU front-end for Neovim with the Leader config"
+
+[[bin]]
+name = "leader"
+path = "src/main.rs"
+
+[dependencies]
+leader-nvim = { path = "../leader-nvim" }
+rmpv = "1"
+wgpu = "30"
+winit = "0.30"
+cosmic-text = "0.19"
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "1"
+arboard = { version = "3", features = ["wayland-data-control"] }
+smol_str = "0.3"
+png = "0.18"
