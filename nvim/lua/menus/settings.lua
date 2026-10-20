@@ -53,9 +53,9 @@ return {
     },
     {
       "u",
-      "update config",
+      "updates",
       function()
-        require("prefs.update").run()
+        require("update.panel").open()
       end,
     },
   },

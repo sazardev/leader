@@ -67,7 +67,17 @@ function M.follow(win, line, ok)
   if cur == line then
     return false
   end
+  -- the pointer only points: the row under it is selected where it is, the window never scrolls for it. With the
+  -- config's scrolloff a row near an edge would scroll the list, bring a new row under the still pointer, select
+  -- that one and scroll again (the list running away from the mouse). Wheel and keys still scroll.
+  vim.wo[win].scrolloff = 0
+  local top = vim.fn.line("w0", win)
   pcall(vim.api.nvim_win_set_cursor, win, { line, 0 })
+  if vim.fn.line("w0", win) ~= top then
+    pcall(vim.api.nvim_win_call, win, function()
+      vim.fn.winrestview { topline = top }
+    end)
+  end
   return true
 end
 

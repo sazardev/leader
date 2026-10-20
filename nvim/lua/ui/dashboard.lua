@@ -7,7 +7,7 @@ local M = {}
 function M.actions()
   local actions = {
     { label = "Find File", key = "ff", cmd = "Telescope find_files" },
-    { label = "Recent Files", key = "fo", cmd = "Telescope oldfiles" },
+    { label = "Recent Files", key = "fo", cmd = "lua require('recent').open()" },
     { label = "Find Word", key = "fw", cmd = "Telescope live_grep" },
     { label = "Themes", key = "th", cmd = "lua require('nvchad.themes').open()" },
     { label = "Mappings", key = "ch", cmd = "NvCheatsheet" },

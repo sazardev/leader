@@ -16,6 +16,9 @@
 --   spec.initial(m)?          the row the cursor starts on (default: the first it can rest on)
 --   spec.pane_click(m, item, line, column)?  a click on a pane line that `pane` returned in its `rows` (a choice, a checkbox)
 --   spec.summary_rows         rows of the strip (default 7)
+--   spec.on_close(m)          when the market closes (save what it learned)
+--   spec.hjkl                 l / → only move to the pane and h / ← back (⏎ alone reads): lists where reading does
+--                             something big (the project picker opens the project)
 -- Under 100 columns the panes take turns (the list, ⏎ opens the pane, Esc goes back) instead of sharing the screen.
 -- The mouse (utils/mouse.lua): the row under the pointer is the one under the cursor (the pane follows), a click reads
 -- it (or folds its group), and the key chips under the panes are buttons.
@@ -25,6 +28,7 @@ local mouse = require "utils.mouse"
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "Market"
+local SEL = vim.api.nvim_create_namespace "MarketSel"
 M.NARROW = 100
 
 ---@alias MarketSeg { [1]: string, [2]: string? }
@@ -154,25 +158,47 @@ function M.layout(m)
   vim.api.nvim_win_set_config(m.wins.summary, cfg(top, 0, cols, strip))
 end
 
---- Draws everything from the state
+--- The row under the cursor stands out: the whole row lit and a bar at its left edge (the cursor block is hidden).
 ---@param m Market
-function M.refresh(m)
+local function mark_selection(m)
+  if not vim.api.nvim_buf_is_valid(m.bufs.list) or not vim.api.nvim_win_is_valid(m.wins.list) then
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(m.bufs.list, SEL, 0, -1)
+  local at = vim.api.nvim_win_get_cursor(m.wins.list)[1]
+  if selectable(m, m.rows[at]) then
+    pcall(vim.api.nvim_buf_set_extmark, m.bufs.list, SEL, at - 1, 0, {
+      virt_text = { { "▌", "MarketBar" } },
+      virt_text_pos = "overlay",
+      priority = 200,
+    })
+  end
+end
+
+--- Draws everything from the state. `moved` = only the cursor moved: the list stays as it is (its rows are the
+--- same), only the bar, the pane and the strip follow.
+---@param m Market
+---@param moved boolean?
+function M.refresh(m, moved)
   local w, spec = m.wins, m.def
   if not vim.api.nvim_win_is_valid(w.list) then
     return
   end
-  m.rows = visible_rows(m)
-  local lines = vim.tbl_map(spec.list_line, m.rows)
-  local any = false
-  for _, row in ipairs(m.rows) do
-    any = any or spec.selectable(row)
+  if not moved then
+    m.rows = visible_rows(m)
+    local lines = vim.tbl_map(spec.list_line, m.rows)
+    local any = false
+    for _, row in ipairs(m.rows) do
+      any = any or spec.selectable(row)
+    end
+    if not any then
+      lines[#lines + 1] = { { "  Nothing matches «" .. m.filter .. "»", modal.hl.muted } }
+    end
+    local at = vim.api.nvim_win_get_cursor(w.list)[1]
+    M.draw(m.bufs.list, lines)
+    pcall(vim.api.nvim_win_set_cursor, w.list, { math.min(at, math.max(#lines, 1)), 0 })
   end
-  if not any then
-    lines[#lines + 1] = { { "  Nothing matches «" .. m.filter .. "»", modal.hl.muted } }
-  end
-  local at = vim.api.nvim_win_get_cursor(w.list)[1]
-  M.draw(m.bufs.list, lines)
-  pcall(vim.api.nvim_win_set_cursor, w.list, { math.min(at, math.max(#lines, 1)), 0 })
+  mark_selection(m)
 
   local row = m.rows[vim.api.nvim_win_get_cursor(w.list)[1]]
   local pane
@@ -206,11 +232,16 @@ end
 
 ---@param m Market
 function M.close(m)
+  if m.def and m.def.on_close and not m.closed then
+    m.closed = true
+    pcall(m.def.on_close, m)
+  end
   for _, w in pairs(m.wins) do
     if vim.api.nvim_win_is_valid(w) then
       pcall(vim.api.nvim_win_close, w, true)
     end
   end
+  require("utils.cursor").show(m)
 end
 
 --- Gives the focus to the list or the pane (in a narrow terminal it also swaps which one is on screen)
@@ -274,7 +305,7 @@ end
 ---@param spec table
 ---@param state table?
 ---@return Market
-function M.new(spec, state)
+local function build(spec, state)
   local m = state or {}
   m.def = spec
   m.filter = m.filter or ""
@@ -291,13 +322,14 @@ function M.new(spec, state)
     m.bufs[name] = buf
   end
   local flat = require("ui.flat").enabled()
-  local base = { relative = "editor", row = 0, col = 0, width = 10, height = 5, style = "minimal", border = "none", zindex = 40 }
+  local base =
+    { relative = "editor", row = 0, col = 0, width = 10, height = 5, style = "minimal", border = "none", zindex = 40 }
   m.wins.pane = vim.api.nvim_open_win(m.bufs.pane, false, base)
   m.wins.summary = vim.api.nvim_open_win(m.bufs.summary, false, base)
   m.wins.list = vim.api.nvim_open_win(m.bufs.list, true, base)
   -- the list and the strip are blocks (the modal's color); the reading pane is the editor's own deep color
   local block = flat and "NormalFloat:NormalFloat,EndOfBuffer:NormalFloat" or "NormalFloat:Pmenu"
-  vim.wo[m.wins.list].winhighlight = block .. ",CursorLine:FlatInput"
+  vim.wo[m.wins.list].winhighlight = block .. ",CursorLine:MarketSel"
   vim.wo[m.wins.summary].winhighlight = block
   vim.wo[m.wins.pane].winhighlight = "NormalFloat:Normal,EndOfBuffer:Normal,CursorLine:FlatInput"
   for _, w in pairs(m.wins) do
@@ -305,6 +337,11 @@ function M.new(spec, state)
     vim.wo[w].cursorline = false
   end
   vim.wo[m.wins.list].cursorline = true
+  -- the config's own cursorlineopt is "number": here the chosen row lights up whole
+  vim.wo[m.wins.list].cursorlineopt = "line"
+  vim.wo[m.wins.pane].cursorlineopt = "line"
+  -- no cursor block over the list (the start screen's hidden cursor), back when the market closes
+  require("utils.cursor").hide(m, "nv")
   M.layout(m)
 
   local function first()
@@ -339,7 +376,7 @@ function M.new(spec, state)
     end
     vim.api.nvim_win_set_cursor(m.wins.list, { r, 0 })
     m.view = "pane"
-    M.refresh(m)
+    M.refresh(m, true)
   end
   local function jump_group(step)
     local r = vim.api.nvim_win_get_cursor(m.wins.list)[1]
@@ -448,7 +485,13 @@ function M.new(spec, state)
   map(lb, "/", filter, "Filter")
   map(lb, "p", result, "What it does")
   map(lb, "?", help, "Help")
-  map(lb, { "<CR>", "l", "<Right>" }, function()
+  if spec.hjkl then
+    map(lb, { "l", "<Right>" }, function()
+      pcall(vim.api.nvim_win_set_cursor, m.wins.pane, { 1, 0 })
+      M.focus(m, "pane")
+    end, "Details")
+  end
+  map(lb, spec.hjkl and { "<CR>" } or { "<CR>", "l", "<Right>" }, function()
     local row = M.current(m)
     if row and row.collapsed then
       return fold()
@@ -498,7 +541,7 @@ function M.new(spec, state)
     move = function(pos)
       if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) and mouse.follow(m.wins.list, pos.line) then
         m.view = "pane"
-        M.refresh(m)
+        M.refresh(m, true)
       elseif pos.winid == m.wins.pane and m.pane_rows[pos.line] ~= nil then
         mouse.follow(m.wins.pane, pos.line)
       end
@@ -565,6 +608,23 @@ function M.new(spec, state)
     end,
   })
   return m
+end
+
+--- Opens it. When anything fails half way (a pane that raises, a bad row) nothing is left on screen: the windows are
+--- closed, the cursor comes back, and the error is shown instead of a page that cannot be closed.
+---@param spec table
+---@param state table?
+---@return Market?
+function M.new(spec, state)
+  state = state or {}
+  local ok, result = pcall(build, spec, state)
+  if ok then
+    return result
+  end
+  pcall(M.close, state)
+  require("utils.cursor").show(state)
+  vim.notify("Leader: " .. tostring(result), vim.log.levels.ERROR)
+  return nil
 end
 
 return M

@@ -28,7 +28,6 @@ local NS = vim.api.nvim_create_namespace "GuiMenu"
 
 ---@type { win: integer, buf: integer, col: integer, row: integer, width: integer, items: GuiMenuItem[], parent: integer?, enter: fun(), sub: fun(row: integer, focus: boolean) }[] open menus, root first
 local stack = {}
-local guicursor ---@type string? the cursor shape while no menu was open
 local revert ---@type fun()? undoes the previews when the menus close without a choice
 local preview_timer = vim.uv.new_timer()
 
@@ -158,9 +157,8 @@ function M.close(level)
       pcall(vim.api.nvim_win_close, top.win, true)
     end
   end
-  if #stack == 0 and guicursor then
-    vim.o.guicursor = guicursor
-    guicursor = nil
+  if #stack == 0 then
+    require("utils.cursor").show(stack)
   end
   if #stack == 0 and revert then
     preview_timer:stop()
@@ -221,11 +219,8 @@ open_level = function(items, level, col, row, parent, focus)
   vim.wo[win].winhighlight = "Normal:GuiMenu,EndOfBuffer:GuiMenu,CursorLine:GuiMenuSel"
   vim.wo[win].cursorline = true
   vim.wo[win].cursorlineopt = "line" -- the config's own is "number": the chosen row must light up whole
-  if not guicursor then
-    -- no cursor block over the menus (like the start screen: a cursor highlight with blend 100)
-    guicursor = vim.o.guicursor
-    vim.o.guicursor = "a:NvStartCursor"
-  end
+  -- no cursor block over the menus (like the start screen: a cursor highlight with blend 100)
+  require("utils.cursor").hide(stack)
   pcall(function()
     require("ui.flat.motion").enter { win }
   end)

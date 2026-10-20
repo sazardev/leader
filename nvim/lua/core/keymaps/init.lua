@@ -9,6 +9,7 @@ function M.setup()
   -- after the menus: they load which-key, and lazy then deletes the stub NvChad's spec put on `c` (lazy-load key),
   -- which would take our `c` with it
   require("history").setup()
+  require("recent").setup()
 end
 
 return M

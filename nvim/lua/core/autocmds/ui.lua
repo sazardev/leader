@@ -2,6 +2,11 @@
 local M = {}
 
 function M.setup()
+  -- the hidden cursor of pages that draw their own selection comes back by itself if nothing owns it (utils/cursor.lua)
+  require("utils.cursor").setup()
+  -- looks for a newer Leader now and then and offers it (lua/update)
+  require("update").setup()
+
   -- Force cmdheight=0 after the full load (overrides any plugin that resets it)
   vim.api.nvim_create_autocmd("VimEnter", {
     group = vim.api.nvim_create_augroup("ForceCmdheight", { clear = true }),

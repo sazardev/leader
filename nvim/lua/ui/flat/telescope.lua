@@ -152,6 +152,8 @@ function M.create_layout(picker)
 
   local function open(kind, rect, side, enter)
     local buf = vim.api.nvim_create_buf(false, true)
+    -- gone with its window: the preview's buffer used to stay behind on every open (a previewer swaps its own in)
+    vim.bo[buf].bufhidden = "wipe"
     local win = vim.api.nvim_open_win(buf, enter, win_config(rect, kind, side, titles[kind]))
     vim.wo[win].winhighlight = winhl(kind)
     vim.wo[win].wrap = false

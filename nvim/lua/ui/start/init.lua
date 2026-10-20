@@ -7,7 +7,7 @@ local layout = require "ui.start.layout"
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "NvStart"
-local state = { buf = nil, win = nil, sel = 1, actions = {}, rows = {}, guicursor = nil, saved = nil }
+local state = { buf = nil, win = nil, sel = 1, actions = {}, rows = {}, saved = nil }
 
 -- window options the start screen changes: they are window-local, so they would stay on the window and the file opened
 -- from the screen (ff, fo, Enter…) would come out without line numbers
@@ -84,10 +84,7 @@ local function activate(index)
 end
 
 local function hide_cursor()
-  if not state.guicursor then
-    state.guicursor = vim.o.guicursor
-  end
-  vim.o.guicursor = "a:NvStartCursor"
+  require("utils.cursor").hide(state)
 end
 
 --- Gives the window its own options back (called when the start screen leaves it)
@@ -102,10 +99,7 @@ local function restore_window()
 end
 
 local function restore_cursor()
-  if state.guicursor then
-    vim.o.guicursor = state.guicursor
-    state.guicursor = nil
-  end
+  require("utils.cursor").show(state)
 end
 
 local function bind(buf)

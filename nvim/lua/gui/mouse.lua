@@ -20,6 +20,10 @@ function M.telescope(prompt)
     move = function(pos)
       local p = picker()
       if p and pos.winid == p.results_win and pos.line > 0 then
+        -- selecting the row under the pointer must not scroll the results (see utils/mouse.follow)
+        pcall(function()
+          vim.wo[p.results_win].scrolloff = 0
+        end)
         pcall(p.set_selection, p, pos.line - 1)
       end
     end,

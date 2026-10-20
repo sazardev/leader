@@ -41,12 +41,13 @@ return {
   },
   {
     group = "System",
-    label = "Update config",
+    label = "Updates",
     kind = "action",
     run = run(function()
-      require("prefs.update").run()
+      require("update.panel").open()
     end),
   },
+  { group = "System", label = "Check for updates", kind = "toggle", id = "update.enabled" },
   {
     group = "System",
     label = "Reset my choices",

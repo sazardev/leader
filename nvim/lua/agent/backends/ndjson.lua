@@ -10,13 +10,14 @@ function M.new(handler)
   return function(chunk)
     pending = pending .. chunk
     local out = {}
+    local from = 1 -- walk the buffer once: cutting the front off per line is quadratic on a big chunk
     while true do
-      local nl = pending:find("\n", 1, true)
+      local nl = pending:find("\n", from, true)
       if not nl then
         break
       end
-      local line = pending:sub(1, nl - 1)
-      pending = pending:sub(nl + 1)
+      local line = pending:sub(from, nl - 1)
+      from = nl + 1
       if line:match "%S" then
         local ok, obj = pcall(vim.json.decode, line)
         if ok and type(obj) == "table" then
@@ -26,6 +27,9 @@ function M.new(handler)
           end
         end
       end
+    end
+    if from > 1 then
+      pending = pending:sub(from)
     end
     return #out > 0 and table.concat(out) or nil
   end

@@ -16,13 +16,14 @@
 --   restart  boolean?      it only takes effect on the next start (the note says so)
 --   run      fun()?        what an action does
 --   show     fun(): string?  value column of an action ("gruvbox"); default "›"
+--   when     fun(): boolean?  listed in the panel only when this says so (the App group: only inside the desktop app)
 local log = require "utils.log"
 local settings = require "core.settings"
 local store = require "prefs.store"
 
 local M = {}
 
-local NAMES = { "appearance", "edit", "diagnostics", "agent", "languages", "system" }
+local NAMES = { "appearance", "edit", "diagnostics", "agent", "languages", "app", "system" }
 
 ---@type table[]?
 local cache
@@ -138,7 +139,9 @@ end
 
 ---@param index integer?  row to land on (the one just changed)
 function M.open(index)
-  local items = M.items()
+  local items = vim.tbl_filter(function(item)
+    return not item.when or item.when()
+  end, M.items())
   local rows = M.rows(items)
   local list = {}
   for i, item in ipairs(items) do

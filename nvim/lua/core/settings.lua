@@ -76,6 +76,23 @@ local defaults = {
     herdr = false, -- inside Herdr, registers nvim as an "agent" to reopen the pane after the server restarts. Off: Herdr 0.9.x ignores resume and nvim gets in the way in the Agents panel (requires Herdr >= 0.10.0)
   },
 
+  -- Updates (lua/update): looks for a newer Leader on GitHub (one tiny request), shows a badge in the app bar and a
+  -- notification once per version; the panel shows what changed and updates on request. Never updates by itself.
+  update = {
+    enabled = true,
+    check_hours = 12, -- how often it looks (and at most once per start)
+    notify = true, -- say so once when a new version appears
+    repo = "sazardev/leader",
+    branch = "master",
+    -- base = nil, -- raw files elsewhere (a mirror): <base>/VERSION and <base>/CHANGELOG.md
+    -- releases = false, -- do not look up the desktop app's releases
+  },
+
+  -- Recent files (<leader>fo, the start screen, the app's ↺): only the files of the project you are in
+  recent = {
+    max = 200, -- entries shown
+  },
+
   -- Code search (<leader>fs): functions and types of the project ranked by what their names, comments and paths say. No model.
   search = {
     results = 100, -- hits shown
@@ -119,6 +136,7 @@ local defaults = {
     -- actions run on a LOCAL, free model while implement/fix stay on Claude: pick it with <leader>am.
     light_backend = nil,
     language = "English", -- language of the agent's explanations, answers and findings (code is not translated)
+    stream_ms = 40, -- the streaming answer is redrawn at most this often per job (several agents at once stay smooth)
     rules = nil, -- extra text (conventions) for EVERY prompt; per project: `.agent.md` at the root
     timeout_ms = 120000,
     -- Which actions run on the LIGHT model (cheap and fast) instead of the main one. Each action ships
@@ -401,6 +419,17 @@ local defaults = {
     },
     padding = { x = 0, bottom = 0 }, -- px around the editor (0 = edge to edge)
     onboarding = true, -- the welcome screen with the install checks on the first launch (Ctrl+Shift+W or the bar's chip any time)
+    -- Open a project (Ctrl+Shift+O): the git projects under your home are searched again only when the saved list
+    -- is older than this (seconds; R in the picker searches now). Their facts are saved too and read again only
+    -- when the project changes.
+    projects = { rescan = 3600 },
+    -- the window and the first thing you see (also in the settings panel's App group, the Window menu and the setup)
+    window = {
+      on_start = "ask", -- launched with no file or folder: "ask" = pick a project | "last" = reopen the last one | "home" = start screen
+      remember_size = true, -- open as big as it was closed
+      remember_position = true, -- and where it was (X11 and Windows; on Wayland the system places windows)
+      remember_maximized = true, -- maximized again if it was
+    },
   },
 
   -- Clipboard via OSC 52 (WSL/SSH without a graphical server): "auto" | true | false

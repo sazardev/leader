@@ -23,6 +23,8 @@ return {
   },
   opts = {
     defaults = {
+      -- Esc closes at once, also from insert mode (otherwise the first Esc only leaves insert and the picker stays)
+      mappings = { i = { ["<Esc>"] = "close" }, n = { ["<Esc>"] = "close", ["q"] = "close" } },
       path_display = { "truncate" },
       -- flat: one cell of air before the text; the selection is a solid row across the whole block
       prompt_prefix = " > ",

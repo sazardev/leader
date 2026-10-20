@@ -28,13 +28,53 @@ local finished
 --- install checks that still fail (gui/checks.lua), counted for the bar's "N to finish" chip
 local unfinished = 0
 
+local ticker
+
+--- Long work says how long it has been going (a bar that only says "loading packages" looks hung): every 5 s the
+--- bar is redrawn while something is running.
+local function tick()
+  if ticker then
+    return
+  end
+  ticker = vim.uv.new_timer()
+  ticker:start(
+    5000,
+    5000,
+    vim.schedule_wrap(function()
+      if next(running) == nil then
+        ticker:stop()
+        ticker:close()
+        ticker = nil
+      else
+        M.update()
+      end
+    end)
+  )
+end
+
+---@param ms integer
+---@return string "12s", "2m 05s"
+function M.elapsed(ms)
+  local s = math.floor(ms / 1000)
+  return s < 60 and (s .. "s") or ("%dm %02ds"):format(math.floor(s / 60), s % 60)
+end
+
 ---@param key string
 ---@param name string
 ---@param title string?
 ---@param message string?
 ---@param percent number?
 local function begin(key, name, title, message, percent)
-  running[key] = { name = name, title = title, message = message, percent = percent, at = vim.uv.now() }
+  local now = vim.uv.now()
+  running[key] = {
+    name = name,
+    title = title,
+    message = message,
+    percent = percent,
+    at = now,
+    since = (running[key] or {}).since or now,
+  }
+  tick()
   M.update()
 end
 
@@ -62,8 +102,23 @@ local function activity()
     if newest.title and newest.title ~= "" then
       parts[#parts + 1] = newest.title
     end
-    if newest.message and newest.message ~= "" and #newest.message < 40 then
-      parts[#parts + 1] = newest.message
+    local message, percent = newest.message, newest.percent
+    local tracked = newest.name == "language tools" and require("gui.progress").current
+    if tracked and tracked.active then
+      -- "7/9 · codelldb 12.7 MB 31 KB/s · 6m 40s": what is going on, in numbers, with the bar filling
+      message, percent = require("gui.progress").status_text(tracked, os.time())
+      newest = vim.tbl_extend("force", newest, { percent = percent })
+    end
+    if message and message ~= "" and #message < 90 then
+      parts[#parts + 1] = message
+    end
+    local waited = vim.uv.now() - (newest.since or newest.at)
+    if waited >= 10000 then
+      parts[#parts + 1] = M.elapsed(waited)
+    end
+    -- the first load of a Go project that uses cgo (sqlite, …) compiles it: minutes once, seconds after
+    if waited >= 30000 and newest.name == "gopls" then
+      parts[#parts + 1] = "big projects take minutes the first time"
     end
     return { text = table.concat(parts, " · "), percent = newest.percent }
   end
@@ -80,6 +135,11 @@ local function chips(t, buf, show)
   local out = {}
   local function add(text, fg, bg, gap, action)
     out[#out + 1] = { text = text, fg = fg, bg = bg, gap = gap, action = action }
+  end
+  -- a newer Leader (lua/update): one click shows what changed and updates on request
+  local offered, latest = require("update").offer()
+  if show.update ~= false and offered then
+    add("\u{f062} " .. latest, t.green, nil, 2, "update")
   end
   if show.setup ~= false and unfinished > 0 then
     -- something is still missing: one click opens the welcome screen, Enter there installs it
@@ -164,6 +224,12 @@ function M.state()
     activity = cfg.activity ~= false and activity() or nil,
     height = cfg.height or 1.5,
     padding = settings.gui.padding or {},
+    -- what the app keeps of the window when it closes (it reopens with that)
+    window = {
+      size = (settings.gui.window or {}).remember_size ~= false,
+      position = (settings.gui.window or {}).remember_position ~= false,
+      maximized = (settings.gui.window or {}).remember_maximized ~= false,
+    },
     path = path,
     file = file,
     modified = file ~= "" and kept ~= nil and vim.api.nvim_buf_is_valid(kept.buf) and vim.bo[kept.buf].modified,
@@ -254,12 +320,39 @@ end
 --- The app menu (Leader's N in the bar, F10), laid out like Zed's: every item types the config's own keys (so it
 --- does exactly what they do, and shows them) or runs a command. Built on each opening (Git only inside a repo).
 ---@return GuiMenuItem[]
+--- A setting of the settings panel as a submenu: its choices, the current one dotted (saved like the panel saves).
+---@param label string
+---@param id string
+local function pref_menu(label, id)
+  local prefs = require "prefs"
+  local item = prefs.find(id)
+  if not item then
+    return { label = label, hint = "settings", keys = "<leader>Sp" }
+  end
+  local now = prefs.value(item)
+  local sub = {}
+  for _, c in ipairs(prefs.choices(item)) do
+    sub[#sub + 1] = {
+      label = c.label,
+      current = now == c.value or (c.value == true and now == nil),
+      run = function()
+        prefs.set(item, c.value)
+      end,
+    }
+  end
+  return { label = label, hint = prefs.text(item), items = sub }
+end
+
 function M.app_menu()
   local projects = require "gui.projects"
+  local offered, latest = require("update").offer()
   local picker = function()
     require("gui.picker").open()
   end
-  return {
+  local browse = function()
+    require("gui.browse").open()
+  end
+  local menu = {
     {
       label = "File",
       items = {
@@ -269,6 +362,7 @@ function M.app_menu()
         { label = "Open File…", keys = "<leader>ff" },
         { label = "Open Recent", hint = "Ctrl+Shift+R", run = M.actions.history },
         { label = "Open Project…", hint = "Ctrl+Shift+O", run = picker },
+        { label = "Browse Folders…", run = browse },
         { label = "Open Path…", run = projects.ask },
         { sep = true },
         { label = "Save", keys = "<C-s>" },
@@ -438,6 +532,12 @@ function M.app_menu()
         { label = "Split Right", hint = ":vsplit", run = ex "vsplit" },
         { label = "Split Down", hint = ":split", run = ex "split" },
         { label = "Close Split", hint = "Ctrl+W c", run = ex "close" },
+        { sep = true },
+        pref_menu("On Start", "gui.window.on_start"),
+        pref_menu("Frame", "gui.appbar.enabled"),
+        pref_menu("Remember Size", "gui.window.remember_size"),
+        pref_menu("Remember Position", "gui.window.remember_position"),
+        pref_menu("Reopen Maximized", "gui.window.remember_maximized"),
       },
     },
     {
@@ -449,6 +549,13 @@ function M.app_menu()
         { label = "Settings", keys = "<leader>Sp" },
         { label = "Check Health", hint = ":checkhealth", run = ex "checkhealth" },
         { sep = true },
+        { label = "What's New…", run = M.actions.update },
+        {
+          label = "Check for Updates",
+          run = function()
+            require("update").check { force = true, done = M.actions.update }
+          end,
+        },
         { label = "About Leader", run = M.about },
       },
     },
@@ -459,6 +566,12 @@ function M.app_menu()
     { sep = true },
     { label = "Quit", hint = ":qa", run = ex "confirm qall" },
   }
+  if offered then
+    -- the logo's menu leads with it
+    table.insert(menu, 1, { label = "★ Update to " .. latest .. "…", run = M.actions.update })
+    table.insert(menu, 2, { sep = true })
+  end
+  return menu
 end
 
 --- Everything the menus can do plus every key of the config that says what it does, in one search (Telescope).
@@ -546,12 +659,20 @@ function M.projects_menu()
   local picker = require "gui.picker"
   local cwd = projects.normalize(vim.uv.cwd() or "")
   local items = {}
-  for i, p in ipairs(projects.list()) do
-    if i > 10 then
+  -- pinned first, then the newest
+  local list = projects.list()
+  table.sort(list, function(a, b)
+    if (a.pinned == true) ~= (b.pinned == true) then
+      return a.pinned == true
+    end
+    return (a.at or 0) > (b.at or 0)
+  end)
+  for i, p in ipairs(list) do
+    if i > 12 then
       break
     end
     items[#items + 1] = {
-      label = vim.fn.fnamemodify(p.dir, ":t"),
+      label = (p.pinned and "★ " or "") .. vim.fn.fnamemodify(p.dir, ":t"),
       detail = vim.fn.fnamemodify(vim.fs.dirname(p.dir), ":~"),
       current = p.dir == cwd,
       run = function()
@@ -561,6 +682,12 @@ function M.projects_menu()
   end
   items[#items + 1] = { sep = true }
   items[#items + 1] = { label = "Open Project…", hint = "Ctrl+Shift+O", run = picker.open }
+  items[#items + 1] = {
+    label = "Browse Folders…",
+    run = function()
+      require("gui.browse").open()
+    end,
+  }
   items[#items + 1] = { label = "Open Path…", run = projects.ask }
   items[#items + 1] = {
     label = "New Project…",
@@ -713,13 +840,17 @@ M.actions = {
     editing_window()
     require("ui.start").open()
   end,
-  -- recent files, the same list as the start screen's "Recent Files"
+  -- recent files of this project, the same list as the start screen's "Recent Files"
   history = function()
     editing_window()
-    vim.cmd "Telescope oldfiles"
+    require("recent").open()
   end,
   welcome = function()
     require("gui.onboarding").open()
+  end,
+  -- what is new and the update (lua/update)
+  update = function()
+    require("update.panel").open()
   end,
   menu = function(col)
     require("gui.menu").open(M.app_menu(), { col = col })
@@ -827,7 +958,7 @@ function M.setup()
   })
   vim.api.nvim_create_autocmd(
     "User",
-    { group = group, pattern = { "NvThemeReload", "GitSignsUpdate" }, callback = M.update }
+    { group = group, pattern = { "NvThemeReload", "GitSignsUpdate", "LeaderUpdateChecked" }, callback = M.update }
   )
 
   -- activity: LSP work in progress ($/progress), plugin and language-tool installs, and a save
@@ -873,8 +1004,10 @@ function M.setup()
     pattern = { "MasonToolsStartingInstall", "MasonToolsUpdateCompleted" },
     callback = function(ev)
       if ev.match == "MasonToolsStartingInstall" then
+        require("gui.progress").begin_mason()
         begin("mason", "language tools", "installing")
       else
+        require("gui.progress").end_mason()
         done("mason", "language tools installed")
         M.recheck()
       end
@@ -892,6 +1025,7 @@ function M.setup()
   require("gui.mouse").setup(group)
   M.update()
   require("gui.onboarding").setup()
+  require("gui.startup").setup()
 end
 
 return M

@@ -182,6 +182,12 @@ M.TOOLS = {
 
 --- The information chips on the right (gui/init.lua draws them), by the `show` key they use.
 M.CHIPS = {
+  {
+    id = "update",
+    title = "A newer Leader is available",
+    desc = "↑ 1.9.0: click for what changed and to update",
+    on = true,
+  },
   { id = "setup", title = "What is left to install", desc = "opens the setup when something is missing", on = true },
   { id = "recording", title = "Macro being recorded", desc = "REC @q while you record", on = true },
   { id = "git", title = "Git changes of the file", desc = "+3 ~1 -2", on = true },

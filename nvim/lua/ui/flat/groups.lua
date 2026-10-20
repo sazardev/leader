@@ -416,6 +416,16 @@ function M.build(t)
   g.GuiWizardCode = { fg = t.dim, italic = true }
   g.GuiWizardButton = { fg = t.on, bg = t.blue, bold = true }
   g.GuiWizardButtonSoft = { fg = t.fg, bg = color.blend(t.deep, t.fg, 0.12) }
+  g.GuiWizardButtonOff = { fg = t.faint, bg = color.blend(t.deep, t.fg, 0.06) } -- Next while the step is not done
+  g.GuiWizardFocus = { fg = t.fg, bg = color.blend(t.deep, t.fg, 0.09), bold = true } -- the choice under the keys/pointer
+  g.GuiWizardBar = { fg = t.yellow, bg = color.blend(t.deep, t.fg, 0.09) }
+  g.GuiWizardStepNow = { fg = t.on, bg = t.yellow, bold = true }
+  g.GuiWizardStepDone = { fg = t.green }
+  g.GuiWizardStepTodo = { fg = t.faint }
+  g.GuiWizardRule = { fg = color.blend(t.deep, t.fg, 0.14) }
+  -- the full-screen lists (utils/market.lua: project picker, SPEC/STACK markets, doctor): the chosen row, and its bar
+  g.MarketSel = { bg = color.blend(t.soft, t.fg, 0.13) }
+  g.MarketBar = { fg = t.yellow, bg = color.blend(t.soft, t.fg, 0.13) }
   -- the terminal float: the theme's own background (one step over the `deep` editor, like the demo's)
   g.FlatTerm = { fg = t.fg, bg = t.bg }
   g.FlatTermBorder = { fg = t.bg, bg = t.bg }

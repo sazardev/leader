@@ -61,27 +61,46 @@ function M.ago(seconds)
   return "just now"
 end
 
---- Facts about a project for the pane, read once and kept (git through `git -C`, a short timeout).
+--- The sessions persistence has saved, read once per opening (a file name per project, the folder's path inside).
+---@param m table
+---@return string[]
+local function sessions(m)
+  if not m.sessions then
+    m.sessions = {}
+    local okp, config = pcall(require, "persistence.config")
+    local dir = okp and config.options and config.options.dir
+    if dir and vim.uv.fs_stat(dir) then
+      for name in vim.fs.dir(dir) do
+        m.sessions[#m.sessions + 1] = name
+      end
+    end
+  end
+  return m.sessions
+end
+
+--- The branch and the number of changes from `git status --porcelain --branch`.
+---@param out string
+---@return string? branch, integer changed
+function M.parse_status(out)
+  local lines = vim.split(out or "", "\n", { trimempty = true })
+  local head = lines[1] and lines[1]:match "^## (.*)$"
+  local branch
+  if head then
+    branch = head:match "^No commits yet on (.+)$"
+      or head:match "^Initial commit on (.+)$"
+      or head:match "^(.-)%.%.%."
+      or head
+    branch = branch:match "^HEAD %(no branch%)" and "HEAD (detached)" or branch:gsub("%s.*$", "")
+  end
+  return branch, #lines - (head and 1 or 0)
+end
+
+--- What a project's files say, without git: its stack, the start of its README, whether a session waits for it.
 ---@param m table
 ---@param dir string
-function M.info(m, dir)
-  m.info = m.info or {}
-  if m.info[dir] then
-    return m.info[dir]
-  end
-  local function git(args)
-    local ok, res = pcall(function()
-      return vim.system(vim.list_extend({ "git", "-C", dir }, args), { text = true }):wait(600)
-    end)
-    return ok and res and res.code == 0 and vim.trim(res.stdout or "") or nil
-  end
-  local info = { stack = M.stack(dir) }
-  if vim.uv.fs_stat(dir .. "/.git") then
-    info.branch = git { "rev-parse", "--abbrev-ref", "HEAD" }
-    info.commit = git { "log", "-1", "--format=%s\t%cr" }
-    local status = git { "status", "--porcelain" }
-    info.changed = status and #vim.split(status, "\n", { trimempty = true }) or 0
-  end
+---@return table
+local function local_facts(m, dir)
+  local info = { stack = M.stack(dir), git = vim.uv.fs_stat(dir .. "/.git") ~= nil }
   for _, name in ipairs { "README.md", "readme.md", "README", "README.rst" } do
     local f = io.open(dir .. "/" .. name)
     if f then
@@ -96,12 +115,97 @@ function M.info(m, dir)
       break
     end
   end
-  local okp, config = pcall(require, "persistence.config")
-  if okp and config.options and config.options.dir then
-    local name = dir:gsub("[\\/:]+", "%%")
-    info.session = #vim.fn.glob(config.options.dir .. vim.fn.escape(name, "%") .. "*.vim", true, true) > 0
+  return info
+end
+
+--- Reads git for the newest folder asked for, one folder at a time: moving fast over the list starts nothing for
+--- the rows only passed over, and the pane is drawn again when the answer is for the row still under the cursor.
+---@param m table
+local function pump(m)
+  local dir = m.want
+  if m.busy or not dir or not (m.info[dir] and m.info[dir].pending) then
+    return
   end
-  m.info[dir] = info
+  m.busy = true
+  local results, left = {}, 2
+  local function done()
+    left = left - 1
+    if left > 0 then
+      return
+    end
+    vim.schedule(function()
+      m.busy = false
+      local info = m.info[dir]
+      local st = results.status
+      if st and st.code == 0 then
+        info.branch, info.changed = M.parse_status(st.stdout)
+      end
+      local log = results.log
+      if log and log.code == 0 then
+        local subject, at = vim.trim(log.stdout or ""):match "^(.-)\t(%d+)$"
+        info.subject, info.commit_at = subject, tonumber(at)
+      end
+      info.pending = nil
+      -- stamped after git answers: `git status` refreshes .git/index itself
+      local cache = require "gui.projcache"
+      info.stamp = cache.stamp(dir)
+      cache.put(dir, info)
+      local row = m.wins and vim.api.nvim_win_is_valid(m.wins.list) and market.current(m)
+      if row and row.project and row.project.dir == dir then
+        market.refresh(m, true)
+      end
+      pump(m)
+    end)
+  end
+  local opts = { text = true, timeout = 4000 }
+  local ok = pcall(function()
+    vim.system({ "git", "-C", dir, "status", "--porcelain", "--branch" }, opts, function(res)
+      results.status = res
+      done()
+    end)
+    vim.system({ "git", "-C", dir, "log", "-1", "--format=%s%x09%ct" }, opts, function(res)
+      results.log = res
+      done()
+    end)
+  end)
+  if not ok then
+    m.busy, m.info[dir].pending = false, nil
+  end
+end
+
+--- Facts about a project for the pane. Saved ones come back at once while the project has not changed (see
+--- gui/projcache.lua); otherwise the files are read now and git in the background (the pane says so meanwhile).
+---@param m table
+---@param dir string
+function M.info(m, dir)
+  m.info = m.info or {}
+  local info = m.info[dir]
+  if not info then
+    local cache = require "gui.projcache"
+    local stamp = cache.stamp(dir)
+    info = cache.info(dir, stamp)
+    if not info then
+      info = local_facts(m, dir)
+      info.stamp, info.pending = stamp, info.git or nil
+      if not info.git then
+        cache.put(dir, info)
+      end
+    end
+    m.info[dir] = info
+  end
+  -- the session is not saved with the rest: it comes and goes without the project changing (looked up once per opening)
+  m.session_of = m.session_of or {}
+  if m.session_of[dir] == nil then
+    local name = dir:gsub("[\\/:]+", "%%")
+    m.session_of[dir] = vim.iter(sessions(m)):any(function(file)
+      return file:sub(1, #name) == name and file:sub(-4) == ".vim"
+    end)
+  end
+  info.session = m.session_of[dir]
+  if info.pending then
+    m.want = dir
+    pump(m)
+  end
   return info
 end
 
@@ -117,8 +221,18 @@ end
 function M.rows(m)
   local rows = { { title = "OPEN A PROJECT" }, { spacer = true } }
   local cwd = projects.normalize(vim.uv.cwd() or "")
+  local pinned = vim.tbl_filter(function(p)
+    return p.pinned and matches(m, p)
+  end, m.recent)
+  if #pinned > 0 then
+    rows[#rows + 1] = { group = "Pinned" }
+    for _, p in ipairs(pinned) do
+      rows[#rows + 1] = { project = p, current = p.dir == cwd }
+    end
+    rows[#rows + 1] = { spacer = true }
+  end
   local recent = vim.tbl_filter(function(p)
-    return matches(m, p)
+    return not p.pinned and matches(m, p)
   end, m.recent)
   if #recent > 0 then
     rows[#rows + 1] = { group = "Recent" }
@@ -145,6 +259,7 @@ function M.rows(m)
   end
   rows[#rows + 1] = { spacer = true }
   rows[#rows + 1] = { group = "Start" }
+  rows[#rows + 1] = { start = "browse", label = "Browse folders…" }
   rows[#rows + 1] = { start = "path", label = "Open a folder by its path…" }
   rows[#rows + 1] = { start = "new", label = "New project…" }
   rows[#rows + 1] = { start = "clone", label = "Clone a repository…" }
@@ -174,7 +289,7 @@ function M.list_line(row)
   local parent = vim.fn.fnamemodify(vim.fs.dirname(dir), ":~")
   local pad = string.rep(" ", math.max(24 - vim.fn.strdisplaywidth(name), 1))
   return {
-    { row.current and "  ● " or "    ", modal.hl.mark },
+    { row.current and "  ● " or (row.project.pinned and "  ★ " or "    "), modal.hl.mark },
     { name, modal.hl.file },
     { pad .. parent, modal.hl.muted },
   }
@@ -194,6 +309,7 @@ function M.pane(m, row, width)
   end
   if row.start then
     local text = ({
+      browse = "Walk through your folders like in Yazi: h up, l in, the folder under the cursor on the right. ⏎ opens it.",
       path = "Type the folder (~ and relative paths work). Leader opens it here and remembers it.",
       new = "A new folder with git initialized, then opened here. You pick where it goes and its name.",
       clone = "git clone a repository (https or ssh) into a folder you pick, then open it here.",
@@ -218,17 +334,20 @@ function M.pane(m, row, width)
     { { "  " .. vim.fn.fnamemodify(dir, ":~"), "GuiPickerDim" } },
     { { "" } },
   }
-  if info.branch then
+  if info.pending then
+    out[#out + 1] = line("Branch", "reading git …", "GuiPickerDim")
+  elseif info.branch then
     local changes = info.changed and info.changed > 0 and ("  ·  %d changed"):format(info.changed) or "  ·  clean"
     out[#out + 1] = line("Branch", info.branch .. changes)
   end
-  if info.commit and info.commit ~= "" then
-    local subject, when = info.commit:match "^(.-)\t(.*)$"
-    out[#out + 1] = line("Commit", (subject or info.commit) .. (when and ("  ·  " .. when) or ""))
+  if info.subject and info.subject ~= "" then
+    out[#out + 1] = line("Commit", info.subject .. (info.commit_at and ("  ·  " .. M.ago(info.commit_at)) or ""))
   end
   if row.project.at then
     out[#out + 1] = line("Opened", M.ago(row.project.at))
   end
+  out[#out + 1] =
+    line("Pinned", row.project.pinned and "yes · p unpins it" or "no · p keeps it at the top", "GuiPickerDim")
   if info.session ~= nil then
     out[#out + 1] =
       line("Session", info.session and "brings your windows and files back" or "none yet: starts on the home screen")
@@ -251,7 +370,11 @@ function M.summary(m)
   return {
     {
       {
-        ("  %d project%s · %s"):format(n, n == 1 and "" or "s", m.searching and "still looking…" or "search done"),
+        ("  %d project%s · %s"):format(
+          n,
+          n == 1 and "" or "s",
+          m.searching and "still looking…" or ("searched " .. M.ago(os.time() - (m.found_age or 0)) .. " · R again")
+        ),
         modal.hl.muted,
       },
     },
@@ -260,14 +383,38 @@ end
 
 function M.hints(_, mode)
   if mode == "pane" then
-    return { { "Esc", "back" }, { "⏎", "open" } }
+    return { { "h ← Esc", "back" }, { "⏎", "open" } }
   end
-  return { { "⏎", "open here" }, { "o", "new window" }, { "d", "forget" }, { "/", "filter" }, { "?", "keys" } }
+  return {
+    { "↑↓ jk", "move" },
+    { "l →", "details" },
+    { "⏎", "open here" },
+    { "o", "new window" },
+    { "p", "pin" },
+    { "b", "browse" },
+    { "d", "forget" },
+    { "/", "filter" },
+    { "?", "keys" },
+  }
 end
 
---- Starts the background search for git projects under the home folder (fd, else find).
+--- The folders the last search found (still there), at once; the home folder is searched again in the background
+--- only when that list is older than `settings.gui.projects.rescan` (or `force`, R).
 ---@param m table
-local function search(m)
+---@param force boolean?
+local function search(m, force)
+  local cache = require "gui.projcache"
+  local dirs, age = cache.found()
+  m.found, m.found_age = {}, age
+  for _, dir in ipairs(dirs) do
+    if vim.uv.fs_stat(dir) then
+      m.found[#m.found + 1] = { dir = dir }
+    end
+  end
+  local rescan = ((require("core.settings").gui or {}).projects or {}).rescan or 3600
+  if not force and #dirs > 0 and age < rescan then
+    return
+  end
   local home = vim.uv.os_homedir() or "~"
   local skip = { ".cache", ".local", ".cargo", ".rustup", ".npm", "node_modules", "go", "snap", ".git/modules" }
   local fd = vim.fn.executable "fd" == 1 and "fd" or (vim.fn.executable "fdfind" == 1 and "fdfind" or nil)
@@ -284,7 +431,7 @@ local function search(m)
   m.searching = true
   vim.system(cmd, { text = true }, function(res)
     vim.schedule(function()
-      local seen = {}
+      local seen, found = {}, {}
       for _, l in ipairs(vim.split(res.stdout or "", "\n", { trimempty = true })) do
         -- fd ends folders with a slash: drop it, or the parent of ".git/" would be ".git" itself
         local dir = projects.normalize(vim.fs.dirname((l:gsub("/+$", ""))))
@@ -292,18 +439,53 @@ local function search(m)
         local hidden = dir:sub(#home + 1):find "/%." ~= nil
         if not seen[dir] and not hidden then
           seen[dir] = true
-          m.found[#m.found + 1] = { dir = dir }
+          found[#found + 1] = dir
         end
       end
-      table.sort(m.found, function(a, b)
-        return a.dir < b.dir
-      end)
-      m.searching = false
+      table.sort(found)
+      cache.set_found(found)
+      cache.save()
+      m.found = vim.tbl_map(function(dir)
+        return { dir = dir }
+      end, found)
+      m.searching, m.found_age = false, 0
       if m.wins and vim.api.nvim_win_is_valid(m.wins.list) then
         market.refresh(m)
       end
     end)
   end)
+end
+
+--- Pins or unpins a project and keeps the cursor on it (it moves between Pinned and Recent).
+---@param m table
+---@param dir string
+function M.toggle_pin(m, dir)
+  projects.pin(dir, not projects.pinned(dir))
+  m.recent = projects.list()
+  market.refresh(m)
+  for i, r in ipairs(m.rows) do
+    if r.project and r.project.dir == dir then
+      pcall(vim.api.nvim_win_set_cursor, m.wins.list, { i, 0 })
+      break
+    end
+  end
+  market.refresh(m, true)
+end
+
+--- Closes the market and opens `dir` as the project, here or in a new window (the picker's and the browser's way).
+---@param m table
+---@param dir string
+---@param new_window boolean?
+function M.enter_dir(m, dir, new_window)
+  market.close(m)
+  if new_window then
+    projects.remember(dir)
+    if vim.g.leader_gui_channel then
+      vim.rpcnotify(vim.g.leader_gui_channel, "leader_window", "new_window:" .. dir)
+    end
+  else
+    projects.switch(dir)
+  end
 end
 
 ---@param m table
@@ -316,15 +498,7 @@ local function open_row(m, row, new_window)
     market.close(m)
     return M.start(row.start)
   end
-  market.close(m)
-  if new_window then
-    projects.remember(row.project.dir)
-    if vim.g.leader_gui_channel then
-      vim.rpcnotify(vim.g.leader_gui_channel, "leader_window", "new_window:" .. row.project.dir)
-    end
-  else
-    projects.switch(row.project.dir)
-  end
+  M.enter_dir(m, row.project.dir, new_window)
 end
 
 --- The three ways to start without a project in the list.
@@ -332,6 +506,8 @@ end
 function M.start(kind)
   if kind == "path" then
     return projects.ask()
+  elseif kind == "browse" then
+    return require("gui.browse").open()
   end
   local base = vim.fn.fnamemodify(vim.fs.dirname(vim.uv.cwd() or "~"), ":~") .. "/"
   if kind == "new" then
@@ -386,12 +562,16 @@ function M.open()
     summary = M.summary,
     hints = M.hints,
     summary_rows = 3,
+    hjkl = true, -- l / → read the details, only ⏎ (or a click) opens the project
     read = function(m, row)
       open_row(m, row, false)
     end,
     help = {
       { "o", "open it in a new window" },
+      { "p", "pin it: it stays at the top, here and in the projects menu (again to unpin)" },
       { "d", "forget it (the folder stays, it leaves the list)" },
+      { "b", "browse your folders to open one (like Yazi)" },
+      { "R", "search your home for git projects again (otherwise once an hour)" },
     },
     keys = {
       list = {
@@ -415,11 +595,46 @@ function M.open()
           end,
           "Forget project",
         },
+        {
+          "p",
+          function(m, row)
+            if row and row.project then
+              M.toggle_pin(m, row.project.dir)
+            end
+          end,
+          "Pin project",
+        },
+        {
+          "b",
+          function(m)
+            market.close(m)
+            M.start "browse"
+          end,
+          "Browse folders",
+        },
+        {
+          "R",
+          function(m)
+            if not m.searching then
+              search(m, true)
+              market.refresh(m)
+            end
+          end,
+          "Search projects again",
+        },
       },
     },
+    on_close = function()
+      require("gui.projcache").save()
+    end,
   }
   local m = market.new(def, { recent = projects.list(), found = {}, info = {} })
+  if not m then
+    return
+  end
   search(m)
+  -- the saved list is in place before any search answers (a fresh cache never searches): draw it now
+  market.refresh(m)
   return m
 end
 

@@ -3,7 +3,8 @@
 -- (stdpath("state")/leader-projects.json, newest first), so the bar's project
 -- menu can bring you back. Switching saves the current session (persistence.nvim,
 -- one per folder), changes folder and restores that folder's session, or shows
--- the start screen when it has none. Unsaved files are never dropped: you are
+-- the start screen when it has none. Pinned ones (`pin`) stay first and are never
+-- dropped for newer ones. Unsaved files are never dropped: you are
 -- asked to save them first. "Open folder…" finds the git projects under your home
 -- (fd, else find) in Telescope; "Open path…" takes a folder you type.
 local M = {}
@@ -11,7 +12,7 @@ local M = {}
 local FILE = vim.fn.stdpath "state" .. "/leader-projects.json"
 local MAX = 30
 
----@return { dir: string, at: integer }[]
+---@return { dir: string, at: integer?, pinned: boolean? }[]
 function M.list()
   local f = io.open(FILE)
   if not f then
@@ -19,7 +20,7 @@ function M.list()
   end
   local ok, data = pcall(vim.json.decode, f:read "*a")
   f:close()
-  if not (ok and type(data) == "table") then
+  if not (ok and vim.islist(data)) then
     return {}
   end
   return vim.tbl_filter(function(p)
@@ -51,14 +52,55 @@ function M.remember(dir)
   if dir == M.normalize "~" or dir == "/" or vim.fn.isdirectory(dir) == 0 then
     return
   end
+  local pinned = false
   local list = vim.tbl_filter(function(p)
+    pinned = pinned or (p.dir == dir and p.pinned == true)
     return p.dir ~= dir
   end, M.list())
-  table.insert(list, 1, { dir = dir, at = os.time() })
-  while #list > MAX do
-    table.remove(list)
+  table.insert(list, 1, { dir = dir, at = os.time(), pinned = pinned or nil })
+  write(M.trim(list))
+end
+
+--- At most MAX remembered: the oldest ones that are not pinned go first.
+---@param list table[]
+---@return table[]
+function M.trim(list)
+  for i = #list, 1, -1 do
+    if #list <= MAX then
+      break
+    end
+    if not list[i].pinned then
+      table.remove(list, i)
+    end
   end
-  write(list)
+  return list
+end
+
+---@param dir string
+---@return boolean
+function M.pinned(dir)
+  dir = M.normalize(dir)
+  return vim.iter(M.list()):any(function(p)
+    return p.dir == dir and p.pinned == true
+  end)
+end
+
+--- Pins a folder (it stays first in the picker and the projects menu) or unpins it. A folder never opened yet can
+--- be pinned too: it is remembered, pinned, without a time.
+---@param dir string
+---@param on boolean
+function M.pin(dir, on)
+  dir = M.normalize(dir)
+  local list, found = M.list(), false
+  for _, p in ipairs(list) do
+    if p.dir == dir then
+      p.pinned, found = on or nil, true
+    end
+  end
+  if not found and on and vim.fn.isdirectory(dir) == 1 then
+    list[#list + 1] = { dir = dir, pinned = true }
+  end
+  write(M.trim(list))
 end
 
 ---@param dir string
@@ -82,6 +124,27 @@ local function has_files()
   end)
 end
 
+--- Opens a folder as the project, also when Neovim is already in it (the app starting in a folder): the current
+--- session saved when there are files, every buffer wiped, the folder's session restored or the start screen.
+---@param dir string
+function M.enter(dir)
+  dir = M.normalize(dir)
+  local ok, persistence = pcall(require, "persistence")
+  if ok and has_files() then
+    require("utils.session").close_auxiliary()
+    pcall(persistence.save)
+  end
+  pcall(vim.cmd, "silent! only")
+  pcall(vim.cmd, "silent! %bwipeout!")
+  vim.cmd.cd(vim.fn.fnameescape(dir))
+  M.remember(dir)
+  if ok and require("utils.session").exists() then
+    pcall(persistence.load)
+  else
+    require("ui.start").open()
+  end
+end
+
 --- Switches to another project: session saved, folder changed, its session (or the start screen) restored.
 ---@param dir string
 function M.switch(dir)
@@ -93,20 +156,7 @@ function M.switch(dir)
     return
   end
   local function go()
-    local ok, persistence = pcall(require, "persistence")
-    if ok and has_files() then
-      require("utils.session").close_auxiliary()
-      pcall(persistence.save)
-    end
-    pcall(vim.cmd, "silent! only")
-    pcall(vim.cmd, "silent! %bwipeout!")
-    vim.cmd.cd(vim.fn.fnameescape(dir))
-    M.remember(dir)
-    if ok and require("utils.session").exists() then
-      pcall(persistence.load)
-    else
-      require("ui.start").open()
-    end
+    M.enter(dir)
   end
   local unsaved = modified()
   if #unsaved == 0 then

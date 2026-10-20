@@ -42,9 +42,34 @@ local function on_data(job, parser, data)
   if piece then
     job.partial = job.partial .. piece
     if job.presenter.stream then
-      job.presenter.stream(job)
+      M.stream_soon(job)
     end
   end
+end
+
+--- Draws the partial text at most once every `settings.stream_ms` per job: a model streaming token by token (or several
+--- agents at once) would otherwise redraw the whole answer on every chunk. The first chunk draws at once, the rest
+--- coalesce into one trailing draw; the final text is always drawn by the presenter's `done`.
+---@param job AgentJob
+function M.stream_soon(job)
+  local gap = (settings.stream_ms or 40) * 1e6
+  local now = vim.uv.hrtime()
+  local since = now - (job.streamed_at or 0)
+  if since >= gap then
+    job.streamed_at = now
+    return job.presenter.stream(job)
+  end
+  if job.stream_timer then
+    return -- one trailing draw is already waiting
+  end
+  job.stream_timer = true
+  vim.defer_fn(function()
+    job.stream_timer = nil
+    if job.state == "running" then
+      job.streamed_at = vim.uv.hrtime()
+      job.presenter.stream(job)
+    end
+  end, math.ceil((gap - since) / 1e6))
 end
 
 ---@param job AgentJob
