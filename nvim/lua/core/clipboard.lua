@@ -20,7 +20,8 @@ local function paste()
 end
 
 function M.setup()
-  if not wanted() then
+  -- The desktop app (app/) serves the system clipboard itself over RPC.
+  if vim.g.leader_gui or not wanted() then
     return
   end
   local osc52 = require "vim.ui.clipboard.osc52"

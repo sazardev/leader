@@ -16,7 +16,10 @@
 --   spec.initial(m)?          the row the cursor starts on (default: the first it can rest on)
 --   spec.summary_rows         rows of the strip (default 7)
 -- Under 100 columns the panes take turns (the list, ⏎ opens the pane, Esc goes back) instead of sharing the screen.
+-- The mouse (utils/mouse.lua): the row under the pointer is the one under the cursor (the pane follows), a click reads
+-- it (or folds its group), and the key chips under the panes are buttons.
 local modal = require "utils.modal"
+local mouse = require "utils.mouse"
 
 local M = {}
 
@@ -187,7 +190,16 @@ function M.refresh(m)
   end
   summary[#summary + 1] = { { "" } }
   local mode = (m.view == "result" and "result") or (vim.api.nvim_get_current_win() == w.pane and "pane") or "list"
-  summary[#summary + 1] = M.hints(spec.hints(m, mode))
+  local hints = M.hints(spec.hints(m, mode))
+  summary[#summary + 1] = hints
+  -- where each key chip sits, so a click on it does what the key does
+  m.chips = {
+    row = #summary,
+    mode = mode,
+    list = mouse.chips(hints, function(group)
+      return group == "NvModalBtn2"
+    end),
+  }
   M.draw(m.bufs.summary, summary)
 end
 
@@ -465,6 +477,48 @@ function M.new(spec, state)
         end, k[3])
       end
     end
+  end
+
+  -- the mouse, in all three windows (a click moves the focus to the one under the pointer before it arrives)
+  local function read_row(line)
+    pcall(vim.api.nvim_set_current_win, m.wins.list)
+    pcall(vim.api.nvim_win_set_cursor, m.wins.list, { line, 0 })
+    local row = m.rows[line]
+    if row and row.collapsed then
+      return fold()
+    end
+    if spec.read then
+      return spec.read(m, row)
+    end
+    pcall(vim.api.nvim_win_set_cursor, m.wins.pane, { 1, 0 })
+    M.focus(m, "pane")
+  end
+  local handlers = {
+    move = function(pos)
+      if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) and mouse.follow(m.wins.list, pos.line) then
+        m.view = "pane"
+        M.refresh(m)
+      end
+    end,
+    click = function(pos)
+      if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) then
+        return read_row(pos.line)
+      end
+      local chips = m.chips
+      if pos.winid == m.wins.summary and chips and pos.line == chips.row then
+        for _, chip in ipairs(chips.list) do
+          if pos.column - 1 >= chip.from and pos.column - 1 < chip.to then
+            local target = chips.mode == "pane" and m.wins.pane or m.wins.list
+            pcall(vim.api.nvim_set_current_win, target)
+            vim.api.nvim_feedkeys(vim.keycode(mouse.keys(chip.key)), "m", false)
+            return
+          end
+        end
+      end
+    end,
+  }
+  for _, buf in pairs(m.bufs) do
+    mouse.on(buf, handlers)
   end
 
   local group = vim.api.nvim_create_augroup("Market" .. m.bufs.list, { clear = true })

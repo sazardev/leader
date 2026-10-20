@@ -381,6 +381,28 @@ local defaults = {
     timeout_ms = 2000,
   },
 
+  -- Desktop app (app/, the `leader` binary): only read when Neovim runs inside it (vim.g.leader_gui)
+  gui = {
+    font = "GeistMono Nerd Font Mono:h12", -- guifont: "Family[,Fallback]:hSIZE" (Ctrl+= / Ctrl+- / Ctrl+0 resize it live)
+    -- the app's own title bar, in the theme's colors: the current file's path (click a folder = Telescope in it,
+    -- the file = show it in the tree) and only what the statusline does not say; drag it to move the window,
+    -- double-click to maximize
+    appbar = {
+      enabled = true, -- false = the system's title bar
+      height = 1.5, -- in text lines
+      controls = "right", -- the window's minimize · maximize · close squares: "right" or "left"
+      -- the left side: Leader's N (the app menu, F10), the project's name (the projects menu, Ctrl+Shift+O), ⌂ (start
+      -- screen), ↺ (recent files)
+      buttons = { mark = true, project = true, home = true, history = true },
+      activity = true, -- what is running (LSP indexing, installs, a save): a dot spinner and a progress line under the bar
+      -- right side: what is left to install (opens the welcome screen), macro being recorded, the file's git changes,
+      -- encoding/line endings when unusual; LSP clients and the indent are there if you want them
+      show = { setup = true, recording = true, git = true, lsp = false, indent = false, format = true },
+    },
+    padding = { x = 0, bottom = 0 }, -- px around the editor (0 = edge to edge)
+    onboarding = true, -- the welcome screen with the install checks on the first launch (Ctrl+Shift+W or the bar's chip any time)
+  },
+
   -- Clipboard via OSC 52 (WSL/SSH without a graphical server): "auto" | true | false
   clipboard = {
     osc52 = "auto",

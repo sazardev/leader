@@ -53,6 +53,10 @@ M.hl = {
 }
 
 local NS = vim.api.nvim_create_namespace "NvModal"
+local HOVER = vim.api.nvim_create_namespace "NvModalHover"
+local mouse = require "utils.mouse"
+---@type table<integer, table<integer, { from: integer, to: integer, key: string, group: string }[]>> per buffer: the button chips of each row
+local BUTTONS = {}
 
 ---@param line string|table[]
 ---@return string
@@ -102,6 +106,18 @@ local function render(buf, lines)
   vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.tbl_map(plain, lines))
   paint(buf, lines)
+  -- where the buttons are, for the mouse (a click on one does what its key does)
+  BUTTONS[buf] = {}
+  for i, line in ipairs(lines) do
+    if type(line) == "table" then
+      local chips = mouse.chips(line, function(group)
+        return type(group) == "string" and group:find "^NvModalBtn" ~= nil
+      end)
+      if #chips > 0 then
+        BUTTONS[buf][i] = chips
+      end
+    end
+  end
   if FLAT then
     for i, line in ipairs(lines) do
       local chips = type(line) == "table"
@@ -115,8 +131,59 @@ local function render(buf, lines)
   end
 end
 
+--- The mouse on a modal: a button lights up under the pointer and a click presses its key; `hooks.hover(row)` and
+--- `hooks.click(row)` (filled by the caller, e.g. the checklist) handle the other rows.
+---@param buf integer
+---@param win integer
+---@param hooks { hover: fun(row: integer)?, click: fun(row: integer)? }
+local function pointer(buf, win, hooks)
+  local lit
+  local function chip_at(pos)
+    if pos.winid ~= win then
+      return nil
+    end
+    for _, chip in ipairs((BUTTONS[buf] or {})[pos.line] or {}) do
+      if pos.column - 1 >= chip.from and pos.column - 1 < chip.to then
+        return chip
+      end
+    end
+  end
+  mouse.on(buf, {
+    modes = { "n", "i" }, -- the input modal is typed into: its buttons answer in insert mode too
+    move = function(pos)
+      local chip = chip_at(pos)
+      local key = chip and (pos.line .. ":" .. chip.from) or nil
+      if key ~= lit then
+        lit = key
+        vim.api.nvim_buf_clear_namespace(buf, HOVER, 0, -1)
+        if chip then
+          -- the button under the pointer takes the primary color, like a hovered button anywhere
+          vim.api.nvim_buf_set_extmark(buf, HOVER, pos.line - 1, chip.from, {
+            end_col = chip.to,
+            hl_group = chip.group == "NvModalBtnDanger" and "NvModalBtnDanger" or "NvModalBtn",
+            priority = 300,
+          })
+        end
+      end
+      if not chip and pos.winid == win and hooks.hover then
+        hooks.hover(pos.line)
+      end
+    end,
+    click = function(pos)
+      local chip = chip_at(pos)
+      if chip then
+        pcall(vim.api.nvim_set_current_win, win)
+        return vim.api.nvim_feedkeys(vim.keycode(mouse.keys(chip.key)), "m", false)
+      end
+      if pos.winid == win and hooks.click then
+        hooks.click(pos.line)
+      end
+    end,
+  })
+end
+
 ---@param lines (string|table[])[]
----@param opts { title?: string, editable?: boolean }
+---@param opts { title?: string, editable?: boolean, hooks?: table }
 ---@return integer buf, integer win, function close
 local function open(lines, opts)
   local buf = vim.api.nvim_create_buf(false, true)
@@ -154,6 +221,14 @@ local function open(lines, opts)
 
   vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true, desc = "Close" })
   vim.keymap.set("n", "q", close, { buffer = buf, nowait = true, desc = "Close" })
+  pointer(buf, win, opts.hooks or {})
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = buf,
+    once = true,
+    callback = function()
+      BUTTONS[buf] = nil
+    end,
+  })
   return buf, win, close
 end
 
@@ -320,7 +395,8 @@ function M.checklist(items, opts, on_submit)
     return out
   end
 
-  local buf, win, close = open(lines(), { title = opts.title })
+  local hooks = {}
+  local buf, win, close = open(lines(), { title = opts.title, hooks = hooks })
   if opts.on_cancel then
     local function back()
       close()
@@ -365,6 +441,18 @@ function M.checklist(items, opts, on_submit)
     if i then
       set(i, not state[i])
       redraw()
+    end
+  end
+  -- the mouse: the item under the pointer is the one under the cursor, a click checks or unchecks it
+  hooks.hover = function(r)
+    if item_at(r) and r ~= row() then
+      pcall(vim.api.nvim_win_set_cursor, win, { r, 0 })
+    end
+  end
+  hooks.click = function(r)
+    if item_at(r) then
+      pcall(vim.api.nvim_win_set_cursor, win, { r, 0 })
+      toggle()
     end
   end
   local function toggle_all()

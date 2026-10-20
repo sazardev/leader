@@ -125,16 +125,32 @@ local function bind(buf)
   map("<CR>", function()
     activate(state.sel)
   end)
-  map("<LeftMouse>", function()
-    local pos = vim.fn.getmousepos()
+  ---@return integer? the button under the pointer (its label row or the half cell under it)
+  local function button_at(pos)
     for i, row in ipairs(state.rows) do
       if row + 1 == pos.line or (row + 2 == pos.line and not vim.tbl_contains(state.rows, row + 1)) then
-        state.sel = i
-        M.render()
-        return activate(i)
+        return i
       end
     end
+  end
+  map("<LeftMouse>", function()
+    local i = button_at(vim.fn.getmousepos())
+    if i then
+      state.sel = i
+      M.render()
+      return activate(i)
+    end
   end)
+  -- hover (the desktop app reports the pointer's moves): the button under it is the selected one
+  require("utils.mouse").on(buf, {
+    move = function(pos)
+      local i = button_at(pos)
+      if i and i ~= state.sel then
+        state.sel = i
+        M.render()
+      end
+    end,
+  })
   for i, action in ipairs(state.actions) do
     map(action.key, function()
       activate(i)

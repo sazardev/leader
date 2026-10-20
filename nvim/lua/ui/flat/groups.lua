@@ -395,6 +395,28 @@ function M.build(t)
   g.FlatFolder = { fg = t.blue, bg = t.soft }
   g.FlatMark = { fg = t.yellow, bg = t.soft }
   g.FlatWarn = { fg = t.yellow, bg = t.soft }
+  -- the desktop app's welcome screen (gui/onboarding.lua): a modal block with the install checks and the first keys
+  g.GuiWelcomeHead = { fg = t.dim, bg = t.soft, bold = true }
+  g.GuiWelcomeOk = { fg = t.green, bg = t.soft, bold = true }
+  g.GuiWelcomeBad = { fg = t.red, bg = t.soft, bold = true }
+  g.GuiWelcomeKey = { fg = t.yellow, bg = t.soft }
+  g.GuiWelcomeText = { fg = t.fg, bg = t.soft }
+  g.GuiWelcomeDetail = { fg = t.dim, bg = t.soft }
+  g.GuiWelcomeFix = { fg = t.on, bg = t.blue, bold = true }
+  g.GuiWelcomeRow = { bg = color.blend(t.soft, t.fg, 0.06) } -- the row under the cursor
+  -- the app bar's dropdown menus (gui/menu.lua): the modal block, the chosen row one step lighter, keys dimmed
+  g.GuiMenu = { fg = t.fg, bg = t.soft }
+  g.GuiMenuSel = { fg = t.fg, bg = color.blend(t.soft, t.fg, 0.10), bold = true }
+  g.GuiMenuHint = { fg = t.faint }
+  g.GuiMenuDetail = { fg = t.dim }
+  g.GuiMenuSep = { fg = color.blend(t.soft, t.fg, 0.14) }
+  g.GuiMenuMark = { fg = t.green }
+  -- the project picker's reading pane (gui/picker.lua): on the editor's own color, so text only (no block behind it)
+  g.GuiPickerTitle = { fg = t.yellow, bold = true }
+  g.GuiPickerLabel = { fg = t.faint }
+  g.GuiPickerText = { fg = t.fg }
+  g.GuiPickerDim = { fg = t.dim }
+  g.GuiPickerMark = { fg = t.green }
   -- the terminal float: the theme's own background (one step over the `deep` editor, like the demo's)
   g.FlatTerm = { fg = t.fg, bg = t.bg }
   g.FlatTermBorder = { fg = t.bg, bg = t.bg }

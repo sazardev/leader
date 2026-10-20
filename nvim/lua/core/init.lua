@@ -7,6 +7,7 @@ function M.setup()
   require("core.options").setup()
   require("ui.flat").setup()
   require("core.clipboard").setup()
+  require("gui").setup() -- only inside the desktop app (app/)
   require("core.autocmds").setup()
 
   -- NvChad loads its keymaps with vim.schedule: do the same so that user
