@@ -113,7 +113,11 @@ end
 
 --- Everything off until you resume: no server starts for any file, however many you open
 function M.toggle_pause()
-  local list = require("languages").lsp_servers()
+  -- the servers in use (Lua's is chosen at startup), not the ones the languages declare
+  local list = require("servers").active
+  if #list == 0 then
+    list = require("languages").lsp_servers()
+  end
   if M.paused then
     M.paused = false
     for _, name in ipairs(list) do

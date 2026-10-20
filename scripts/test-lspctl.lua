@@ -1,4 +1,5 @@
--- Tests of stopping, restarting and pausing language servers (nvim/lua/utils/lspctl.lua). The "server" is a process that
+-- Tests of stopping, restarting and pausing language servers (nvim/lua/utils/lspctl.lua) and of which server Lua gets
+-- (nvim/lua/servers/lua.lua). The "server" is a process that
 -- never answers (sleep), which is what one stuck loading its workspace looks like. Hermetic: no real server, no network.
 --   nvim -u NONE --headless -c "luafile scripts/test-lspctl.lua"
 local root = vim.env.AGENT_TEST_ROOT or vim.fn.getcwd()
@@ -29,6 +30,15 @@ end
 local function stuck(name, buf)
   return vim.lsp.start({ name = name, cmd = { "sleep", "60" }, root_dir = "/tmp" }, { bufnr = buf, attach = true })
 end
+
+-- ── which server Lua gets (nvim/lua/servers/lua.lua) ────────────────────────
+local lua_server = require "servers.lua"
+eq("auto: emmylua_ls when it is installed", lua_server.choose("auto", { emmylua_ls = true, lua_ls = true }), "emmylua_ls")
+eq("auto: lua_ls when emmylua_ls is not installed", lua_server.choose("auto", { emmylua_ls = false, lua_ls = true }), "lua_ls")
+eq("unset behaves as auto", lua_server.choose(nil, { emmylua_ls = true, lua_ls = true }), "emmylua_ls")
+eq("lua_ls can be forced", lua_server.choose("lua_ls", { emmylua_ls = true, lua_ls = true }), "lua_ls")
+eq("emmylua_ls asked for but missing: lua still gets a server", lua_server.choose("emmylua_ls", { emmylua_ls = false, lua_ls = true }), "lua_ls")
+eq("emmylua_ls asked for and installed", lua_server.choose("emmylua_ls", { emmylua_ls = true, lua_ls = true }), "emmylua_ls")
 
 local ok_body, err_body = pcall(function()
 local buf = vim.api.nvim_create_buf(true, false)

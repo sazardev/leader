@@ -65,6 +65,12 @@ local defaults = {
     delay_ms = 600, -- after startup
   },
 
+  -- Language servers (lua/servers/): `lua_server` is "auto" (emmylua_ls when it is installed, ~5x faster across files than
+  -- lua_ls on the same workspace; lua_ls otherwise), "emmylua_ls" or "lua_ls".
+  lsp = {
+    lua_server = "auto",
+  },
+
   -- Languages (see lua/languages/): disable by name the ones you do not use.
   languages = {
     disabled = {}, -- registry names that are off (the installer writes it to local.lua)

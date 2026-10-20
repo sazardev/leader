@@ -5,6 +5,10 @@
 -- nvim-lspconfig's files would win).
 local M = {}
 
+--- The servers this session actually uses, after the choices (Lua gets lua_ls or emmylua_ls): what pause/resume acts on
+---@type string[]
+M.active = {}
+
 --- NvChad + blink.cmp capabilities for all clients
 local function configure_defaults()
   -- NvChad defines vim.lsp.config("*") with capabilities and on_init (turns off
@@ -64,6 +68,19 @@ function M.setup()
 
   configure_defaults()
   require("servers.on_attach").setup()
+
+  -- Lua has two servers (servers/lua.lua): the declaration says lua_ls, the faster one wins when it is installed
+  local lua_server = require("servers.lua").pick()
+  for i, name in ipairs(names) do
+    if name == "lua_ls" then
+      names[i] = lua_server
+    end
+  end
+  if lua_server ~= "lua_ls" then
+    vim.lsp.enable("lua_ls", false) -- NvChad enables it on its own
+  end
+
+  M.active = names
 
   for _, name in ipairs(names) do
     local cfg = overrides(name)
