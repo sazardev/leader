@@ -2,6 +2,54 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.7.0] - 2026-10-19
+
+### Highlights
+
+- **Leader for the desktop** (Linux and WSL): `leader`, a GPU window for the editor written in Rust. The same config,
+  drawn in one GPU draw call per frame, nothing running between keystrokes, ~170 ms to the first frame. Its own bar in the
+  theme's colors: Zed-like menus (File, Edit, Selection, View, Go, Run, Git, Agent, Window, Help), a command palette
+  (`Ctrl+Shift+P`), the projects you work in (switched with their sessions) and a full-screen project picker
+  (`Ctrl+Shift+O`), the current file as a clickable path, live activity (LSP indexing, installs, saves). Full mouse:
+  menus, pickers, modals, Telescope, the tree and the start screen follow the pointer and answer a click. A welcome
+  screen checks the install and fixes what is missing. Install it in one command
+  (`curl -fsSL https://github.com/sazardev/leader/releases/latest/download/leader-installer.sh | bash`: the app, plus
+  Neovim and the config when they are missing; Linux x86_64 with glibc 2.31+, WSL with WSLg) or from a clone with
+  `./install.sh --app`.
+- **Doctor** (`<leader>aX`): a troubleshooting agent for builds that fail, apps that will not start or crash. Free
+  checks first (dependencies, lockfile, `.env`, toolchain versions, a merge in progress), then one confirmed request.
+- **Merge conflicts** (`<leader>Gx`): trivial ones resolved for free, the rest one proposal per conflict.
+- **Language packs**: Python, TypeScript, Rust, SQL, Swift, JVM and more as packs, with tests in the editor, project
+  setup presets, debugging and a SQL runner. The installer asks once which packs you want.
+- **A full-screen marketplace** for SPEC.md modules and STACK.md / DESIGN.md add-ons, and a bigger library of each.
+- **Leader** is the new name (repo `sazardev/leader`), with a brand kit, wallpapers and a scripted product video.
+
+### Features
+
+- **app:** release package with a guided installer (9cb78d4)
+- **gui:** the config side of the desktop app (8c320ce)
+- **app:** Leader desktop app, a GPU front-end for Neovim (f0ee3b0)
+- **site:** wallpapers page, fed by a release of the brand assets (196b936)
+- **brand:** logo, image catalog and wallpaper collection (602c5a7)
+- **video:** scripted product video with keys, effects and score (9ec8b75)
+- **agent:** doctor, a troubleshooting agent (4b23e52)
+- **git:** merge conflict assistant (818657c)
+- **kit:** full-screen marketplace and a bigger library (af08bb9)
+- **agent:** statusline badge for one-shot requests (a2b18f9)
+- **languages:** packs, tests in the editor, setup and SQL runner (4c6f2a1)
+- **agent:** SPEC.md modules for what every app repeats (50e3da4)
+
+### Fixes
+
+- **kit:** drop a stray local path from the design presets (9ced0ca)
+
+### Other changes
+
+- docs(app): install and document the desktop app (fb4775e)
+- chore(rename): rename my-nvim-setup to Leader (0a5425c)
+- docs(agent): document the doctor, conflicts and marketplace (3a3e74a)
+- docs(docs): list Go and Dart / Flutter under Languages (4270f1f)
+
 ## [1.6.0] - 2026-10-19
 
 ### Highlights
