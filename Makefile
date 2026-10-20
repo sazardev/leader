@@ -11,7 +11,7 @@ BUILDFLAGS = $(if $(filter dev,$(PROFILE)),,$(if $(filter release,$(PROFILE)),--
 STYLUA  ?= $(or $(shell command -v stylua),$(wildcard $(HOME)/.local/share/nvim/mason/bin/stylua))
 
 .DEFAULT_GOAL := help
-.PHONY: help dev run open build kill timing snap restart \
+.PHONY: help dev run open build kill bench bench-edit timing snap restart \
         test test-app test-gui test-agent test-package check lint fmt fmt-lua docs cheatsheet \
         package install uninstall icons clean
 
@@ -37,6 +37,12 @@ restart: kill open ## Close every running Leader and open a fresh one (picks up 
 
 kill: ## Close every Leader window started from this checkout
 	@pkill -f "^$(CURDIR)/$(APP)/target/[a-z]+/leader" 2>/dev/null && echo "closed" || echo "none running"
+
+bench: ## Measure what the user waits for: startup phases, first frame, big files, file list (BENCH_ARGS="--runs 15")
+	@scripts/bench.sh $(BENCH_ARGS)
+
+bench-edit: ## Heavy everyday edits on the real config: big paste/copy/undo, save, 5000 diagnostics, notification burst, typing latency
+	@nvim --headless -c "luafile scripts/bench-edit.lua" 2>&1 | tr '\r' '\n' | grep -E '^edit:|rror'
 
 timing: build ## Run Leader printing startup and input latency
 	@LEADER_TIMING=1 $(BIN) $(ARGS)
