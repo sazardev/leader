@@ -77,8 +77,18 @@ draw call per frame, nothing running between keystrokes, and the flat design's h
 rectangles. Add `--app` to the installer (or run `app/install.sh` from a clone): it installs Rust with rustup if needed,
 builds `leader` and adds **Leader** to the application menu (`~/.local/bin/leader`, `~/.local/share/applications`).
 
+From a release, in one command (Linux x86_64, glibc 2.31+: Ubuntu 20.04, Debian 11, Fedora 32 and newer; WSL with
+WSLg): it downloads the package, checks it, installs the app and, when they are missing, Neovim and this config; the
+first launch shows the welcome screen.
+
 ```sh
-./install.sh --app          # the config + the desktop app
+curl -fsSL https://github.com/sazardev/leader/releases/latest/download/leader-installer.sh | bash
+```
+
+From a clone:
+
+```sh
+./install.sh --app          # the config + the desktop app (built from source)
 app/install.sh --uninstall  # remove the app (the config stays)
 ```
 
