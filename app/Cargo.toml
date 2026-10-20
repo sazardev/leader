@@ -11,3 +11,12 @@ lto = "thin"
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# `make dev`: close to release speed to the eye, but rebuilt in a few seconds (no LTO, parallel codegen, incremental).
+[profile.fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+incremental = true
+opt-level = 2
+debug = false
