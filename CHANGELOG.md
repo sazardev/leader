@@ -2,6 +2,28 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.8.0] - 2026-10-20
+
+### Highlights
+
+- **Guided setup** in the desktop app: seven steps on one screen on the first launch (and with `Ctrl+Shift+W`). It shows
+  what this machine is, lets you pick a theme previewed live, your languages (the ones you already use checked), a few
+  features and an AI agent with its model, then lists what is missing with the exact command for your Linux family
+  (pacman, apt, dnf, zypper, apk). Nothing runs until you press Install; sudo asks in a terminal and each item shows its
+  status. A review with the install checks closes it.
+- **A toolbar you decide**: a right click on the bar turns each tool and chip on or off (project, home, recent files,
+  palette, file tree, terminal, problems, agent, theme, settings, setup). The theme and the agent are right there: a
+  theme menu previewed as you hover, and every installed agent with its models. Every tool shows a tooltip with its key.
+
+### Features
+
+- **gui:** guided setup and a toolbar you decide (aef5599)
+- **app:** a customizable toolbar with tooltips (a5b7db1)
+
+### Other changes
+
+- docs(gui): document the guided setup and the toolbar (48502be)
+
 ## [1.7.0] - 2026-10-19
 
 ### Highlights
