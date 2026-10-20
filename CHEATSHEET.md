@@ -574,7 +574,7 @@ _Where: global_
 | `<leader>Sl` | plugins |
 | `<leader>SM` | tools |
 | `<leader>Si` | info |
-| `<leader>Su` | update config |
+| `<leader>Su` | updates |
 
 ### Swift — `<leader>i`
 
@@ -903,6 +903,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | Key | Mode | Action |
 |---|---|---|
 | `<leader>H` | n | File history (session) |
+| `<leader>fo` | n | Recent files of this project |
 | `<leader>fr` | n | Replace in project |
 | `<leader>fs` | n | Project symbols |
 
@@ -941,7 +942,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `;` | n | Command mode (; instead of :) |
 | `<C-c>` | n | Copy whole file |
 | `<C-s>` | n | Save file |
-| `<Esc>` | n | Go back after jump / clear highlight / close answer |
+| `<Esc>` | n | Close extra window / go back / clear highlight |
 | `<leader>d` | n,x | Delete without copying |
 | `<leader>fm` | n,x | Format file |
 | `<leader>q` | n | Close buffer / quit |
@@ -1057,7 +1058,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>Sl` | n | Plugins |
 | `<leader>Sp` | n | Panel |
 | `<leader>St` | n | Toggle theme |
-| `<leader>Su` | n | Update config |
+| `<leader>Su` | n | Updates |
 
 ### Surround
 
@@ -1073,7 +1074,6 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 |---|---|---|
 | `<leader>fb` | n | Find buffers |
 | `<leader>ff` | n | Find files |
-| `<leader>fo` | n | Find oldfiles |
 | `<leader>fw` | n | Live grep |
 
 ### Terminal
