@@ -1,0 +1,26 @@
+pkgbase = leader-editor-bin
+	pkgdesc = Neovim with a fast, opinionated config in its own GPU window (prebuilt)
+	pkgver = 1.10.0
+	pkgrel = 1
+	url = https://sazardev.github.io/leader/
+	arch = x86_64
+	license = MIT
+	depends = glibc
+	depends = git
+	depends = curl
+	depends = neovim>=0.11
+	optdepends = ripgrep: project search
+	optdepends = fd: file search
+	optdepends = vulkan-icd-loader: GPU drawing (OpenGL works without it)
+	optdepends = wayland: Wayland sessions
+	optdepends = libxkbcommon: keyboard handling
+	provides = leader-editor
+	conflicts = leader-editor
+	options = !strip
+	source = leader-1.10.0-linux-x86_64.tar.gz::https://github.com/sazardev/leader/releases/download/v1.10.0/leader-linux-x86_64.tar.gz
+	source = leader-1.10.0-linux-x86_64.tar.gz.asc::https://github.com/sazardev/leader/releases/download/v1.10.0/leader-linux-x86_64.tar.gz.asc
+	validpgpkeys = 8E437A7936E48EAEDA88CD73A7DCC3DBB671476A
+	sha256sums = 169a17f1daf05afc2aced840fcfaa512ca95428ad15e9201720ddc1745f66d76
+	sha256sums = SKIP
+
+pkgname = leader-editor-bin

@@ -18,7 +18,7 @@ provides=('leader')
 conflicts=('leader-editor-bin')
 options=('!lto')
 source=("leader-$pkgver.tar.gz::https://github.com/sazardev/leader/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('f47a6b469aa0dc95e56333556cf04a123f6204df987f3f51ac7a052b87401656')
 
 prepare() {
   cd "leader-$pkgver/app"
