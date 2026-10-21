@@ -932,9 +932,78 @@ show one pane at a time). A case is kept in memory: close it, run something in t
 the model answers after you closed the screen you are told. Knobs: `settings.agent.doctor` (terminal lines, characters of
 output sent, stack frames, rounds, command timeout, characters per tool result). Runs are in the history (`<leader>ah`).
 
+## Evals: how good is each model? (`make eval`)
+
+The claim of the agent is that the pipeline (curated context, strict output, free checks, one bounded retry) lets a modest model deliver
+work you can accept. `evals/` is where that is measured: small projects with a question and a **check answered by code** (the new code
+parses, a script asserts its behaviour, nothing outside the target moved, a finding sits near the planted bug), run through the real
+pipeline against a list of models. It reports **pass@1** (one try), **pass@k** (any of the samples), how often the output was usable,
+the number of tries and the cost, per action × model. `SCAFFOLD=0` measures a model bare, so the table says what the pipeline adds.
+A free regression test of the harness itself (every case passes its golden answer and fails a do-nothing one) is part of
+`scripts/test-agent.sh`. Cases, cassettes and the rules for writing them: `evals/README.md`. Infrastructure errors (a server that answers 500, a gateway that refuses the
+account) are counted apart and never as the model failing, a model that errors three times in a row is given up on instead of asked thirty more times,
+`flaky` counts the cases whose samples disagree (how predictable the model is), and `per pass` is what one usable answer costs. The committed baselines
+(`evals/baselines/`) become `evals/RESULTS.md` with `make eval-table`; `make eval BASELINE=…` fails when something got worse.
+
+Backend errors are completed with what to do about them (`agent/backends/hints.lua`: a gateway that blocks the account, an opaque server error, no credit,
+a rate limit, no login): the message is never replaced, only followed by one line of advice.
+
+## Capability profiles: small models get help
+
+Each model belongs to a class (`small`, `medium`, `strong`; `agent/profiles.lua`), decided by `settings.agent.capability.models`, then by what
+`make eval PROFILE_OUT=1` measured for it, then by its name (a `7b` is small, `haiku` medium, `sonnet` strong; an unknown local model is
+small). What the class changes:
+
+| | small | medium | strong |
+|---|---|---|---|
+| target limit (declined before sending, with what to do) | 60 lines | 150 | the global limit |
+| extra attempts when the answer is unusable | 2 | 1 | 1 |
+| extra context budget | 4000 chars | 6000 | `context.max_chars` |
+| server-shaped output (Ollama `format`, OpenAI `response_format`) | yes | no | no |
+| an instruction that is several things runs as a chain of single steps | yes | no | no |
+
+An **unusable answer** is one the free checks reject: no code block, findings in the wrong format, or code whose syntax errors the file did not
+have before (a treesitter parse of the file as it would be, `agent/syntax.lua`, no server needed). The same job asks again with the model's
+answer and the reason in the prompt; the usage of every attempt is added up, so history and budget see the real bill. With
+`settings.agent.cascade.enabled`, a model that is down, still unusable after its repairs, or measured to fail the action hands the job to the
+main model (or `cascade.to`) and says so; it is off by default because it spends where you did not choose to. Measured advice per action:
+below 40% of the cases a model is declined for that action, below 90% it gets two repairs (3 cases or more are needed to say anything).
+`settings.agent.capability = { enabled, measured, models, small, medium, strong }` and `cascade = { enabled, to }`.
+
+**Chain of steps** (`agent/decompose.lua`, for `refactor` and `implement`): an instruction the user typed as a list, as `;`-separated clauses or with
+"then" is split for free (no model) into at most five steps, and the job asks for one edit at a time over the code the previous step produced, each
+checked like any answer (repairs included). The last step becomes the proposal, diffed against the ORIGINAL code, so accepting, `<leader>au` and
+verification behave as always; the budget guard and the preflight see the whole chain (`2 steps`). It costs the steps, so only the small class chains by
+default. Measured on Claude Haiku (a medium model) with `make eval FILTER=three-edits DECOMPOSE=1|0 SAMPLES=5`: 100% either way, 2.5 calls and about
+twice the cost with the chain, which is why it is not on for models that already do multi-part edits; whether it pays for a 1.5B-7B local model is what
+the same command is for.
+
+## Trust: what you are told, and taking it back
+
+- **Before**: the spinner carries the estimate (`~1.8k tok`); `trust.preflight = "notify"` prints the whole line first (`claude/haiku · light ·
+  reads rules, types · ~1.8k tok · ~$0.0007`); `trust.preview = true` shows the start of the message and asks before anything leaves.
+- **After**: the proposal's hint says whether anything checks it: `checked on accept (LSP)`, `checked on save (build)`, `comment only · code
+  untouched`, or `unverified · no language server`. Findings and answers are labelled advice. When a server is attached but says nothing after
+  you accept, the line is `accepted · unverified`, never "no problems".
+- **Spend**: the statusline shows what this session cost next to its cap (`$0.031/$2.00`, in the warning colour near the cap); it counts in
+  memory, it never reads the history on a redraw.
+- **Undo**: `<leader>au` takes the last run back. Every accepted proposal is remembered with the lines before and after and where they are now, and the
+  proposals of one batch (fix all, accept all, a plan) are one group across files. A range you edited after the agent wrote it is left alone and
+  reported. The restore is an ordinary edit: `u` undoes the undo. The build has its own undo, `<leader>aSbu`: every file `aSb` writes is journaled (path, hash of what was written, and where the file it replaced went in the
+  trash); undo brings the originals back, deletes what it created and the folders it made, and never touches a file you changed since (the hash no longer
+  matches). Only the last build of a project is kept (`agent/kit/build/journal.lua`).
+
+## Stable and experimental
+
+The core is what is tested on every release and measured by the evals: fix, docs, refactor, review, explain, ask, implement, tests, the commit
+panel, the project documents. The rest still finds its shape and stays out of the menus until `settings.agent.experimental = true` (or
+`<leader>Sp` → Agent): DDD, repository, service and lens menus, the doctor, building a whole project (`<leader>aSb`, recipes) and multi-file
+plans. They keep working and say `· experimental` when shown. The list and the reason for each is `agent/stability.lua`; a feature moves by
+changing that table. `scripts/gen-cheatsheet.sh` shows everything (`NVIM_EXPERIMENTAL=1`).
+
 ## Settings (`settings.agent`, overridable in `local.lua`)
 
-`backend`, `order`, `light_backend`, `history`, `cache`, `language` (of explanations, answers and findings; `English` by default), `rules`, `timeout_ms`, `tiers`, `context.*`, `apply.format`
+`backend`, `order`, `light_backend`, `history`, `cache`, `experimental`, `capability`, `cascade`, `trust`, `language` (of explanations, answers and findings; `English` by default), `rules`, `timeout_ms`, `tiers`, `context.*`, `apply.format`
 (formats the range with conform on accept), `keys` (accept/reject), `claude.models`/`model`/`light_model`/`prompt_cache`/`max_cost_usd`, `opencode.*`, `ollama.*`, `openai.*`, `custom`.
 
 ## Extending
@@ -943,6 +1012,7 @@ output sent, stack frames, rounds, command timeout, characters per tool result).
 |---|---|
 | another backend (another CLI) | `lua/agent/backends/<n>.lua` with the contract of `backends/init.lua` + `NAMES`; without code: an entry in `agent.custom` |
 | another action | `lua/agent/actions/<n>.lua` with the contract of `actions/init.lua` + `NAMES`; the menu and the cheatsheet come out by themselves |
+| an eval case | a folder `evals/<action>/<name>/` with `case.json`, the files and `cassettes/<action>/<name>/golden.json` (rules: `evals/README.md`) |
 | another kind of output | `lua/agent/output/<n>.lua` (`done` and optional `stream`/`release`) + `NAMES` |
 | another context provider | `lua/agent/context/providers/<n>.lua` (`cap`, `collect(target, done)`) and use it in the `context` of an action |
 
