@@ -775,6 +775,32 @@ and the use phase. They are also in the library (`/`).
 
 Both are linked from AGENTS.md's "Read first" the first time, and neither is ever read as code by a layer build.
 
+**What a build may claim, and what it may throw away** (`agent/kit/build/proof.lua`, `loss.lua`, `kit/decls.lua`; all free, no model). Checks are
+compilers and unit tests: they say the files agree, not that SPEC.md is delivered. So the closing line says what is proven. A build of the whole
+project, a feature or a recipe ends `✓ built` only when every requirement has a test that names it and nothing is open; otherwise `◐ built · 23 files ·
+checks pass · 5/17 requirements have a test · core without one: FR-16 · 2 placeholders`. A requirement is **core** when SPEC.md's Goals cite it
+(`FR-1 to FR-15` ranges included) or its line says `(core)`. A placeholder is code that says it is not real yet (`TODO`, `UnimplementedError`,
+`todo!()`, "placeholder", "coming soon"; an input's own `placeholder=` attribute, tests and generated files are not). A layer build (foundation,
+design, domain) reports the same numbers but keeps `✓`, because one layer cannot meet most requirements. Also in the line: a requirement that had a
+test before the build and has none now, and the public declarations of the files the build rewrote or deleted that are gone. PROGRESS.md gets a
+`Proof` line under `Now` and every item under `Open`. `settings.agent.kit.build.strict = true` makes such a build end `✗ incomplete` instead.
+- **Deleting code asks.** The files a replan drops are inventoried before anything goes to the trash (lines, public types, tests and which
+  requirements they name, who still uses them). The review screen says so (`⚠ deletes 2,591 lines and 9 public types`), and when what goes holds a
+  real declaration or 60+ lines, `⏎` opens a confirmation with the list first. `<leader>Fu` still brings them back.
+- **A whole-project build sees the code that is there.** `<leader>aSbb` over a project that earlier builds left code in used to plan from the
+  documents and the ADRs' text only, and wrote the code a second time under other names (two `ProjectRepository` ports, two `timeline_view.dart`: 364
+  analyzer issues). Now the plan request carries the project's files and the API they declare, and is told to use exactly those names and to merge
+  duplicates instead of adding a third.
+- **A type is declared once.** Every project gets a free check, `no type is declared twice`: a public type (class, interface, struct, trait, enum)
+  in two source files of the same language fails it and goes to a diagnosis (Go: per package; tests, generated code and tool scaffolds do not count).
+  Flutter/Dart projects also run `flutter test` (a project with a `test/` folder), and Rust projects with `tests/` run `cargo test`: "it analyzes" was
+  all that was checked.
+- **Plans name the risk and defer honestly.** The plan lists `risks` (the hardest requirements, riskiest first; the real path through the first is
+  built right after the manifest, before the layers that only present or store) and `deferred` (what this build cannot deliver, and exactly what is
+  missing). The review shows `⚠` for a requirement the plan neither builds, wires nor defers, for a file that stands in for a core requirement, and for
+  a plan that names no risk. These are warnings for you to read, not a reason to ask for a second plan. (Building the risky path first as a verified
+  skeleton before the rest is not enforced: it is a rule in the plan prompt that the warnings check.)
+
 | Phase | What happens | Your keys |
 |---|---|---|
 | ready | pre-flight: the four documents and their size, the model of each phase (plan · files · fixes · use, each on the main or light tier of `<leader>am`), fix rounds, what the plan request will cost | `⏎` plan · `1` `2` `3` `4` tier of each phase · `+` `-` fix rounds |
@@ -992,6 +1018,29 @@ the same command is for.
   reported. The restore is an ordinary edit: `u` undoes the undo. The build has its own undo, `<leader>aSbu`: every file `aSb` writes is journaled (path, hash of what was written, and where the file it replaced went in the
   trash); undo brings the originals back, deletes what it created and the folders it made, and never touches a file you changed since (the hash no longer
   matches). Only the last build of a project is kept (`agent/kit/build/journal.lua`).
+
+## `.leader/`: how Leader worked on this project (offline, yours)
+
+A build that ends, an agent action and your decision about its proposal leave one line each in `<project>/.leader/events.jsonl`, so Leader can be
+measured and improved from real use: how builds end, which checks fail and how often, what a model costs per file, which actions you accept.
+**Nothing is ever sent anywhere** (no module of the folder touches the network or starts a process; a test checks it). It records how Leader
+works, never what the person is working on:
+
+- **Recorded**: counts, sizes, durations, costs, models, outcomes; a file is a salted hash plus its extension and a size bucket (`<50`, `<200`,
+  `<500`, `500+`); a project's own script in a check is `custom`.
+- **Never recorded**: code, documents (SPEC/STACK/DESIGN), prompts, model answers, file or folder names, type or function names, error or
+  diagnostic text, instructions you typed, environment, name or machine.
+- **Enforced, not promised**: every event goes through a schema (`agent/leaderdata/schema.lua`). A field it does not name is dropped, a value
+  of the wrong type is dropped, a word outside the allowed list becomes `other`, an id is 8 hex digits. The README the folder generates for itself
+  is built from that same schema, so the list of what is recorded cannot drift from what is. A test builds a project full of marker strings (names,
+  documents, code, answers) and checks none appears anywhere in the folder.
+- **Files**: `README.md` (what is and is not recorded, how to read, switch off and delete it), `events.jsonl`, `salt` (random: the hashes are useless
+  without it and it is never exported: share `events.jsonl` alone), `.gitignore` (`*`: never committed by accident).
+- **When**: the builder creates the folder; agent actions write to it only if it already exists, so a keypress never gives a project a folder.
+- **Read it**: `<leader>aSl` opens the report: builds and outcomes, cost per build, how many needed fix rounds, which checks fail most, files by
+  kind and model, accept rate and cost per agent action. **Switch off**: `settings.agent.leader_data.enabled = false` or `LEADER_NO_DATA=1` (the
+  folder is then never created or written). **Delete**: remove the folder; nothing depends on it. `max_kb` (2048) caps the file: past it the oldest
+  half goes.
 
 ## Stable and experimental
 
