@@ -229,6 +229,24 @@ function M.json(text, opts)
   return ok and type(data) == "table" and data or nil
 end
 
+--- Files that are correct when they hold nothing: a Python package marker, a placeholder that keeps a folder in git, the
+--- requirements file of a project with no dependencies
+local MAY_BE_EMPTY = {
+  ["__init__.py"] = true,
+  ["__init__.pyi"] = true,
+  ["py.typed"] = true,
+  [".gitkeep"] = true,
+  [".keep"] = true,
+  [".nojekyll"] = true,
+  ["requirements.txt"] = true,
+}
+
+---@param path string?
+---@return boolean
+function M.may_be_empty(path)
+  return path ~= nil and MAY_BE_EMPTY[vim.fs.basename(path)] == true
+end
+
 --- Why this content is still not a file of its kind (nil when it is): markup left, a fence, prose where code starts
 ---@param content string
 ---@param path string?
@@ -236,7 +254,7 @@ end
 function M.problem(content, path)
   content = content or ""
   if vim.trim(content) == "" then
-    return "the answer was empty"
+    return not M.may_be_empty(path) and "the answer was empty" or nil
   end
   for line in content:gmatch "[^\n]+" do
     if markup(line) then

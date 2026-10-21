@@ -467,6 +467,25 @@ ok(
   )
 )
 
+-- ── a file that is right when it is empty ────────────────────────────────────
+local clean = require "agent.kit.build.clean"
+eq("empty: a package marker is not a problem", clean.problem("", "tally/__init__.py"), nil)
+eq(
+  "empty: nor an empty requirements file or a .gitkeep",
+  { clean.problem("\n", "requirements.txt"), clean.problem("", "data/.gitkeep") },
+  { nil, nil }
+)
+eq("empty: any other file still is", clean.problem("", "tally/cli.py"), "the answer was empty")
+eq(
+  "empty: a file with content is judged as before",
+  clean.problem("```py\nx = 1\n```", "tally/__init__.py"),
+  "it is wrapped in a ``` fence"
+)
+ok(
+  "empty: only exact names",
+  not clean.may_be_empty "tally/init.py" and not clean.may_be_empty(nil) and clean.may_be_empty "a/b/__init__.py"
+)
+
 -- ── PROGRESS.md carries the proof ────────────────────────────────────────────
 local progress = require "agent.kit.progress"
 local md = progress.render(nil, {
