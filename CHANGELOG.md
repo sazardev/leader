@@ -2,6 +2,34 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.12.0] - 2026-10-20
+
+### Highlights
+
+- **Lua answers across files ~2.5x sooner**: Lua now uses `emmylua_ls` (a Rust server) when it is installed, and `lua_ls`
+  otherwise. On this repo's 670 files cross-file go-to-definition worked at ~0.7 s against ~3.8 s on the bare workspace,
+  and ~2.5x sooner with the full config, with the same hover, completion and diagnostics. `lua_ls` keeps nothing between
+  sessions and its `maxPreload` has no effect, so the way to speed it up was a faster server. Mason installs it with the
+  rest; `settings.lsp.lua_server` forces either one.
+- **`<leader>dr` runs and stops a Flutter app**: pressed again while the app runs, it quits it and closes the debugger and
+  every panel that opened, instead of only saying it is already running.
+- **Your sessions are safe from tests**: Neovim saves a session on every exit, and a headless test that opened temp files
+  in a repo replaced that folder's real session with files that no longer existed, so restoring the project opened an empty
+  buffer. Persistence now stays off without a UI, every test script runs against a throwaway state directory, and the whole
+  suite leaves sessions, recent files, agent history and logs byte-identical.
+
+### Features
+
+- **dart:** leader dr toggles run/stop (fffd15c)
+
+### Fixes
+
+- **sessions:** tests and headless runs never write your state (db55542)
+
+### Performance
+
+- **lsp:** Lua gets emmylua_ls when it is installed (~2.5x faster) (ccc1a54)
+
 ## [1.11.0] - 2026-10-20
 
 ### Highlights
