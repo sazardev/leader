@@ -197,8 +197,7 @@ function M.problems(plan, missing)
 end
 
 --- Words that say a file stands in for something real
-local STAND_IN =
-  { "placeholder", "stub", "mock", "fake", "dummy", "sample data", "sample-data", "for now", "temporary", "todo" }
+local STAND_IN = { "placeholder", "stub", "mock", "fake", "dummy", "sample data", "sample-data", "for now", "todo" }
 
 ---@param text string
 ---@return boolean
@@ -250,7 +249,8 @@ function M.warnings(plan, spec, scope)
     out[#out + 1] = ("%s: not built, not wired and not deferred by this plan"):format(table.concat(dropped, ", "))
   end
   for _, f in ipairs(plan.files) do
-    if stands_in(f.purpose or "") then
+    -- a test may use a fake or a temporary directory: that is how tests work, not a stand-in for missing code
+    if not require("agent.kit.build.verify").is_test(f.path) and stands_in(f.purpose or "") then
       local ids = {}
       for id in ((f.verifies or "") .. " " .. (f.purpose or "")):gmatch "FR%-%d+" do
         if core[id] and not vim.tbl_contains(ids, id) then

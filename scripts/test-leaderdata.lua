@@ -126,6 +126,11 @@ eq("schema: lists are capped", #schema.sanitize("build.finish", {
 ok("schema: the README list names every kind", #schema.describe() == 3)
 
 -- ── redaction ────────────────────────────────────────────────────────────────
+eq(
+  "schema: the builder's own wiring check keeps its name",
+  schema.check_label "the interface uses what the plan exports",
+  "the interface uses what the plan exports"
+)
 eq("hash: stable with the same salt", redact.hash("s", "lib/a.dart"), redact.hash("s", "lib/a.dart"))
 ok("hash: another salt, another hash", redact.hash("s", "lib/a.dart") ~= redact.hash("t", "lib/a.dart"))
 ok("hash: 8 hex digits, no trace of the path", redact.hash("s", "lib/secret.dart"):match "^%x%x%x%x%x%x%x%x$")

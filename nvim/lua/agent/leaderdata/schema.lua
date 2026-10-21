@@ -130,6 +130,7 @@ local KNOWN_CHECKS = {
   "ruff check",
   "pytest",
   "no type is declared twice",
+  "the interface uses what the plan exports",
   "package.json has STACK.md's tools",
   "every id the code looks up exists",
   "every control the page declares is handled",

@@ -433,6 +433,30 @@ ok(
     return false
   end)()
 )
+local with_test = plan_mod.parse(
+  vim.json.encode {
+    name = "x",
+    summary = "s",
+    architecture = "a",
+    risks = { { req = "FR-1", why = "w" } },
+    files = {
+      {
+        path = "tests/test_store.py",
+        purpose = "tests with a fake clock and a temporary directory",
+        verifies = "FR-1",
+        docs = { "spec" },
+      },
+      { path = "lib/engine.py", purpose = "a stub of the engine for now", verifies = "FR-2", docs = { "spec" } },
+    },
+  },
+  {},
+  nil
+)
+local stand_ins = vim.tbl_filter(function(w)
+  return w:find("is a stand-in", 1, true)
+end, plancheck.warnings(with_test, spec, nil))
+eq("warnings: a test using a fake is not a stand-in, a stub of the engine is", #stand_ins, 1)
+ok("warnings: and it names the engine", stand_ins[1] and stand_ins[1]:find("lib/engine.py", 1, true))
 eq("warnings: a layer is not asked for every requirement", plancheck.warnings(parsed, spec, "design"), {})
 parsed.risks = {}
 ok(
