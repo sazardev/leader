@@ -2,6 +2,20 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.14.1] - 2026-10-21
+
+### Highlights
+
+- **Checked against a real build**: a build of a small project with Claude Haiku (13 files, $0.03, under 3 minutes) did what the
+  1.14.0 notes promise: it named its riskiest requirement, deferred the one SPEC.md left open and said why, ended `⚠ built · 3/4
+  requirements have a test` instead of `✓`, and left a `.leader/` folder with nothing of the project in it. Two details came out
+  of it and are fixed here: the plan review no longer calls a test that uses a fake or a temporary directory a "stand-in", and the
+  builder's own wiring check is recorded under its name.
+
+### Fixes
+
+- **build:** tests are not stand-ins, name the wiring check (1ff9203)
+
 ## [1.14.0] - 2026-10-21
 
 ### Highlights
