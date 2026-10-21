@@ -2,6 +2,34 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.13.0] - 2026-10-21
+
+### Highlights
+
+- **The agent is measured now, and a modest model gets help**: `make eval` runs 31 cases (Python, Go, JavaScript, Lua; fix, docs,
+  refactor, review) through the real pipeline against any model, judged by code (does it parse, does a script that imports
+  it still pass, did anything outside the target move, did it find the planted bug), never by another model. On the committed
+  baselines Claude Haiku passes 100% of the single tries on the cases it was tuned on at roughly a tenth of Sonnet's cost
+  per usable answer. Every model gets a capability profile (small, medium, strong): a smaller target limit, a second try
+  with the reason when an answer does not parse, server-shaped output for Ollama and OpenAI, a chain of single steps for an
+  instruction that is several things, and an optional cascade to the main model.
+- **You are told what is going to happen, and can take it back**: the spinner carries the estimate, every proposal says
+  whether anything checks it (`checked on accept (LSP)` or `unverified`), the statusline shows what the session has spent,
+  `<leader>au` takes a whole run back across files (never what you edited since) and `<leader>aSbu` takes the last build
+  back.
+- **Less on the menu**: DDD, the repository/service/lens menus, the doctor, building a whole project and multi-file plans
+  are experimental and stay hidden until `agent.experimental` (Settings → Agent) is on. Nothing was removed.
+- **Review stops crying wolf**: it no longer reports a finding that says nothing is wrong, nor hypothetical misuse; on the
+  eval, Haiku went from 82% to 100% on review without losing the real findings.
+
+### Features
+
+- **agent:** evals, capability profiles, trust layer, experimental flag (3777b62)
+
+### Documentation
+
+- **agent:** evals, profiles, trust layer and stability (4cef712)
+
 ## [1.12.2] - 2026-10-21
 
 ### Highlights
