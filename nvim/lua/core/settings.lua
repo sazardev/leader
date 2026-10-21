@@ -120,6 +120,8 @@ local defaults = {
     results = 100, -- hits shown
     max_files = 4000, -- the index reads at most this many files
     max_bytes = 400000, -- bigger files (generated, minified) are skipped
+    workers = 4, -- headless Neovims that read the files side by side (0 = in the editor, in slices)
+    workers_min = 60, -- fewer changed files than this are read in the editor: starting a process costs more
     persist = true, -- keep the index in the state dir: a new session only re-reads the files that changed
     exclude = {
       ".git",

@@ -18,6 +18,8 @@ local function ensure_plugin()
     pcall(lazy.load, { plugins = { "nvim-treesitter-textobjects" } })
   end
 end
+-- also before starting a process that copies the runtimepath (the code search workers): it must see the queries
+M.ensure_plugin = ensure_plugin
 
 ---@param buf integer
 ---@return TSNode?, string?, vim.treesitter.Query?

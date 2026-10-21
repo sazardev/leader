@@ -210,4 +210,29 @@ index.drop(dir)
 eq("store: drop forgets the copy on disk too", vim.fn.filereadable(store.path(dir)), 0)
 vim.fn.delete(store_dir, "rf")
 
+-- ── workers: headless Neovims read the files; the index must be exactly the one made in the editor ──────────
+settings.persist = false
+settings.workers, settings.workers_min = 0, 1
+index.drop(dir)
+local here = build()
+settings.workers, settings.workers_min = 2, 1
+index.drop(dir)
+local apart = build()
+ok("workers: the index is not empty", #here.list > 0 and #apart.list > 0)
+ok("workers: the files were read", apart.stats.read > 0)
+eq("workers: same index as reading in the editor", apart.list, here.list)
+-- a worker that cannot run leaves its files to the editor: same index again
+local real_system = vim.system
+vim.system = function(cmd, ...)
+  if cmd[1] == vim.v.progpath then
+    cmd = { "false" } -- a worker that starts and exits with an error
+  end
+  return real_system(cmd, ...)
+end
+index.drop(dir)
+local fallback = build()
+vim.system = real_system
+eq("workers: a failing worker falls back to the editor", fallback.list, here.list)
+settings.persist = true
+
 K.finish()
