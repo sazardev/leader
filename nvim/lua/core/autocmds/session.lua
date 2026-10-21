@@ -1,7 +1,7 @@
--- ── Session: periodic autosave + Herdr registration ──────────────────────────
+-- ── Session: periodic autosave ───────────────────────────────────────────────
 -- persistence.nvim only saves on exit; with a power cut nvim never reaches
--- `VimLeavePre`. Here it saves in the background (if something changed) and
--- notifies Herdr so it reopens this pane with the session (see utils/herdr.lua).
+-- `VimLeavePre`. Here it saves in the background (if something changed).
+-- The Herdr registration lives in core/autocmds/herdr.lua.
 local settings = require "core.settings"
 
 local M = {}
@@ -55,25 +55,6 @@ function M.setup()
 
   if settings.session.autosave_ms > 0 and #vim.api.nvim_list_uis() > 0 then
     autosave(group)
-  end
-
-  vim.api.nvim_create_user_command("HerdrResume", function()
-    require("utils.herdr").resume()
-  end, { desc = "Restore the folder's session (Herdr resume command)" })
-
-  if settings.session.herdr then
-    vim.api.nvim_create_autocmd("VimEnter", {
-      group = group,
-      callback = function()
-        require("utils.herdr").attach()
-      end,
-    })
-    vim.api.nvim_create_autocmd("VimLeavePre", {
-      group = group,
-      callback = function()
-        require("utils.herdr").release()
-      end,
-    })
   end
 end
 

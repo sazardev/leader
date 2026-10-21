@@ -244,9 +244,12 @@ The flags in the Hermes Agent example are **not verified** (the CLI was not inst
 
 ## Handoff to Herdr
 
-`<leader>ah` (only inside Herdr): you type the instruction, pick an agent from `herdr agent list` (those in this
+`<leader>ag` (only inside Herdr): you type the instruction, pick an agent from `herdr agent list` (those in this
 folder first) and `file:range` + diagnostics are sent with `herdr agent prompt`. With unsaved changes it attaches the current
 code. Use it when the task no longer fits in a single shot.
+
+What the **other** agents of the workspace are doing is in the Herdr panel (`<leader>Wa`), and this nvim can say what
+**it** is doing to Herdr (see [herdr.md](herdr.md)).
 
 ## Hexagonal architecture levels (one menu per level)
 

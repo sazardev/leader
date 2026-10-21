@@ -23,7 +23,7 @@ local store = require "prefs.store"
 
 local M = {}
 
-local NAMES = { "appearance", "edit", "diagnostics", "agent", "languages", "app", "system" }
+local NAMES = { "appearance", "edit", "diagnostics", "agent", "languages", "app", "system", "herdr" }
 
 ---@type table[]?
 local cache

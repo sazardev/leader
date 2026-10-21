@@ -37,7 +37,7 @@ return {
   desc = "hand off",
   key = "g",
   enabled = function() -- only makes sense inside Herdr: outside it, it does not even show up in the menu
-    return vim.env.HERDR_ENV == "1"
+    return require("herdr").inside()
   end,
   scope = "function",
   input = "instruction for the agent",

@@ -29,6 +29,7 @@ function M.contexts()
   table.insert(list, require "menus.agent_lenses")
   table.insert(list, require "menus.comments")
   table.insert(list, require "menus.folds")
+  table.insert(list, require "menus.herdr")
   return list
 end
 

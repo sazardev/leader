@@ -12,6 +12,7 @@
 |---|---|
 | [go.md](go.md) | **Go in depth**: struct tags, snippets, contextual completion, `<leader>g` menu |
 | [agent.md](agent.md) | **Inline agent** (`<leader>a`): one-shot implement/review/explain/convert... with Claude, OpenCode or a local model (Ollama, OpenAI-compatible servers) |
+| [herdr.md](herdr.md) | **Herdr** (`<leader>W`): the workspace of agents — what every one of them is doing, and the setup |
 | [editing.md](editing.md) | **Undo, clipboard and yank history** (`<leader>u`): undo word by word, redo keys, undo tree, the file at the previous save, yank list |
 | [gitignore.md](gitignore.md) | **.gitignore** (`<leader>Gi`): what it detects, the topics, how it merges with an existing file |
 | [tasks.md](tasks.md) | **Makefile tasks** (`<leader>R`): the picker, writing targets it can list, the preset Makefiles per language |
@@ -31,7 +32,7 @@
 ## How the leader works
 
 Each language has **its own letter** under `<leader>` (g Go, d Dart, t TypeScript, p Python, r Rust, Q SQL, i Swift…) and **only exists in buffers of that filetype**;
-`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files) and `<leader>C` (comments) are global.
+`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments) and `<leader>W` (Herdr) are global.
 Press `<leader>` and which-key shows only what applies to the current file (no delay).
 
 The language menus open an integrated terminal (toggleterm) and run the commands at the **project root**

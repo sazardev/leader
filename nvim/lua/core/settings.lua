@@ -100,7 +100,16 @@ local defaults = {
   -- Sessions (persistence.nvim saves on exit; see core/autocmds/session.lua)
   session = {
     autosave_ms = 60000, -- saves in the background if something changed, to survive a power cut (0 = only on exit)
-    herdr = false, -- inside Herdr, registers nvim as an "agent" to reopen the pane after the server restarts. Off: Herdr 0.9.x ignores resume and nvim gets in the way in the Agents panel (requires Herdr >= 0.10.0)
+    herdr = nil, -- the OLD knob for the Herdr registration: true/false wins over herdr.register (nil = that one decides)
+  },
+
+  -- Herdr (lua/herdr/): the terminal workspace that runs the coding agents. With it, nvim sees what every agent in the
+  -- other panes is doing (<leader>W) and says what IT is doing, so Herdr shows it too.
+  herdr = {
+    enabled = "auto", -- "auto" (the binary decides) | true | false
+    register = "auto", -- "auto" (inside Herdr) | true | false
+    observe_ms = 2000, -- the panel refreshes itself every this many ms (0 = only when it opens)
+    lines = 150, -- transcript lines read for the agent under the cursor
   },
 
   -- Updates (lua/update): looks for a newer Leader on GitHub (one tiny request), shows a badge in the app bar and a

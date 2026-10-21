@@ -156,6 +156,7 @@ function M.run(job)
     return fail(job, tostring(handle))
   end
   job.handle = handle
+  events.emit("job.started", { job = job })
 end
 
 ---@param job AgentJob

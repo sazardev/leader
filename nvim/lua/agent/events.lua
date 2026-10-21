@@ -6,6 +6,7 @@
 --   proposal.accepting   { job, buf, first, last, lines }   just BEFORE the proposal is written into the buffer
 --   proposal.accepted    { job, buf, first, last, lines }   right AFTER (first/last = where the new code now is)
 --   proposal.dropped     { job, how = "rejected"|"refined"|"discarded" }
+--   job.started          { job }                            the model is running
 --   job.settled          { job, outcome = "done"|"error"|"cancelled"|"denied" }
 --
 -- A handler that fails never takes the emitter down (pcall), and handlers run in the order they were registered.

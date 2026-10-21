@@ -29,6 +29,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>z` | Fold | global |
 | `<leader>G` | Git | files inside a git repo |
 | `<leader>g` | Go | `go`, `gomod`, `gowork` |
+| `<leader>W` | Herdr | global |
 | `<leader>u` | History | global |
 | `<leader>j` | Java | `java` |
 | `<leader>k` | Kotlin | `kotlin` |
@@ -376,6 +377,15 @@ _Where: `go`, `gomod`, `gowork`_
 | `<leader>gSp` | setup several files |
 | `<leader>gSm` | setup Makefile |
 | `<leader>gSg` | setup gitignore |
+
+### Herdr — `<leader>W`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Wa` | agents (what the workspace is doing) |
+| `<leader>Ws` | setup (install and configure) |
 
 ### History — `<leader>u`
 
@@ -972,6 +982,13 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>h4` | n | Jump to file 4 |
 | `<leader>ha` | n | Add file |
 | `<leader>hm` | n | Menu |
+
+### Herdr
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>Wa` | n | Agents (what the workspace is doing) |
+| `<leader>Ws` | n | Setup (install and configure) |
 
 ### History
 

@@ -2,7 +2,7 @@
 local M = {}
 
 --- The start screen's buttons (ui/start): label, shortcut and the command each one runs. "Restore Session" only shows when this
---- folder has a saved session (see utils/session.lua).
+--- folder has a saved session (see utils/session.lua), and "Agents" only when Herdr is there (lua/herdr/).
 ---@return { label: string, key: string, cmd: string }[]
 function M.actions()
   local actions = {
@@ -15,6 +15,9 @@ function M.actions()
   }
   if require("utils.session").exists() then
     table.insert(actions, 1, { label = "Restore Session", key = "rs", cmd = "lua require('utils.session').restore()" })
+  end
+  if require("herdr").enabled() then
+    table.insert(actions, 1, { label = "Agents", key = "ag", cmd = "lua require('herdr.panel').open()" })
   end
   return actions
 end

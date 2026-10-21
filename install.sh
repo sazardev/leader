@@ -351,6 +351,25 @@ if [ "$AGENT" != none ]; then
   fi
 fi
 
+# ── 6b. Herdr (optional) ──────────────────────────────────────────────────────
+# The workspace of coding agents (lua/herdr/): with it, nvim sees what every agent in the other panes is doing
+# (<leader>W) and Herdr sees what nvim is doing. One binary: herdr's own installer puts it in ~/.local/bin (no sudo,
+# it checks the checksum itself).
+step "Herdr"
+if have herdr; then
+  ok "found: $(herdr --version 2>/dev/null | head -1)"
+elif [ "$DRY" = 1 ]; then
+  printf '  [dry-run] curl -fsSL https://herdr.dev/install.sh | sh\n'
+elif ask "Install Herdr (the workspace of coding agents)?"; then
+  if curl -fsSL https://herdr.dev/install.sh | sh >/dev/null 2>&1; then
+    ok "installed (herdr's own installer, into ~/.local/bin)"
+  else
+    warn "it was not installed: <Space>Ws → Setup inside nvim installs it too"
+  fi
+else
+  warn "skipped: <Space>Ws → Setup inside nvim installs it"
+fi
+
 # ── 7. Desktop app (optional, --app) ──────────────────────────────────────────
 if [ "$APP" = 1 ]; then
   bash "$ROOT/app/install.sh" $([ "$DRY" = 1 ] && echo --dry-run) || warn "the desktop app did not install: run app/install.sh to see why"

@@ -135,6 +135,7 @@ app/install.sh --uninstall  # remove the app (the config stays)
 | **Go without an LLM** | completion helpers that read your code and your `go.mod` (see below) |
 | **Dart / Flutter** | run with an entry-point picker, debugging, tests inside the editor, build_runner watch, Riverpod/freezed completion (see below) |
 | **AI agent** (optional) | `<leader>a`: one-shot actions on the function under the cursor, with an inline diff (see below) |
+| **Herdr** (optional) | `<leader>W`: the workspace of agents — what every one of them is doing, live, and the setup (see below) |
 
 ### Commits (`<leader>G`)
 
@@ -165,6 +166,18 @@ Around the proposals: **`Tab` refines** one instead of starting over, accepted c
 it offers one more attempt with them), and a **spend guard** checks every request against your own history (it asks above a size, blocks at the caps you set).
 Also: clear findings one at a time, per file or all of them (`<leader>ac`, `aC`, `:AgentClear`), history in markdown with the code sent, filters and back navigation
 (`<leader>ah`), models per tier (cheap where it is enough). Details in [docs/cheatsheets/agent.md](docs/cheatsheets/agent.md).
+
+### Herdr (`<leader>W`)
+
+[Herdr](https://herdr.dev) is the terminal workspace that runs the coding agents. Leader reads it through its CLI:
+`<leader>Wa` opens the **breakdown of the workspace** — one row per agent (its state, its kind, where it is), the
+transcript of the one under the cursor and **why Herdr thinks it is in that state**, refreshed on its own. `f` brings
+the agent's pane to the front, `s` sends it a prompt. `<leader>Ws` is the setup: it detects the binary, the server and
+the agents' integrations, and installs what is missing (nothing without pressing the button).
+
+It also goes the other way: with the registration on, this nvim appears in Herdr's Agents panel **saying what it is
+doing** (`working` while the agent runs, `blocked` while a proposal waits for you), and Herdr 0.10+ brings the pane
+back with your session after a server restart. Details in [docs/cheatsheets/herdr.md](docs/cheatsheets/herdr.md).
 
 ### Go without an LLM (smart completion, 0 tokens)
 

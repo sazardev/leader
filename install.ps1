@@ -147,5 +147,18 @@ if ($Agent -ne 'none') {
   }
 }
 
+# Herdr (optional): the workspace of coding agents (<Space>W)
+Step 'Herdr'
+if (Get-Command herdr -ErrorAction SilentlyContinue) {
+  Write-Host '  found'
+} else {
+  try {
+    Invoke-Expression (Invoke-RestMethod https://herdr.dev/install.ps1) | Out-Null
+    Write-Host '  installed'
+  } catch {
+    Write-Warning 'not installed: <Space>Ws -> Setup inside nvim installs it too'
+  }
+}
+
 Step 'Done'
 Write-Host '  Open nvim: <Space> shows the menus; CHEATSHEET.md has all the keys.'

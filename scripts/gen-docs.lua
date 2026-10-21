@@ -25,6 +25,7 @@ local PAGES = {
   { "keys", "Every key", "CHEATSHEET.md", "Start" },
   { "changelog", "Changelog", "CHANGELOG.md", "Start" },
   { "agent", "AI agent", "docs/cheatsheets/agent.md", "Features" },
+  { "herdr", "Herdr", "docs/cheatsheets/herdr.md", "Features" },
   { "editing", "Undo and clipboard", "docs/cheatsheets/editing.md", "Features" },
   { "tasks", "Project tasks", "docs/cheatsheets/tasks.md", "Features" },
   { "gitignore", ".gitignore", "docs/cheatsheets/gitignore.md", "Features" },
