@@ -107,6 +107,21 @@ if not ok_body then
   vim.cmd "cquit 1"
 end
 
+-- the memory guard: what it adds up and when it restarts
+local guard = require "servers.memguard"
+local ps = table.concat({
+  "  10     1  5000 nvim",
+  "  20    10  204800 node /x/vtsls --stdio",
+  "  21    20  1048576 node --max-old-space-size=3072 /x/vtsls/tsserver.js",
+  "  22    10  102400 node /x/eslint --stdio",
+  "  30     1  999999 node /other/vtsls", -- another editor's server: not ours
+}, "\n")
+eq("guard adds only our server's processes", math.floor(guard.tree_mb(ps, 10, "vtsls")), 1224)
+eq("guard: over the limit and idle restarts", guard.should_restart(2300, 2200, 20, 8), true)
+eq("guard: under the limit does not", guard.should_restart(1000, 2200, 20, 8), false)
+eq("guard: typing does not", guard.should_restart(2300, 2200, 1, 8), false)
+eq("guard: no limit never", guard.should_restart(9999, 0, 99, 8), false)
+
 if fails > 0 then
   print(("FAILURES: %d of %d"):format(fails, total))
 else

@@ -17,7 +17,9 @@ return {
   },
   -- biome only where the project uses it (a biome.json): without one, prettier formats
   formatter_options = { biome = { require_cwd = true } },
-  linters = {
+  -- full mode: the eslint server reports the same, live and on unsaved text, so eslint_d (a second Node process that
+  -- only lints the file on disk) runs only in light mode, where no server is resident
+  linters_light = {
     javascript = eslint,
     typescript = eslint,
     javascriptreact = eslint,

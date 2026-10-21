@@ -90,6 +90,8 @@ function M.setup()
     skip_virtual_buffers(name)
     vim.lsp.enable(name)
   end
+
+  require("servers.memguard").setup()
 end
 
 return M

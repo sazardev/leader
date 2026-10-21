@@ -69,6 +69,11 @@ local defaults = {
   -- lua_ls on the same workspace; lua_ls otherwise), "emmylua_ls" or "lua_ls".
   lsp = {
     lua_server = "auto",
+    -- A server that grows while you work (tsserver reaches 3 GB in a big monorepo) is restarted when its processes pass
+    -- the limit and you have been idle for a few seconds: { server = MB }. Empty = never.
+    memory_limit_mb = { vtsls = 2200 },
+    memory_check_s = 60,
+    memory_idle_s = 8,
   },
 
   -- Languages (see lua/languages/): disable by name the ones you do not use.
