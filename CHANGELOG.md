@@ -2,6 +2,26 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.12.2] - 2026-10-21
+
+### Highlights
+
+- **Your nvim now speaks Herdr**: [Herdr](https://herdr.dev) is the terminal workspace that runs the coding agents, and
+  Leader talks to its CLI. `<leader>Wa` opens the breakdown of the workspace: one row per agent grouped by workspace (its
+  state, the agent and where it is), the transcript of the one under the cursor and **why** Herdr thinks it is in that
+  state (the rule that matched). It refreshes on its own, so what is on screen is the state now. `<leader>Ws` is the
+  setup: it detects the binary, the version, the server and the agents' integrations, and installs what is missing
+  (nothing without the button) — the installer does the same, and the start screen gets an **Agents** button when Herdr
+  is there.
+- **And Herdr sees what your nvim is doing**: nvim registers itself as an agent of the workspace and says what it is
+  doing (`working` while the inline agent runs, `blocked` while a proposal waits for you, `idle` otherwise), so the
+  Agents panel of Herdr shows it. It never takes the pane from a real agent that already owns it, and a headless nvim (a
+  script, a test) does not register at all.
+
+### Features
+
+- **herdr:** the workspace of agents under <leader>W (135c337)
+
 ## [1.12.1] - 2026-10-21
 
 ### Highlights
@@ -441,4 +461,3 @@ All notable changes, newest first. Generated from the Conventional Commits since
 - update config files and README (7c45f1e)
 - update config files (b4dba20)
 - Initial commit (68e950e)
-
