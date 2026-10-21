@@ -149,6 +149,13 @@ function M.is_source(path)
     or p:match "^target/"
     or p:match "^rust_builder/"
     or p:match "/cargokit/"
+    or p:match "^examples?/"
+    or p:match "/examples?/"
+    or p:match "^vendor/"
+    or p:match "/vendor/"
+    or p:match "^third_party/"
+    or p:match "^docs?/"
+    or p:match "^scripts?/"
   then
     return false
   end

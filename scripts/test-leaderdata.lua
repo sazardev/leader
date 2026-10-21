@@ -137,6 +137,18 @@ eq(
 eq("ext", { redact.ext "lib/Main.DART", redact.ext "Makefile" }, { "dart", "" })
 eq("lang", { redact.lang "typescriptreact", redact.lang "python", redact.lang "brainfuck" }, { "ts", "py", "other" })
 
+ok("redact: a model of a shipped backend is kept", redact.model_label "claude/haiku" == "claude/haiku")
+eq(
+  "redact: a custom backend's model is not recorded",
+  { redact.model_label "acme-internal/llm", redact.model_label "haiku", redact.model_label(nil) },
+  { nil, nil, nil }
+)
+eq(
+  "redact: which backends are Leader's",
+  { redact.known_backend "ollama", redact.known_backend "hermes", redact.known_backend(nil) },
+  { true, false, false }
+)
+
 -- ── the folder ───────────────────────────────────────────────────────────────
 local proj = base .. "/p1"
 vim.fn.mkdir(proj, "p")
@@ -464,6 +476,18 @@ ok(
     and run_event.tokens_in == 100
 )
 eq("inline: and the decisions about its proposals", decisions, { "accepted", "rejected" })
+local custom_job = fake_job(4)
+custom_job.selection = { backend = "acme-internal", model = "llm-v3", tier = "main" }
+local n_before = #store.read(proot)
+events_bus.emit("job.settled", { job = custom_job, outcome = "done" })
+local custom_event = store.read(proot)[n_before + 1]
+ok(
+  "inline: a custom backend is `other` and its model is not recorded",
+  custom_event
+    and custom_event.backend == "other"
+    and custom_event.model == nil
+    and not vim.json.encode(custom_event):find("acme", 1, true)
+)
 ok("inline: nothing of the target's code is in the event", not vim.json.encode(run_event):find("Canary", 1, true))
 
 print(fails == 0 and ("\nALL OK (" .. total .. " checks)") or ("\nFAILURES: " .. fails))

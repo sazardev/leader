@@ -67,7 +67,7 @@ function M.build_fields(run, salt)
       tokens_out = f.tokens_out,
       cost = f.cost,
       ms = f.ms,
-      model = f.model,
+      model = redact.model_label(f.model),
       state = f.state,
     }
   end
@@ -173,8 +173,8 @@ function M.setup()
     M.record(root, "agent.run", {
       run = run_id(job),
       action = job.action.name,
-      backend = job.selection.backend,
-      model = job.selection.model,
+      backend = redact.known_backend(job.selection.backend) and job.selection.backend or "other",
+      model = redact.known_backend(job.selection.backend) and job.selection.model or nil,
       tier = job.selection.tier,
       profile = job.profile and job.profile.name,
       outcome = ev.outcome,

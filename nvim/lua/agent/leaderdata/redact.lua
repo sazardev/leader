@@ -38,6 +38,24 @@ function M.random_id()
   return vim.fn.sha256(tostring(vim.uv.hrtime()) .. tostring(math.random()) .. tostring(os.time())):sub(1, 8)
 end
 
+--- The backends Leader ships with: their names say nothing about the user. A custom backend (`settings.agent.custom`) is named by the
+--- user and may be an internal tool, so neither its name nor its models are recorded
+local KNOWN_BACKENDS = { claude = true, opencode = true, ollama = true, openai = true, replay = true }
+
+---@param backend string?
+---@return boolean
+function M.known_backend(backend)
+  return KNOWN_BACKENDS[backend or ""] == true
+end
+
+--- A `backend/model` label, only when the backend is one Leader ships with (nil otherwise)
+---@param label string?
+---@return string?
+function M.model_label(label)
+  local backend = (label or ""):match "^([^/]+)/"
+  return backend and KNOWN_BACKENDS[backend] and label or nil
+end
+
 local LANGS = {
   dart = "dart",
   typescript = "ts",

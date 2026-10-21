@@ -120,6 +120,14 @@ ok(
   not decls.is_source "rust_builder/cargokit/build_tool/lib/a.dart" and not decls.is_source "build/x.dart"
 )
 ok(
+  "sources: examples, vendored code, docs and scripts are not",
+  not decls.is_source "example/lib/main.dart"
+    and not decls.is_source "packages/x/example/a.dart"
+    and not decls.is_source "vendor/lib/a.go"
+    and not decls.is_source "scripts/gen.py"
+    and not decls.is_source "docs/site/a.ts"
+)
+ok(
   "sources: the project's code is",
   decls.is_source "lib/features/editor/a.dart" and decls.is_source "internal/store/store.go"
 )
