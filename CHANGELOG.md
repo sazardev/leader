@@ -2,6 +2,42 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.14.0] - 2026-10-21
+
+### Highlights
+
+- **A build no longer calls itself done when it only compiles**: the closing line now says what is proven, e.g. `◐ built · 23 files ·
+  checks pass · 5/17 requirements have a test · core without one: FR-16 · 2 placeholders`, and it is `✓` only when every requirement has a
+  test and nothing is open. PROGRESS.md carries the same proof and what is open. A layer build (foundation, design, domain) reports the
+  numbers but keeps `✓`; `kit.build.strict` makes an unproven build a failure.
+- **A repair cannot delete your code quietly**: before a replan trashes files, the review lists what goes (lines, public types, tests, who
+  still uses them) and asks, and the closing line counts the public declarations a build removed or the tests it made unproven.
+- **Layers build on the code that is there**: a whole-project build used to plan from the documents and the ADRs' text only, so it wrote
+  the code earlier builds had left a second time under other names (two ports, two controllers, hundreds of analyzer errors). It now sees
+  the project's files and their API. A free check fails when a public type is declared in two files, Flutter projects run `flutter test`
+  and Rust ones `cargo test`, and plans name their risks and what they defer, with a warning for stand-ins of core requirements.
+- **`.leader/` in every project the builder touches**: how Leader worked there (how builds end, which checks fail, what a model costs,
+  whether you accept a proposal) as counts, sizes, durations, costs and outcomes, for measuring and improving Leader from real use.
+  **Offline: nothing is ever sent.** It is never your work: a schema is the only gate, so unknown fields are dropped, file names are salted
+  hashes, and there is no code, prompt, answer, name or text. The folder documents itself, ignores itself in git, `<leader>aSl` shows the
+  report, `LEADER_NO_DATA=1` turns it off, and deleting it clears everything.
+
+### Features
+
+- **build:** honest builds and a local .leader folder (1cb1c6e)
+
+### Fixes
+
+- **build:** skip examples in the duplicate check, hide custom models (bebfb1d)
+
+### Documentation
+
+- **build:** proof, loss gate, duplicates and the .leader folder (94a536e)
+
+### Chores
+
+- **deps:** update the plugin lockfile (3ab99c6)
+
 ## [1.13.0] - 2026-10-21
 
 ### Highlights
