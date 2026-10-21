@@ -204,6 +204,19 @@ function M.start(opts)
     return log.warn "Run: flutter-tools is not loaded (open a .dart file)"
   end
   local restarts = opts.ask or opts.mode ~= nil
+  -- `<leader>dr` with no options toggles: if the app is running, stop and close everything that opened
+  if commands.is_running() and not restarts and not opts.debug then
+    local panels = package.loaded["dartrun.panels"] or require("dartrun.panels")
+    pcall(panels.hide)
+    pcall(vim.cmd, "FlutterQuit")
+    pcall(function()
+      require("dap").terminate()
+    end)
+    pcall(function()
+      require("dap-view").close()
+    end)
+    return log.info "Run: stopped (closed app and panels)"
+  end
   if commands.is_running() and not restarts then
     return log.info "Run: the app is already running (<leader>dh hot reload, <leader>dR restart, <leader>dq quit)"
   end
