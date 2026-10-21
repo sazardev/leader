@@ -1,0 +1,1 @@
+{"usage":{"ms":1279,"tokens_in":1122,"tokens_out":184,"cost":0.0002042,"cache_write":0,"cache_read":0},"text":"L11|error|Infinite loop: when sorted[mid] < target, lo = mid never advances (e.g. lo=0, hi=1, mid=0). Use lo = mid + 1."}

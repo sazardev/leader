@@ -9,10 +9,13 @@
 --   models(cb)      cb({ {id, label?}... })     selectable models (may be async)
 --   build(req)      { cmd, stdin?, env?, cwd }  request -> process to launch
 --   warm()          nil                         optional: start something resident ahead of `build` (never blocks)
---   parser()        { feed(chunk) -> string?,   new text (streaming), if any
+--   parser(spec)    { feed(chunk) -> string?,   new text (streaming), if any  (`spec` = what build returned)
 --                     finish(code, stderr) -> AgentResult }
 --
---   AgentRequest: { system, prompt, model, effort?, action }
+--   AgentRequest: { system, prompt, model, effort?, action, schema? = "code"|"findings" }
+--     `schema`: the profile asks for output shaped by the server (agent/schema.lua). A backend that can do it (Ollama's `format`,
+--     OpenAI's `response_format`) sets it in the request and returns `schema` in the spec it builds; the runner then turns the
+--     JSON back into the protocol's text. Any other backend ignores it.
 --   AgentResult:  { ok, text?, err?, usage? = { cost?, tokens_in?, tokens_out?, ms? } }
 --
 -- Adding a backend: create `agent/backends/<name>.lua` and add it to NAMES (or

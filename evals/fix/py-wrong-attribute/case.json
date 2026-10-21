@@ -1,0 +1,26 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 3,
+  "diagnostics": [
+    {
+      "line": 3,
+      "message": "\"list[str]\" has no attribute \"strip\""
+    }
+  ],
+  "check": {
+    "contains": [
+      "words[0]"
+    ],
+    "absent": [
+      "strip"
+    ],
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import first_word; assert first_word(\"hello world\") == \"hello\""
+    ]
+  },
+  "notes": "The wrong object is being called: a model that adds a try/except instead has not read the diagnostic."
+}

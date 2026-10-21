@@ -1,0 +1,1 @@
+{"text": "L4|warn|`result` is a global: it leaks and is shared between calls; declare it `local result = {}`", "usage": {"tokens_in": 0, "tokens_out": 0}}

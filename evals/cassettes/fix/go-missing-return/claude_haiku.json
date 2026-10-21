@@ -1,0 +1,1 @@
+{"usage":{"ms":1938,"tokens_in":1162,"tokens_out":114,"cost":0.0001732,"cache_write":0,"cache_read":0},"text":"```go\n\treturn 0\n}\n```"}

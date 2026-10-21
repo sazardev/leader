@@ -1,0 +1,16 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 6,
+  "split": "holdout",
+  "check": {
+    "findings": [
+      {
+        "line": 6,
+        "tol": 1
+      }
+    ],
+    "max_findings": 3
+  },
+  "notes": "Security finding in four lines."
+}

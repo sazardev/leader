@@ -1,0 +1,1 @@
+{"text": "L12|error|`lo = mid` never advances when lo == mid, so the loop spins forever for a target above the last probe; use `lo = mid + 1`", "usage": {"tokens_in": 0, "tokens_out": 0}}

@@ -51,7 +51,8 @@ end
 ---@param action table
 ---@param target AgentTarget
 ---@param done fun(sections: { name: string, text: string }[])
-function M.build(action, target, done)
+---@param opts { max_chars: integer? }? a capability profile may ask for a tighter budget (a small model drowns in context)
+function M.build(action, target, done, opts)
   local names = action.context or {}
   local results, pending = {}, #names
   if pending == 0 then
@@ -59,7 +60,7 @@ function M.build(action, target, done)
   end
 
   local function assemble()
-    local sections, remaining = {}, settings.max_chars
+    local sections, remaining = {}, (opts and opts.max_chars) or settings.max_chars
     for i, name in ipairs(names) do
       local r = results[i]
       if r and remaining > 0 then

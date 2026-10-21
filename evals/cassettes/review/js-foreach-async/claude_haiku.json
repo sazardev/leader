@@ -1,0 +1,1 @@
+{"usage":{"ms":1054,"tokens_in":974,"tokens_out":60,"cost":0.0001274,"cache_write":0,"cache_read":0},"text":"L2|warn|forEach with async callback doesn't await: save() calls run concurrently and errors become unhandled rejections; use for...of or Promise.all(items.map(save))."}

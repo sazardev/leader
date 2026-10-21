@@ -30,7 +30,10 @@ function M.contexts()
   table.insert(list, require "menus.comments")
   table.insert(list, require "menus.folds")
   table.insert(list, require "menus.herdr")
-  return list
+  -- experimental features (agent/stability.lua) stay out until the user opts in
+  return vim.tbl_filter(function(ctx)
+    return require("agent.stability").visible(ctx.stability)
+  end, list)
 end
 
 --- `desc` an action is registered with. It starts with the first word of the
@@ -77,7 +80,13 @@ local function bind_global(ctx)
   end
   local ok, wk = pcall(require, "which-key")
   if ok then
-    wk.add { { "<leader>" .. ctx.prefix, group = ctx.name, mode = { "n", "x" } } }
+    wk.add {
+      {
+        "<leader>" .. ctx.prefix,
+        group = require("agent.stability").named(ctx.name, ctx.stability),
+        mode = { "n", "x" },
+      },
+    }
     for key, name in pairs(ctx.groups or {}) do
       wk.add { { "<leader>" .. ctx.prefix .. key, group = name, mode = { "n", "x" } } }
     end

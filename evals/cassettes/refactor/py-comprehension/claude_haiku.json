@@ -1,0 +1,1 @@
+{"usage":{"ms":1163,"tokens_in":1010,"tokens_out":34,"cost":0.000118,"cache_write":0,"cache_read":0},"text":"```python\ndef squares(numbers):\n    return [n * n for n in numbers if n > 0]\n```"}

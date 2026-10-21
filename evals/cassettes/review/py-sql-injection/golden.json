@@ -1,0 +1,1 @@
+{"text": "L6|error|SQL built by string formatting is injectable; pass `name` as a query parameter (`?`)", "usage": {"tokens_in": 0, "tokens_out": 0}}

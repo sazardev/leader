@@ -1,0 +1,16 @@
+{
+  "file": "app.lua",
+  "lang": "lua",
+  "line": 5,
+  "split": "holdout",
+  "check": {
+    "findings": [
+      {
+        "line": 4,
+        "tol": 1
+      }
+    ],
+    "max_findings": 3
+  },
+  "notes": "A missing `local`."
+}

@@ -1,0 +1,1 @@
+{"text": "```lua\n  for _, v in ipairs(list) do\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

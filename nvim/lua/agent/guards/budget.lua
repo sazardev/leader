@@ -28,6 +28,7 @@ function M.check(req)
     return nil
   end
   local verdict = budget.check(req, cfg, M.context())
+  req.estimate = { tokens = verdict.tokens, cost = verdict.cost } -- the preflight line and the preview say it too
   if verdict.level == "ok" then
     return nil
   end

@@ -11,6 +11,7 @@
 local settings = require("core.settings").agent.claude
 local ndjson = require "agent.backends.ndjson"
 local sandbox = require "agent.sandbox"
+local hints = require "agent.backends.hints"
 local text = require "agent.text"
 
 local M = {
@@ -109,13 +110,19 @@ function M.parser(opts)
     finish = function(code, stderr)
       if final then
         if final.is_error then
-          return { ok = false, err = text.trim(final.result) ~= "" and final.result or "Claude error" }
+          return {
+            ok = false,
+            err = hints.explain("claude", text.trim(final.result) ~= "" and final.result or "Claude error"),
+          }
         end
         return { ok = true, text = final.result or table.concat(chunks), usage = usage_of(final) }
       end
       if code ~= 0 then
         local msg = text.trim(stderr)
-        return { ok = false, err = msg ~= "" and msg or ("claude exited with code %d"):format(code) }
+        return {
+          ok = false,
+          err = hints.explain("claude", msg ~= "" and msg or ("claude exited with code %d"):format(code)),
+        }
       end
       return { ok = #chunks > 0, text = table.concat(chunks), err = "empty response" }
     end,

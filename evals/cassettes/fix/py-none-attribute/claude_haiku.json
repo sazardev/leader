@@ -1,0 +1,1 @@
+{"usage":{"ms":4754,"tokens_in":1166,"tokens_out":181,"cost":0.0002071,"cache_write":0,"cache_read":0},"text":"```python\n    return (name or \"\").upper()\n```\nnote: Assumes None should map to an empty string; adjust if another default is wanted."}

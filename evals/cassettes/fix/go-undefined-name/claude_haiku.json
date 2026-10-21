@@ -1,0 +1,1 @@
+{"usage":{"ms":1396,"tokens_in":1163,"tokens_out":11,"cost":0.0001218,"cache_write":0,"cache_read":0},"text":"```go\n\t\ttotal += n\n```"}

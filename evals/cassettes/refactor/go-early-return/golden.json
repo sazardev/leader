@@ -1,0 +1,1 @@
+{"text": "```go\nfunc Grade(score int) string {\n\tif score < 0 || score > 100 {\n\t\treturn \"invalid\"\n\t}\n\tif score >= 50 {\n\t\treturn \"pass\"\n\t}\n\treturn \"fail\"\n}\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

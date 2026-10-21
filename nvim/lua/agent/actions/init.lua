@@ -29,6 +29,8 @@
 --                            what the target holds (docs: agent/docplace.lua; test actions: tests/target.lua)
 --   cache       boolean?     true/false forces/forbids the answer cache; default by output kind (text, findings: cached)
 --   verify      boolean?     false = accepting its proposals is not verified afterwards (docs: only comments change)
+--   decomposable boolean?    an instruction that is several things may run as a chain of steps (refactor, implement): agent/decompose.lua
+--   stability   string?      id of an experimental feature (agent/stability.lua): hidden from the menus until the user opts in
 --
 -- Add an action: create `agent/actions/<name>.lua` and add it to NAMES; the menu and
 -- the cheatsheet come out on their own.

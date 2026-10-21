@@ -1,0 +1,1 @@
+{"text": "L3|error|Range runs one window too far: the last window is shorter than `size`; use `len(values) - size + 1`", "usage": {"tokens_in": 0, "tokens_out": 0}}

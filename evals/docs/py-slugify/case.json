@@ -1,0 +1,18 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 5,
+  "check": {
+    "preserves": true,
+    "contains": [
+      "\"\"\""
+    ],
+    "cmd": [
+      "python3",
+      "-m",
+      "py_compile",
+      "app.py"
+    ]
+  },
+  "notes": "Only the comment may change: a model that retypes the body risks changing it."
+}

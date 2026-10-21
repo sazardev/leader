@@ -1,0 +1,1 @@
+{"usage":{"ms":1080,"tokens_in":1025,"tokens_out":51,"cost":0.000128,"cache_write":0,"cache_read":0},"text":"```python\ndef first_even(items):\n    if not items:\n        return None\n    for item in items:\n        if item % 2 == 0:\n            return item\n    return None\n```"}

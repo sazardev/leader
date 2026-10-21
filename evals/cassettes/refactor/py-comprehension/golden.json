@@ -1,0 +1,1 @@
+{"text": "```python\ndef squares(numbers):\n    return [n * n for n in numbers if n > 0]\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

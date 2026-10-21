@@ -1,0 +1,15 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "check": {
+    "findings": [
+      {
+        "line": 1,
+        "tol": 2
+      }
+    ],
+    "max_findings": 3
+  },
+  "notes": "The classic. A reviewer that misses it is not worth the tokens."
+}

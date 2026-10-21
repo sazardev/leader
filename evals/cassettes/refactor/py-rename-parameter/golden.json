@@ -1,0 +1,1 @@
+{"text": "```python\ndef double(value):\n    return value * 2\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

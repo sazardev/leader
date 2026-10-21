@@ -1,0 +1,1 @@
+{"usage":{"ms":2542,"tokens_in":1182,"tokens_out":90,"cost":0.0001632,"cache_write":0,"cache_read":0},"text":"```lua\n  for _, v in ipairs(list) do\n```"}

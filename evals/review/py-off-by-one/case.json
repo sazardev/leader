@@ -1,0 +1,15 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "check": {
+    "findings": [
+      {
+        "line": 3,
+        "tol": 1
+      }
+    ],
+    "max_findings": 3
+  },
+  "notes": "A planted off-by-one: the model has to do the arithmetic, not pattern-match."
+}

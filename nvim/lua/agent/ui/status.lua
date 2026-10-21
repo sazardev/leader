@@ -74,6 +74,10 @@ function M.attach(job)
         selection.label(job.selection),
         jobs.elapsed(job)
       )
+    -- what was estimated when it left (agent/trust.lua), unless the window is narrow or the user turned it off
+    if not narrow and job.estimate and require("core.settings").agent.trust.preflight == "status" then
+      text = text:gsub(" $", "") .. (" · ~%s tok "):format(require("agent.text").tokens(job.estimate.tokens))
+    end
     local end_row, end_col = anchor.highlight_end(buf, last)
     job.status_mark = vim.api.nvim_buf_set_extmark(buf, NS, first - 1, 0, {
       id = job.status_mark,

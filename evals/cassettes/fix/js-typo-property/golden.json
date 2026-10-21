@@ -1,0 +1,1 @@
+{"text": "```javascript\n  return items[items.length - 1];\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

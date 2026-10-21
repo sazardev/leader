@@ -65,6 +65,7 @@ _Where: global_
 | `<leader>ah` | history |
 | `<leader>ac` | clear |
 | `<leader>aC` | clear file |
+| `<leader>au` | undo run |
 | `<leader>ax` | stop |
 | `<leader>al` | last answer |
 
@@ -157,6 +158,7 @@ _Where: global_
 | `<leader>aSbs` | setup build domain |
 | `<leader>aSbd` | setup build design |
 | `<leader>aSbf` | setup build feature |
+| `<leader>aSbu` | setup build undo |
 | `<leader>aSr` | setup recipe |
 | `<leader>aSv` | setup coverage |
 | `<leader>aSP` | setup progress |
@@ -824,6 +826,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSbf` | n | Setup build feature |
 | `<leader>aSbs` | n | Setup build domain |
 | `<leader>aSbt` | n | Setup build foundation |
+| `<leader>aSbu` | n | Setup build undo |
 | `<leader>aSc` | n | Setup claude link |
 | `<leader>aSd` | n | Setup design |
 | `<leader>aSk` | n | Setup stack addons |
@@ -863,6 +866,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>an` | n,x | Next edit |
 | `<leader>ar` | n,x | Review |
 | `<leader>at` | n,x | Convert |
+| `<leader>au` | n | Undo run |
 | `<leader>ax` | n | Stop |
 
 ### Clipboard

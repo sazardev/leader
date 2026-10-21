@@ -64,6 +64,32 @@ function M.agent_status()
   }
 end
 
+--- What the agent has cost this session, next to its cap: "$0.031/$2.00". Nothing until something was spent; it reads a
+--- counter in memory, never the history file. Does not load the agent.
+---@return table lualine component
+function M.agent_spend()
+  local function text()
+    local spend = package.loaded["agent.spend"]
+    return spend and (spend.statusline()) or ""
+  end
+  return {
+    text,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = function()
+      -- lualine builds the highlight when the statusline loads, before the agent has been used
+      local spend = package.loaded["agent.spend"]
+      local _, near = spend and spend.statusline()
+      return near and "DiagnosticWarn" or "AgentStatus"
+    end,
+    padding = 0,
+    fmt = function(s)
+      return " " .. s .. " "
+    end,
+  }
+end
+
 --- The agent build (<leader>aSb) while it runs, from any buffer: "⠹ build 7/25 · $0.031". It does not load the build: no
 --- state module loaded = nothing to show.
 ---@return table lualine component

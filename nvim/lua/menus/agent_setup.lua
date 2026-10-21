@@ -25,12 +25,13 @@ local function kit_module(name, fn)
 end
 
 ---@type { [1]: string, [2]: string, [3]: function }[]
-local maps = {
+local all = {
   { "bb", "setup build all", build "all" },
   { "bt", "setup build foundation", build "foundation" },
   { "bs", "setup build domain", build "domain" },
   { "bd", "setup build design", build "design" },
   { "bf", "setup build feature", kit_module("feature", "open") },
+  { "bu", "setup build undo", build "undo" },
   { "r", "setup recipe", kit_module("recipes", "open") },
   { "v", "setup coverage", kit_module("coverage", "open") },
   { "P", "setup progress", kit "progress" },
@@ -52,10 +53,19 @@ local maps = {
   { "m", "setup spec modules", kit_module("specmodules", "open") },
 }
 
+-- Building a whole project with a model is experimental (agent/stability.lua): its entries (the `b` group, recipes, the
+-- recheck) only exist once you opt in; the documents themselves (presets, 0 tokens) are everyday
+local EXPERIMENTAL = { bb = true, bt = true, bs = true, bd = true, bf = true, bu = true, r = true, B = true }
+local show_build = require("agent.stability").visible "build"
+
+local maps = vim.tbl_filter(function(m)
+  return show_build or not EXPERIMENTAL[m[1]]
+end, all)
+
 return {
   name = "Agent Setup",
   prefix = "aS",
   global = true,
   maps = maps,
-  groups = { b = "build" },
+  groups = show_build and { b = "build" } or nil,
 }

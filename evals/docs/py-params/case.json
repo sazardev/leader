@@ -1,0 +1,20 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "split": "holdout",
+  "check": {
+    "preserves": true,
+    "contains": [
+      "retries",
+      "timeout"
+    ],
+    "cmd": [
+      "python3",
+      "-m",
+      "py_compile",
+      "app.py"
+    ]
+  },
+  "notes": "Parameters with defaults: the docs must name them and say what the defaults mean."
+}

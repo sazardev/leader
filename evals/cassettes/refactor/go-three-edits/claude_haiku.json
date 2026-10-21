@@ -1,0 +1,1 @@
+{"usage":{"ms":2563,"tokens_in":1068,"tokens_out":397,"cost":0.0003053,"cache_write":0,"cache_read":0},"text":"```go\nfunc Div(a, b int) (int, error) {\n\tif b == 0 {\n\t\treturn 0, errors.New(\"division by zero\")\n\t}\n\treturn a / b, nil\n}\n```\nneeds-import: \"errors\"\nnote: The \"fmt\" import becomes unused after dropping the Println; remove it."}

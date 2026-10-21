@@ -13,6 +13,7 @@ local settings = require("core.settings").agent.opencode
 local ndjson = require "agent.backends.ndjson"
 local sandbox = require "agent.sandbox"
 local server = require "agent.backends.opencode_server"
+local hints = require "agent.backends.hints"
 local text = require "agent.text"
 
 local M = {
@@ -359,7 +360,7 @@ function M.parser()
         end
       end
       if err then
-        return { ok = false, err = err }
+        return { ok = false, err = hints.explain("opencode", err) }
       end
       -- if opencode cannot find the agent, it warns and carries on with the default one (which DOES have
       -- tools): that response is not the requested action, so it is treated as a failure
@@ -379,7 +380,10 @@ function M.parser()
         local msg = text.trim(stderr)
         return {
           ok = false,
-          err = msg ~= "" and msg or (code ~= 0 and ("opencode exited with code %d"):format(code) or "empty response"),
+          err = hints.explain(
+            "opencode",
+            msg ~= "" and msg or (code ~= 0 and ("opencode exited with code %d"):format(code) or "empty response")
+          ),
         }
       end
       return {

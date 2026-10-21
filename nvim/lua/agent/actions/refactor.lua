@@ -8,6 +8,7 @@ return {
   scope = "function",
   context = { "rules", "types", "callees", "callers", "outline", "gitlog" },
   output = "replace",
+  decomposable = true,
   input = "what should change?",
   system = function()
     return "TASK refactor: apply the user's instruction to <target>; keep its behaviour and public signature unless told otherwise.\n"

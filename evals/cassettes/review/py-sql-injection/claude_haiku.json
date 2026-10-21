@@ -1,0 +1,1 @@
+{"usage":{"ms":789,"tokens_in":1010,"tokens_out":72,"cost":0.000137,"cache_write":0,"cache_read":0},"text":"L5|error|SQL injection: name is interpolated via % formatting into the query. Use a parameterized query, e.g. conn.execute(\"SELECT id, name FROM users WHERE name = ?\", (name,))."}

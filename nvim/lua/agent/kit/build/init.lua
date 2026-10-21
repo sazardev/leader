@@ -378,8 +378,10 @@ end
 ---@return boolean, string?
 local function write_file(root, path, content)
   local full = root .. "/" .. path
+  local entry
   if vim.uv.fs_stat(full) then
-    local entry, why = require("files.ops").trash(full)
+    local why
+    entry, why = require("files.ops").trash(full)
     if not entry then
       return false, why
     end
@@ -391,6 +393,8 @@ local function write_file(root, path, content)
   end
   f:write(content)
   f:close()
+  -- the journal is what `aSbu` takes back (agent/kit/build/journal.lua)
+  pcall(require("agent.kit.build.journal").record, root, run().started, path, content, entry)
   return true
 end
 
@@ -1725,6 +1729,40 @@ end
 
 --- Older callers: the whole build
 M.run = M.all
+
+--- <leader>aSbu: takes the last build of this project back (agent/kit/build/journal.lua): the files it replaced return from
+--- the trash, the ones it created go, and what you changed since stays
+function M.undo()
+  local root = require("agent.kit.snapshot").root()
+  local journal = require "agent.kit.build.journal"
+  local last = journal.last(root)
+  if not last then
+    return log.info "Build: nothing to undo here"
+  end
+  if state.run and state.run.root == root and state.run.running then
+    return log.warn "Build: it is still running (stop it first)"
+  end
+  local modal = require "utils.modal"
+  modal.confirm({
+    { { ("Take the last build back: %d file%s"):format(last.files, last.files == 1 and "" or "s"), modal.hl.warn } },
+    { { ("  %d replaced → the originals come back from the trash"):format(last.replaced), modal.hl.muted } },
+    { { ("  %d created → deleted"):format(last.created), modal.hl.muted } },
+    { { "  a file you changed since is left alone", modal.hl.muted } },
+  }, { title = "Undo the build", confirm = "Undo", danger = true }, function()
+    local r = journal.undo(root)
+    if not r then
+      return log.info "Build: nothing to undo here"
+    end
+    local text = ("Build undone: %d restored, %d removed"):format(r.restored, r.removed)
+    if #r.skipped > 0 then
+      local names = vim.tbl_map(function(s)
+        return ("%s (%s)"):format(s.path, s.why)
+      end, vim.list_slice(r.skipped, 1, 3))
+      return log.warn(("%s · %d left alone: %s"):format(text, #r.skipped, table.concat(names, ", ")))
+    end
+    log.info(text)
+  end)
+end
 
 --- <leader>aSB: check again (opens the view of the saved run when there is no live one)
 function M.check_again()

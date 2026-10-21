@@ -1,0 +1,1 @@
+{"usage":{"ms":1973,"tokens_in":970,"tokens_out":221,"cost":0.0002075,"cache_write":0,"cache_read":0},"text":"L1|warn|No guard for None or non-str input: text.split() raises AttributeError. Validate type or return 0 for None, or document the str contract."}

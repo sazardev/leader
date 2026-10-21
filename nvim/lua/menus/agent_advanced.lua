@@ -3,9 +3,11 @@
 -- files) and the queue of proposals those leave waiting. The actions come from the registry (the ones flagged `advanced`).
 local queue = require "agent.batch.queue"
 
+local stability = require "agent.stability"
+
 local maps = {}
 for _, action in ipairs(require("agent.actions").list()) do
-  if action.advanced and (not action.enabled or action.enabled()) then
+  if action.advanced and (not action.enabled or action.enabled()) and stability.visible(action.stability) then
     maps[#maps + 1] = {
       action.key,
       action.desc,

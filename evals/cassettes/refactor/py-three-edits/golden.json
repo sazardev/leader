@@ -1,0 +1,1 @@
+{"text": "```python\ndef summarize(data):\n    result = {k: round(v * 100) / 100 for k, v in data.items() if v is not None}\n    total = sum(result.values())\n    return result, total\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

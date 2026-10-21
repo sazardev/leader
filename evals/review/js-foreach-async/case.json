@@ -1,0 +1,15 @@
+{
+  "file": "app.js",
+  "lang": "javascript",
+  "line": 2,
+  "check": {
+    "findings": [
+      {
+        "line": 2,
+        "tol": 1
+      }
+    ],
+    "max_findings": 3
+  },
+  "notes": "A classic that runs fine in a demo."
+}

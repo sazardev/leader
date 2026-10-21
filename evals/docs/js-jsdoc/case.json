@@ -1,0 +1,17 @@
+{
+  "file": "app.js",
+  "lang": "javascript",
+  "line": 2,
+  "check": {
+    "preserves": true,
+    "contains": [
+      "@param"
+    ],
+    "cmd": [
+      "node",
+      "--check",
+      "app.js"
+    ]
+  },
+  "notes": "TSDoc/JSDoc tags, above the function."
+}

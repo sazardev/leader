@@ -22,4 +22,8 @@ return {
   },
   { group = "Agent", label = "Verify after accepting", kind = "toggle", id = "agent.verify.enabled" },
   { group = "Agent", label = "Spend guard", kind = "toggle", id = "agent.budget.enabled" },
+  { group = "Agent", label = "Smaller models get help", kind = "toggle", id = "agent.capability.enabled" },
+  { group = "Agent", label = "Escalate to the main model", kind = "toggle", id = "agent.cascade.enabled" },
+  { group = "Agent", label = "Preview prompt before sending", kind = "toggle", id = "agent.trust.preview" },
+  { group = "Agent", label = "Experimental features", kind = "toggle", id = "agent.experimental", restart = true },
 }

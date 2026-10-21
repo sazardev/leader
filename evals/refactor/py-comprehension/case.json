@@ -1,0 +1,22 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "split": "holdout",
+  "input": "use a list comprehension",
+  "check": {
+    "contains": [
+      "for n in numbers"
+    ],
+    "absent": [
+      ".append("
+    ],
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import squares; assert squares([-1, 2, 3]) == [4, 9]"
+    ]
+  },
+  "notes": "The filter has to survive the rewrite."
+}

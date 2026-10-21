@@ -71,7 +71,10 @@ local function judge(buf, st, info)
     }
   end
   if info.heard then
-    log.info "Agent: ✓ verified · no new problems"
+    log.info("Agent: ✓ " .. require("agent.trust").after_accept(true))
+  elseif #vim.lsp.get_clients { bufnr = buf } > 0 then
+    -- a server is attached but said nothing: that is not the same as "no problems"
+    log.info("Agent: " .. require("agent.trust").after_accept(false))
   end
   -- the build reads the disk: it runs when the buffer is saved
   if cfg().command then

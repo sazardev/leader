@@ -1,0 +1,24 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "split": "dev",
+  "input": "do three things: rename the parameter d to data; build result with a dict comprehension; compute total with sum()",
+  "check": {
+    "contains": [
+      "def summarize(data)",
+      "sum("
+    ],
+    "absent": [
+      "total = 0",
+      "total + "
+    ],
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import summarize; r, t = summarize({\"a\": 1.234, \"b\": None, \"c\": 2.0}); assert r == {\"a\": 1.23, \"c\": 2.0}; assert abs(t - 3.23) < 1e-9"
+    ]
+  },
+  "notes": "Three instructions in one: a weak model does two of them. The None filter must survive."
+}

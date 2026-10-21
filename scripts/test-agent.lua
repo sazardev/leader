@@ -15,6 +15,35 @@ local function eq(name, got, want)
 end
 local protocol = require "agent.protocol"
 
+-- this suite describes every menu of the agent: the experimental ones (agent/stability.lua) are opted in, and the menus the
+-- config already loaded with them hidden are loaded again (their own visibility is tested in test-agent-stability.lua)
+require("core.settings").agent.experimental = true
+for name in pairs(package.loaded) do
+  if name:match "^menus%.agent" then
+    package.loaded[name] = nil
+  end
+end
+
+-- findings that say nothing is wrong are "OK", real ones stay
+eq(
+  "findings: a line that says there is nothing wrong is dropped",
+  #protocol.parse_findings "L3|info|Max is correct for all int inputs; no defects found in lines 3-8. Nothing real to fix.",
+  0
+)
+eq("findings: and the answer counts as OK", protocol.is_ok "L3|info|No defects found.", true)
+eq(
+  "findings: a warning with those words is real",
+  #protocol.parse_findings "L3|warn|Reports no defects when the list is empty",
+  1
+)
+eq(
+  "findings: real ones next to a nothing line stay",
+  #protocol.parse_findings "L1|error|index out of range\nL3|info|looks correct otherwise",
+  1
+)
+eq("findings: a real finding is not OK", protocol.is_ok "L1|error|index out of range", false)
+eq("findings: prose is not OK", protocol.is_ok "this looks fine", false)
+
 -- extract_code
 local code, needs = protocol.extract_code "```go\nfunc A() {\n}\n```\nneeds-import: strings, fmt"
 eq("extract_code basic", code, { "func A() {", "}" })
@@ -140,17 +169,18 @@ eq(
 )
 local qe = oc.parser()
 qe.feed '{"type":"error","error":{"name":"APIError","data":{"message":"Forbidden"}}}\n'
-eq("opencode: error with message", qe.finish(1, ""), { ok = false, err = "Forbidden" })
+local hints = require "agent.backends.hints"
+eq("opencode: error with message", qe.finish(1, ""), { ok = false, err = hints.explain("opencode", "Forbidden") })
 eq("opencode: no text or error", oc.parser().finish(0, "").ok, false)
 require("core.settings").agent.opencode.serve = false -- hermetic: do not start a real `opencode serve`
 local ospec =
   oc.build { system = "SYS", prompt = "PROMPT", model = "opencode-go/x", action = "explain", effort = "high" }
 local cfg = vim.json.decode(ospec.env.OPENCODE_CONFIG_CONTENT)
-eq(
-  "opencode: ephemeral agent without tools",
-  { cfg.agent["nvim-explain"].prompt, cfg.agent["nvim-explain"].tools.bash, cfg.agent["nvim-explain"].permission.edit },
-  { "SYS", false, "deny" }
-)
+eq("opencode: ephemeral agent without tools", {
+  cfg.agent["nvim-explain"].prompt,
+  cfg.agent["nvim-explain"].tools.bash,
+  cfg.agent["nvim-explain"].permission.edit,
+}, { "SYS", false, "deny" })
 eq("opencode: argv", {
   ospec.cmd[vim.fn.index(ospec.cmd, "--agent") + 2],
   ospec.cmd[vim.fn.index(ospec.cmd, "--variant") + 2],
@@ -215,11 +245,13 @@ do
   eq("opencode: global MCP servers disabled", { mcp.chrome, mcp.dart }, { { enabled = false }, { enabled = false } })
   oc.set_major(2)
   local mcp2 = oc.config().mcp.servers
-  eq(
-    "opencode v2: the servers are re-declared disabled (full entry, legacy `enabled` dropped)",
-    { mcp2.chrome.disabled, mcp2.chrome.type, mcp2.chrome.command[1], mcp2.chrome.enabled == nil, mcp2.dart.disabled },
-    { true, "local", "x", true, true }
-  )
+  eq("opencode v2: the servers are re-declared disabled (full entry, legacy `enabled` dropped)", {
+    mcp2.chrome.disabled,
+    mcp2.chrome.type,
+    mcp2.chrome.command[1],
+    mcp2.chrome.enabled == nil,
+    mcp2.dart.disabled,
+  }, { true, "local", "x", true, true })
   oc.set_major(1)
   local own = require("core.settings").agent.opencode
   own.mcp = true
@@ -247,7 +279,11 @@ do
   )
   local he = oc.parser()
   he.feed '{"name":"UnknownError","data":{"message":"Unexpected server error.","ref":"err_1"}}'
-  eq("opencode http: error object", he.finish(0, ""), { ok = false, err = "Unexpected server error. (err_1)" })
+  eq(
+    "opencode http: error object",
+    he.finish(0, ""),
+    { ok = false, err = hints.explain("opencode", "Unexpected server error. (err_1)") }
+  )
   eq("opencode http: no session ready → cold path", require("agent.backends.opencode_server").post {}, nil)
 end
 
@@ -954,7 +990,13 @@ vim.diagnostic.set(fns, fbuf, {
     severity = vim.diagnostic.severity.WARN,
     source = "agent",
   },
-  { lnum = 7, col = 0, message = "B returns a magic number", severity = vim.diagnostic.severity.INFO, source = "ddd" },
+  {
+    lnum = 7,
+    col = 0,
+    message = "B returns a magic number",
+    severity = vim.diagnostic.severity.INFO,
+    source = "ddd",
+  },
 })
 persist.sync(fbuf, "findings")
 eq("persistence: saves 2 findings with their line text", persist.count(), 2)
@@ -1117,10 +1159,12 @@ eq(
   { { "order_items", "order_item" }, { "categories", "category" }, { "addresses", "address" } }
 )
 eq("port methods: Go, TypeScript, Python and Rust", {
-  ccontracts.port_methods(
-    { "type R interface {", "\tSave(ctx context.Context, o *Order) error", "\tByID(id string) (*Order, error)", "}" },
-    "go"
-  ),
+  ccontracts.port_methods({
+    "type R interface {",
+    "\tSave(ctx context.Context, o *Order) error",
+    "\tByID(id string) (*Order, error)",
+    "}",
+  }, "go"),
   ccontracts.port_methods(
     { "interface R {", "  save(o: Order): Promise<void>;", "  byId<T>(id: string): Promise<Order>;", "}" },
     "ts"

@@ -1,0 +1,21 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 3,
+  "input": "return early instead of keeping a result variable and nesting",
+  "check": {
+    "contains": [
+      "return item"
+    ],
+    "absent": [
+      "result"
+    ],
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import first_even; assert first_even([1, 3, 4, 6]) == 4; assert first_even([]) is None; assert first_even(None) is None"
+    ]
+  },
+  "notes": "Behaviour must not change, including for None (an edge the old code handled by accident)."
+}

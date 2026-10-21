@@ -89,8 +89,22 @@ function M.build(req)
       { role = "user", content = req.prompt },
     },
   }
+  local shaped = req.schema and require "agent.schema"
+  if shaped then
+    body.response_format = {
+      type = "json_schema",
+      json_schema = { name = "answer", strict = true, schema = shaped.json(req.schema) },
+    }
+    body.messages[1].content = req.system .. shaped.suffix(req.schema)
+  end
   local cmd, env = request((M.base_url() or "") .. "/chat/completions", { stream = true, body = true })
-  return { cmd = cmd, env = env, stdin = vim.json.encode(body), cwd = require("agent.sandbox").dir() }
+  return {
+    cmd = cmd,
+    env = env,
+    stdin = vim.json.encode(body),
+    cwd = require("agent.sandbox").dir(),
+    schema = shaped and req.schema or nil,
+  }
 end
 
 ---@return table

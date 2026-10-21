@@ -5,6 +5,7 @@ return {
   desc = "plan across files",
   key = "p",
   advanced = true,
+  stability = "plan",
   modes = { "n" },
   standalone = true,
   output = "replace",

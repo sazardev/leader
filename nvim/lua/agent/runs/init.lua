@@ -23,6 +23,7 @@ function M.record(job, status, err)
     local entry = require("agent.runs.record").build(job, status, err)
     job.record_id = entry.id
     store.append(entry)
+    require("agent.spend").add(entry.usage.cost)
   end)
 end
 
@@ -68,6 +69,7 @@ function M.call(req, sel, status, usage, ms, response)
       entry.system, entry.prompt, entry.response = req.system, req.prompt, response
     end
     store.append(entry)
+    require("agent.spend").add(entry.usage.cost)
   end)
 end
 

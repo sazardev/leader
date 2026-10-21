@@ -1,0 +1,17 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 5,
+  "input": "flatten it with early returns, no else",
+  "check": {
+    "absent": [
+      "else"
+    ],
+    "cmd": [
+      "go",
+      "test",
+      "./..."
+    ]
+  },
+  "notes": "Boundaries (0, 50, 100) are where a careless flattening breaks."
+}

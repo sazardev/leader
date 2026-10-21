@@ -1,0 +1,1 @@
+{"text": "L12|warn|`defer` in a loop keeps every file open until the function returns; close it each iteration or move the body into a function", "usage": {"tokens_in": 0, "tokens_out": 0}}

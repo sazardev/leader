@@ -9,6 +9,7 @@ return {
   context = { "rules", "contracts", "schema", "types", "callees", "outline", "diagnostics" },
   examples = true,
   output = "replace",
+  decomposable = true,
   input = "what should it do?",
   input_optional = true,
   system = function()

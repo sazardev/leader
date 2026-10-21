@@ -10,5 +10,5 @@ command -v nvim >/dev/null 2>&1 || { echo "gen-cheatsheet: nvim is not in PATH" 
 
 CHEATSHEET_OUT="$ROOT/CHEATSHEET.md" \
 CHEATSHEET_CHECK="$([ "$1" = "--check" ] && echo 1 || echo 0)" \
-NVIM_NO_LOCAL=1 NVIM_LIGHT=0 HERDR_ENV=1 \
+NVIM_NO_LOCAL=1 NVIM_LIGHT=0 HERDR_ENV=1 NVIM_EXPERIMENTAL=1 \
   nvim --headless -c "luafile $ROOT/scripts/gen-cheatsheet.lua"

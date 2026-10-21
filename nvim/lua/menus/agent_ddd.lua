@@ -35,6 +35,7 @@ maps[#maps + 1] = {
 return {
   name = "Agent DDD",
   prefix = "aD",
+  stability = "ddd",
   global = true,
   maps = maps,
 }

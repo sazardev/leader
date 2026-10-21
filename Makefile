@@ -12,7 +12,7 @@ STYLUA  ?= $(or $(shell command -v stylua),$(wildcard $(HOME)/.local/share/nvim/
 
 .DEFAULT_GOAL := help
 .PHONY: help dev run open build kill bench bench-edit timing snap restart \
-        test test-app test-gui test-agent test-package check lint fmt fmt-lua docs cheatsheet \
+        test test-app test-gui test-agent eval eval-table test-package check lint fmt fmt-lua docs cheatsheet \
         package install uninstall icons clean
 
 help: ## List the targets
@@ -63,6 +63,12 @@ test-gui: ## Only the app's Lua suite (scripts/test-gui.lua), fast
 test-agent: ## The agent suites
 	@scripts/test-agent.sh
 
+eval: ## Pass rates of the agent per action and model (MODELS="claude/haiku,ollama/qwen2.5-coder:7b" FILTER=fix SAMPLES=3 SCAFFOLD=0 DECOMPOSE=1 RECORD=1 PROFILE_OUT=1; free: MODELS=replay/golden)
+	@EVAL_MODELS="$(MODELS)" EVAL_FILTER="$(FILTER)" EVAL_SPLIT="$(SPLIT)" EVAL_SAMPLES="$(or $(SAMPLES),1)" EVAL_MAX_USD="$(or $(MAX_USD),1.00)" EVAL_RECORD="$(RECORD)" EVAL_SCAFFOLD="$(SCAFFOLD)" EVAL_DECOMPOSE="$(DECOMPOSE)" EVAL_PROFILE="$(PROFILE_OUT)" EVAL_BASELINE="$(BASELINE)" EVAL_MD="$(MD)" scripts/eval.sh
+
+eval-table: ## Write evals/RESULTS.md from the committed baselines (evals/baselines/*.json); calls no model
+	@AGENT_TEST_ROOT=$(CURDIR) nvim --headless -c "luafile scripts/eval-table.lua" 2>&1 | tr '\r' '\n' | grep -v '^$$'
+
 test-package: ## The packaging: metadata, icons, installed tree, signing key, PKGBUILDs
 	@scripts/test-package.sh
 
@@ -77,7 +83,7 @@ fmt: ## cargo fmt and stylua on the Lua files you changed (never the whole tree)
 
 fmt-lua:
 	@files=$$( (git diff --name-only HEAD; git ls-files --others --exclude-standard) | grep -E '\.lua$$' | sort -u); \
-	  if [ -z "$$files" ]; then echo "no changed Lua files"; elif [ -z "$(STYLUA)" ]; then echo "stylua is not installed (Mason: :MasonInstall stylua)"; else $(STYLUA) $$files && echo "formatted: $$(echo $$files | wc -w) files"; fi
+	  if [ -z "$$files" ]; then echo "no changed Lua files"; elif [ -z "$(STYLUA)" ]; then echo "stylua is not installed (Mason: :MasonInstall stylua)"; else $(STYLUA) --config-path nvim/.stylua.toml $$files && echo "formatted: $$(echo $$files | wc -w) files"; fi
 
 docs: ## Regenerate the web docs from the Markdown (the pre-commit hook does it too)
 	@scripts/gen-docs.sh --worktree

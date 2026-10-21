@@ -7,9 +7,11 @@ local function agent()
   return require "agent"
 end
 
+local stability = require "agent.stability"
+
 local maps = {}
 for _, action in ipairs(require("agent.actions").list()) do
-  if not action.advanced and (not action.enabled or action.enabled()) then
+  if not action.advanced and (not action.enabled or action.enabled()) and stability.visible(action.stability) then
     maps[#maps + 1] = {
       action.key,
       action.desc,
@@ -57,6 +59,13 @@ vim.list_extend(maps, {
     "clear file",
     function()
       agent().clear "file"
+    end,
+  },
+  {
+    "u",
+    "undo run",
+    function()
+      require("agent.checkpoint").run()
     end,
   },
   {

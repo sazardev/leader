@@ -1,0 +1,1 @@
+{"text": "```python\n    return \"Total: \" + str(total)\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

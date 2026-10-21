@@ -1,0 +1,1 @@
+{"text": "L6|error|Writing to a nil map panics: `counts` is never made; use `make(map[string]int)`", "usage": {"tokens_in": 0, "tokens_out": 0}}

@@ -25,7 +25,7 @@ The block is the whole comment in its final form (it replaces the existing one, 
 
 M.FINDINGS_RULES = [[
 OUTPUT, one finding per line, nothing else: L<line>|<error|warn|info>|<problem and fix, max 140 chars>
-<line> = the absolute line number shown in <target>. At most 8, worst first. Real defects only (bugs, wrong edge cases, unhandled errors, races, leaks, security): no style, no praise. Nothing real: OK]]
+<line> = the absolute line number shown in <target>. At most 8, worst first. Real defects only (bugs, wrong edge cases, unhandled errors, races, leaks, security): no style, no praise, no hypothetical misuse (a missing check on an input the signature or docstring already rules out is not a defect). Nothing real: the whole answer is exactly OK, never a finding that says nothing is wrong]]
 
 M.REVIEW_FILES_RULES = [[
 OUTPUT, one finding per line, nothing else: <path>:<line>|<error|warn|info>|<problem and fix, max 140 chars>
@@ -153,6 +153,25 @@ local SEVERITY = {
 ---@field severity integer
 ---@field message string
 
+--- A "finding" that says there is nothing wrong ("no defects found", "nothing real to fix"): a model that answers the format
+--- instead of `OK`. Info severity only: a warning or error that happens to contain these words is a real finding
+---@param severity integer
+---@param message string
+---@return boolean
+local function says_nothing(severity, message)
+  if severity ~= SEVERITY.info then
+    return false
+  end
+  local m = message:lower()
+  return m:find("no defects?", 1) ~= nil
+    or m:find("no real defects?", 1) ~= nil
+    or m:find("nothing real", 1, true) ~= nil
+    or m:find("no issues? found", 1) ~= nil
+    or m:find("nothing to fix", 1, true) ~= nil
+    or m:find("looks correct", 1, true) ~= nil
+    or m:find("is correct for", 1, true) ~= nil
+end
+
 --- Findings `L<n>|<sev>|<msg>`; lines that do not match the format are ignored
 ---@param response string
 ---@return AgentFinding[]
@@ -160,8 +179,9 @@ function M.parse_findings(response)
   local list = {}
   for line in response:gmatch "[^\r\n]+" do
     local n, sev, msg = line:match "^%s*[Ll](%d+)%s*|%s*(%a+)%s*|%s*(.-)%s*$"
-    if n and msg ~= "" then
-      list[#list + 1] = { line = tonumber(n), severity = SEVERITY[sev:lower()] or SEVERITY.info, message = msg }
+    local severity = n and SEVERITY[sev:lower()] or SEVERITY.info
+    if n and msg ~= "" and not says_nothing(severity, msg) then
+      list[#list + 1] = { line = tonumber(n), severity = severity, message = msg }
     end
   end
   return list
@@ -208,7 +228,11 @@ end
 ---@param response string
 ---@return boolean
 function M.is_ok(response)
-  return vim.trim(response):upper() == "OK"
+  if vim.trim(response):upper() == "OK" then
+    return true
+  end
+  -- finding lines that only say nothing is wrong (dropped by parse_findings) are an "all good" too
+  return #M.parse_findings(response) == 0 and response:find "^%s*[Ll]%d+%s*|" ~= nil
 end
 
 return M

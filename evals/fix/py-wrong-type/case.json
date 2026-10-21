@@ -1,0 +1,23 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 3,
+  "diagnostics": [
+    {
+      "line": 3,
+      "message": "Unsupported operand types for + (\"str\" and \"int\")"
+    }
+  ],
+  "check": {
+    "contains": [
+      "str(total)"
+    ],
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import label; assert label(2) == \"Total: 3\""
+    ]
+  },
+  "notes": "The diagnostic names the types: convert, do not change what the function returns."
+}

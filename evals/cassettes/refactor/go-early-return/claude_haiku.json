@@ -1,0 +1,1 @@
+{"usage":{"ms":1048,"tokens_in":1081,"tokens_out":85,"cost":0.0001506,"cache_write":0,"cache_read":0},"text":"```go\nfunc Grade(score int) string {\n\tif score < 0 {\n\t\treturn \"invalid\"\n\t}\n\tif score > 100 {\n\t\treturn \"invalid\"\n\t}\n\tif score < 50 {\n\t\treturn \"fail\"\n\t}\n\treturn \"pass\"\n}\n```"}

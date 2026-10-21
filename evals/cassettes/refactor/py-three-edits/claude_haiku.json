@@ -1,0 +1,1 @@
+{"usage":{"ms":2211,"tokens_in":1074,"tokens_out":293,"cost":0.0002539,"cache_write":0,"cache_read":0},"text":"```python\ndef summarize(data):\n    result = {key: round(value * 100) / 100 for key, value in data.items() if value is not None}\n    total = sum(result.values())\n    return result, total\n```"}

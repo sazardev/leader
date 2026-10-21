@@ -1,0 +1,1 @@
+{"usage":{"ms":1122,"tokens_in":986,"tokens_out":61,"cost":0.0001291,"cache_write":0,"cache_read":0},"text":"L1|warn|Mutable default argument `tags=[]` is shared across calls, so tags accumulate between invocations. Use `tags=None` and create a new list inside the function when None."}

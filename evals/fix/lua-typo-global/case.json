@@ -1,0 +1,22 @@
+{
+  "file": "app.lua",
+  "lang": "lua",
+  "line": 5,
+  "diagnostics": [
+    {
+      "line": 5,
+      "message": "Undefined global `ipair`."
+    }
+  ],
+  "check": {
+    "absent": [
+      "ipair("
+    ],
+    "cmd": [
+      "lua",
+      "-e",
+      "package.path = \"./?.lua;\" .. package.path; local m = require(\"app\"); assert(m.sum({1, 2, 3}) == 6)"
+    ]
+  },
+  "notes": "Lua: the one-word typo."
+}

@@ -19,6 +19,11 @@ local runner = require "agent.runner"
 local selection = require "agent.selection"
 local status = require "agent.ui.status"
 local target_mod = require "agent.context.target"
+local trust = require "agent.trust"
+local profiles = require "agent.profiles"
+local sampling = require "agent.sampling"
+local decompose = require "agent.decompose"
+local selection_mod = require "agent.selection"
 local ui_prompt = require "agent.ui.prompt"
 
 require("agent.ui.highlights").ensure()
@@ -42,7 +47,26 @@ local M = {}
 function M.launch(spec)
   local action, target, subject = spec.action, spec.target, spec.subject
   local buf = target.buf
+
+  -- what this model can be trusted with (agent/profiles.lua). If it is not up to THIS request (the target is past its
+  -- size, or the eval measured it failing this action) and the cascade is on, the main model takes it from the start
+  local cap = require("core.settings").agent.capability
+  local profile = cap.enabled and profiles.resolve(spec.selection, action.name, cap, profiles.load()) or nil
+  local escalated, from
+  if profile and (profile.declined or (profile.max_target_lines and #target.lines > profile.max_target_lines)) then
+    local to = sampling.escalation(spec.selection)
+    if to then
+      from, escalated = selection_mod.label(spec.selection), true
+      spec = vim.tbl_extend("force", spec, { selection = to })
+      profile = profiles.resolve(to, action.name, cap, profiles.load())
+      log.info(("Agent %s: %s is not up to this: using %s"):format(action.label, from, selection_mod.label(to)))
+    end
+  end
+
   local job = jobs.create {
+    profile = profile,
+    escalated = escalated,
+    from = from,
     action = action,
     target = target,
     subject = subject,
@@ -72,27 +96,52 @@ function M.launch(spec)
       sections = vim.list_extend(vim.list_slice(spec.extra), sections)
     end
     job.input, job.sections = spec.input, sections
-    job.system, job.prompt = prompt.build(action, target, sections, spec.input)
+    -- an instruction that is several things, for a profile that decomposes: a chain of single steps (agent/decompose.lua)
+    job.steps = decompose.plan(action, spec.input, profile)
+    if job.steps then
+      job.step, job.working = 1, vim.deepcopy(target.lines)
+    end
+    job.system, job.prompt =
+      prompt.build(action, target, sections, job.steps and decompose.step_input(spec.input, job.steps, 1) or spec.input)
     -- the same question about the same code was already answered: 0 tokens, no budget to check
     local cached = cache.lookup(job)
     if cached then
       status.clear(job)
       return runner.settle(job, cached)
     end
-    guards.check({
+    local req = {
       action = action.name or action.label,
       backend = spec.selection.backend,
       model = spec.selection.model,
+      tier = spec.selection.tier,
+      sections = vim.tbl_map(function(s)
+        return { name = s.name, chars = #s.text }
+      end, sections),
+      profile = profile and profile.name or nil,
+      limits = profile and { max_target_lines = profile.max_target_lines, declined = profile.declined } or nil,
+      target_lines = #target.lines,
       chars = #job.system + #job.prompt,
+      count = job.steps and #job.steps or nil, -- the budget sees the whole chain, not its first step
+      steps = job.steps and #job.steps or nil,
+      system = job.system,
+      prompt = job.prompt,
       preapproved = spec.preapproved,
-    }, function()
-      if job.state == "running" then -- it could have been cancelled while a question was open
-        runner.run(job)
+    }
+    guards.check(req, function()
+      if job.state ~= "running" then -- it could have been cancelled while a question was open
+        return
       end
+      -- say what is about to happen: the estimate sits in the spinner, or as a full line, as the user prefers
+      job.estimate = req.estimate or { tokens = require("agent.budget").tokens(req.chars) }
+      job.preflight = trust.preflight(trust.from_request(req))
+      if require("core.settings").agent.trust.preflight == "notify" then
+        log.info(("Agent %s: %s"):format(action.label, job.preflight))
+      end
+      runner.run(job)
     end, function()
       runner.deny(job)
     end)
-  end)
+  end, { max_chars = profile and profile.context_chars or nil })
   return job
 end
 

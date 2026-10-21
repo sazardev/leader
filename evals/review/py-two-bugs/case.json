@@ -1,0 +1,20 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 3,
+  "split": "holdout",
+  "check": {
+    "findings": [
+      {
+        "line": 3,
+        "tol": 0
+      },
+      {
+        "line": 5,
+        "tol": 1
+      }
+    ],
+    "max_findings": 4
+  },
+  "notes": "Two real bugs: finding one is not enough."
+}

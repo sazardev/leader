@@ -9,6 +9,7 @@ end
 return {
   name = "Agent Doctor",
   prefix = "aX",
+  stability = "doctor",
   global = true,
   maps = {
     {

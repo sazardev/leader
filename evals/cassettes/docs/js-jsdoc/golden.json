@@ -1,0 +1,1 @@
+{"text": "```\n/**\n * Restrict a number to the range [min, max].\n * @param {number} value\n * @param {number} min\n * @param {number} max\n * @returns {number}\n */\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

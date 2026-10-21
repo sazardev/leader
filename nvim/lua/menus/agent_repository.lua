@@ -27,6 +27,7 @@ maps[#maps + 1] = {
 return {
   name = "Agent Repository",
   prefix = "aP",
+  stability = "repository",
   global = true,
   maps = maps,
 }

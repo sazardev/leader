@@ -1,0 +1,1 @@
+{"text": "```python\ndef first_even(items):\n    for item in items or []:\n        if item % 2 == 0:\n            return item\n    return None\n```", "usage": {"tokens_in": 0, "tokens_out": 0}}

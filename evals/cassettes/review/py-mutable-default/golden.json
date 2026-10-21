@@ -1,0 +1,1 @@
+{"text": "L1|error|Mutable default `tags=[]` is shared between calls; default to None and create the list inside", "usage": {"tokens_in": 0, "tokens_out": 0}}

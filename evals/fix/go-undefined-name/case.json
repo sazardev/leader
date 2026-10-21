@@ -1,0 +1,22 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 6,
+  "diagnostics": [
+    {
+      "line": 6,
+      "message": "undefined: totl"
+    }
+  ],
+  "check": {
+    "absent": [
+      "totl"
+    ],
+    "cmd": [
+      "go",
+      "test",
+      "./..."
+    ]
+  },
+  "notes": "The Go twin of py-undefined-name: one identifier, in a language with tabs."
+}

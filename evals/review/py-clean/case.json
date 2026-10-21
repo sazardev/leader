@@ -1,0 +1,11 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "clean": true,
+  "check": {
+    "findings": [],
+    "max_findings": 0
+  },
+  "notes": "The false-positive guard: correct, trivial code must come back clean. (The only kind of case a do-nothing answer passes.)"
+}

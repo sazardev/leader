@@ -8,6 +8,9 @@ local events = require "agent.events"
 local jobs = require "agent.jobs"
 local log = require "utils.log"
 local runs = require "agent.runs"
+local sampling = require "agent.sampling"
+local decompose = require "agent.decompose"
+local schema = require "agent.schema"
 local settings = require("core.settings").agent
 local stats = require "agent.stats"
 local status = require "agent.ui.status"
@@ -88,11 +91,29 @@ local function on_exit(job, parser, out)
   if killed and not result.ok then
     result = { ok = false, err = ("timed out (%gs)"):format(settings.timeout_ms / 1000) }
   end
+  sampling.charge(job, result.usage)
   if not result.ok then
+    -- with the cascade on, a model that is down or too slow hands the job to the main one instead of failing it
+    if sampling.escalate(job, result.err or "error") then
+      return M.again(job)
+    end
     return fail(job, result.err)
   end
 
-  require("agent.cache").store(job, result)
+  -- an answer the free checks reject (no code block, code that does not parse) is asked for again with the reason, as
+  -- many times as the model's profile allows, and then goes to the main model if the cascade is on (agent/sampling.lua)
+  local problem = sampling.problem(job, result)
+  if problem and sampling.advance(job, result, problem) == "retry" then
+    return M.again(job)
+  end
+  -- a chain of steps moves on to the next one; on its last step the result becomes the whole chain's answer
+  if decompose.advance(job, result) == "retry" then
+    return M.again(job)
+  end
+  sampling.settle_usage(job, result)
+  if (job.attempt or 1) == 1 and not job.escalated and not job.steps then
+    require("agent.cache").store(job, result)
+  end
   M.settle(job, result)
 end
 
@@ -118,17 +139,33 @@ function M.settle(job, result)
   events.emit("job.settled", { job = job, outcome = "done" })
 end
 
+--- The job goes again (a repair with the reason in the prompt, or the main model): the same job, so what it shows and
+--- what it records stay one run
+---@param job AgentJob
+function M.again(job)
+  job.partial = ""
+  status.clear(job)
+  status.attach(job)
+  M.run(job)
+end
+
 ---@param job AgentJob
 function M.run(job)
   local backend = backends.get(job.selection.backend)
+  -- a profile may ask the server for schema-shaped output; a backend that cannot simply does not answer `schema`
+  local kind = job.profile and job.profile.schema and schema.kind(job.action) or nil
   local spec = backend.build {
     system = job.system,
     prompt = job.prompt,
     model = job.selection.model,
     effort = job.selection.effort,
     action = job.action.name,
+    schema = kind,
   }
-  local parser = backend.parser()
+  local parser = backend.parser(spec)
+  if spec.schema then
+    parser = schema.wrap(parser, spec.schema)
+  end
   -- `cwd` does not update $PWD, and some CLIs (opencode) resolve their project from it: without this they load
   -- the AGENTS.md/CLAUDE.md of the repo nvim was launched from (~10k tokens) instead of the neutral directory
   local env = spec.cwd and vim.tbl_extend("force", { PWD = spec.cwd }, spec.env or {}) or spec.env

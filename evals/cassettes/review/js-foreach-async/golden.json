@@ -1,0 +1,1 @@
+{"text": "L2|error|`forEach` does not await its async callback: saveAll returns before the saves finish and their errors are lost; use `for...of` with await or `Promise.all`", "usage": {"tokens_in": 0, "tokens_out": 0}}

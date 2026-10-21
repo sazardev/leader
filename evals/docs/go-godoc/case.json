@@ -1,0 +1,17 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 7,
+  "check": {
+    "preserves": true,
+    "contains": [
+      "Initials"
+    ],
+    "cmd": [
+      "go",
+      "build",
+      "./..."
+    ]
+  },
+  "notes": "godoc starts with the name; the code must not move."
+}

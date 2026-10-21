@@ -188,6 +188,16 @@ function M.done(job, result)
       parts[#parts + 1] = { "import: " .. needs, 2 }
     end
     parts[#parts + 1] = { stats.line(job, result), 3 }
+    -- whether anything will check this (or did): "unverified" is a label, not a warning (agent/trust.lua)
+    local verify_cfg = settings.verify
+    local facts = {
+      output = "replace",
+      verifies = verify_cfg.enabled and job.action.verify ~= false,
+      comment_only = job.action.verify == false and job.action.merge ~= nil,
+      lsp = #vim.lsp.get_clients { bufnr = job.buf } > 0,
+      build = verify_cfg.command ~= false and verify_cfg.command ~= nil,
+    }
+    parts[#parts + 1] = { (require("agent.trust").verification(facts)), 2 }
     if job.meta and job.meta.hint then
       parts[#parts + 1] = { job.meta.hint, 2 } -- "2/4 · <leader>aA] next" when it comes from a batch
     end

@@ -1,0 +1,1 @@
+{"usage":{"ms":1305,"tokens_in":1012,"tokens_out":39,"cost":0.0001207,"cache_write":0,"cache_read":0},"text":"```javascript\nfunction sum(values) {\n  return values.reduce((total, v) => total + v, 0);\n}\n```"}

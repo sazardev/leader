@@ -5,12 +5,15 @@
 --   check(req) -> nil | { level = "block"|"confirm", title = string, message = string?, lines = (string|table)[] }
 --     message: what the notification says when it blocks; lines: the modal's body when it asks
 --     req = { action = string, backend = string?, model = string?, chars = integer, count = integer?,
---             preapproved = boolean? }       (`preapproved`: the user already confirmed this exact spend, e.g. a batch)
+--             preapproved = boolean?,        (`preapproved`: the user already confirmed this exact spend, e.g. a batch)
+--             tier, sections = { name, chars }[], system, prompt = string? }  (what is about to be sent, for guards that show it)
+--             limits = { max_target_lines, declined }?, target_lines = integer?  (a capability profile's limits)
+--   A guard may leave `req.estimate = { tokens, cost }` for the ones after it and for the pipeline (the budget guard does).
 --
 -- Add a guard: one file here + its name in NAMES. The pipeline only knows `guards.check`.
 local M = {}
 
-local NAMES = { "budget" }
+local NAMES = { "capability", "budget", "preview" }
 
 ---@param req table
 ---@return { level: string, title: string, message: string?, lines: table }[] verdicts

@@ -1,0 +1,16 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 8,
+  "split": "holdout",
+  "check": {
+    "findings": [
+      {
+        "line": 12,
+        "tol": 1
+      }
+    ],
+    "max_findings": 3
+  },
+  "notes": "Resource leak: the file handles pile up for long lists."
+}

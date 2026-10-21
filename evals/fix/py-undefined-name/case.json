@@ -1,0 +1,26 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 4,
+  "diagnostics": [
+    {
+      "line": 4,
+      "message": "Undefined variable \"totl\""
+    }
+  ],
+  "check": {
+    "contains": [
+      "total += item"
+    ],
+    "absent": [
+      "totl"
+    ],
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import total_price; assert total_price([1, 2]) == 3"
+    ]
+  },
+  "notes": "A typo in a name: the smallest fix is one identifier, not a rewrite of the loop."
+}

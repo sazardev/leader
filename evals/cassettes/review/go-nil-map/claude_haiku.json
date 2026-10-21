@@ -1,0 +1,1 @@
+{"usage":{"ms":1129,"tokens_in":1022,"tokens_out":49,"cost":0.0001267,"cache_write":0,"cache_read":0},"text":"L6|error|counts is a nil map; assigning counts[w]++ panics. Initialize with counts := make(map[string]int) before the loop."}

@@ -1,0 +1,1 @@
+{"text": "L3|error|`scores.sort` sorts the caller's list in place, but the docstring promises the input is unchanged; use `sorted(scores, reverse=True)`\nL5|error|`range(n + 1)` returns n + 1 scores and raises IndexError when n is the length; use `range(n)`", "usage": {"tokens_in": 0, "tokens_out": 0}}

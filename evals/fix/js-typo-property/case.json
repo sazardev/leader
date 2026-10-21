@@ -1,0 +1,22 @@
+{
+  "file": "app.js",
+  "lang": "javascript",
+  "line": 2,
+  "diagnostics": [
+    {
+      "line": 2,
+      "message": "Property 'lenght' does not exist on type 'any[]'. Did you mean 'length'?"
+    }
+  ],
+  "check": {
+    "absent": [
+      "lenght"
+    ],
+    "cmd": [
+      "node",
+      "-e",
+      "const {lastItem} = require(\"./app.js\"); if (lastItem([1, 2, 3]) !== 3) process.exit(1)"
+    ]
+  },
+  "notes": "The diagnostic carries the answer: a model that rewrites more has not read it."
+}

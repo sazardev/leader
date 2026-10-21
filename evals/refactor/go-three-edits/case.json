@@ -1,0 +1,18 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 6,
+  "input": "return (int, error) instead of panicking: an error for division by zero; and drop the debug Println",
+  "check": {
+    "absent": [
+      "panic",
+      "Println"
+    ],
+    "cmd": [
+      "go",
+      "test",
+      "./..."
+    ]
+  },
+  "notes": "The signature changes, so the test file is the judge; `fmt` is still needed after the Println goes."
+}

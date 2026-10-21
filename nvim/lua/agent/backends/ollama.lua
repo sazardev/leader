@@ -86,10 +86,18 @@ function M.build(req)
   if settings.think ~= nil then
     body.think = settings.think
   end
+  -- schema-constrained decoding (agent/schema.lua): the server can only produce JSON that matches, which a small model
+  -- cannot get wrong the way it gets a fenced block wrong
+  local shaped = req.schema and require "agent.schema"
+  if shaped then
+    body.format = shaped.json(req.schema)
+    body.messages[1].content = req.system .. shaped.suffix(req.schema)
+  end
   return {
     cmd = http.curl(M.host() .. "/api/chat", { stream = true, body = true }),
     stdin = vim.json.encode(body),
     cwd = require("agent.sandbox").dir(),
+    schema = shaped and req.schema or nil,
   }
 end
 

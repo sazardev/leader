@@ -178,6 +178,32 @@ local defaults = {
     stream_ms = 40, -- the streaming answer is redrawn at most this often per job (several agents at once stay smooth)
     rules = nil, -- extra text (conventions) for EVERY prompt; per project: `.agent.md` at the root
     timeout_ms = 120000,
+    -- Features still finding their shape (DDD, repository/service/lens menus, doctor, building a whole project, multi-file
+    -- plans; the list is agent/stability.lua) stay out of the menus. true = show them (marked "experimental")
+    experimental = false,
+    -- What a model can be trusted with (agent/profiles.lua): the class of each model (small / medium / strong; by its name, by what
+    -- `make eval EVAL_PROFILE=1` measured, or by `models`) sets how the pipeline compensates. A small local model gets a smaller
+    -- target, a tighter context, schema-shaped output and a second try with the reason when its answer is unusable.
+    capability = {
+      enabled = true,
+      measured = true, -- use the classes and per-action advice an eval wrote (stdpath("state")/agent-profiles.json)
+      models = {}, -- ["ollama/qwen2.5-coder:7b"] = "small" | { class = "small", repairs = 3, max_target_lines = 80 }
+      -- per class, any field of the profile: max_target_lines (declined above it), repairs (extra attempts), context_chars, schema
+      small = {},
+      medium = {},
+      strong = {},
+    },
+    -- Cascade: when a model cannot do it (the server is down, the answer stays unusable after its repairs, or the eval says it
+    -- fails this action), the job goes to the main model, and says so. Off: it spends on a paid model you did not pick for this.
+    cascade = {
+      enabled = false,
+      to = nil, -- "claude/sonnet": a fixed escalation target (default: the main model chosen with <leader>am)
+    },
+    -- Saying what is going to happen and how sure the result is (agent/trust.lua)
+    trust = {
+      preflight = "status", -- "status" = the estimate sits in the spinner · "notify" = one full line before sending · "off"
+      preview = false, -- true = every request shows its start (model, what it reads, the message) and asks before leaving
+    },
     -- Which actions run on the LIGHT model (cheap and fast) instead of the main one. Each action ships
     -- with its own default (docs and explain: light); change it here: { review = "light", docs = "main" }
     tiers = {},

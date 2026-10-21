@@ -1,0 +1,18 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 2,
+  "check": {
+    "preserves": true,
+    "contains": [
+      "ValueError"
+    ],
+    "cmd": [
+      "python3",
+      "-m",
+      "py_compile",
+      "app.py"
+    ]
+  },
+  "notes": "The error path must be documented, not just the happy one."
+}

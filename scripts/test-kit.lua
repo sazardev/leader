@@ -1324,7 +1324,14 @@ for _, e in ipairs(all) do
 end
 ok(
   "library: every kind is there",
-  kinds.stack and kinds.design and kinds["stack add-on"] and kinds["design add-on"] and kinds.principle and kinds.recipe and kinds["spec module"] and kinds["spec kit"]
+  kinds.stack
+    and kinds.design
+    and kinds["stack add-on"]
+    and kinds["design add-on"]
+    and kinds.principle
+    and kinds.recipe
+    and kinds["spec module"]
+    and kinds["spec kit"]
 )
 eq(
   "library: as many as the folders hold",
@@ -1673,7 +1680,10 @@ do
   vim.cmd "silent! tabonly"
 end
 
--- menu: keys and the Service level moved to aU
+-- menu: keys and the Service level moved to aU. The build entries are experimental (agent/stability.lua): this checks the
+-- whole menu, so they are opted in and the menu is loaded again (their visibility is tested in test-agent-stability.lua)
+require("core.settings").agent.experimental = true
+package.loaded["menus.agent_setup"] = nil
 local menu = require "menus.agent_setup"
 eq("menu: prefix", menu.prefix, "aS")
 eq(
@@ -1681,7 +1691,33 @@ eq(
   vim.tbl_map(function(m)
     return m[1]
   end, menu.maps),
-  { "bb", "bt", "bs", "bd", "bf", "r", "v", "P", "B", "/", "o", "a", "A", "c", "t", "T", "k", "p", "d", "D", "K", "w", "s", "m" }
+  {
+    "bb",
+    "bt",
+    "bs",
+    "bd",
+    "bf",
+    "bu",
+    "r",
+    "v",
+    "P",
+    "B",
+    "/",
+    "o",
+    "a",
+    "A",
+    "c",
+    "t",
+    "T",
+    "k",
+    "p",
+    "d",
+    "D",
+    "K",
+    "w",
+    "s",
+    "m",
+  }
 )
 eq("menu: Service lives on aU now", require("menus.agent_service").prefix, "aU")
 

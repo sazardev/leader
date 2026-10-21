@@ -4,6 +4,7 @@ protocols, with streaming, without any real model. Usage: fake-llm.py PORT
 
 Ollama:  GET /api/version · GET /api/tags · GET /api/ps · POST /api/chat (NDJSON) · POST /api/pull (NDJSON)
 OpenAI:  GET /v1/models · POST /v1/chat/completions (SSE)
+With `format` (Ollama) / `response_format` json_schema (OpenAI) the reply is ONLY JSON matching the schema, like a server that constrains decoding.
 Helper: GET /__last returns the last body and headers received (to check num_ctx, Authorization...).
 Model "missing" → 404 with the error Ollama gives; model "slow" → takes 3 s.
 """
@@ -11,6 +12,24 @@ import json, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 LAST = {}
+
+def shaped_reply(schema, plain):
+    """What a server that CONSTRAINS decoding does: only JSON that matches the schema, whatever the prompt asked for.
+    `plain` is the text answer it would have given; it is cut into the fields of the schema."""
+    props = (schema or {}).get("properties", {})
+    if "findings" in props:
+        out = []
+        for line in plain.splitlines():
+            parts = line.split("|", 2)
+            if len(parts) == 3 and parts[0][:1] in "Ll" and parts[0][1:].isdigit():
+                out.append({"line": int(parts[0][1:]), "severity": parts[1], "message": parts[2]})
+        return json.dumps({"findings": out})
+    if "code" in props:
+        lines = plain.splitlines()
+        fenced = [i for i, l in enumerate(lines) if l.startswith("```")]
+        code = "\n".join(lines[fenced[0] + 1:fenced[1]]) if len(fenced) >= 2 else plain
+        return json.dumps({"code": code, "needs_import": "", "note": ""})
+    return plain
 
 def reply_for(system, prompt):
     text = system + "\n" + prompt
@@ -70,6 +89,8 @@ class H(BaseHTTPRequestHandler):
             if model == "slow": time.sleep(3)
             self._stream_start("application/x-ndjson")
             text = reply_for(system, prompt)
+            if isinstance(body.get("format"), dict):  # Ollama's schema-constrained decoding
+                text = shaped_reply(body["format"], text)
             for i in range(0, len(text), 12):
                 self._line(json.dumps({"model": model, "message": {"role": "assistant", "content": text[i:i + 12]}, "done": False}))
             self._line(json.dumps({"model": model, "message": {"role": "assistant", "content": ""}, "done": True,
@@ -79,6 +100,9 @@ class H(BaseHTTPRequestHandler):
             if body.get("model") == "missing": return self._json(404, {"error": {"message": "model 'missing' not found"}})
             self._stream_start("text/event-stream")
             text = reply_for(system, prompt)
+            rf = body.get("response_format") or {}
+            if rf.get("type") == "json_schema":  # OpenAI-style structured output
+                text = shaped_reply((rf.get("json_schema") or {}).get("schema"), text)
             for i in range(0, len(text), 12):
                 self._line("data: " + json.dumps({"choices": [{"delta": {"content": text[i:i + 12]}}]})); self._line("")
             self._line("data: " + json.dumps({"choices": [], "usage": {"prompt_tokens": 210, "completion_tokens": 33}})); self._line("")

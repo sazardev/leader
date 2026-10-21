@@ -1,0 +1,19 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 10,
+  "diagnostics": [
+    {
+      "line": 10,
+      "message": "missing return"
+    }
+  ],
+  "check": {
+    "cmd": [
+      "go",
+      "test",
+      "./..."
+    ]
+  },
+  "notes": "The target is only the closing brace: the fix has to ADD a line, which a model told to \"change only what the task needs\" often will not."
+}

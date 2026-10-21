@@ -1,0 +1,12 @@
+{
+  "file": "app.go",
+  "lang": "go",
+  "line": 5,
+  "clean": true,
+  "split": "holdout",
+  "check": {
+    "findings": [],
+    "max_findings": 0
+  },
+  "notes": "False-positive guard in Go."
+}

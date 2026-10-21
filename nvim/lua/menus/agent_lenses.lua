@@ -15,6 +15,7 @@ end
 return {
   name = "Agent Lenses",
   prefix = "aL",
+  stability = "lenses",
   global = true,
   maps = maps,
 }

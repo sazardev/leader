@@ -1,0 +1,1 @@
+{"usage":{"ms":1061,"tokens_in":980,"tokens_out":19,"cost":0.0001075,"cache_write":0,"cache_read":0},"text":"```python\ndef double(value):\n    return value * 2\n```"}

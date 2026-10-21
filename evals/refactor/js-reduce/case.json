@@ -1,0 +1,21 @@
+{
+  "file": "app.js",
+  "lang": "javascript",
+  "line": 3,
+  "input": "use reduce instead of the loop",
+  "check": {
+    "contains": [
+      "reduce("
+    ],
+    "absent": [
+      "for ",
+      "let total"
+    ],
+    "cmd": [
+      "node",
+      "-e",
+      "const {sum} = require(\"./app.js\"); if (sum([1, 2, 3]) !== 6 || sum([]) !== 0) process.exit(1)"
+    ]
+  },
+  "notes": "The empty list needs the initial value: reduce without it throws."
+}

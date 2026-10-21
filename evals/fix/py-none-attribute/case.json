@@ -1,0 +1,21 @@
+{
+  "file": "app.py",
+  "lang": "python",
+  "line": 5,
+  "split": "holdout",
+  "diagnostics": [
+    {
+      "line": 5,
+      "message": "Item \"None\" of \"Optional[str]\" has no attribute \"upper\""
+    }
+  ],
+  "check": {
+    "cmd": [
+      "python3",
+      "-I",
+      "-c",
+      "import sys; sys.path.insert(0, \".\"); from app import shout; assert shout(None) == \"\"; assert shout(\"a\") == \"A\""
+    ]
+  },
+  "notes": "Needs a decision the diagnostic does not state (what to return for None); any correct guard is fine, so only behaviour is checked."
+}
