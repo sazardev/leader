@@ -2,6 +2,18 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.14.2] - 2026-10-21
+
+### Highlights
+
+- **An empty file can be a right answer**: a build used to report a failure for every file the model left empty, including the ones
+  that are correct that way (a Python `__init__.py`, a `.gitkeep`, `py.typed`, the requirements file of a project with no
+  dependencies). It now does for those what it should: nothing.
+
+### Fixes
+
+- **build:** an empty __init__.py is not a failed answer (5ecfbb0)
+
 ## [1.14.1] - 2026-10-21
 
 ### Highlights
