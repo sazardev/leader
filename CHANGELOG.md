@@ -2,6 +2,32 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.12.1] - 2026-10-21
+
+### Highlights
+
+- **The code search index builds ~3x sooner and no longer freezes the editor**: on a 4000-file TypeScript monorepo the
+  first `<leader>fs` took 19-35 s with 12-22 s of blocked UI (stalls up to 1 s); it now takes 6-10 s with the UI blocked
+  ~0.2 s. The files are read by up to 4 headless Neovims in parallel (`settings.search.workers`); the result is identical
+  to reading them in the editor, which is still what happens for a few changed files or if a worker fails.
+- **Typing is smoother**: `nvim-highlight-colors` repainted the window on every key while the completion menu was open;
+  it now waits 60 ms. In a TSX file the per-key cost went from p95 8.8-9.8 ms to 6.1-7.5 ms (the frame budget is 16.6 ms).
+- **Less memory in big projects**: Tailwind's server only starts where the project uses Tailwind (~210 MB less in the API
+  of a monorepo), TypeScript is linted by the eslint server alone (`eslint_d` stays for light mode), and a server that
+  outgrows `settings.lsp.memory_limit_mb` (vtsls: 2200 MB; it reached 2.9 GB in a long session) is restarted when you are
+  idle. `scripts/bench-project.lua` measures all of this on any project.
+
+### Performance
+
+- **lsp:** fewer resident servers, and tsserver cannot grow forever (44a781a)
+- **ui:** highlight-colors repaints behind a 60 ms debounce (d1d39ba)
+- **search:** the code index is built by parallel workers (08ddc7e)
+
+### Other changes
+
+- chore(bench): a probe for a real project (5aa2719)
+- chore(packaging): point the PKGBUILDs at v1.12.0 (3995f15)
+
 ## [1.12.0] - 2026-10-20
 
 ### Highlights
@@ -415,3 +441,4 @@ All notable changes, newest first. Generated from the Conventional Commits since
 - update config files and README (7c45f1e)
 - update config files (b4dba20)
 - Initial commit (68e950e)
+
