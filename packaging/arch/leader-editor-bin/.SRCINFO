@@ -1,6 +1,6 @@
 pkgbase = leader-editor-bin
 	pkgdesc = Neovim with a fast, opinionated config in its own GPU window (prebuilt)
-	pkgver = 1.14.1
+	pkgver = 1.14.2
 	pkgrel = 1
 	url = https://sazardev.github.io/leader/
 	arch = x86_64
@@ -17,10 +17,10 @@ pkgbase = leader-editor-bin
 	provides = leader-editor
 	conflicts = leader-editor
 	options = !strip
-	source = leader-1.14.1-linux-x86_64.tar.gz::https://github.com/sazardev/leader/releases/download/v1.14.1/leader-linux-x86_64.tar.gz
-	source = leader-1.14.1-linux-x86_64.tar.gz.asc::https://github.com/sazardev/leader/releases/download/v1.14.1/leader-linux-x86_64.tar.gz.asc
+	source = leader-1.14.2-linux-x86_64.tar.gz::https://github.com/sazardev/leader/releases/download/v1.14.2/leader-linux-x86_64.tar.gz
+	source = leader-1.14.2-linux-x86_64.tar.gz.asc::https://github.com/sazardev/leader/releases/download/v1.14.2/leader-linux-x86_64.tar.gz.asc
 	validpgpkeys = 8E437A7936E48EAEDA88CD73A7DCC3DBB671476A
-	sha256sums = 538d090b3b7dd41197faba9334b7584818ab0a6cd7554a075b624dc4463c8526
+	sha256sums = c140f7f2c00810d7e4f8bc9f8257b95a5368f2c7810d5f7ba566d9e03235d1cc
 	sha256sums = SKIP
 
 pkgname = leader-editor-bin
