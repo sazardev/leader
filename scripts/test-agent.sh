@@ -4,6 +4,7 @@
 # No network or tokens (the Ollama/OpenAI servers are fake: scripts/fake-llm.py). Requires nvim and the linked config.
 # Exits with a code != 0 if anything fails.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 
 command -v nvim >/dev/null 2>&1 || { echo "test-agent: nvim is not in PATH" >&2; exit 2; }
 

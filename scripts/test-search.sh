@@ -2,6 +2,7 @@
 # Tests for the code search (nvim/lua/codesearch): ranking and the treesitter index. Needs the real config (parsers and
 # textobjects queries) and ripgrep. No network or tokens.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 command -v nvim >/dev/null 2>&1 || { echo "test-search: nvim is not in PATH" >&2; exit 2; }
 command -v rg >/dev/null 2>&1 || { echo "test-search: rg is not in PATH" >&2; exit 2; }
 out="$(AGENT_TEST_ROOT="$ROOT" NVIM_NO_LOCAL=1 NVIM_LIGHT=0 nvim --headless \

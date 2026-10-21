@@ -3,6 +3,7 @@
 # installer scripts, the PKGBUILDs and that every place that names the signing key names the same one. No build, no
 # network (package.sh itself, which compiles and signs, is run by hand at release time: see packaging/README.md).
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 APP="$ROOT/app"
 fails=0
 ok() { echo "ok   $1"; }

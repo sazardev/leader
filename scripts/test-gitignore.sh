@@ -3,6 +3,7 @@
 # rules checked by `git check-ignore` (nothing a project needs may be ignored), the checklist modal and the whole flow.
 # Hermetic: temp repos. No network or tokens.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 command -v nvim >/dev/null 2>&1 || { echo "test-gitignore: nvim is not in PATH" >&2; exit 2; }
 command -v git >/dev/null 2>&1 || { echo "test-gitignore: git is not in PATH" >&2; exit 2; }
 state="$(mktemp -d)"

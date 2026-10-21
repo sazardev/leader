@@ -4,6 +4,7 @@
 #   scripts/gen-cheatsheet.sh --check   exit 1 if CHEATSHEET.md is out of date
 # Requires nvim and the plugins installed (this config linked as the nvim config).
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 
 command -v nvim >/dev/null 2>&1 || { echo "gen-cheatsheet: nvim is not in PATH" >&2; exit 2; }
 

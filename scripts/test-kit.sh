@@ -5,6 +5,7 @@
 # or all (test-kit-scope.lua), the records and coverage (test-kit-records.lua), features and recipes
 # (test-kit-feature.lua), SPEC.md modules (test-kit-specmodules.lua).
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 command -v nvim >/dev/null 2>&1 || { echo "test-kit: nvim is not in PATH" >&2; exit 2; }
 status=0
 for suite in test-kit.lua test-kit-use.lua test-kit-scope.lua test-kit-records.lua test-kit-feature.lua test-kit-specmodules.lua test-kit-market.lua; do

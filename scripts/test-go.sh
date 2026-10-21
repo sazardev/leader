@@ -2,6 +2,7 @@
 # Tests for the custom Go completion (utils/go*.lua): missing interface methods, if err, mappers, wiring, enums, port and HTTP.
 # Hermetic: temporary Go modules, no gopls or network. Exits with a code != 0 if anything fails.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 
 command -v nvim >/dev/null 2>&1 || { echo "test-go: nvim is not in PATH" >&2; exit 2; }
 

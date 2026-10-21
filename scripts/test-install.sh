@@ -2,6 +2,7 @@
 # Installer tests: the per-machine settings (scripts/install-local.lua) and install.sh's --dry-run mode.
 # Hermetic: installs nothing, does not touch nvim/lua/local.lua. Exits with a code != 0 if anything fails.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 
 command -v nvim >/dev/null 2>&1 || { echo "test-install: nvim is not in PATH" >&2; exit 2; }
 

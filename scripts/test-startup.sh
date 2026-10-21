@@ -2,6 +2,7 @@
 # Smoke test of the real config (scripts/test-startup.lua): a normal start plus one file of each language must raise no
 # error (statusline components, plugin specs, ftplugins). Requires nvim and the installed plugins; no network.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 command -v nvim >/dev/null 2>&1 || { echo "test-startup: nvim is not in PATH" >&2; exit 2; }
 state="$(mktemp -d)"
 out="$(XDG_STATE_HOME="$state" NVIM_NO_LOCAL=1 NVIM_LIGHT=1 timeout 120 nvim --headless -c "luafile $ROOT/scripts/test-startup.lua" 2>&1 | tr '\r' '\n')"

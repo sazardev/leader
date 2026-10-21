@@ -2,6 +2,7 @@
 # Tests of the release kit (nvim/lua/release, <leader>GR): changelog from Conventional Commits and the next version,
 # the release checklist, the PR request, and the flows on a temp git repository. Hermetic: no network or tokens.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/scripts/hermetic.sh"
 command -v nvim >/dev/null 2>&1 || { echo "test-release: nvim is not in PATH" >&2; exit 2; }
 command -v git >/dev/null 2>&1 || { echo "test-release: git is not in PATH" >&2; exit 2; }
 state="$(mktemp -d)"
