@@ -22,12 +22,23 @@ M.DOCS = { "agents", "stack", "design", "spec" }
 ---@field summary string        how the project will be built, in a few sentences
 ---@field architecture string   layers and the direction of dependencies
 ---@field decisions string[]    the choices that shape the code (libraries, patterns, data flow)
+---@field risks BuildRisk[]?    the requirements most likely to fail, riskiest first: the real path through the first one is built first
+---@field deferred BuildDeferred[]? requirements this build does NOT deliver, each with what is missing (never a silent stand-in)
+---@field warnings string[]?    what the free checks of the plan found that is not a reason to replan (plancheck.warnings)
 ---@field wiring BuildWiring[]?  how each requirement reaches the user (action → code → what they see)
 ---@field examples BuildExample[]? SPEC.md made concrete: what the user does → exactly what they see
 ---@field files BuildFile[]
 ---@field problems string[]?  what cannot be built as planned (plancheck.lua); empty when it can
 ---@field scope string?       a layer or task build ("foundation", "domain", "design", "feature", "recipe"; nil = the whole project, scope.lua)
 ---@field task BuildTask?     the requirement or recipe of a task build (set by the build after parsing)
+
+---@class BuildRisk
+---@field req string   "FR-16"
+---@field why string   why it is the hard one ("native decode, nothing in the project does it yet")
+
+---@class BuildDeferred
+---@field req string
+---@field why string   what is missing that makes it impossible in this build ("needs the platform channel, ADR 0003 leaves it open")
 
 ---@class BuildExample
 ---@field req string     "FR-2"
@@ -48,6 +59,8 @@ Output ONLY one JSON object, no prose, no ``` fence:
  "summary": "<3-5 sentences: what gets built and how it works end to end>",
  "architecture": "<the layers or modules, what each owns, and the allowed dependency direction>",
  "decisions": ["<a choice that shapes the code: library, pattern, data flow, state handling, error model>"],
+ "risks": [{"req": "<FR-n>", "why": "<why it is the hardest or least known: native or FFI code, media, network, concurrency, performance, a library nobody in the project used yet>"}],
+ "deferred": [{"req": "<FR-n>", "why": "<what exactly is missing that makes it impossible to deliver in this build>"}],
  "wiring": [{"req": "<FR-n>", "action": "<what the user does>", "code": "<the functions that run, file by file>", "shows": "<what the user then sees, and in which file it is drawn or printed>"}],
  "examples": [{"req": "<FR-n>", "input": "<exactly what the user does, in order>", "expect": "<exactly what they then see>"}],
  "files":[{"path": "<relative path>",
@@ -59,6 +72,8 @@ Output ONLY one JSON object, no prose, no ``` fence:
 Rules:
 - Follow STACK.md's project layout and conventions exactly: one file = one responsibility, small files.
 - Order files so every file comes after the files it needs (domain first, then adapters/UI, the entry point last). Include the manifest (go.mod, package.json, Cargo.toml, pubspec.yaml…) first, with no dependency versions you are unsure of: the package manager resolves them.
+- `risks`: the 1-3 requirements most likely to fail (the hardest, the least known: native/FFI code, media, network, concurrency, performance, a library the project never used), riskiest first. Order the files so the thinnest REAL path through the first risk (its engine or adapter, one real use of it, a test that proves it) comes right after the manifest and before the layers that only present or store things (screens, onboarding, templates, settings, themes). A project whose hard part is built last is not built.
+- Never plan a placeholder, stub, mock engine or sample-data stand-in for a requirement SPEC.md's Goals call core: plan the real thing, or list the requirement in `deferred` with exactly what is missing. A stand-in is allowed only for something SPEC.md does not ask for.
 - `exports`: every name another file will call, with the behaviour it promises (e.g. "NewKeypad(unicode bool) Keypad — the highlight starts on the = button"; "Evaluate(expr string) (float64, error) — returns ErrDivisionByZero for x/0"). Two files that touch the same behaviour must agree here.
 - `verifies` (tests): name the SPEC.md requirements (FR-n) the test proves.
 - `wiring`: one row per SPEC.md requirement and edge case the user meets, from their action to what they see. Every row ends in a file that shows it (a view, a page, printed output); a domain function no row reaches the user through is not finished. State the user needs mid-flow (what they typed, a pending operation, a selection) is shown too, not only the final result.
@@ -91,7 +106,8 @@ function M.request(docs, scope, existing, task, decisions)
       parts[#parts + 1] = ("<%s>\n%s\n</%s>"):format(id, vim.trim(docs[id]), id)
     end
   end
-  if s.existing then
+  local builds_on = s.existing or M.has_code(existing)
+  if builds_on then
     parts[#parts + 1] = require("agent.kit.build.scope").project(existing or {})
   end
   if decisions and decisions ~= "" then
@@ -100,6 +116,9 @@ function M.request(docs, scope, existing, task, decisions)
   local system = SYSTEM
   if decisions and decisions ~= "" then
     system = system .. "\n" .. M.DECISIONS_RULE
+  end
+  if builds_on and not s.existing then
+    system = system .. "\n" .. M.EXISTING_RULE
   end
   return {
     action = "kit_build_plan",
@@ -193,6 +212,43 @@ function M.examples(list)
   return out
 end
 
+--- Rows of a list of { req, why } (risks, deferred): both parts non-empty, at most 8, capped
+---@param list any
+---@return { req: string, why: string }[]
+function M.reasons(list)
+  local out = {}
+  local function str(v)
+    return type(v) == "string" and vim.trim(v) ~= "" and (#v > 240 and (v:sub(1, 239) .. "…") or vim.trim(v)) or nil
+  end
+  for _, e in ipairs(type(list) == "table" and list or {}) do
+    if type(e) == "table" and #out < 8 then
+      local row = { req = str(e.req), why = str(e.why) }
+      if row.req and row.why then
+        out[#out + 1] = row
+      end
+    end
+  end
+  return out
+end
+
+--- Does the project already have code of its own? (a manifest, a document or a lockfile is not code)
+---@param existing table<string, any>?
+---@return boolean
+function M.has_code(existing)
+  local decls = require "agent.kit.decls"
+  for path in pairs(existing or {}) do
+    if decls.is_source(path) then
+      return true
+    end
+  end
+  return false
+end
+
+--- What a build of the whole project adds to its plan request when the project already has code: it was written by
+--- earlier builds the new plan cannot see unless it is shown, and a plan that cannot see it writes it again
+M.EXISTING_RULE =
+  [[- The project already has code: <project> lists its files and <api> what they declare. Build on it. Use exactly the names <api> shows (never a name you remember from <decisions> or from the documents: those are intentions, <api> is what exists). Plan an existing file again only when it must change, with the same path and everything the rest of the project uses from it kept. Never plan a second version of something that already exists: not the same type under another folder, not the same screen under another name. When two existing files already say the same thing, plan the merge of them, not a third.]]
+
 --- The request asked again, after a plan with problems: the plan it answered and what to correct
 ---@param req table the first plan request
 ---@param answer string the plan it answered
@@ -281,6 +337,8 @@ function M.parse(text, existing, scope)
     summary = type(data.summary) == "string" and data.summary or "",
     architecture = type(data.architecture) == "string" and data.architecture or "",
     decisions = vim.list_slice(decisions, 1, 12),
+    risks = M.reasons(data.risks),
+    deferred = M.reasons(data.deferred),
     wiring = M.wiring(data.wiring),
     examples = M.examples(data.examples),
     files = files,

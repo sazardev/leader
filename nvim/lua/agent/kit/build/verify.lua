@@ -396,7 +396,7 @@ end
 ---@param root string
 ---@param prefer string?
 ---@return BuildCheck[]
-function M.checks(root, prefer)
+local function kind_checks(root, prefer)
   local has = function(name)
     return vim.uv.fs_stat(root .. "/" .. name) ~= nil
   end
@@ -409,13 +409,22 @@ function M.checks(root, prefer)
       { label = "go test ./...", cmd = { "go", "test", "./..." }, autofix = M.golden_update },
     }
   elseif has "Cargo.toml" then
-    return { { label = "cargo build", cmd = { "cargo", "build", "--quiet" } } }
+    local out = { { label = "cargo build", cmd = { "cargo", "build", "--quiet" } } }
+    if has "tests" then -- a project that has tests runs them: "it builds" was all that was checked
+      out[#out + 1] = { label = "cargo test", cmd = { "cargo", "test", "--quiet" } }
+    end
+    return out
   elseif has "pubspec.yaml" then
     local tool = has "lib/main.dart" and "flutter" or "dart"
-    return {
+    local out = {
       { label = tool .. " pub get", cmd = { tool, "pub", "get" } },
       { label = tool .. " analyze", cmd = { tool, "analyze" } },
     }
+    -- analyze says the code compiles, not that it works: a project with tests runs them (a repair once left seven failing)
+    if has "test" then
+      out[#out + 1] = { label = tool .. " test", cmd = { tool, "test" } }
+    end
+    return out
   elseif has "package.json" then
     local pm = (has "pnpm-lock.yaml" and "pnpm")
       or ((has "bun.lock" or has "bun.lockb") and "bun")
@@ -516,6 +525,57 @@ function M.checks(root, prefer)
     return out
   end
   return {}
+end
+
+--- The project's own source files, path → text (small ones, at most 600), for the checks that read code
+---@param root string
+---@return table<string, string>
+local function source_texts(root)
+  local decls = require "agent.kit.decls"
+  local read = require("utils.project").read
+  local out, count = {}, 0
+  for _, p in ipairs(require("agent.kit.snapshot").list_files(root)) do
+    if count >= 600 then
+      break
+    end
+    if decls.is_source(p) then
+      local stat = vim.uv.fs_stat(root .. "/" .. p)
+      if stat and stat.size <= 96 * 1024 then
+        out[p], count = read(root .. "/" .. p) or "", count + 1
+      end
+    end
+  end
+  return out
+end
+
+--- Public types declared in two files: layers written apart that each wrote the same thing (agent/kit/decls.lua).
+--- A pure function of the sources so it is tested without a project
+---@param sources table<string, string>
+---@return boolean ok, string message
+function M.duplicate_types(sources)
+  local decls = require "agent.kit.decls"
+  local found = decls.duplicates(sources)
+  if #found == 0 then
+    return true, ""
+  end
+  return false, table.concat(decls.describe_duplicates(found), "\n")
+end
+
+--- The checks of a project, chosen from its manifest, and the ones every project gets: no public type declared twice
+---@param root string
+---@param prefer string?
+---@return BuildCheck[]
+function M.checks(root, prefer)
+  local list = kind_checks(root, prefer)
+  if #list > 0 then
+    list[#list + 1] = {
+      label = "no type is declared twice",
+      fn = function()
+        return M.duplicate_types(source_texts(root))
+      end,
+    }
+  end
+  return list
 end
 
 --- package.json's scripts (and its packageManager field), {} when unreadable

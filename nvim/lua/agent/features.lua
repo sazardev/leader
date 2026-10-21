@@ -4,7 +4,7 @@
 -- a line in NAMES. Idempotent: the pipeline calls it every time it loads.
 local M = {}
 
-local NAMES = { "verify", "convert_header", "checkpoint" }
+local NAMES = { "verify", "convert_header", "checkpoint", "leaderdata" }
 
 local done = false
 

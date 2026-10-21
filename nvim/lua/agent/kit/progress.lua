@@ -38,6 +38,7 @@ end
 ---@field questions integer   open questions in SPEC.md
 ---@field next CoverageReq[]  requirements no test proves yet
 ---@field keys string         the key that resumes this build
+---@field proof BuildProof?   what the build can honestly claim (build/proof.lua)
 
 --- PROGRESS.md for this run (pure): the previous one's Done log kept, this run on top when it finished
 ---@param previous string?
@@ -67,6 +68,10 @@ function M.render(previous, run, facts)
     ("- Last build: %s · %s · %s"):format(label, outcome, facts.date),
     ("- Files: %d of %d written · $%.3f"):format(done_count, total, run.totals and run.totals.cost or 0),
   }
+  if facts.proof then
+    local line = require("agent.kit.build.proof").line(facts.proof):gsub("^ · ", "")
+    out[#out + 1] = "- Proof: " .. (line ~= "" and line or "nothing to measure (SPEC.md names no requirements)")
+  end
   if run.plan and run.plan.summary and run.plan.summary ~= "" then
     out[#out + 1] = "- What it builds: " .. vim.trim(run.plan.summary)
   end
@@ -112,6 +117,9 @@ function M.render(previous, run, facts)
   end
   if run.outcome and (run.outcome:find "^✗" or run.outcome:find "^⚠") then
     open[#open + 1] = "- " .. run.outcome
+  end
+  if facts.proof then
+    vim.list_extend(open, require("agent.kit.build.proof").open_lines(facts.proof))
   end
   if facts.questions > 0 then
     open[#open + 1] = ("- SPEC.md has %d open question%s: the build decided them in its plan, the answer is yours"):format(
@@ -163,6 +171,7 @@ function M.record(run)
     questions = M.questions(read(root .. "/SPEC.md")),
     next = coverage.uncovered(coverage.report(coverage.collect(root))),
     keys = require("agent.kit.build.scope").keys(run.scope),
+    proof = run.proof,
   }
   local f = assert(io.open(path, "w"))
   f:write(M.render(previous, run, facts))

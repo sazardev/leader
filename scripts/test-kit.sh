@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 . "$ROOT/scripts/hermetic.sh"
 command -v nvim >/dev/null 2>&1 || { echo "test-kit: nvim is not in PATH" >&2; exit 2; }
 status=0
-for suite in test-kit.lua test-kit-use.lua test-kit-scope.lua test-kit-records.lua test-kit-feature.lua test-kit-specmodules.lua test-kit-market.lua test-kit-journal.lua; do
+for suite in test-kit.lua test-kit-use.lua test-kit-scope.lua test-kit-records.lua test-kit-feature.lua test-kit-specmodules.lua test-kit-market.lua test-kit-journal.lua test-kit-honesty.lua test-leaderdata.lua; do
   state="$(mktemp -d)"
   out="$(XDG_STATE_HOME="$state" AGENT_TEST_ROOT="$ROOT" NVIM_NO_LOCAL=1 NVIM_LIGHT=0 nvim -u NONE --headless -c "luafile $ROOT/scripts/$suite" 2>&1 | tr '\r' '\n')"
   rm -rf "$state"

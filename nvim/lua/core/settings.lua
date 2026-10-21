@@ -199,6 +199,14 @@ local defaults = {
       enabled = false,
       to = nil, -- "claude/sonnet": a fixed escalation target (default: the main model chosen with <leader>am)
     },
+    -- `.leader/` in the project (agent/leaderdata): how Leader worked there (a build that ended, an agent action, a decision), so it can be
+    -- measured and improved from real use. Counts, sizes, durations, costs, models and outcomes only: never code, prompts, answers, file
+    -- names, document or error text. Offline always (nothing sends it). The builder creates the folder; agent actions write to it only
+    -- when it exists. Delete the folder to clear everything; <leader>aSl shows the report.
+    leader_data = {
+      enabled = true, -- false (or LEADER_NO_DATA=1): the folder is never created or written
+      max_kb = 2048, -- past this the oldest half of events.jsonl goes
+    },
     -- Saying what is going to happen and how sure the result is (agent/trust.lua)
     trust = {
       preflight = "status", -- "status" = the estimate sits in the spinner · "notify" = one full line before sending · "off"
@@ -243,6 +251,10 @@ local defaults = {
         files = "main",
         fixes = "main",
         max_fixes = 2, -- fix rounds in a row that change nothing before it stops (rounds that progress go on, up to 8)
+        -- a build of the whole project, a feature or a recipe ends "◐ built" (not "✓") when a requirement has no test, a core one
+        -- is missing, the code holds placeholders or the build lost a test or public code (agent/kit/build/proof.lua).
+        -- true: such a build does not finish at all ("✗ incomplete"), for pipelines that must not call that done
+        strict = false,
         use_tier = "main", -- the model that writes the scenarios and judges them (4 in the build view)
         -- when every check passes, the app is used like its user would: scenarios from SPEC.md/DESIGN.md, performed by
         -- a driver (terminal UI in tmux, CLI, web/Electron in Playwright, Android over adb), every step checked, one

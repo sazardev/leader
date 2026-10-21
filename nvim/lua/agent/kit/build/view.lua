@@ -429,6 +429,31 @@ local function left(run)
       local r3 = ("  %d leftover%s of the last build to the trash"):format(#run.stale, #run.stale == 1 and "" or "s")
       add(lines, marks, r3, { { 2, #r3, "KitBuildActive" } })
     end
+    -- code that would be deleted (it asks before it goes) and what the plan leaves out or stands in for: the review is
+    -- where the user decides, so it says it here and not only in the report afterwards
+    if run.loss and run.loss.significant and run.stale and #run.stale > 0 then
+      local r4 = ("  ⚠ deletes %d lines and %d public type%s: ⏎ asks first"):format(
+        run.loss.lines,
+        run.loss.types,
+        run.loss.types == 1 and "" or "s"
+      )
+      add(lines, marks, r4, { { 2, #r4, "KitBuildFail" } })
+      for i, text in ipairs(run.loss.text or {}) do
+        if i > 1 and i <= 6 then
+          local row = "    " .. text
+          add(lines, marks, row, { { 4, #row, "KitBuildMuted" } })
+        end
+      end
+    end
+    for i, w in ipairs((run.plan and run.plan.warnings) or {}) do
+      if i > 6 then
+        local more = ("  … and %d more warnings (plan.md)"):format(#run.plan.warnings - 6)
+        add(lines, marks, more, { { 2, #more, "KitBuildMuted" } })
+        break
+      end
+      local row = "  ⚠ " .. w
+      add(lines, marks, row, { { 2, #row, "KitBuildFail" } })
+    end
     add(lines, marks, "")
   end
 

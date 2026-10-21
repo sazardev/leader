@@ -161,6 +161,7 @@ _Where: global_
 | `<leader>aSbu` | setup build undo |
 | `<leader>aSr` | setup recipe |
 | `<leader>aSv` | setup coverage |
+| `<leader>aSl` | setup leader data |
 | `<leader>aSP` | setup progress |
 | `<leader>aSB` | setup recheck |
 | `<leader>aS/` | setup find |
@@ -830,6 +831,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSc` | n | Setup claude link |
 | `<leader>aSd` | n | Setup design |
 | `<leader>aSk` | n | Setup stack addons |
+| `<leader>aSl` | n | Setup leader data |
 | `<leader>aSm` | n | Setup spec modules |
 | `<leader>aSo` | n | Setup overview |
 | `<leader>aSp` | n | Setup principles |

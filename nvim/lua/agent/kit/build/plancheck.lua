@@ -171,10 +171,12 @@ function M.problems(plan, missing)
     for _, p in ipairs(c) do
       same_package = same_package and is_go(p) and package(p) == package(c[1])
     end
-    out[#out + 1] = not same_package and ("files that need each other: %s → %s. One of them must not need the other: move what both use into a third file"):format(
-      table.concat(c, " → "),
-      c[1]
-    ) or nil
+    out[#out + 1] = not same_package
+        and ("files that need each other: %s → %s. One of them must not need the other: move what both use into a third file"):format(
+          table.concat(c, " → "),
+          c[1]
+        )
+      or nil
   end
   local go_cycles = M.cycles(plan.files, function(f)
     return is_go(f.path) and package(f.path) or nil
@@ -190,6 +192,80 @@ function M.problems(plan, missing)
       c[1],
       table.concat(why, "; ")
     )
+  end
+  return out
+end
+
+--- Words that say a file stands in for something real
+local STAND_IN =
+  { "placeholder", "stub", "mock", "fake", "dummy", "sample data", "sample-data", "for now", "temporary", "todo" }
+
+---@param text string
+---@return boolean
+local function stands_in(text)
+  local low = text:lower()
+  for _, w in ipairs(STAND_IN) do
+    if low:find(w, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+--- What is wrong with a plan that is not a reason to ask for another one (pure): shown in the review, where the user decides.
+--- A build that is judged (the whole project, a feature, a recipe) must deliver SPEC.md: every requirement is built (a file
+--- verifies it or a wiring row reaches it) or DEFERRED with what is missing, never dropped and never a silent stand-in
+---@param plan BuildPlan
+---@param spec string SPEC.md
+---@param scope string?
+---@return string[]
+function M.warnings(plan, spec, scope)
+  local out = {}
+  local proof = require "agent.kit.build.proof"
+  if proof.kind(scope) ~= "judged" then
+    return out
+  end
+  local reqs = require("agent.kit.coverage").requirements(spec or "")
+  local core = proof.core_ids(spec or "")
+  local handled, deferred = {}, {}
+  for _, f in ipairs(plan.files) do
+    for id in (f.verifies or ""):gmatch "FR%-%d+" do
+      handled[id] = true
+    end
+  end
+  for _, w in ipairs(plan.wiring or {}) do
+    handled[w.req] = true
+  end
+  for _, d in ipairs(plan.deferred or {}) do
+    deferred[d.req] = d.why
+    out[#out + 1] = ("%s is deferred: %s"):format(d.req, d.why)
+  end
+  local dropped = {}
+  for _, r in ipairs(reqs) do
+    if not handled[r.id] and not deferred[r.id] and (next(core) == nil or core[r.id]) then
+      dropped[#dropped + 1] = r.id
+    end
+  end
+  if #dropped > 0 then
+    out[#out + 1] = ("%s: not built, not wired and not deferred by this plan"):format(table.concat(dropped, ", "))
+  end
+  for _, f in ipairs(plan.files) do
+    if stands_in(f.purpose or "") then
+      local ids = {}
+      for id in ((f.verifies or "") .. " " .. (f.purpose or "")):gmatch "FR%-%d+" do
+        if core[id] and not vim.tbl_contains(ids, id) then
+          ids[#ids + 1] = id
+        end
+      end
+      out[#out + 1] = ("%s is a stand-in (%s)%s"):format(
+        f.path,
+        (f.purpose or ""):sub(1, 70),
+        #ids > 0 and (" for the core requirement " .. table.concat(ids, ", ")) or ""
+      )
+    end
+  end
+  if #(plan.risks or {}) == 0 and #reqs > 0 then
+    out[#out + 1] = "the plan names no risky requirement, so nothing says the hard part is built first"
   end
   return out
 end

@@ -53,6 +53,9 @@ M.PHASES = { "ready", "plan", "review", "write", "check", "fix", "use", "done" }
 ---@field running boolean
 ---@field replaced integer?      files that will be replaced
 ---@field stale string[]?        files of the previous build this plan drops
+---@field loss { lines: integer, types: integer, significant: boolean, text: string[] }?  what dropping them loses (loss.lua)
+---@field proven_before string[]? requirements a test named before this build started
+---@field proof BuildProof?      what the finished build can claim (proof.lua)
 ---@field at string?             the last phase it was in (a stopped run shows where it stopped)
 
 ---@type BuildRun?

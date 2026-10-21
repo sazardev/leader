@@ -334,6 +334,9 @@ local function finish(phase, outcome, kind, note)
   record()
   state.save()
   state.changed()
+  pcall(function()
+    require("agent.leaderdata").build_finished(r) -- how the build went, for measuring Leader (agent/leaderdata): counts, never code
+  end)
   local msg = ("Build %s: %s · $%.3f · %dm%02ds"):format(
     r.task and (r.name .. " " .. r.task.id) or r.scope and (r.name .. " " .. r.scope) or r.name,
     outcome,
@@ -675,13 +678,27 @@ end
 local function done(note)
   local r = run()
   local u = r.use or {}
-  local outcome = ("✓ built · %d files · checks pass"):format(state.progress())
+  local files = state.progress()
+  -- what the build can honestly claim (agent/kit/build/proof.lua): checks passing says the files agree, not that SPEC.md is
+  -- delivered, so the line carries the requirements that have a test, the placeholders and what was lost
+  local proof_mod = require "agent.kit.build.proof"
+  local ok, proof = pcall(proof_mod.collect, r.root, live.baseline, r.proven_before)
+  proof = ok and proof or nil
+  r.proof = proof
+  local icon = (proof and proof_mod.verdict(proof, r.scope) == "partial") and "◐" or "✓"
+  local tail = proof and proof_mod.line(proof) or ""
+  local outcome = ("%s built · %d files · checks pass%s"):format(icon, files, tail)
   local kind = "info"
+  if icon == "◐" then
+    kind = "fail"
+    note = note .. " · not proven complete: PROGRESS.md says what is open"
+  end
   if u.total and u.passed == u.total and (u.issues or 0) == 0 then
     outcome = outcome .. (" · used %d/%d"):format(u.passed, u.total)
   elseif u.total and u.passed == u.total then -- every step showed what it must, the verdict still names problems
-    outcome = ("⚠ built · %d files · checks pass · used %d/%d · %d issue%s"):format(
-      state.progress(),
+    outcome = ("⚠ built · %d files · checks pass%s · used %d/%d · %d issue%s"):format(
+      files,
+      tail,
       u.passed,
       u.total,
       u.issues,
@@ -689,8 +706,12 @@ local function done(note)
     )
     kind, note = "fail", note .. " · the issues the verdict found are in the feed"
   elseif u.total then
-    outcome = ("⚠ built · %d files · checks pass · used %d/%d"):format(state.progress(), u.passed, u.total)
+    outcome = ("⚠ built · %d files · checks pass%s · used %d/%d"):format(files, tail, u.passed, u.total)
     kind, note = "fail", note .. " · what still fails for the user is in the feed"
+  end
+  -- strict: a project that is not proven complete is not done
+  if icon == "◐" and (require("core.settings").agent.kit.build or {}).strict then
+    return finish("failed", "✗ incomplete" .. outcome:gsub("^%S+ built", ""), "fail", note)
   end
   finish("done", outcome, kind, note)
 end
@@ -1188,7 +1209,20 @@ local function plan()
   begin()
   local s = scopes.get(r.scope)
   -- a layer builds on what is there (without what this scope wrote last time: its new plan replaces that)
-  local existing = s.existing and scopes.existing(r.root, not s.additive and M.previous(r.root, r.scope) or nil) or {}
+  -- (the whole project builds on it too when earlier builds left code: it was invisible before, and a plan that cannot see
+  -- the code writes it again: two ports, two controllers, a project that does not compile)
+  local builds_on = s.existing or s.name == "all"
+  local existing = builds_on and scopes.existing(r.root, not s.additive and M.previous(r.root, r.scope) or nil) or {}
+  if s.name == "all" and not plan_mod.has_code(existing) then
+    existing = {}
+  end
+  -- what the project was before this build: what it may not silently lose (agent/kit/build/proof.lua, loss.lua)
+  live.baseline = scopes.existing(r.root, nil)
+  pcall(function()
+    local coverage = require "agent.kit.coverage"
+    r.proven_before =
+      require("agent.kit.build.proof").proven_ids(coverage.report(coverage.collect(r.root)).requirements)
+  end)
   r.existing = vim.tbl_keys(existing)
   table.sort(r.existing)
   live.written = existing
@@ -1302,6 +1336,17 @@ local function plan()
       return vim.tbl_extend("force", f, { state = "pending", existed = existing[f.path] ~= nil or nil })
     end, parsed.files)
     r.stale = not s.additive and M.stale(r.root, M.previous(r.root, r.scope), parsed) or {}
+    -- what the plan leaves out or stands in for, and what its replan throws away: shown in the review, where the user decides
+    parsed.warnings = require("agent.kit.build.plancheck").warnings(parsed, (live.docs or {}).spec or "", r.scope)
+    local gone = require("agent.kit.build.loss").read(r.root, r.stale)
+    r.loss = gone
+        and {
+          lines = gone.lines,
+          types = gone.types,
+          significant = gone.significant,
+          text = require("agent.kit.build.loss").lines(gone),
+        }
+      or nil
     r.replaced = #vim.tbl_filter(function(f)
       return vim.uv.fs_stat(r.root .. "/" .. f.path) ~= nil
     end, parsed.files)
@@ -1331,6 +1376,30 @@ function M.plan_text(plan)
   end
   para("How it works", plan.summary)
   para("Architecture", plan.architecture)
+  if plan.risks and #plan.risks > 0 then
+    out[#out + 1] = "## Risks (built first)"
+    out[#out + 1] = ""
+    for _, rk in ipairs(plan.risks) do
+      out[#out + 1] = ("- %s: %s"):format(rk.req, rk.why)
+    end
+    out[#out + 1] = ""
+  end
+  if plan.deferred and #plan.deferred > 0 then
+    out[#out + 1] = "## Deferred (not delivered by this build)"
+    out[#out + 1] = ""
+    for _, d in ipairs(plan.deferred) do
+      out[#out + 1] = ("- %s: %s"):format(d.req, d.why)
+    end
+    out[#out + 1] = ""
+  end
+  if plan.warnings and #plan.warnings > 0 then
+    out[#out + 1] = "## Warnings"
+    out[#out + 1] = ""
+    for _, w in ipairs(plan.warnings) do
+      out[#out + 1] = "- " .. w
+    end
+    out[#out + 1] = ""
+  end
   if plan.decisions and #plan.decisions > 0 then
     out[#out + 1] = "## Decisions"
     out[#out + 1] = ""
@@ -1392,27 +1461,44 @@ function M.go()
     if live.review_at and (vim.uv.hrtime() - live.review_at) / 1e9 < 1.5 then
       return log.info "Build: this is the review · press Enter again to build"
     end
-    for _, p in ipairs(r.stale or {}) do
-      require("files.ops").trash(r.root .. "/" .. p)
-    end
-    if r.stale and #r.stale > 0 then
-      local n = #r.stale
-      state.feed(
-        "info",
-        ("%d file%s of the previous build to the trash: %s"):format(
-          n,
-          n == 1 and "" or "s",
-          table.concat(r.stale, ", ")
+    local function build()
+      for _, p in ipairs(r.stale or {}) do
+        require("files.ops").trash(r.root .. "/" .. p)
+      end
+      if r.stale and #r.stale > 0 then
+        local n = #r.stale
+        state.feed(
+          "info",
+          ("%d file%s of the previous build to the trash: %s"):format(
+            n,
+            n == 1 and "" or "s",
+            table.concat(r.stale, ", ")
+          )
         )
-      )
-      r.stale = {}
+        r.stale = {}
+        r.loss = nil
+      end
+      remember(r.root, r.scope, created())
+      record "adr"
+      local _, total = state.progress()
+      local est = r.estimate and r.estimate.cost and ("~$%.3f before the cache"):format(r.estimate.cost) or nil
+      state.feed("step", ("%d files · %s"):format(total, M.model "files"), est, "Write")
+      return write()
     end
-    remember(r.root, r.scope, created())
-    record "adr"
-    local _, total = state.progress()
-    local est = r.estimate and r.estimate.cost and ("~$%.3f before the cache"):format(r.estimate.cost) or nil
-    state.feed("step", ("%d files · %s"):format(total, M.model "files"), est, "Write")
-    return write()
+    -- code is not deleted on the review's Enter alone: when what goes holds real declarations (or enough lines), the list
+    -- is put in front of the user first (agent/kit/build/loss.lua). A repair that "fixes" a project by deleting its
+    -- screens is the worst thing a build can do quietly.
+    if r.loss and r.loss.significant and #(r.stale or {}) > 0 then
+      local modal = require "utils.modal"
+      local lines = { { { "This build deletes code the project has now", modal.hl.warn } }, "" }
+      for _, text in ipairs(r.loss.text or {}) do
+        lines[#lines + 1] = { { text, modal.hl.muted } }
+      end
+      lines[#lines + 1] = ""
+      lines[#lines + 1] = { { "<leader>Fu brings them back from the trash", modal.hl.muted } }
+      return modal.confirm(lines, { title = "Delete code", confirm = "Delete and build", danger = true }, build)
+    end
+    return build()
   end
   -- stopped, failed, done with failures: go on from where it stands
   local pending = false

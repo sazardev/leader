@@ -34,6 +34,13 @@ local all = {
   { "bu", "setup build undo", build "undo" },
   { "r", "setup recipe", kit_module("recipes", "open") },
   { "v", "setup coverage", kit_module("coverage", "open") },
+  {
+    "l",
+    "setup leader data",
+    function()
+      require("agent.leaderdata").open()
+    end,
+  },
   { "P", "setup progress", kit "progress" },
   { "B", "setup recheck", build "check_again" },
   { "/", "setup find", kit "find" },
