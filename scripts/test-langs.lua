@@ -1,4 +1,4 @@
--- Tests of the language packs (Python, TypeScript/JavaScript, Rust, SQL, Swift, Make): the registry (packs, every
+-- Tests of the language packs (Python, TypeScript/JavaScript, Rust, C#, SQL, Swift, Make): the registry (packs, every
 -- language reachable, formatter options), tests in the editor (langtest: each adapter's tests from a real buffer with
 -- treesitter, its command, its report parsed from real runner output), the SQL runner's pure parts (statements, risky
 -- ones, connections), the project setup presets (every one parses, fills every placeholder, valid JSON), and the small
@@ -78,7 +78,7 @@ for line in io.lines(root .. "/nvim/lua/languages/packs.lua") do
   end
 end
 eq("packs: each on a line of its own, in the shape install.sh parses", one_line, #packs.packs)
-for _, lang in ipairs { "python", "rust", "typescript", "sql", "swift", "make" } do
+for _, lang in ipairs { "python", "rust", "typescript", "csharp", "sql", "swift", "make" } do
   local spec = dofile(root .. "/nvim/lua/languages/" .. lang .. ".lua")
   ok(lang .. ": declares its parsers", type(spec.treesitter) == "table" and #spec.treesitter > 0)
 end
@@ -629,6 +629,10 @@ local fake_roots = {
   typescript = { ["package.json"] = '{"name":"web","engines":{"node":">=22"}}', ["pnpm-lock.yaml"] = "" },
   python = { ["pyproject.toml"] = '[project]\nname = "my-app"\nrequires-python = ">=3.13"\n', ["uv.lock"] = "" },
   rust = { ["Cargo.toml"] = '[package]\nname = "calc"\nedition = "2024"\n' },
+  csharp = {
+    ["Api.csproj"] = '<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup>'
+      .. "<TargetFramework>net10.0</TargetFramework><AssemblyName>Api</AssemblyName></PropertyGroup></Project>\n",
+  },
   swift = { ["Package.swift"] = '// swift-tools-version: 6.1\nlet package = Package(name: "Calc")\n' },
 }
 for _, lang in ipairs(ls.LANGS) do
@@ -677,6 +681,30 @@ eq(
   { "my-app", "my_app", "3.13", "313" }
 )
 eq("rust vars", { ls.lang("rust").vars(base .. "/setup-rust").edition }, { "2024" })
+local csv = ls.lang("csharp").vars(base .. "/setup-csharp")
+eq(
+  "csharp vars: assembly name, target framework, image channel",
+  { csv.name, csv.tfm, csv.channel },
+  { "Api", "net10.0", "10.0" }
+)
+local csharp = require "servers.csharp"
+eq(
+  "csharp server: auto prefers Roslyn",
+  csharp.choose("auto", { roslyn = "/r", csharp_ls = "/c" }),
+  { name = "roslyn", path = "/r" }
+)
+eq(
+  "csharp server: auto falls back to csharp-ls",
+  csharp.choose("auto", { csharp_ls = "/c" }),
+  { name = "csharp_ls", path = "/c" }
+)
+eq("csharp server: forced csharp-ls", csharp.choose("csharp_ls", { roslyn = "/r", csharp_ls = "/c" }).name, "csharp_ls")
+eq("csharp server: nothing installed", csharp.choose("auto", {}), nil)
+local roslyn = require "servers.roslyn_ls"
+ok(
+  "csharp server: one command for Roslyn or csharp-ls",
+  type(roslyn.cmd) == "function" and type(roslyn.before_init) == "function"
+)
 eq(
   "swift vars",
   { ls.lang("swift").vars(base .. "/setup-swift").name, ls.lang("swift").vars(base .. "/setup-swift").swift },
@@ -725,6 +753,22 @@ ok(
   "debug maps: under D, the same in every language",
   vim.iter(dbg.maps "python"):all(function(m)
     return m[1]:sub(1, 1) == "D"
+  end)
+)
+ok("csharp: Directory.Build.props takes no description line", ls.bare "Directory.Build.props")
+local csa = require "languages.actions.csharp"
+local cmap = {}
+for _, m in ipairs(csa) do
+  cmap[m[1]] = true
+end
+ok(
+  "csharp menu: run, build, tests, packages, projects, setup and debug",
+  cmap.r and cmap.b and cmap.m and cmap.A and cmap.P and cmap.Ll and cmap.Sr and cmap.Sp and cmap.Dd
+)
+ok(
+  "csharp: a menu context of its own",
+  vim.iter(require("languages").menus()):any(function(m)
+    return m.name == "C#"
   end)
 )
 

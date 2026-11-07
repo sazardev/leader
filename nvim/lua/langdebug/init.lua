@@ -3,6 +3,8 @@
 --   python  debugpy (Mason's), the project's interpreter: the file, or the test under the cursor through pytest
 --   rust    codelldb (Mason's): the crate's binary after `cargo build`, or the test under the cursor (its test binary
 --           from `cargo test --no-run`)
+--   csharp  netcoredbg (Mason's): the assembly `dotnet build` produced (ASP.NET Core starts with Development and its
+--           launchSettings.json URL)
 --   swift   lldb-dap from the toolchain: the package's executable after `swift build`
 -- The keys are the same in every menu, under `D`: d the program, t the test under the cursor, b breakpoint, B with a
 -- condition, c continue, n step over, i step into, o step out, u the panel (nvim-dap-view, as for Dart).
@@ -17,6 +19,18 @@ local configured = {}
 local function mason_bin(path)
   local full = vim.fn.stdpath "data" .. "/mason/packages/" .. path
   return vim.fn.executable(full) == 1 and full or nil
+end
+
+--- A Mason binary by its name (mason/bin/<name>), else the same name on PATH
+---@param name string
+---@return string?
+local function mason_exec(name)
+  local bin = vim.fn.stdpath "data" .. "/mason/bin/" .. name
+  if vim.fn.executable(bin) == 1 then
+    return bin
+  end
+  local path = vim.fn.exepath(name)
+  return path ~= "" and path or nil
 end
 
 --- The adapter of a language, registered once; false when its debugger is not installed
@@ -45,6 +59,13 @@ local function adapter(lang)
       port = "${port}",
       executable = { command = codelldb, args = { "--port", "${port}" } },
     }
+  elseif lang == "csharp" then
+    local dbg = mason_exec "netcoredbg"
+    if not dbg then
+      log.warn "Debug: netcoredbg is not installed (:MasonInstall netcoredbg)"
+      return false
+    end
+    dap.adapters.netcoredbg = { type = "executable", command = dbg, args = { "--interpreter=vscode" } }
   elseif lang == "swift" then
     local lldb = vim.fn.exepath "lldb-dap"
     if lldb == "" then
@@ -85,6 +106,79 @@ function M.cargo_executables(lines, want)
     end
   end
   return out
+end
+
+--- The first .csproj under `root`
+---@param root string
+---@return string?
+local function csproj(root)
+  return vim.fs.find(function(name)
+    return name:match "%.csproj$" ~= nil
+  end, { path = root, type = "file", limit = 1 })[1]
+end
+
+--- The application URL of the first launchSettings profile, if the project has one
+---@param dir string
+---@return string?
+local function aspnet_url(dir)
+  local text = require("utils.project").read(dir .. "/Properties/launchSettings.json")
+  if not text then
+    return nil
+  end
+  local ok, data = pcall(vim.json.decode, text)
+  if not ok or type(data) ~= "table" then
+    return nil
+  end
+  for _, profile in pairs(data.profiles or {}) do
+    if type(profile) == "table" and type(profile.applicationUrl) == "string" then
+      local url = profile.applicationUrl:match "https?://[^;]+"
+      if url then
+        return url
+      end
+    end
+  end
+end
+
+--- Builds the project and debugs the assembly dotnet produced
+---@param root string
+local function csharp(root)
+  local file = csproj(root)
+  if not file then
+    return log.warn "Debug: no .csproj around this file"
+  end
+  local dir = vim.fs.dirname(file)
+  log.info "Debug: dotnet build"
+  vim.system({ "dotnet", "build", file }, { cwd = root, text = true }, function(res)
+    vim.schedule(function()
+      if res.code ~= 0 then
+        return log.warn "Debug: dotnet build failed (<leader>cT shows why)"
+      end
+      local prop = vim
+        .system({ "dotnet", "msbuild", file, "-getProperty:TargetPath", "-nologo" }, { cwd = root, text = true })
+        :wait()
+      local dll = vim.trim(prop.stdout or "")
+      if dll ~= "" and not dll:match "^/" then
+        dll = dir .. "/" .. dll
+      end
+      if prop.code ~= 0 or dll == "" or vim.uv.fs_stat(dll) == nil then
+        return log.warn "Debug: could not find the built assembly"
+      end
+      local env = { ASPNETCORE_ENVIRONMENT = "Development" }
+      local url = aspnet_url(dir)
+      if url then
+        env.ASPNETCORE_URLS = url
+      end
+      require("dap").run {
+        type = "netcoredbg",
+        request = "launch",
+        name = vim.fs.basename(dll),
+        program = dll,
+        cwd = root,
+        env = env,
+        stopOnEntry = false,
+      }
+    end)
+  end)
 end
 
 --- Builds with cargo (JSON messages) and debugs the executable it made
@@ -158,6 +252,11 @@ function M.start(lang, what)
       return log.warn "Debug: no Cargo.toml around this file"
     end
     return rust(root, test)
+  elseif lang == "csharp" then
+    local root = vim.fs.root(file, function(name)
+      return name:match "%.slnx?$" ~= nil or name:match "%.csproj$" ~= nil
+    end) or vim.fs.dirname(file)
+    return csharp(root)
   elseif lang == "swift" then
     local root = vim.fs.root(file, "Package.swift")
     if not root then
@@ -201,7 +300,8 @@ function M.maps(lang)
       end,
     },
   }
-  if lang ~= "swift" then
+  -- C# has no test adapter yet (langtest); Swift is single-binary
+  if lang ~= "swift" and lang ~= "csharp" then
     out[#out + 1] = {
       "Dt",
       "debug test under cursor",

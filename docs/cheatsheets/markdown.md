@@ -1,6 +1,6 @@
 # Markdown
 
-Filetype: `markdown`.
+Filetype: `markdown` (`*.md` and `*.mdx` — MDX is detected as `markdown`, see `ftdetect/mdx.lua`).
 
 ## Tools
 
@@ -11,7 +11,9 @@ Filetype: `markdown`.
 | Render | `render-markdown.nvim` (styled headings, lists, code, checkboxes) |
 | Treesitter | `markdown` |
 
-## `<leader>m` menu (only in `*.md`)
+## `<leader>m` menu (only in `*.md` and `*.mdx`)
+
+MDX (`*.mdx`) is tolerant: no `mdx` parser exists in `nvim-treesitter`, so it reuses Markdown rendering, formatting and linting — JSX shows as HTML, `tsx`/`jsx` fences highlight, and imports/expressions stay as text instead of erroring.
 
 The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 

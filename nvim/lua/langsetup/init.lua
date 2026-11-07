@@ -1,4 +1,4 @@
--- ── Project setup per language (<leader>tS, pS, rS, iS) ──────────────────────
+-- ── Project setup per language (<leader>tS, pS, rS, cS, iS) ──────────────────
 -- The config files a project of that language usually wants, one key each, like Go's (<leader>gS, lua/gosetup/): a
 -- language is a file in `langs/<lang>.lua` (its topics, its root, what it reads from the project), its presets are
 -- plain files in `presets/<lang>/<topic>/<variant>.<ext>`:
@@ -10,7 +10,7 @@ local log = require "utils.log"
 
 local M = {}
 
-M.LANGS = { "typescript", "python", "rust", "swift" }
+M.LANGS = { "typescript", "python", "rust", "csharp", "swift" }
 
 ---@class LangSetupVariant
 ---@field name string
@@ -46,7 +46,10 @@ local BARE = { [".nvmrc"] = true, [".node-version"] = true, [".python-version"] 
 ---@param target string
 ---@return boolean
 function M.bare(target)
-  return target:match "%.json$" ~= nil or BARE[vim.fs.basename(target)] == true
+  return target:match "%.json$" ~= nil
+    or target:match "%.props$" ~= nil
+    or target:match "%.targets$" ~= nil
+    or BARE[vim.fs.basename(target)] == true
 end
 
 --- A preset from its text; nil when its first two lines are not the description and the target

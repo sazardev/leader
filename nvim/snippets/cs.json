@@ -1,0 +1,192 @@
+{
+  "namespace": {
+    "prefix": ["namespace"],
+    "body": ["namespace ${1:MyApp};", "", "$0"],
+    "description": "File-scoped namespace"
+  },
+  "class": {
+    "prefix": ["class"],
+    "body": ["namespace ${1:MyApp};", "", "public class ${2:Name}", "{", "\t$0", "}"],
+    "description": "Public class in a file-scoped namespace"
+  },
+  "sealed class": {
+    "prefix": ["sealedclass"],
+    "body": ["public sealed class ${1:Name}", "{", "\t$0", "}"],
+    "description": "Sealed class"
+  },
+  "record": {
+    "prefix": ["record"],
+    "body": ["public sealed record ${1:Name}(${2:string Value});"],
+    "description": "Sealed positional record"
+  },
+  "interface": {
+    "prefix": ["interface"],
+    "body": ["public interface I${1:Name}", "{", "\t$0", "}"],
+    "description": "Public interface"
+  },
+  "enum": {
+    "prefix": ["enum"],
+    "body": ["public enum ${1:Name}", "{", "\t${2:First},", "\t$0", "}"],
+    "description": "Public enum"
+  },
+  "property": {
+    "prefix": ["prop"],
+    "body": ["public ${1:string} ${2:Name} { get; set; }$0"],
+    "description": "Auto property"
+  },
+  "get-only property": {
+    "prefix": ["propg"],
+    "body": ["public ${1:string} ${2:Name} { get; }$0"],
+    "description": "Get-only property"
+  },
+  "field": {
+    "prefix": ["field"],
+    "body": ["private readonly ${1:ILogger<${2:Name}>} _${3:logger};$0"],
+    "description": "Readonly field (logger by default)"
+  },
+  "constructor": {
+    "prefix": ["ctor"],
+    "body": ["public ${1:Name}(${2:ILogger<${1:Name}> logger})", "{", "\t_${3:logger} = logger;", "}"],
+    "description": "Constructor"
+  },
+  "method": {
+    "prefix": ["method"],
+    "body": ["public ${1:void} ${2:Name}(${3})", "{", "\t$0", "}"],
+    "description": "Public method"
+  },
+  "async method": {
+    "prefix": ["async"],
+    "body": ["public async Task<${1:Result}> ${2:Name}Async(${3}, CancellationToken cancellationToken = default)", "{", "\t$0", "}"],
+    "description": "Async method with a CancellationToken"
+  },
+  "if": {
+    "prefix": ["if"],
+    "body": ["if (${1:condition})", "{", "\t$0", "}"],
+    "description": "if block"
+  },
+  "foreach": {
+    "prefix": ["foreach"],
+    "body": ["foreach (var ${1:item} in ${2:items})", "{", "\t$0", "}"],
+    "description": "foreach loop"
+  },
+  "try catch": {
+    "prefix": ["trycatch"],
+    "body": ["try", "{", "\t$1", "}", "catch (${2:Exception} ex)", "{", "\t${3:logger.LogError(ex, \"${4}\");}", "}"],
+    "description": "try/catch with a log line"
+  },
+  "using": {
+    "prefix": ["using"],
+    "body": ["using ${1:Namespace};$0"],
+    "description": "using directive"
+  },
+  "switch expression": {
+    "prefix": ["switch"],
+    "body": [
+      "return ${1:value} switch",
+      "{",
+      "\t${2:Pattern} => ${3:result},",
+      "\t_ => throw new ArgumentOutOfRangeException(nameof(${1:value})),",
+      "};"
+    ],
+    "description": "Switch expression with a fallback that throws"
+  },
+  "top-level program": {
+    "prefix": ["main"],
+    "body": ["Console.WriteLine(\"Hello, World!\");$0"],
+    "description": "Top-level statements"
+  },
+  "minimal API": {
+    "prefix": ["webapi"],
+    "body": [
+      "var builder = WebApplication.CreateBuilder(args);",
+      "",
+      "builder.Services.AddEndpointsApiExplorer();",
+      "builder.Services.AddSwaggerGen();",
+      "",
+      "var app = builder.Build();",
+      "",
+      "if (app.Environment.IsDevelopment())",
+      "{",
+      "\tapp.UseSwagger();",
+      "\tapp.UseSwaggerUI();",
+      "}",
+      "",
+      "app.MapGet(\"/\", () => Results.Ok(new { status = \"ok\" }));",
+      "",
+      "app.Run();"
+    ],
+    "description": "ASP.NET Core minimal API with Swagger"
+  },
+  "map get": {
+    "prefix": ["mapget"],
+    "body": ["app.MapGet(\"/${1:path}\", (${2}) => ${3:Results.Ok()});$0"],
+    "description": "Minimal API GET endpoint"
+  },
+  "map post": {
+    "prefix": ["mappost"],
+    "body": ["app.MapPost(\"/${1:path}\", (${2:Request} request) => ${3:Results.Created(\"/\", request)});$0"],
+    "description": "Minimal API POST endpoint"
+  },
+  "controller": {
+    "prefix": ["controller"],
+    "body": [
+      "[ApiController]",
+      "[Route(\"api/[controller]\")]",
+      "public sealed class ${1:Name}Controller : ControllerBase",
+      "{",
+      "\t$0",
+      "}"
+    ],
+    "description": "ASP.NET Core API controller"
+  },
+  "action": {
+    "prefix": ["action"],
+    "body": [
+      "[HttpGet(\"${1:}\")]",
+      "public async Task<ActionResult<${2:Response}>> ${3:Get}Async(CancellationToken cancellationToken)",
+      "{",
+      "\t$0",
+      "}"
+    ],
+    "description": "Controller action with [HttpGet]"
+  },
+  "db context": {
+    "prefix": ["dbcontext"],
+    "body": [
+      "public sealed class ${1:AppDbContext}(DbContextOptions<${1:AppDbContext}> options) : DbContext(options)",
+      "{",
+      "\tpublic DbSet<${2:Entity}> ${3:Entities} => Set<${2:Entity}>();",
+      "}"
+    ],
+    "description": "EF Core DbContext with one DbSet"
+  },
+  "entity": {
+    "prefix": ["entity"],
+    "body": ["public sealed class ${1:Entity}", "{", "\tpublic ${2:int} Id { get; set; }", "\t$0", "}"],
+    "description": "Entity with an Id"
+  },
+  "options": {
+    "prefix": ["options"],
+    "body": ["public sealed class ${1:Name}Options", "{", "\tpublic const string SectionName = \"${2:Name}\";", "\t$0", "}"],
+    "description": "Options class with its section name"
+  },
+  "xunit test class": {
+    "prefix": ["xunit"],
+    "body": [
+      "public sealed class ${1:Name}Tests",
+      "{",
+      "\t[Fact]",
+      "\tpublic void ${2:DoesSomething}()",
+      "\t{",
+      "\t\t// Arrange",
+      "\t\t$0",
+      "",
+      "\t\t// Act",
+      "",
+      "\t\t// Assert",
+      "\t}",
+      "}"
+    ],
+    "description": "xUnit test class with one [Fact]"
+  }
+}

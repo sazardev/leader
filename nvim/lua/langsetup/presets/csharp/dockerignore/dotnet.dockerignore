@@ -1,0 +1,14 @@
+# What the image does not need (the SDK restores inside the container)
+# target: .dockerignore
+**/bin
+**/obj
+**/TestResults
+**/publish
+.git
+.gitignore
+.vs
+.idea
+.vscode
+*.user
+docker-compose*.yml
+README.md

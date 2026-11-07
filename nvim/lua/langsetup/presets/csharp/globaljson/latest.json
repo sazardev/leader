@@ -1,0 +1,9 @@
+# Pin the SDK the project was created with (rollForward takes the newest feature band installed)
+# target: global.json
+{
+  "sdk": {
+    "version": "{{sdk}}",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  }
+}

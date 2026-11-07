@@ -69,11 +69,35 @@ local defaults = {
   -- lua_ls on the same workspace; lua_ls otherwise), "emmylua_ls" or "lua_ls".
   lsp = {
     lua_server = "auto",
+    -- C# (`lua/servers/csharp.lua`): "auto" uses the official Roslyn server when it is installed (it is a global
+    -- dotnet tool, <leader>cSr installs it) and csharp-ls from Mason otherwise; "roslyn" or "csharp_ls" forces one.
+    csharp_server = "auto",
     -- A server that grows while you work (tsserver reaches 3 GB in a big monorepo) is restarted when its processes pass
     -- the limit and you have been idle for a few seconds: { server = MB }. Empty = never.
     memory_limit_mb = { vtsls = 2200 },
     memory_check_s = 60,
     memory_idle_s = 8,
+  },
+
+  -- C# / .NET (lua/utils/csharpsmart.lua, lua/languages/actions/csharp.lua): contextual completion from the
+  -- project's own types, Roslyn inlay hints and what `dotnet run` does with the launch profiles.
+  csharp = {
+    smart = {
+      enabled = true,
+      declarations = true, -- class/record/interface/struct named after the file
+      constructor = true, -- ctor from the class's private fields
+      properties = true, -- props: get-only accessors for private fields
+      dbset = true, -- DbSet<Entity> for a DbContext
+      di = true, -- services.AddScoped<INoteService, NoteService>() from the project
+      usings = true, -- the using a suggestion needs is added with it
+    },
+    inlay_hints = false, -- Roslyn's parameter/type hints (toggle with <leader>cH)
+    run = {
+      profile = "first", -- "first" | "ask" | "none": which launchSettings profile dotnet run uses
+    },
+    packages = {
+      take = 20, -- results of the NuGet search
+    },
   },
 
   -- Languages (see lua/languages/): disable by name the ones you do not use.

@@ -22,6 +22,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>aU` | Agent Service | global |
 | `<leader>aS` | Agent Setup | global |
 | `<leader>aT` | Agent Tests | global |
+| `<leader>c` | C# | `cs` |
 | `<leader>s` | CSS | `css`, `scss`, `less` |
 | `<leader>C` | Comments | global |
 | `<leader>d` | Dart / Flutter | `dart` |
@@ -189,6 +190,60 @@ _Where: global_
 | `<leader>aTm` | test mock |
 | `<leader>aTf` | test fix |
 | `<leader>aTg` | test gaps |
+
+### C# — `<leader>c`
+
+_Where: `cs`_
+
+| Key | Action |
+|---|---|
+| `<leader>cr` | dotnet run |
+| `<leader>cw` | dotnet watch (hot reload) |
+| `<leader>cb` | dotnet build |
+| `<leader>cp` | dotnet publish Release |
+| `<leader>cf` | format (CSharpier) |
+| `<leader>cF` | dotnet format |
+| `<leader>cv` | verify formatting |
+| `<leader>co` | open solution/project |
+| `<leader>cn` | new project (dotnet new) |
+| `<leader>cP` | add NuGet package |
+| `<leader>cR` | remove NuGet package |
+| `<leader>cN` | search NuGet packages |
+| `<leader>cU` | update outdated packages |
+| `<leader>cQ` | vulnerable packages (quickfix) |
+| `<leader>cu` | dotnet restore |
+| `<leader>ce` | EF migration add |
+| `<leader>cE` | EF database update |
+| `<leader>cI` | SDK info |
+| `<leader>cH` | inlay hints |
+| `<leader>cLl` | list solutions/projects |
+| `<leader>cLa` | add project to solution |
+| `<leader>cLr` | add project reference |
+| `<leader>cm` | test under cursor |
+| `<leader>cM` | test file |
+| `<leader>cA` | test all |
+| `<leader>c.` | test again |
+| `<leader>cT` | test file toggle |
+| `<leader>cO` | test output |
+| `<leader>cDd` | debug program |
+| `<leader>cDb` | debug breakpoint toggle |
+| `<leader>cDB` | debug breakpoint condition |
+| `<leader>cDc` | debug continue |
+| `<leader>cDn` | debug step over |
+| `<leader>cDi` | debug step into |
+| `<leader>cDo` | debug step out |
+| `<leader>cDu` | debug panel |
+| `<leader>cSe` | setup .editorconfig |
+| `<leader>cSb` | setup Directory.Build.props |
+| `<leader>cSG` | setup global.json (SDK pin) |
+| `<leader>cSc` | setup GitHub Actions CI |
+| `<leader>cSd` | setup Dockerfile (ASP.NET) |
+| `<leader>cSi` | setup .dockerignore |
+| `<leader>cSp` | setup several files |
+| `<leader>cSm` | setup Makefile |
+| `<leader>cSg` | setup gitignore |
+| `<leader>cSr` | setup Roslyn server |
+| `<leader>cSf` | setup dotnet-ef |
 
 ### CSS — `<leader>s`
 

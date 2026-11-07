@@ -24,6 +24,7 @@ local FILES = {
   ["lib.rs"] = { "fn main() {}" },
   ["init.lua"] = { "local x = 1" },
   ["README.md"] = { "# Title" },
+  ["post.mdx"] = { "# Title", "", "import { Button } from './Button'", "", "<Button>hola</Button>", "", "Some {name}." },
   ["data.json"] = { "{}" },
   ["app_en.arb"] = { "{}" },
   ["style.css"] = { "a {}" },

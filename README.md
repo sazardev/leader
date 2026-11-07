@@ -17,7 +17,7 @@ curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh |
 Windows (PowerShell): `irm https://raw.githubusercontent.com/sazardev/leader/master/install.ps1 | iex`
 
 It asks **one thing**: which languages to set up, as a checklist of packs (Go, Dart / Flutter, TypeScript / JavaScript,
-Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked;
+C# / .NET, Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked;
 Enter keeps them. Only the languages you keep download their LSPs, formatters and linters (the base, Lua, Markdown,
 JSON, YAML, TOML, is always on). Change them later in `<Space>Sp` → Languages. No clone needed: it fetches the repo into
 `~/.local/share/leader` and does everything else (idempotent: run it again any time to bring it up to date):
@@ -47,7 +47,7 @@ There is also a landing page, `docs/index.html` (flat and square like the config
 | Option | Effect |
 |---|---|
 | `--ask` | prompts before installing system packages or Neovim (by default it asks nothing) |
-| `--lang python,sql` | those packs (`go dart typescript web python rust sql swift jvm infra yarnspinner`) or single languages, `all` for every one; skips the checklist |
+| `--lang python,sql` | those packs (`go dart typescript csharp web python rust sql swift jvm infra yarnspinner`) or single languages, `all` for every one; skips the checklist |
 | `--yes` | asks nothing: the packs found on this machine (also what happens with no terminal) |
 | `--theme catppuccin` | default theme (`local.lua`) |
 | `--light` / `--no-light` | forces light mode (no resident LSP) or turns it off; without this it is detected by RAM (≤ 2 GB) |
@@ -61,7 +61,7 @@ There is also a landing page, `docs/index.html` (flat and square like the config
 ./install.sh --dry-run --no-deps --lang rust                      # see what it would do
 ```
 
-Single languages also work with `--lang`: `lua go typescript html css tailwind json yaml toml markdown docker prisma astro dart rust python java kotlin sql swift make yarnspinner`.
+Single languages also work with `--lang`: `lua go typescript csharp html css tailwind json yaml toml markdown docker prisma astro dart rust python java kotlin sql swift make yarnspinner`.
 If `local.lua` already exists it is **left untouched**: the installer tells you what to add (it is yours and may hold other settings).
 
 **Native Windows** (PowerShell): `./install.ps1 [-Lang go,typescript] [-Theme x] [-Light|-NoLight] [-Agent auto] [-NoPlugins]` creates the

@@ -10,7 +10,7 @@
 # checklist of packs, the ones this machine already uses checked); everything else it just does (--ask prompts for the
 # system packages too). An existing nvim config is moved to nvim.bak-<date>, never deleted.
 #
-#   --lang python,sql      those language packs (go dart typescript web python rust sql swift jvm infra yarnspinner) or
+#   --lang python,sql      those language packs (go dart typescript csharp web python rust sql swift jvm infra yarnspinner) or
 #                          single languages; `all` for every one. Skips the checklist. The base (Lua, Markdown, JSON,
 #                          YAML, TOML) is always on; only the languages that are on download their LSPs and tools
 #   -y, --yes              asks nothing: the packs found on this machine (also what happens with no terminal)

@@ -48,6 +48,7 @@ return {
       per_filetype = {
         lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
         go = { "gotags", "gosmart", "lsp", "path", "snippets", "buffer" },
+        cs = { "csharpsmart", "lsp", "path", "snippets", "buffer" },
         dart = { "dartsmart", "lsp", "path", "snippets", "buffer" },
       },
       providers = {
@@ -55,6 +56,8 @@ return {
         gotags = { name = "GoTags", module = "utils.gotags", score_offset = 100 },
         -- constructor / struct{} depending on context, and filters out snippets that do not apply (utils/gosmart.lua)
         gosmart = { name = "GoSmart", module = "utils.gosmart", score_offset = 90 },
+        -- C#: ctor/props/DbSet/DI from the project's own types, with the using each one needs (utils/csharpsmart.lua)
+        csharpsmart = { name = "C# Smart", module = "utils.csharpsmart", score_offset = 90 },
         -- Dart: widgets, Riverpod providers and freezed classes for the project's stack, named after the file, with
         -- their import and `part` lines (utils/dartsmart.lua)
         dartsmart = { name = "DartSmart", module = "utils.dartsmart", score_offset = 90 },

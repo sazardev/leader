@@ -1,7 +1,7 @@
 -- ── Tests inside the editor, any language ────────────────────────────────────
 -- The same keys in every language menu: `m` the test (or group) under the cursor, `M` the file, `A` the whole
 -- project, `.` the last run again, `T` jumps between a file and its test, `O` shows the runner's output. One adapter per
--- runner (adapters/: pytest, vitest/jest/bun, cargo, swift) says which tests a buffer defines (treesitter), how to run
+-- runner (adapters/: pytest, vitest/jest/bun, cargo, dotnet, swift) says which tests a buffer defines (treesitter), how to run
 -- a scope and how to read its report; this module runs it (one process, no resident server) and paints the result the
 -- way the Dart tests do: a mark per test line (✓ passed, ✗ failed, ○ skipped, … running), a failure as a diagnostic on
 -- the line that failed with the runner's message, the failures in the quickfix list, one note with the totals. Results
@@ -11,7 +11,7 @@ local ts = require "langtest.ts"
 
 local M = {}
 
-M.ADAPTERS = { "pytest", "jsunit", "cargo", "swift" }
+M.ADAPTERS = { "pytest", "jsunit", "cargo", "dotnet", "swift" }
 
 local NS = vim.api.nvim_create_namespace "langtest"
 local MARKS = vim.api.nvim_create_namespace "langtest.marks"

@@ -36,6 +36,9 @@ function M.setup()
         vim.keymap.set("n", m[1], m[2], { buffer = args.buf, desc = m[3] })
       end
       label_rename_group(args.buf)
+      if vim.bo[args.buf].filetype == "cs" and (require("core.settings").csharp or {}).inlay_hints then
+        pcall(vim.lsp.inlay_hint.enable, true, { bufnr = args.buf })
+      end
     end,
   })
 end

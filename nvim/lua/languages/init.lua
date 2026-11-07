@@ -25,6 +25,7 @@ local NAMES = {
   "lua",
   "go",
   "typescript",
+  "csharp",
   "html",
   "css",
   "tailwind",

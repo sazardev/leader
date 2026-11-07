@@ -26,4 +26,5 @@ for _, pack in ipairs(require("languages.packs").packs) do
     end,
   }
 end
+
 return items

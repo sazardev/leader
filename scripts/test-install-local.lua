@@ -19,9 +19,9 @@ local il = dofile(root .. "/scripts/install-local.lua")
 
 local names = il.language_names(root)
 eq(
-  "names: come from the language registry (lua first, 22 in total)",
+  "names: come from the language registry (lua first, 23 in total)",
   { names[1], names[2], #names },
-  { "lua", "go", 22 }
+  { "lua", "go", 23 }
 )
 
 local settings = il.plan({ langs = "go, typescript" }, names)
@@ -32,7 +32,7 @@ eq("--lang: everything that is neither the base nor requested gets disabled", {
   vim.tbl_contains(settings.languages.disabled, "markdown"),
   vim.tbl_contains(settings.languages.disabled, "rust"),
   #settings.languages.disabled,
-}, { false, false, false, false, true, 15 })
+}, { false, false, false, false, true, 16 })
 local packs = il.packs(root)
 local covered = {}
 for _, n in ipairs(packs.base) do

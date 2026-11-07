@@ -7,6 +7,7 @@ local M = {}
 --- Folder → what the picker calls it
 M.LABELS = {
   c = "C / C++",
+  csharp = "C# / .NET",
   dart = "Dart / Flutter",
   docker = "Docker",
   go = "Go",
@@ -21,6 +22,9 @@ M.LABELS = {
 --- Files in a project root that say which language it is, first match wins
 M.MARKERS = {
   { "go.mod", "go" },
+  { "global.json", "csharp" },
+  { "Directory.Build.props", "csharp" },
+  { "Program.cs", "csharp" },
   { "Cargo.toml", "rust" },
   { "pubspec.yaml", "dart" },
   { "pom.xml", "java" },
@@ -39,6 +43,7 @@ M.MARKERS = {
 --- Filetype → folder, when the root has no marker
 M.FILETYPES = {
   go = "go",
+  cs = "csharp",
   rust = "rust",
   dart = "dart",
   java = "java",
