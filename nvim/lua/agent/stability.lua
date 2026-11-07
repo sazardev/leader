@@ -5,7 +5,8 @@
 -- a feature moves between the lists below, and that is the whole policy.
 --
 --   id      what a menu, an action or a feature calls itself by
---   Stable  the everyday core: it fixes, documents, tests, reviews and writes commits, each verifiable for free
+--   Stable  the everyday core: it fixes, documents, tests, reviews, writes commits and builds a project from its
+--           documents, each verifiable for free
 --
 -- A menu context declares `stability = "<id>"`; an action may declare `stability = "<id>"` too.
 local M = {}
@@ -18,7 +19,6 @@ M.EXPERIMENTAL = {
   service = "same limits as repository",
   lenses = "single-focus reviews have no eval cases yet",
   doctor = "troubleshooting quality is not measured yet",
-  build = "writing a whole project is the least verifiable thing a model does",
   plan = "multi-file plans depend on the model's planning, which the eval does not cover yet",
 }
 

@@ -2,6 +2,7 @@
 -- It always stores the metrics (tokens, cost, sizes); the text (prompt and response, which include
 -- your code) only with `settings.agent.history.store_text`.
 local jobs = require "agent.jobs"
+local project = require "utils.project"
 local settings = require("core.settings").agent.history
 
 local M = {}
@@ -19,6 +20,7 @@ function M.build(job, status, err)
   end
 
   local ts = os.time()
+  local cwd = vim.fn.getcwd()
   local entry = {
     t = "run",
     id = ("%d-%d"):format(vim.uv.hrtime() / 1e6 % 1e9, job.id), -- unique across sessions without depending on the clock
@@ -32,7 +34,8 @@ function M.build(job, status, err)
     status = status,
     error = err,
     ms = math.floor(jobs.elapsed(job) * 1000),
-    cwd = vim.fn.getcwd(),
+    cwd = cwd,
+    root = project.git_root(cwd),
     file = job.target.path,
     lang = job.target.lang,
     kind = job.target.kind,

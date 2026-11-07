@@ -178,8 +178,8 @@ local defaults = {
     stream_ms = 40, -- the streaming answer is redrawn at most this often per job (several agents at once stay smooth)
     rules = nil, -- extra text (conventions) for EVERY prompt; per project: `.agent.md` at the root
     timeout_ms = 120000,
-    -- Features still finding their shape (DDD, repository/service/lens menus, doctor, building a whole project, multi-file
-    -- plans; the list is agent/stability.lua) stay out of the menus. true = show them (marked "experimental")
+    -- Features still finding their shape (DDD, repository/service/lens menus, doctor, multi-file plans; the list is
+    -- agent/stability.lua) stay out of the menus. true = show them (marked "experimental")
     experimental = false,
     -- What a model can be trusted with (agent/profiles.lua): the class of each model (small / medium / strong; by its name, by what
     -- `make eval EVAL_PROFILE=1` measured, or by `models`) sets how the pipeline compensates. A small local model gets a smaller
@@ -220,6 +220,9 @@ local defaults = {
     history = {
       enabled = true,
       store_text = true,
+      -- "project" = <leader>ah opens on the runs of the project you are in (the one the agent works from);
+      -- "all" = every project. The spend report (<C-s>) is always every project.
+      scope = "project",
       max_entries = 1000, -- past ~1.5x it is compacted down to the most recent ones
     },
     -- Next edit (<leader>an): what you just changed is compared with the file's baseline (no model) and sent, with the lines
@@ -250,7 +253,20 @@ local defaults = {
         plan = "main",
         files = "main",
         fixes = "main",
+        -- the plan is the long request (up to 25 files): it can run on another backend/model while files and fixes keep
+        -- the main one, e.g. plan_backend = "claude", plan_model = "sonnet"
+        plan_backend = nil,
+        plan_model = nil,
         max_fixes = 2, -- fix rounds in a row that change nothing before it stops (rounds that progress go on, up to 8)
+        -- pnpm does not run a dependency's build scripts (esbuild's binary, workerd...) until they are approved: the
+        -- builder writes the ones pnpm names into pnpm-workspace.yaml (onlyBuiltDependencies on pnpm 10, allowBuilds on
+        -- 11+, setting pnpm 12's placeholders to true), no model (0 tokens).
+        -- false: an approved list is not written here; the model may write it (the diagnosis names the file) instead
+        auto_build_scripts = true,
+        -- a test runner whose browser is not installed (Playwright: "Executable doesn't exist at .../ms-playwright/…"):
+        -- the builder asks (a small modal: Install / Don't install) and runs the install if you say yes, no model.
+        -- false: it does not ask (the error goes to the model); a refusal is recorded in an ADR and the check is waived
+        install_browsers = true,
         -- a build of the whole project, a feature or a recipe ends "◐ built" (not "✓") when a requirement has no test, a core one
         -- is missing, the code holds placeholders or the build lost a test or public code (agent/kit/build/proof.lua).
         -- true: such a build does not finish at all ("✗ incomplete"), for pipelines that must not call that done

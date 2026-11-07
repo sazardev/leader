@@ -9,50 +9,13 @@ local M = {}
 M.MAX_FILES = 40
 M.DOCS = { "agents", "stack", "design", "spec" }
 
----@class BuildFile
----@field path string
----@field purpose string
----@field docs string[]   which of agents/stack/design/spec it needs
----@field needs string[]  files of the plan it uses (the plan is ordered so they come first: plancheck.lua)
----@field exports string[] what other files use from it, each with its contract ("NewKeypad(unicode bool) Keypad — highlight starts on =")
----@field verifies string? tests: what behaviour they check
+local brief = require "agent.kit.build.brief"
 
----@class BuildPlan
----@field name string
----@field summary string        how the project will be built, in a few sentences
----@field architecture string   layers and the direction of dependencies
----@field decisions string[]    the choices that shape the code (libraries, patterns, data flow)
----@field risks BuildRisk[]?    the requirements most likely to fail, riskiest first: the real path through the first one is built first
----@field deferred BuildDeferred[]? requirements this build does NOT deliver, each with what is missing (never a silent stand-in)
----@field warnings string[]?    what the free checks of the plan found that is not a reason to replan (plancheck.warnings)
----@field wiring BuildWiring[]?  how each requirement reaches the user (action → code → what they see)
----@field examples BuildExample[]? SPEC.md made concrete: what the user does → exactly what they see
----@field files BuildFile[]
----@field problems string[]?  what cannot be built as planned (plancheck.lua); empty when it can
----@field scope string?       a layer or task build ("foundation", "domain", "design", "feature", "recipe"; nil = the whole project, scope.lua)
----@field task BuildTask?     the requirement or recipe of a task build (set by the build after parsing)
-
----@class BuildRisk
----@field req string   "FR-16"
----@field why string   why it is the hard one ("native decode, nothing in the project does it yet")
-
----@class BuildDeferred
----@field req string
----@field why string   what is missing that makes it impossible in this build ("needs the platform channel, ADR 0003 leaves it open")
-
----@class BuildExample
----@field req string     "FR-2"
----@field input string   what the user does, exactly ("12 + 7 =", "click 7, +, 3, =", "calc 6 / 0")
----@field expect string  exactly what they then see ("19", "the expression line shows 12 +", "error: division by zero")
-
----@class BuildWiring
----@field req string     "FR-2"
----@field action string  what the user does ("presses + between two numbers")
----@field code string    what runs ("ui.Update → domain.Calculator.ChooseOperator")
----@field shows string   what the user then sees, and where ("view.go: the expression line shows `12 +`")
+M.BRIEF = brief.SECTIONS
+M.brief = brief.brief
 
 local SYSTEM =
-  [[You plan how a coding agent builds a project from its documents, one small file at a time. The plan is the
+  [==[You plan how a coding agent builds a project from its documents, one small file at a time. The plan is the
 contract every file is then written against, so it must say what each file does and what it promises to the others.
 Output ONLY one JSON object, no prose, no ``` fence:
 {"name": "<short project name>",
@@ -84,7 +47,27 @@ Rules:
 - Every screen or component that DESIGN.md styles gets the style files STACK.md's styling approach needs, next to it (CSS Modules: one `name.module.css` per view; plain CSS: one stylesheet per feature, loaded by the page; utility classes: none), and the page loads every stylesheet: what the user sees must match DESIGN.md (sizes, layout, colors), not only work.
 - Include tests where STACK.md says tests live, after the code they test. Include a short README.md last.
 - Never plan files that tools generate: golden snapshots (*.golden), lockfiles (go.sum, package-lock.json, …), build output. The tests and the package manager write them.
-- At most 25 files: the smallest project that satisfies SPEC.md.]]
+- At most 25 files: the smallest project that satisfies SPEC.md.]==]
+
+--- The project's deployment, when it is a Cloudflare **Pages** project (`wrangler.toml` with
+--- `pages_build_output_dir`): the output is static. A plan that adds the Cloudflare adapter or an on-demand route
+--- (`prerender = false`) makes `wrangler` reject the generated `ASSETS` binding (measured on the portfolio: 8 fix
+--- rounds could not recover, because the fix belongs to the plan, not to a file). The rule goes AFTER the scope rules
+--- so it wins where they differ. Pure.
+---@param existing table<string, string>?
+---@return string?
+function M.deployment_rule(existing)
+  local w = existing and existing["wrangler.toml"]
+  if type(w) ~= "string" or not w:find("pages_build_output_dir", 1, true) then
+    return nil
+  end
+  return table.concat({
+    "Deployment (it overrides the plan rules above):",
+    "- This project deploys to **Cloudflare Pages as static output** (`wrangler.toml` has `pages_build_output_dir`).",
+    "- Plan static routes only: do NOT add `@astrojs/cloudflare`, an `adapter`, `output: \"server\"`, or `export const prerender = false`.",
+    "- A filter or search is client-side (a small island or vanilla script) or pre-rendered; never an on-demand route.",
+  }, "\n")
+end
 
 --- What the plan does with the decisions earlier builds accepted (their ADRs)
 M.DECISIONS_RULE =
@@ -100,6 +83,7 @@ M.DECISIONS_RULE =
 function M.request(docs, scope, existing, task, decisions)
   local s = require("agent.kit.build.scope").get(scope)
   local rules = require("agent.kit.build.scope").rules(scope, task)
+  docs = M.brief(docs)
   local parts = {}
   for _, id in ipairs(M.DOCS) do
     if docs[id] then
@@ -120,13 +104,15 @@ function M.request(docs, scope, existing, task, decisions)
   if builds_on and not s.existing then
     system = system .. "\n" .. M.EXISTING_RULE
   end
+  local scoped = rules.plan
+      and (system .. "\n\nScope of this build (it overrides the rules above where they differ):\n" .. rules.plan)
+    or system
+  local deploy = M.deployment_rule(existing)
   return {
     action = "kit_build_plan",
     tier = "main",
-    timeout_ms = 300000, -- the whole contract of ~25 files is a long answer
-    system = rules.plan
-        and (system .. "\n\nScope of this build (it overrides the rules above where they differ):\n" .. rules.plan)
-      or system,
+    timeout_ms = 1200000, -- the whole contract of ~25 files is a long answer; measured on flash: 593 s (14 files), 812 s (25)
+    system = deploy and (scoped .. "\n\n" .. deploy) or scoped,
     prompt = table.concat(parts, "\n\n") .. "\n\n" .. rules.ask,
   }
 end

@@ -37,12 +37,25 @@ eq("by provider: openai/ model", ts(filter.apply(RUNS, { provider = "openai" }))
 eq("by provider: a local model", ts(filter.apply(RUNS, { provider = "local (ollama)" })), { 5 })
 eq("filters combine", ts(filter.apply(RUNS, { action = "fix", backend = "opencode" })), { 3 })
 eq("outcome missing = pending", ts(filter.apply(RUNS, { outcome = "pending" })), { 5 })
-eq("by project (folder name)", ts(filter.apply(RUNS, { project = "other" })), { 3 })
+eq("by project (git root or folder)", ts(filter.apply(RUNS, { project = "/w/other" })), { 3 })
 local actions = filter.values(RUNS, "action")
 eq("values: most used first, with count", { actions[1].value, actions[1].count }, { "fix", 3 })
 eq("values: cost adds up", math.floor(filter.values(RUNS, "backend")[1].cost * 1000 + 0.5), 12)
 eq("label: in the dimensions' order", filter.label { model = "sonnet", backend = "claude" }, "agent claude · model sonnet")
 eq("label: none", filter.label {}, "")
+eq("label: a project shows its folder, not its path", filter.label { project = "/w/notesapi" }, "project notesapi")
+
+-- the project of a run: the git root above its cwd, what it stored, or the folder itself
+local tmp = vim.fn.resolve(vim.fn.tempname())
+vim.fn.mkdir(tmp .. "/repo/sub", "p")
+vim.fn.mkdir(tmp .. "/repo/.git", "p")
+eq("project: a run from a subfolder belongs to the repo", filter.project { cwd = tmp .. "/repo/sub" }, tmp .. "/repo")
+eq("project: without a repo, the folder", filter.project { cwd = tmp .. "/loose" }, tmp .. "/loose")
+eq("project: a stored root wins", filter.project { root = "/r", cwd = "/w/notesapi" }, "/r")
+eq("project: a run with no cwd has no project", filter.project {}, "?")
+eq("scope: this project", filter.default("project", tmp .. "/repo/sub"), { project = tmp .. "/repo" })
+eq("scope: every project is no filter", filter.default("all", tmp .. "/repo/sub"), nil)
+vim.fn.delete(tmp, "rf")
 
 -- ── detail: the code sent, in its language ──────────────────────────────────
 local prompt = table.concat({

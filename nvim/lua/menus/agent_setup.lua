@@ -60,19 +60,14 @@ local all = {
   { "m", "setup spec modules", kit_module("specmodules", "open") },
 }
 
--- Building a whole project with a model is experimental (agent/stability.lua): its entries (the `b` group, recipes, the
--- recheck) only exist once you opt in; the documents themselves (presets, 0 tokens) are everyday
-local EXPERIMENTAL = { bb = true, bt = true, bs = true, bd = true, bf = true, bu = true, r = true, B = true }
-local show_build = require("agent.stability").visible "build"
-
-local maps = vim.tbl_filter(function(m)
-  return show_build or not EXPERIMENTAL[m[1]]
-end, all)
+-- Building a whole project with a model is part of the core: the `b` group, recipes and the recheck are everyday, like
+-- the documents themselves (presets, 0 tokens)
+local maps = all
 
 return {
   name = "Agent Setup",
   prefix = "aS",
   global = true,
   maps = maps,
-  groups = show_build and { b = "build" } or nil,
+  groups = { b = "build" },
 }

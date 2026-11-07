@@ -163,7 +163,10 @@ first available one in `agent.order` is used.
   and the run's JSON stream carries no usage events in our tests (the report shows tokens as —).
   In 1.x, models matching `agent.opencode.no_thinking` (default `deepseek`, `haiku`, `minimax-m3`) run with thinking off: deepseek-v4.1-flash spent 300-1400
   reasoning tokens (4-15 s) on small functions; it costs some quality, `{}` turns it back on. It is per model because glm/cat-jam reject the parameter.
-  (2.x has no such option: reasoning is chosen with the model's variants, `effort` in `<leader>am`.)
+  2.x has no `--variant` flag and **defaults to the model's `max` variant**: measured on this account, deepseek-v4.1-flash spent **7.5M
+  reasoning tokens** on `max` against 7.5k on `low` — minutes per request and the 429s. A model in `no_thinking` now gets
+  `-m model#low` and `options = { thinking = { type = "disabled" } }` unless an effort was chosen; `effort` in `<leader>am` still wins.
+  `opencode stats --models --cost` shows the variant, reasoning and cost per model (and the console shows the 429s).
   The shortlist (deepseek-v4.1-flash, minimax-m3, claude-haiku-5-5, glm-5.3-flash, gpt-6-luna) was picked by benchmarking all opencode-go
   models on four graded tasks (two `implement` checked with `go test`, a `review` with a seeded bug, a `review` of clean code that must
   answer `OK`): 4/4, 1.4-3 s warm, ~$0.0002 per action. Haiku keeps requests 30 days; Gemini and Muse Spark train on prompts (left out).
@@ -389,14 +392,21 @@ instruction, the system prompt, the exact message sent, the response**, tokens (
 time and **what you did with the result** (accepted, rejected, discarded, N findings...). This way you can see transparently what was
 asked and what was paid.
 
+It opens on **this project's runs** (the git root the agent works from, so a run made from a subfolder belongs to the
+repo): `settings.agent.history.scope = "all"` (or `<leader>Sp` → Agent → History scope) shows every project. A project
+with no runs yet says so instead of showing the others.
+
 - `<leader>ah` opens a selector with one row per run (date, outcome, action, model, cost, target); the title
   adds up the total spent. The preview shows the full detail rendered as markdown, including **the code sent** (the
   target and the code around it, highlighted in its language); `⏎` opens it large and `⌫` (BS) comes back to the
   list with the same filters, search text and run selected.
 - `⌃F` **filters** the history by agent (claude, opencode, ollama…), provider (who serves the model: anthropic,
-  openai, local…), model, action, outcome or project: pick the dimension, then the value (each with its runs and
-  cost). Filters stack and show in the title with the runs and spend that match; `⌃X` clears them.
-- `⌃S` opens the **spending report** (`⌫` comes back to the list): by period (today, 7 days, total), by action, by model, by day, **cost per applied
+  openai, local…), model, action, outcome or project (by folder; every project is offered, also while the history is
+  scoped to this one): pick the dimension, then the value (each with its runs and cost). Filters stack and show in
+  the title with the runs and spend that match; `⌃X` clears them (back to this project, or to everything with
+  `scope = "all"`).
+- `⌃S` opens the **spending report** (`⌫` comes back to the list), always over **all projects**: by period (today, 7
+  days, total), by action, by model, by day, **cost per applied
   change**, what was spent on proposals you did not apply, errors, cache hits, **where the prompt goes** (system,
   context per provider, target) and the 5 most expensive runs. It is the basis for deciding what to cut.
 - `⌃Y` **copies EVERYTHING about the run** as markdown (the same text you see in the detail): outcome and event line (accepted at
@@ -845,7 +855,13 @@ test before the build and has none now, and the public declarations of the files
 
 Checks (never commands written by the model): Go `go mod tidy` · `gofmt` (fixes itself) · `build` · `vet` · `test`; Node/Bun
 `package.json has STACK.md's tools` (Vite, Vitest, TypeScript, Biome… named in the Stack table) · install (the package
-manager STACK.md names when there is no lockfile yet) · `every id the code looks up exists` (HTML vs `getElementById`,
+manager STACK.md names when there is no lockfile yet; pnpm's blocked build scripts are approved in
+`pnpm-workspace.yaml` from the names pnpm gives (`onlyBuiltDependencies` on pnpm 10, `allowBuilds` on 11+, setting the
+placeholders pnpm 12 scaffolds to `true`), **0 tokens**: `agent.kit.build.auto_build_scripts = false` leaves it to the
+model; Playwright's browser is a **missing tool**: a small modal asks **Install / Don't install** (the command is shown).
+If you decline, an ADR in `docs/adr/` records it (`<!-- waived: playwright -->`), the check is marked **waived** and the
+build goes on; later builds do not ask again (delete the ADR or supersede it to lift the waiver).
+`agent.kit.build.install_browsers = false` does not ask) · `every id the code looks up exists` (HTML vs `getElementById`,
 `querySelector('#…')`, `*_ID` constants) · `every control the page declares is handled` (a `data-action`/`data-key`/`data-op`
 name such as `equals` that no script handles: the button does nothing while every unit test passes) · `every stylesheet and module is used` · `tsc --noEmit` · the `lint` (Biome/Prettier
 fix format themselves), `build` and `test` scripts; Python `uv sync` · compileall · ruff · pytest when declared; Rust, Dart
@@ -855,6 +871,20 @@ and the plan never lists files tools generate: goldens, lockfiles, build output)
 again after every fix round. Missing golden files (snapshot tests run for the first time) are created by running those packages' tests with
 `-update` (no tokens; review `testdata/*.golden`), then the checks run again. A build is **done** only when every check
 passes; otherwise it ends **failed** with the fix rounds it tried.
+
+**Transient failures**: a request that never reached the model (`ECONNRESET`, a refused socket, a 502/503/504) and failed
+**within a minute** is sent again twice, with the streamed answer reset. A **429 / `inference_failed` / `[overloaded]`**
+(the provider's rate limit or an overloaded server) waits 10 s and 20 s before its two retries **even after a long hold**
+(OpenCode can hold one for minutes before cancelling: the model never saw it, so it is not the "already ran" case); a
+smaller prompt and the low variant reduce them. A request that already ran longer is not repeated (it would repeat the same wait): the build says so and
+Enter retries. A plan on a slow
+model is the long request (the feed shows its chars and `1200s max`; after 60 s it says it is still waiting); files and
+fixes get 600 s instead of the 120 s of a one-shot action — a stronger
+main model or a smaller scope is the way out. The plan gets a **brief** of the documents (SPEC requirements/interfaces/edge
+cases, STACK stack/layout/conventions, AGENTS conventions; DESIGN whole), not the full text the file requests get, and it
+can run on its own backend/model (`agent.kit.build.plan_backend`/`plan_model`, e.g. `claude`/`sonnet`) while files and fixes
+keep the main one. A fix cut off leaves the file as it was and Enter re-runs the **check** (the diagnosis sees the failure
+again), not a blind rewrite of the file from the plan.
 
 Measured fix (claude/haiku): ascii-calc's keypad opened on "7" so Enter typed a 7 and three UI tests failed; the
 diagnosis named `keypad.go` (not in the errors), one fix there, tests untouched, every check green: 2 requests, $0.008.
@@ -1045,10 +1075,10 @@ works, never what the person is working on:
 ## Stable and experimental
 
 The core is what is tested on every release and measured by the evals: fix, docs, refactor, review, explain, ask, implement, tests, the commit
-panel, the project documents. The rest still finds its shape and stays out of the menus until `settings.agent.experimental = true` (or
-`<leader>Sp` → Agent): DDD, repository, service and lens menus, the doctor, building a whole project (`<leader>aSb`, recipes) and multi-file
-plans. They keep working and say `· experimental` when shown. The list and the reason for each is `agent/stability.lua`; a feature moves by
-changing that table. `scripts/gen-cheatsheet.sh` shows everything (`NVIM_EXPERIMENTAL=1`).
+panel, the project documents and the build from them (`<leader>aSb`, recipes). The rest still finds its shape and stays out of the menus until
+`settings.agent.experimental = true` (or `<leader>Sp` → Agent): DDD, repository, service and lens menus, the doctor and multi-file plans. They
+keep working and say `· experimental` when shown. The list and the reason for each is `agent/stability.lua`; a feature moves by changing that
+table. `scripts/gen-cheatsheet.sh` shows everything (`NVIM_EXPERIMENTAL=1`).
 
 ## Settings (`settings.agent`, overridable in `local.lua`)
 

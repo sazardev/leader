@@ -12,7 +12,10 @@ local function ids(list, field)
   return out
 end
 
-K.ok("core features are stable", not stability.is_experimental "fix" and stability.visible(nil))
+K.ok(
+  "core features are stable",
+  not stability.is_experimental "fix" and not stability.is_experimental "build" and stability.visible(nil)
+)
 K.ok("ddd is experimental", stability.is_experimental "ddd")
 K.ok(
   "every experimental feature says why",
@@ -48,7 +51,7 @@ end
 K.ok("plan is not in the advanced menu", not keys[require("agent.actions").get("plan").key])
 K.ok("fix all is still there", keys[require("agent.actions").get("fixall").key])
 
--- the kit: documents stay, building goes
+-- the kit: the documents and the build are everyday (building is core)
 package.loaded["menus.agent_setup"] = nil
 local setup = require "menus.agent_setup"
 local function has(ctx, key)
@@ -59,15 +62,14 @@ local function has(ctx, key)
   end
   return false
 end
-K.ok("no build entries", not has(setup, "bb") and not has(setup, "bf") and not has(setup, "r"))
+K.ok("the build entries are there", has(setup, "bb") and has(setup, "bf") and has(setup, "r"))
+K.ok("the build group is named", setup.groups and setup.groups.b == "build")
 K.ok("the documents stay", has(setup, "t") and has(setup, "s") and has(setup, "a"))
 
 -- opted in
 settings.experimental = true
 K.ok("opting in shows them", stability.visible "ddd")
 K.ok("the DDD menu is offered", vim.tbl_contains(ids(require("menus").contexts(), "prefix"), "aD"))
-package.loaded["menus.agent_setup"] = nil
-K.ok("build entries come back", has(require "menus.agent_setup", "bb"))
 settings.experimental = false
 
 -- the documentation generators see everything

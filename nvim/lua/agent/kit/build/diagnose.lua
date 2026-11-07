@@ -96,6 +96,16 @@ end
 ---@field diagnosis string
 ---@field files { path: string, change: string, new: boolean? }[]
 
+--- The role of a file in a fix round: "test" for a test; "subject" only when a failing test named it (the code that
+--- test exercises); nil when the file is its own fix (a missing config or asset the diagnosis named)
+---@param path string
+---@param roles table<string, string> the roles a failing test's `needs` gave
+---@param is_test boolean
+---@return string?
+function M.role(path, roles, is_test)
+  return is_test and "test" or roles[path]
+end
+
 --- The diagnosis from the model's answer; nil when it is not usable (the fix then goes to the files the errors name)
 ---@param text string
 ---@param planned string[]

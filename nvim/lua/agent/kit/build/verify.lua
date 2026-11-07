@@ -3,6 +3,10 @@
 -- gofmt, build, vet, test; Rust = cargo build; Node/Bun = install, tsc, the lint/build/test scripts; Python = uv sync,
 -- compileall, ruff and pytest when declared; Flutter/Dart = pub get + analyze. Errors are
 -- mapped back to the planned files (`path:line:`) so only those are sent to be fixed.
+-- pnpm 10's blocked dependency build scripts are approved in pnpm-workspace.yaml, with no model (`pnpm_allow_builds`):
+-- `onlyBuiltDependencies` on pnpm 10, `allowBuilds` on 11+ (pnpm 12 scaffolds placeholders that are set to true).
+-- A missing Playwright browser is a prerequisite: the build asks (Install / Don't install), never downloads silently;
+-- a no writes an ADR and the check is waived (`agent.kit.build.install_browsers = false` does not ask).
 local M = {}
 
 ---@class BuildCheck
@@ -11,6 +15,12 @@ local M = {}
 ---@field fails_on_output boolean?  gofmt -l: any output is a failure
 ---@field autofix (string[]|fun(output: string): string[]?)?  a command that fixes what it reports with no model (gofmt -w;
 ---                                   for tests, the first golden files); a function says which command for that output, or none
+---@field mend (fun(root: string, output: string): string|false)?  a fix written here, no command and no model (pnpm's
+---                                   blocked build scripts); the string says what it did
+---@field waive string?  the prerequisite id a refusal waives ("playwright"); an ADR then skips this check
+---@field waived boolean?  the project's ADR waived this check: it does not run (done, not failed)
+---@field consent (fun(output: string): { id: string, tool: string, why: string, cmd: string[] }?)?  a missing tool the
+---                                   user is asked to install (never downloaded silently)
 ---@field fn (fun(): boolean, string)?  a check done here, no command (STACK.md against the manifest)
 
 --- Tools a STACK.md table names → the npm package that must then be in package.json
@@ -391,6 +401,266 @@ function M.manifest_of(paths)
   end
 end
 
+--- pnpm 10 refuses to run a dependency's build scripts until they are approved (`ERR_PNPM_IGNORED_BUILDS`): the
+--- package names it says, without their versions (pure; nil when that is not the failure)
+---@param output string
+---@return string[]?
+function M.pnpm_ignored(output)
+  local text = (output or ""):gsub("\27%[[%d;?]*%a", "")
+  if not text:find("ERR_PNPM_IGNORED_BUILDS", 1, true) then
+    return nil
+  end
+  local key = "Ignored build scripts:"
+  local at = text:find(key, 1, true)
+  if not at then
+    return nil
+  end
+  local lines = vim.split(text:sub(at + #key), "\n", { plain = true })
+  local block = { lines[1] or "" } -- pnpm wraps the list after a comma
+  for i = 2, #lines do
+    if not block[#block]:match ",%s*$" then
+      break
+    end
+    if lines[i]:match "^%s*$" or lines[i]:find("help:", 1, true) then
+      break
+    end
+    block[#block + 1] = lines[i]
+  end
+  local names, seen = {}, {}
+  for entry in table.concat(block, " "):gmatch "[^,%s]+" do
+    local name = entry:match "^(@[^@/]+/[^@]+)@[^@]+$" or entry:match "^([^@]+)@[^@]+$" or entry
+    if name ~= "" and not seen[name] then
+      seen[name] = true
+      names[#names + 1] = name
+    end
+  end
+  return #names > 0 and names or nil
+end
+
+--- The pnpm major (`pnpm --version`), nil when it cannot be read (tests pass their own)
+---@param root string
+---@return integer?
+function M.pnpm_major(root)
+  local ok, res = pcall(function()
+    return vim.system({ "pnpm", "--version" }, { cwd = root, text = true, timeout = 5000 }):wait()
+  end)
+  if not ok or type(res) ~= "table" then
+    return nil
+  end
+  return tonumber(vim.trim((res.stdout or "") .. " " .. (res.stderr or "")):match "^v?(%d+)")
+end
+
+---@param name string
+---@return string
+local function unquote(name)
+  return (name or ""):gsub('^"(.*)"$', "%1"):gsub("^'(.*)'$", "%1")
+end
+
+---@param name string
+---@return string
+local function yaml_item(name)
+  return name:match "^@" and ('"' .. name .. '"') or name -- a plain scalar cannot start with @
+end
+
+--- The `onlyBuiltDependencies` block (pnpm 10): where it starts, the names it has, its last line and its indentation.
+--- nil when there is no block; false when it is flow style (not ours to merge line by line)
+---@param lines string[]
+---@return integer|false|nil at, table<string, boolean>? names, integer? last, string? indent
+local function pnpm_block(lines)
+  local at
+  for i, line in ipairs(lines) do
+    if line:match "^onlyBuiltDependencies:%s*$" or line:match "^onlyBuiltDependencies:%s*#.*$" then
+      at = i
+      break
+    end
+    if line:match "^onlyBuiltDependencies:" then
+      return false
+    end
+  end
+  if not at then
+    return nil
+  end
+  local names, last, indent = {}, at, nil
+  for j = at + 1, #lines do
+    local line = lines[j]
+    if line:match "^%s+%-" then
+      indent = indent or line:match "^(%s+)%-"
+      local name = unquote(line:match "^%s+%-%s*([^#%s]+)")
+      if name ~= "" then
+        names[name] = true
+      end
+      last = j
+    elseif not (line:match "^%s*$" or line:match "^%s*#") then
+      break
+    end
+  end
+  return at, names, last, indent or "  "
+end
+
+--- The `allowBuilds` block (pnpm 11+): where it starts, its entries (line and value), its last line and indentation.
+--- nil when there is no block; false when it is flow style
+---@param lines string[]
+---@return integer|false|nil at, table<string, { line: integer, value: string }>? entries, integer? last, string? indent
+local function allow_block(lines)
+  local at
+  for i, line in ipairs(lines) do
+    if line:match "^allowBuilds:%s*$" or line:match "^allowBuilds:%s*#.*$" then
+      at = i
+      break
+    end
+    if line:match "^allowBuilds:" then
+      return false
+    end
+  end
+  if not at then
+    return nil
+  end
+  local entries, last, indent = {}, at, nil
+  for j = at + 1, #lines do
+    local line = lines[j]
+    if line:match "^[^%s#]" then
+      break -- a new top-level key (onlyBuiltDependencies, packages…)
+    elseif line:match "^%s*#" or line:match "^%s*$" then
+      -- a comment or a blank line inside the block: keep looking for entries
+    elseif line:match "^%s+%-" then
+      break -- a list where a map belongs
+    else
+      local key, value = line:match "^%s*(.*):%s*(.-)%s*$"
+      if not key or key == "" then
+        break
+      end
+      entries[unquote(key)] = { line = j, value = value }
+      indent = indent or line:match "^(%s+)"
+      last = j
+    end
+  end
+  return at, entries, last, indent or "  "
+end
+
+---@param lines string[]
+---@param names string[]
+---@return string[] changed
+local function write_allow(lines, names)
+  local at, entries, last, indent = allow_block(lines)
+  if at == false then
+    return {}
+  end
+  local added, changed = {}, {}
+  for _, name in ipairs(names) do
+    local entry = entries and entries[name]
+    if entry then
+      if entry.value:find("set this to true or false", 1, true) then
+        lines[entry.line] = lines[entry.line]:gsub("set this to true or false", "true")
+        changed[#changed + 1] = name
+      end
+      -- `true` is approved already; `false` is an explicit deny and stays
+    else
+      added[#added + 1] = name
+    end
+  end
+  if at then
+    for _, name in ipairs(added) do
+      last = last + 1
+      table.insert(lines, last, indent .. yaml_item(name) .. ": true")
+      changed[#changed + 1] = name
+    end
+  else
+    if #lines > 0 and lines[#lines] ~= "" then
+      lines[#lines + 1] = ""
+    end
+    lines[#lines + 1] = "allowBuilds:"
+    for _, name in ipairs(added) do
+      lines[#lines + 1] = "  " .. yaml_item(name) .. ": true"
+      changed[#changed + 1] = name
+    end
+  end
+  return changed
+end
+
+---@param lines string[]
+---@param names string[]
+---@return string[] added
+local function write_legacy(lines, names)
+  local at, existing, last, indent = pnpm_block(lines)
+  if at == false then
+    return {}
+  end
+  local added = {}
+  for _, name in ipairs(names) do
+    if not (existing and existing[name]) then
+      added[#added + 1] = name
+    end
+  end
+  if #added == 0 then
+    return {}
+  end
+  if at then
+    for _, name in ipairs(added) do
+      last = last + 1
+      table.insert(lines, last, indent .. "- " .. yaml_item(name))
+    end
+  else
+    if #lines > 0 and lines[#lines] ~= "" then
+      lines[#lines + 1] = ""
+    end
+    lines[#lines + 1] = "onlyBuiltDependencies:"
+    for _, name in ipairs(added) do
+      lines[#lines + 1] = "  - " .. yaml_item(name)
+    end
+  end
+  return added
+end
+
+--- pnpm blocks the build scripts of the dependencies it installs until they are approved. Writes the packages pnpm
+--- named into pnpm-workspace.yaml, creating the file and keeping what is already there: no model, 0 tokens.
+--- pnpm 10 uses `onlyBuiltDependencies` (a list); pnpm 11+ uses `allowBuilds` (a map). pnpm 12 scaffolds the blocked
+--- packages as `name: set this to true or false`, so those placeholders become `true`; an explicit `false` stays.
+--- Returns what it changed, or false when there is nothing to add (or `agent.kit.build.auto_build_scripts` is off).
+---@param root string
+---@param output string
+---@param major integer? the pnpm major (tests); read from `pnpm --version` when nil
+---@return string|false
+function M.pnpm_allow_builds(root, output, major)
+  local names = M.pnpm_ignored(output)
+  if not names then
+    return false
+  end
+  local kit = require("core.settings").agent.kit
+  if kit and kit.build and kit.build.auto_build_scripts == false then
+    return false
+  end
+  local path = root .. "/pnpm-workspace.yaml"
+  local lines = vim.split(require("utils.project").read(path) or "", "\n", { plain = true })
+  if lines[#lines] == "" then
+    table.remove(lines)
+  end
+  major = major or M.pnpm_major(root)
+  local modern = major and major >= 11
+  if not major then -- the version could not be read: the file says which generation made it
+    for _, line in ipairs(lines) do
+      if line:match "^allowBuilds:" then
+        modern = true
+        break
+      end
+    end
+  end
+  local changed = modern and write_allow(lines, names) or write_legacy(lines, names)
+  if #changed == 0 then
+    return false
+  end
+  local f = io.open(path, "w")
+  if not f then
+    return false
+  end
+  f:write(table.concat(lines, "\n"), "\n")
+  f:close()
+  pcall(vim.uv.fs_chmod, path, 420) -- 0644: a project file, not a private one (io.open honors a 077 umask)
+  return ("pnpm-workspace.yaml: %s (%s)"):format(
+    table.concat(changed, ", "),
+    modern and "allowBuilds" or "onlyBuiltDependencies"
+  )
+end
+
 --- The checks for the project at `root` (by its manifest). `prefer`: the package manager STACK.md names (used when no
 --- lockfile says otherwise)
 ---@param root string
@@ -460,7 +730,11 @@ local function kind_checks(root, prefer)
         end,
       }
     end
-    out[#out + 1] = { label = pm .. " install", cmd = { pm, "install" } }
+    out[#out + 1] = {
+      label = pm .. " install",
+      cmd = { pm, "install" },
+      mend = pm == "pnpm" and M.pnpm_allow_builds or nil,
+    }
     if has "index.html" then
       out[#out + 1] = {
         label = "every id the code looks up exists",
@@ -490,18 +764,71 @@ local function kind_checks(root, prefer)
         cmd = vim.list_extend(vim.deepcopy(exec), { "tsc", "--noEmit", "--pretty", "false" }),
       }
     end
+    -- the e2e webServer runs `pnpm run preview`: Astro's `preview` must be `astro preview`, not a dev server that
+    -- never exits (measured: a fix round changed it to `astro dev` and Playwright reported "webServer exited early")
+    if has "astro.config.mjs" then
+      out[#out + 1] = {
+        label = "preview script",
+        fn = function()
+          local problem = M.preview_problem(require("utils.project").read(root .. "/package.json") or "")
+          return problem == nil, problem or ""
+        end,
+      }
+    end
     -- the formatter fixes what the linter reports about format, with no model (once, like gofmt)
     local pkg = require("utils.project").read(root .. "/package.json") or ""
     local formatter = (pkg:find('"@biomejs/biome"', 1, true) and { "biome", "check", "--write", "." })
       or (pkg:find('"prettier"', 1, true) and { "prettier", "--write", "." })
       or nil
+    --- The tool that fixes this script's failure with no model, or nil
+    ---@param name string
+    ---@return string[]|fun(output: string): string[]?
+    local function fixer_for(name)
+      if name == "lint" then
+        return formatter and vim.list_extend(vim.deepcopy(exec), formatter) or nil
+      end
+      return nil
+    end
+    local pw_cmd = pm == "bun" and { "bunx", "playwright", "install" }
+      or vim.list_extend(vim.deepcopy(exec), { "playwright", "install" })
+    --- A missing Playwright browser is a prerequisite, not a code bug: the build asks before downloading it
+    ---@param label string
+    ---@return fun(output: string): { id: string, tool: string, why: string, cmd: string[] }?
+    local function playwright_consent(label)
+      return function(output)
+        output = output or ""
+        if not output:find("Executable doesn't exist at", 1, true) or not output:find("ms-playwright", 1, true) then
+          return nil
+        end
+        local kit = require("core.settings").agent.kit
+        if kit and kit.build and kit.build.install_browsers == false then
+          return nil
+        end
+        local browser = output:match "ms%-playwright/([%a]+)"
+        local tool = "Playwright's browser"
+        if browser then
+          tool = tool .. " (" .. browser:gsub("^%l", string.upper) .. ")"
+        end
+        return {
+          id = "playwright",
+          tool = tool,
+          why = ("the `%s` check runs browser tests and needs it"):format(label),
+          cmd = vim.deepcopy(pw_cmd),
+        }
+      end
+    end
     for _, name in ipairs { "lint", "build", "test" } do
       if scripts[name] then
-        out[#out + 1] = {
+        local check = {
           label = pm .. " run " .. name,
           cmd = { pm, "run", name },
-          autofix = name == "lint" and formatter and vim.list_extend(vim.deepcopy(exec), formatter) or nil,
+          autofix = fixer_for(name),
         }
+        if name == "test" then
+          check.waive = "playwright"
+          check.consent = playwright_consent(check.label)
+        end
+        out[#out + 1] = check
       end
     end
     return out
@@ -589,6 +916,24 @@ function M.scripts(root)
   local out = type(json.scripts) == "table" and vim.deepcopy(json.scripts) or {}
   out.packageManager = json.packageManager
   return out
+end
+
+--- The e2e webServer runs `pnpm run preview`: an Astro project's `preview` must be `astro preview`. A dev server
+--- (`astro dev`) never exits, so Playwright reports "webServer exited early" and the tests never run. Pure.
+---@param package_json string?
+---@return string?
+function M.preview_problem(package_json)
+  local ok, pkg = pcall(vim.json.decode, package_json or "")
+  if not ok or type(pkg) ~= "table" or type(pkg.scripts) ~= "table" then
+    return nil
+  end
+  local preview = pkg.scripts.preview
+  if preview == nil or preview == "astro preview" or type(preview) ~= "string" then
+    return nil
+  end
+  return ("package.json `preview` is `%s`: it must be `astro preview` (the e2e webServer runs `pnpm run preview`; a dev server never exits)."):format(
+    preview
+  )
 end
 
 --- `path:line` from one line of a tool's output: `file.go:12:3`, `vet: file.go:12`, TypeScript's `file.ts(12,5)`, a bare
@@ -687,6 +1032,10 @@ function M.run(root, checks, step, done)
     local check = checks[i]
     if not check then
       return done(true)
+    end
+    if check.waived then -- the user declined this prerequisite and an ADR records it: done, not failed
+      step(i, true, "waived")
+      return next_check()
     end
     if check.fn then
       local ok, output = check.fn()

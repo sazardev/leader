@@ -20,6 +20,16 @@ return {
       return { value = name, label = name }
     end, LANGUAGES),
   },
+  {
+    group = "Agent",
+    label = "History scope",
+    kind = "choice",
+    id = "agent.history.scope",
+    choices = {
+      { value = "project", label = "this project" },
+      { value = "all", label = "all projects" },
+    },
+  },
   { group = "Agent", label = "Verify after accepting", kind = "toggle", id = "agent.verify.enabled" },
   { group = "Agent", label = "Spend guard", kind = "toggle", id = "agent.budget.enabled" },
   { group = "Agent", label = "Smaller models get help", kind = "toggle", id = "agent.capability.enabled" },

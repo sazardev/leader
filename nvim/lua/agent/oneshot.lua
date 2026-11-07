@@ -88,7 +88,8 @@ end
 ---@return vim.SystemObj?
 function M.run(req, cb)
   -- `name` lets the tier be reassigned from settings.agent.tiers (e.g. tiers = { commit = "main" })
-  local sel = selection.current { name = req.action, tier = req.tier or "light" }
+  -- `req.selection` is a full backend/model choice (the build's plan can run on a stronger model than the files)
+  local sel = req.selection or selection.current { name = req.action, tier = req.tier or "light" }
   if not sel then
     cb(false, "no agent backend found (install claude or opencode)")
     return nil

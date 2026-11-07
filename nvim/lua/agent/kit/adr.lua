@@ -295,6 +295,92 @@ function M.read(root)
   return out
 end
 
+--- The prerequisites a project's ADRs waive (`<!-- waived: playwright -->`), id → ADR file. A superseded waiver does
+--- not count (a later ADR can lift it).
+---@param root string
+---@return table<string, string>
+function M.waived(root)
+  local files = M.read(root)
+  local by = M.superseded(files)
+  local out = {}
+  for name, text in pairs(files) do
+    local number = tonumber(name:match "^(%d+)")
+    if not by[number] then
+      for id in text:gmatch "<!%-%-%s*waived:%s*([%w%-_]+)%s*%-%->" do
+        out[id] = name
+      end
+    end
+  end
+  return out
+end
+
+--- Writes docs/adr/README.md from the ADRs there and links it from AGENTS.md
+---@param root string
+---@param files table<string, string> file name → text
+local function write_index(root, files)
+  local by = M.superseded(files)
+  local rows = {}
+  for file, text in pairs(files) do
+    rows[#rows + 1] = {
+      file = file,
+      title = text:match "^# %d+%.%s*([^\n]+)" or file,
+      date = text:match "\n## Status%s*\n%s*%a+ · ([%d%-]+)" or "",
+      superseded = by[tonumber(file:match "^(%d+)")],
+    }
+  end
+  local idx = assert(io.open(root .. "/" .. M.INDEX, "w"))
+  idx:write(M.index(rows))
+  idx:close()
+  require("agent.kit").link_file(root, M.INDEX, "why the code is the way it is (architecture decisions)")
+end
+
+--- Records that the user declined a prerequisite the build offered to install, and that the check is waived. The ADR
+--- carries `<!-- waived: id -->` (`waived` reads it), the index and the AGENTS.md link. The path, or the existing one.
+---@param root string
+---@param id string stable id ("playwright")
+---@param tool string what is missing ("Playwright's browser (Chromium)")
+---@param why string why the check needs it
+---@param check string the check label
+---@param cmd string[] the command the user declined
+---@return string
+function M.waiver(root, id, tool, why, check, cmd)
+  local files = M.read(root)
+  local already = M.waived(root)[id]
+  if already then
+    return M.DIR .. "/" .. already
+  end
+  local number = M.next_number(vim.tbl_keys(files))
+  local title = "Do not install " .. tool
+  local reason = why:gsub("^%l", string.upper)
+  if not reason:match "[.!?]$" then
+    reason = reason .. "."
+  end
+  local entry = {
+    title = title,
+    date = os.date "%Y-%m-%d",
+    context = ("%s The builder offered to run `%s`; the user declined."):format(reason, table.concat(cmd, " ")),
+    decisions = { ("Do not install %s; the `%s` check is waived in this project."):format(tool, check) },
+    created = {},
+    changed = {},
+  }
+  local text = M.render(number, entry):gsub("(\n## Status)", "\n<!-- waived: " .. id .. " -->\n%1", 1)
+  text = text:gsub(
+    "(\n## Consequences\n\n)",
+    "%1- The `" .. check .. "` check does not run; the build reports it as waived.\n"
+      .. "- Later builds do not ask again: delete this ADR, or supersede it with one that installs the tool.\n",
+    1
+  )
+  local name = ("%04d-%s.md"):format(number, M.slug(title))
+  local dir = root .. "/" .. M.DIR
+  vim.fn.mkdir(dir, "p")
+  local f = assert(io.open(dir .. "/" .. name, "w"))
+  f:write(text)
+  f:close()
+  files[name] = text
+  write_index(root, files)
+  return M.DIR .. "/" .. name
+end
+
 --- Writes the ADR of a build whose review was just accepted, and the index; the path written, or nil (nothing new)
 ---@param run BuildRun
 ---@return string?
@@ -312,20 +398,7 @@ function M.record(run)
   f:write(M.render(number, entry))
   f:close()
   existing[name] = M.render(number, entry)
-  local by = M.superseded(existing)
-  local rows = {}
-  for file, text in pairs(existing) do
-    rows[#rows + 1] = {
-      file = file,
-      title = text:match "^# %d+%.%s*([^\n]+)" or file,
-      date = text:match "\n## Status%s*\n%s*%a+ · ([%d%-]+)" or "",
-      superseded = by[tonumber(file:match "^(%d+)")],
-    }
-  end
-  local idx = assert(io.open(run.root .. "/" .. M.INDEX, "w"))
-  idx:write(M.index(rows))
-  idx:close()
-  require("agent.kit").link_file(run.root, M.INDEX, "why the code is the way it is (architecture decisions)")
+  write_index(run.root, existing)
   return M.DIR .. "/" .. name
 end
 

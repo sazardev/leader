@@ -651,6 +651,12 @@ package.loaded["agent.selection"] = {
   current = function()
     return { backend = "fake", model = "m" }
   end,
+  model_for = function(backend, tier)
+    return { backend = backend, model = "m", tier = tier or "main" }
+  end,
+  for_backend = function(backend, tier)
+    return { backend = backend, model = "m", tier = tier or "main" }
+  end,
   label = function()
     return "fake/m"
   end,
@@ -851,6 +857,53 @@ for _, bad in ipairs { "/etc/passwd", "../x.go", "a/../../b", "~/.ssh/k", "C:/w"
   ok("build plan: unsafe path refused: " .. bad, not bplan.safe(bad))
 end
 ok("build plan: a normal path", bplan.safe "internal/calc/eval.go")
+
+-- the plan gets the sections it needs, not the whole documents (the file requests still get them whole)
+local brief = bplan.brief {
+  spec = "# S\n\n## Summary\nold\n## Requirements\nFR-1 must work\n## Milestones\nM1\n",
+  stack = "no sections here",
+  design = "## Color\nx\n",
+}
+ok(
+  "plan brief: keeps the requirements, drops the summary and milestones",
+  brief.spec:find("FR-1 must work", 1, true) ~= nil
+    and not brief.spec:find("## Summary", 1, true)
+    and not brief.spec:find("## Milestones", 1, true)
+)
+eq("plan brief: a document without sections is kept whole", brief.stack, "no sections here")
+eq("plan brief: the design is kept whole", brief.design, "## Color\nx\n")
+local brief_req = bplan.request(
+  { spec = "# S\n\n## Summary\nold\n## Requirements\nFR-1 must work\n## Milestones\nM1\n" },
+  "design",
+  {},
+  nil,
+  nil
+)
+ok(
+  "plan request: the brief is what reaches the model",
+  brief_req.prompt:find("FR-1 must work", 1, true) ~= nil and not brief_req.prompt:find("## Milestones", 1, true)
+)
+local pages_req = bplan.request(
+  { spec = "# S\n\n## Requirements\nFR-1\n" },
+  "design",
+  { ["wrangler.toml"] = 'name = "x"\npages_build_output_dir = "./dist"\n' },
+  nil,
+  nil
+)
+ok(
+  "plan request: a Cloudflare Pages project stays static (no adapter/on-demand)",
+  pages_req.system:find("pages_build_output_dir", 1, true) ~= nil
+    and pages_req.system:find("do NOT add", 1, true) ~= nil
+)
+eq("plan request: no wrangler.toml, no deployment rule", bplan.deployment_rule({}), nil)
+eq(
+  "verify: a preview script that is not astro preview",
+  bverify.preview_problem('{"scripts":{"preview":"astro dev"}}') ~= nil,
+  true
+)
+eq("verify: a correct preview script", bverify.preview_problem('{"scripts":{"preview":"astro preview"}}'), nil)
+local plan_sel = require("agent.selection").model_for("claude", "main")
+eq("plan model: a backend's main model", { plan_sel.backend, type(plan_sel.model) }, { "claude", "string" })
 local parsed =
   bplan.parse 'Here: {"name":"calc","files":[{"path":"go.mod","purpose":"module","docs":["stack"]},{"path":"../evil","purpose":"x"},{"path":"main.go","purpose":"entry","docs":["spec","nope"],"needs":["go.mod","later.go"]},{"path":"later.go","purpose":"l"}]}'
 eq(
@@ -933,15 +986,15 @@ local freq = bprompt.file(
   { ["go.mod"] = "module x" }
 )
 ok(
-  "build file request: every document and the plan in the system prompt (one cached prefix for the whole build)",
+  "build file request: the documents the plan gave it, not all four",
   freq.system:find("<spec>", 1, true)
-    and freq.system:find("<design>", 1, true)
+    and not freq.system:find("<design>", 1, true)
     and freq.system:find("- main.go: entry", 1, true)
 )
 eq(
-  "build file request: the same system prompt for every file",
-  bprompt.file(parsed.files[1], parsed, { spec = "S", stack = "T", design = "D" }, {}).system,
-  freq.system
+  "build file request: the shared brief of its documents and the plan",
+  bprompt.file(parsed.files[3], parsed, { spec = "S", stack = "T", design = "D" }, {}).system,
+  bprompt.system(parsed, { spec = "S", stack = "T", design = "D" }, parsed.files[3].docs, true)
 )
 ok(
   "build file request: the message has the focus, the files it uses and the task",
@@ -1412,6 +1465,206 @@ local parsed_diag = bdiag.parse(
 )
 eq("diagnose parse: only planned paths", parsed_diag and #parsed_diag.files, 1)
 eq("diagnose parse: nothing usable", bdiag.parse("sorry", { "calc.go" }), nil)
+eq("role: a test", bdiag.role("calc_test.go", {}, true), "test")
+eq("role: the code a failing test uses", bdiag.role("calc.go", { ["calc.go"] = "subject" }, false), "subject")
+eq("role: a file only the diagnosis names is its own fix", bdiag.role("pnpm-workspace.yaml", {}, false), nil)
+local newfix = bprompt.fix("pnpm-workspace.yaml", "", "ERR_PNPM_IGNORED_BUILDS", nil, dplan, { stack = "S" }, {}, nil, "create it")
+ok("fix of a missing file: asks for its whole content", newfix.prompt:find("does not exist yet", 1, true) ~= nil)
+ok(
+  "fix of a missing file: never says it may already be right",
+  not newfix.prompt:find("otherwise this file is right as it is", 1, true)
+)
+-- pnpm 10 blocks dependency build scripts: the builder approves the ones pnpm names itself (0 tokens), merging the file
+do
+  local proot = project("pnpm", {
+    ["package.json"] = '{"name":"x","scripts":{"build":"vite build"}}',
+    ["pnpm-lock.yaml"] = "",
+  })
+  local install
+  for _, c in ipairs(bverify.checks(proot, "pnpm")) do
+    if c.label == "pnpm install" then
+      install = c
+    end
+  end
+  ok("pnpm: the install check can fix itself", install ~= nil and type(install.mend) == "function")
+  local out = table.concat({
+    "ERR_PNPM_IGNORED_BUILDS",
+    "",
+    "  × installing dependencies",
+    "  ╰─▶ Ignored build scripts: esbuild@0.28.2, lefthook@2.2.2,",
+    "      workerd@1.20261103.1",
+    '  help: Run "pnpm approve-builds" to pick which dependencies should be allowed',
+  }, "\n")
+  eq("pnpm: the packages pnpm named, versions out", bverify.pnpm_ignored(out), { "esbuild", "lefthook", "workerd" })
+  eq(
+    "pnpm: a scoped package keeps its scope",
+    bverify.pnpm_ignored "ERR_PNPM_IGNORED_BUILDS\nIgnored build scripts: @scope/pkg@1.2.3",
+    { "@scope/pkg" }
+  )
+  eq("pnpm: another failure is not this one", bverify.pnpm_ignored "ERR_PNPM_NO_MATCHING_VERSION", nil)
+  eq(
+    "pnpm 10: the workspace file is created",
+    install.mend(proot, out, 10),
+    "pnpm-workspace.yaml: esbuild, lefthook, workerd (onlyBuiltDependencies)"
+  )
+  eq(
+    "pnpm 10: its content",
+    read(proot .. "/pnpm-workspace.yaml"),
+    "onlyBuiltDependencies:\n  - esbuild\n  - lefthook\n  - workerd\n"
+  )
+  eq("pnpm 10: a second time there is nothing to add", install.mend(proot, out, 10), false)
+  write(proot .. "/pnpm-workspace.yaml", "packages:\n  - .\n\nonlyBuiltDependencies:\n  - esbuild # the bundler\n")
+  eq(
+    "pnpm 10: an existing list is kept and only what is missing is added",
+    install.mend(proot, "ERR_PNPM_IGNORED_BUILDS\nIgnored build scripts: esbuild@0.28.2, workerd@1.20261103.1", 10)
+      and read(proot .. "/pnpm-workspace.yaml"),
+    "packages:\n  - .\n\nonlyBuiltDependencies:\n  - esbuild # the bundler\n  - workerd\n"
+  )
+  write(proot .. "/pnpm-workspace.yaml", "onlyBuiltDependencies: [esbuild]\n")
+  eq("pnpm 10: a flow list is not merged line by line", install.mend(proot, out, 10), false)
+
+  -- pnpm 11+ replaced the list with `allowBuilds` (a map); pnpm 12 scaffolds placeholders that approving turns true
+  local mroot = project("pnpm12", { ["package.json"] = "{}", ["pnpm-lock.yaml"] = "" })
+  local mcheck
+  for _, c in ipairs(bverify.checks(mroot, "pnpm")) do
+    if c.label == "pnpm install" then
+      mcheck = c
+    end
+  end
+  eq(
+    "pnpm 11+: allowBuilds is created",
+    mcheck.mend(mroot, out, 12),
+    "pnpm-workspace.yaml: esbuild, lefthook, workerd (allowBuilds)"
+  )
+  eq(
+    "pnpm 11+: its content",
+    read(mroot .. "/pnpm-workspace.yaml"),
+    "allowBuilds:\n  esbuild: true\n  lefthook: true\n  workerd: true\n"
+  )
+  write(
+    mroot .. "/pnpm-workspace.yaml",
+    "allowBuilds:\n  esbuild: set this to true or false\n  lefthook: false\n  workerd: set this to true or false\n"
+      .. "onlyBuiltDependencies:\n  - esbuild\n  - lefthook\n  - workerd\n"
+  )
+  eq(
+    "pnpm 11+: a placeholder becomes true, an explicit deny stays",
+    mcheck.mend(mroot, out, 12),
+    "pnpm-workspace.yaml: esbuild, workerd (allowBuilds)"
+  )
+  eq(
+    "pnpm 11+: the file keeps the legacy list and the deny",
+    read(mroot .. "/pnpm-workspace.yaml"),
+    "allowBuilds:\n  esbuild: true\n  lefthook: false\n  workerd: true\n"
+      .. "onlyBuiltDependencies:\n  - esbuild\n  - lefthook\n  - workerd\n"
+  )
+  write(mroot .. "/pnpm-workspace.yaml", "allowBuilds:\n  esbuild: true\nonlyBuiltDependencies:\n  - esbuild\n")
+  eq(
+    "pnpm 11+: a new entry goes inside the block, before the next key",
+    mcheck.mend(mroot, "ERR_PNPM_IGNORED_BUILDS\nIgnored build scripts: esbuild@1, workerd@2", 12)
+      and read(mroot .. "/pnpm-workspace.yaml"),
+    "allowBuilds:\n  esbuild: true\n  workerd: true\nonlyBuiltDependencies:\n  - esbuild\n"
+  )
+  write(mroot .. "/pnpm-workspace.yaml", "allowBuilds:\n  esbuild: true\n")
+  eq(
+    "pnpm 11+: a scoped package is quoted",
+    mcheck.mend(mroot, "ERR_PNPM_IGNORED_BUILDS\nIgnored build scripts: esbuild@1, @scope/pkg@2", 12),
+    "pnpm-workspace.yaml: @scope/pkg (allowBuilds)"
+  )
+  eq(
+    "pnpm 11+: its content with the scope",
+    read(mroot .. "/pnpm-workspace.yaml"),
+    'allowBuilds:\n  esbuild: true\n  "@scope/pkg": true\n'
+  )
+
+  -- the version that decides the format comes from pnpm itself
+  local droot = project("pnpmdetect", {})
+  local bin = droot .. "/bin"
+  write(bin .. "/pnpm", "#!/bin/sh\necho 12.6.0\n")
+  vim.uv.fs_chmod(bin .. "/pnpm", 493)
+  local old_path = vim.env.PATH
+  vim.env.PATH = bin .. ":" .. old_path
+  eq("pnpm: the major from pnpm --version", bverify.pnpm_major(droot), 12)
+  vim.env.PATH = old_path
+  vim.fn.delete(droot, "rf")
+
+  require("core.settings").agent.kit.build.auto_build_scripts = false
+  write(proot .. "/pnpm-workspace.yaml", "")
+  eq("pnpm: off, the builder does not approve", install.mend(proot, out, 10), false)
+  require("core.settings").agent.kit.build.auto_build_scripts = true
+  vim.fn.delete(proot, "rf")
+  vim.fn.delete(mroot, "rf")
+
+  -- Playwright's browser is a setup step, not a code bug: the builder installs it (0 tokens)
+  local wroot = project("pw", {
+    ["package.json"] = '{"scripts":{"test":"playwright test"},"devDependencies":{"@playwright/test":"latest"}}',
+    ["pnpm-lock.yaml"] = "",
+  })
+  local testcheck
+  for _, c in ipairs(bverify.checks(wroot, "pnpm")) do
+    if c.label == "pnpm run test" then
+      testcheck = c
+    end
+  end
+  ok("playwright: the test check asks to install its browser", testcheck ~= nil and type(testcheck.consent) == "function")
+  eq("playwright: the check can be waived", testcheck.waive, "playwright")
+  local pw_err = table.concat({
+    "Error: browserType.launch: Executable doesn't exist at /home/sazar/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell",
+    "Please run: pnpm exec playwright install",
+  }, "\n")
+  local pw_req = testcheck.consent(pw_err)
+  eq("playwright: the install command", pw_req and pw_req.cmd, { "pnpm", "exec", "playwright", "install" })
+  eq("playwright: the tool it names", pw_req and pw_req.tool, "Playwright's browser (Chromium)")
+  eq("playwright: another test failure is not this one", testcheck.consent("1 failed"), nil)
+  require("core.settings").agent.kit.build.install_browsers = false
+  eq("playwright: off, the builder does not ask", testcheck.consent(pw_err), nil)
+  require("core.settings").agent.kit.build.install_browsers = true
+  vim.fn.delete(wroot, "rf")
+
+  -- a refusal is an ADR and the check is waived; a superseding ADR lifts it
+  local aroot = project("adrwaiver", { ["AGENTS.md"] = "# A\n" })
+  local adr = require "agent.kit.adr"
+  local wpath = adr.waiver(
+    aroot,
+    "playwright",
+    "Playwright's browser",
+    "the check needs it",
+    "pnpm run test",
+    { "pnpm", "exec", "playwright", "install" }
+  )
+  ok(
+    "waiver: an ADR is written",
+    wpath ~= nil and (read(aroot .. "/" .. wpath) or ""):find("Do not install Playwright", 1, true) ~= nil
+  )
+  eq("waiver: it is read back", adr.waived(aroot).playwright, wpath:match "([^/]+)$")
+  eq(
+    "waiver: a second no is the same ADR",
+    adr.waiver(
+      aroot,
+      "playwright",
+      "Playwright's browser",
+      "the check needs it",
+      "pnpm run test",
+      { "pnpm", "exec", "playwright", "install" }
+    ),
+    wpath
+  )
+  ok("waiver: the index lists it", (read(aroot .. "/docs/adr/README.md") or ""):find("Do not install Playwright", 1, true) ~= nil)
+  local afiles = adr.read(aroot)
+  local anumber = adr.next_number(vim.tbl_keys(afiles))
+  write(
+    aroot .. "/docs/adr/" .. ("%04d-install-playwright-again.md"):format(anumber),
+    adr.render(anumber, {
+      title = "Install Playwright again",
+      date = os.date "%Y-%m-%d",
+      context = "x",
+      decisions = { "Supersedes ADR 0001: install the browser." },
+      created = {},
+      changed = {},
+    })
+  )
+  eq("waiver: a superseding ADR lifts it", adr.waived(aroot).playwright, nil)
+  vim.fn.delete(aroot, "rf")
+end
 ok("weakened: a removed assertion", bverify.weakened('t.Errorf("a")\nt.Fatal("b")', 't.Errorf("a")'))
 ok("weakened: a new skip", bverify.weakened('t.Errorf("a")', 't.Skip("later")\nt.Errorf("a")'))
 eq("weakened: same strength", bverify.weakened('t.Errorf("a")', 'x := 1\nt.Errorf("a")'), nil)
@@ -1486,6 +1739,244 @@ ok(
 )
 eq("fix flow: then the check passes", bstate.run.phase, "done")
 vim.cmd "silent! tabonly"
+
+-- a check that fixes itself (pnpm's blocked build scripts): the handler runs `mend`, no model, and checks again
+do
+  local real = bverify.checks
+  bverify.checks = function()
+    return {
+      {
+        label = "pnpm install",
+        fn = function()
+          if read(froot .. "/pnpm-workspace.yaml") then
+            return true, ""
+          end
+          return false, "ERR_PNPM_IGNORED_BUILDS\nIgnored build scripts: esbuild@0.28.2"
+        end,
+        mend = function(root, output)
+          if not output:find("ERR_PNPM_IGNORED_BUILDS", 1, true) then
+            return false
+          end
+          write(root .. "/pnpm-workspace.yaml", "onlyBuiltDependencies:\n  - esbuild\n")
+          return "pnpm-workspace.yaml: esbuild"
+        end,
+      },
+    }
+  end
+  local asked = 0
+  local real_complete = package.loaded["agent"].complete
+  package.loaded["agent"].complete = function()
+    asked = asked + 1
+    return { kill = function() end }
+  end
+  local kit_settings = require("core.settings").agent.kit.build
+  local real_use, real_look = kit_settings.use, kit_settings.look
+  kit_settings.use, kit_settings.look = false, false
+  build.recheck()
+  vim.wait(2000, function()
+    return bstate.run.phase == "done" or bstate.run.phase == "failed"
+  end)
+  kit_settings.use, kit_settings.look = real_use, real_look
+  bverify.checks = real
+  package.loaded["agent"].complete = real_complete
+  eq("a check fixed here: done", bstate.run.phase, "done")
+  eq("a check fixed here: no model", asked, 0)
+  eq(
+    "a check fixed here: the file it wrote",
+    read(froot .. "/pnpm-workspace.yaml"),
+    "onlyBuiltDependencies:\n  - esbuild\n"
+  )
+  vim.cmd "silent! tabonly"
+end
+
+-- a transport error (ECONNRESET) is retried: the same request is sent again instead of losing the file and the round
+do
+  local real = bverify.checks
+  bverify.checks = function()
+    return {
+      {
+        label = "retry test",
+        fn = function()
+          local code = read(froot .. "/calc.go") or ""
+          if code:find("retried", 1, true) then
+            return true, ""
+          end
+          return false, "calc.go:1: still not retried"
+        end,
+      },
+    }
+  end
+  local calls = {}
+  local real_complete = package.loaded["agent"].complete
+  package.loaded["agent"].complete = function(r, cb)
+    calls[#calls + 1] = r.action
+    if r.action == "kit_build_diagnose" and #calls == 1 then
+      cb(false, "Transport: ECONNRESET: The socket connection was closed unexpectedly")
+      return { kill = function() end }
+    end
+    local answers = {
+      kit_build_diagnose = '{"diagnosis":"retry it","files":[{"path":"calc.go","change":"retry"}]}',
+      kit_build_fix = "package c // retried",
+    }
+    cb(true, answers[r.action] or "package c // retried", { tokens_in = 1, tokens_out = 1 })
+    return { kill = function() end }
+  end
+  local kit_settings = require("core.settings").agent.kit.build
+  local real_use, real_look = kit_settings.use, kit_settings.look
+  kit_settings.use, kit_settings.look = false, false
+  build.recheck()
+  vim.wait(4000, function()
+    return bstate.run.phase == "done" or bstate.run.phase == "failed"
+  end)
+  kit_settings.use, kit_settings.look = real_use, real_look
+  bverify.checks = real
+  package.loaded["agent"].complete = real_complete
+  eq(
+    "transport: the diagnosis was sent again",
+    calls[2] == "kit_build_diagnose" and #calls >= 3,
+    true
+  )
+  eq("transport: the build ends done", bstate.run.phase, "done")
+  eq("transport: the retry wrote the file", read(froot .. "/calc.go"), "package c // retried\n")
+  vim.cmd "silent! tabonly"
+end
+
+-- a 429 / inference_failed is the provider's rate limit, not a request the model saw: it is retried even when
+-- OpenCode held it for minutes before cancelling (the transport retry's one-minute limit does not apply)
+do
+  write(froot .. "/calc.go", "package c\n")
+  local real = bverify.checks
+  bverify.checks = function()
+    return {
+      {
+        label = "rate limit test",
+        fn = function()
+          local code = read(froot .. "/calc.go") or ""
+          if code:find("rate limited", 1, true) then
+            return true, ""
+          end
+          return false, "calc.go:1: still not rate limited"
+        end,
+      },
+    }
+  end
+  local calls = {}
+  local real_complete = package.loaded["agent"].complete
+  package.loaded["agent"].complete = function(r, cb)
+    calls[#calls + 1] = r.action
+    if r.action == "kit_build_diagnose" and #calls == 1 then
+      cb(false, "Upstream request failed: [overloaded] the server is overloaded; retry shortly")
+      return { kill = function() end }
+    end
+    local answers = {
+      kit_build_diagnose = '{"diagnosis":"rate limited","files":[{"path":"calc.go","change":"retry"}]}',
+      kit_build_fix = "package c // rate limited retried",
+    }
+    cb(true, answers[r.action] or "package c // rate limited retried", { tokens_in = 1, tokens_out = 1 })
+    return { kill = function() end }
+  end
+  local kit_settings = require("core.settings").agent.kit.build
+  local real_use, real_look = kit_settings.use, kit_settings.look
+  kit_settings.use, kit_settings.look = false, false
+  build.recheck()
+  vim.wait(20000, function()
+    return bstate.run.phase == "done" or bstate.run.phase == "failed"
+  end)
+  kit_settings.use, kit_settings.look = real_use, real_look
+  bverify.checks = real
+  package.loaded["agent"].complete = real_complete
+  eq("rate limit: the diagnosis was sent again", calls[2] == "kit_build_diagnose" and #calls >= 3, true)
+  eq("rate limit: the build ends done", bstate.run.phase, "done")
+  eq("rate limit: the retry wrote the file", read(froot .. "/calc.go"), "package c // rate limited retried\n")
+  vim.cmd "silent! tabonly"
+end
+
+-- an autofix command runs in the background (no frozen editor), then the check runs again
+do
+  local real = bverify.checks
+  bverify.checks = function()
+    return {
+      {
+        label = "auto fix test",
+        fn = function()
+          if read(froot .. "/auto.marker") then
+            return true, ""
+          end
+          return false, "auto.marker missing"
+        end,
+        autofix = function(output)
+          if output:find("auto.marker missing", 1, true) then
+            return { "sh", "-c", "printf yes > auto.marker" }
+          end
+        end,
+      },
+    }
+  end
+  local real_complete = package.loaded["agent"].complete
+  package.loaded["agent"].complete = function()
+    error "the autofix must not ask the model"
+  end
+  local kit_settings = require("core.settings").agent.kit.build
+  local real_use, real_look = kit_settings.use, kit_settings.look
+  kit_settings.use, kit_settings.look = false, false
+  build.recheck()
+  vim.wait(3000, function()
+    return bstate.run.phase == "done" or bstate.run.phase == "failed"
+  end)
+  kit_settings.use, kit_settings.look = real_use, real_look
+  bverify.checks = real
+  package.loaded["agent"].complete = real_complete
+  eq("autofix: the command ran in the background", read(froot .. "/auto.marker"), "yes")
+  eq("autofix: then the check passes", bstate.run.phase, "done")
+  vim.cmd "silent! tabonly"
+end
+
+-- declining a missing prerequisite: an ADR is written, the check is waived and the build goes on
+do
+  local real = bverify.checks
+  bverify.checks = function()
+    return {
+      {
+        label = "consent test",
+        waive = "playwright",
+        consent = function(output)
+          if output:find("missing-browser", 1, true) then
+            return { id = "playwright", tool = "Playwright's browser", why = "the check needs it", cmd = { "true" } }
+          end
+        end,
+        fn = function()
+          return false, "missing-browser"
+        end,
+      },
+    }
+  end
+  local real_modal = package.loaded["utils.modal"]
+  package.loaded["utils.modal"] = {
+    hl = { warn = "DiagnosticWarn", muted = "Comment", key = "String" },
+    confirm = function(_, opts)
+      opts.on_cancel(true) -- the user says no
+    end,
+  }
+  local real_complete = package.loaded["agent"].complete
+  package.loaded["agent"].complete = function()
+    error "a waived check must not ask the model"
+  end
+  local kit_settings = require("core.settings").agent.kit.build
+  local real_use, real_look = kit_settings.use, kit_settings.look
+  kit_settings.use, kit_settings.look = false, false
+  build.recheck()
+  vim.wait(3000, function()
+    return bstate.run.phase == "done" or bstate.run.phase == "failed"
+  end)
+  kit_settings.use, kit_settings.look = real_use, real_look
+  bverify.checks = real
+  package.loaded["agent"].complete = real_complete
+  package.loaded["utils.modal"] = real_modal
+  eq("consent: the build goes on", bstate.run.phase, "done")
+  eq("consent: the check is waived", bstate.run.checks[1].state, "waived")
+  eq("consent: the ADR is written", require("agent.kit.adr").waived(froot).playwright ~= nil, true)
+  vim.cmd "silent! tabonly"
+end
 
 -- design: toolkit add-ons follow the project's STACK.md; Screens merged into DESIGN.md; the look at rendered screens
 do
@@ -1680,9 +2171,7 @@ do
   vim.cmd "silent! tabonly"
 end
 
--- menu: keys and the Service level moved to aU. The build entries are experimental (agent/stability.lua): this checks the
--- whole menu, so they are opted in and the menu is loaded again (their visibility is tested in test-agent-stability.lua)
-require("core.settings").agent.experimental = true
+-- menu: keys and the Service level moved to aU (the build and its recipes are core: the whole list is offered)
 package.loaded["menus.agent_setup"] = nil
 local menu = require "menus.agent_setup"
 eq("menu: prefix", menu.prefix, "aS")

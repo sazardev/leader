@@ -266,6 +266,18 @@ do
   )
   eq("opencode: thinking off for listed models", fast.agent["nvim-docs"].options, { thinking = { type = "disabled" } })
   eq("opencode: thinking untouched for others", cfg.agent["nvim-explain"].options, nil)
+  oc.set_major(2)
+  local fast2 = oc.build {
+    system = "S",
+    prompt = "P",
+    model = "opencode-go/deepseek-v4.1-flash",
+    action = "docs",
+  }
+  eq("opencode v2: thinking off uses the low variant", {
+    fast2.cmd[vim.fn.index(fast2.cmd, "-m") + 2],
+    vim.json.decode(fast2.env.OPENCODE_CONFIG_CONTENT).agents["nvim-docs"].options,
+  }, { "opencode-go/deepseek-v4.1-flash#low", { thinking = { type = "disabled" } } })
+  oc.set_major(1)
 
   -- the private server's HTTP answer: ONE json object, no trailing newline
   local http = oc.parser()

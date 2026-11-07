@@ -506,6 +506,7 @@ local function left(run)
         running = { spin, "KitBuildActive" },
         done = { "●", "KitBuildDone" },
         failed = { "✗", "KitBuildFail" },
+        waived = { "–", "KitBuildPending" },
       })[c.state] or { "○", "KitBuildPending" }
       local row = ("  %s %s"):format(mark[1], c.label)
       local label_hl = c.state == "failed" and "KitBuildFail"

@@ -1,5 +1,6 @@
 -- ── Run history (telescope) ──────────────────────────────────────────────────
--- One row per action: when, outcome, action, model, target, tokens and cost. The preview
+-- One row per action: when, outcome, action, model, target, tokens and cost. It opens on THIS project's runs
+-- (`settings.agent.history.scope`: "project", or "all" for every project). The preview
 -- shows EVERYTHING: your instruction, the code sent, the response, the system prompt and the exact message sent.
 --   <CR> full detail (BS comes back) · <C-f> filter (agent, provider, model, action, outcome, project) · <C-x> clear
 --   filters · <C-y> copies EVERYTHING · <C-p> copies only the prompt · <C-s> spend report (BS comes back)
@@ -36,7 +37,7 @@ local OUTCOME_HL = {
 function M.report(back)
   panel.open(
     report.build(store.read(), nil, { budget = require("core.settings").agent.budget }),
-    "Agent usage",
+    "Agent usage · all projects",
     back and {
       on_back = function()
         M.open(back)
@@ -50,16 +51,18 @@ end
 ---@param state AgentHistoryState
 local function choose_filter(state)
   local select = require "agent.ui.select"
-  local all = filter.apply(store.read(), state.filter)
+  local everything = store.read()
+  local all = filter.apply(everything, state.filter)
   local back = function()
     M.open(state)
   end
   local dims = {}
   for _, d in ipairs(filter.DIMS) do
-    local values = filter.values(all, d.key)
+    -- every project is offered, also while the history is scoped to this one: it is the way to read another one
+    local values = filter.values(d.key == "project" and everything or all, d.key)
     local preview = {}
     for i = 1, math.min(3, #values) do
-      preview[#preview + 1] = values[i].value
+      preview[#preview + 1] = filter.display(d.key, values[i].value)
     end
     dims[#dims + 1] = {
       label = ("%-9s %s%s"):format(d.label, table.concat(preview, ", "), #values > 3 and ", …" or ""),
@@ -69,9 +72,14 @@ local function choose_filter(state)
   end
   select.pick(dims, { title = "Filter history by", on_cancel = back }, function(dim)
     local items = {}
-    for _, v in ipairs(filter.values(all, dim.key)) do
+    for _, v in ipairs(filter.values(dim.key == "project" and everything or all, dim.key)) do
       items[#items + 1] = {
-        label = ("%-28s %3d run%s  %s"):format(v.value, v.count, v.count == 1 and " " or "s", fmt.money(v.cost)),
+        label = ("%-28s %3d run%s  %s"):format(
+          filter.display(dim.key, v.value),
+          v.count,
+          v.count == 1 and " " or "s",
+          fmt.money(v.cost)
+        ),
         value = v.value,
         current = state.filter and state.filter[dim.key] == v.value,
       }
@@ -87,12 +95,23 @@ end
 ---@param state? AgentHistoryState
 function M.open(state)
   state = state or {}
+  local opened = state.filter == nil
+  if opened then -- from the menu (or after a clear): the setting decides the project scope
+    state.filter = filter.default(require("core.settings").agent.history.scope)
+  end
   local everything = store.read()
   if #everything == 0 then
     return log.info "Agent: no runs recorded yet"
   end
   local runs = filter.apply(everything, state.filter)
   if #runs == 0 then
+    if opened and state.filter then
+      return log.info(
+        ("Agent: no runs in %s yet (Settings → Agent → History scope: All projects shows every one)"):format(
+          filter.display("project", state.filter.project)
+        )
+      )
+    end
     log.info("Agent: no runs match " .. filter.label(state.filter) .. "; showing all")
     state = { prompt = state.prompt }
     runs = everything

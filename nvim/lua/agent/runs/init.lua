@@ -1,6 +1,7 @@
 -- ── Run history: facade ──────────────────────────────────────────────────────
 -- `record` when a job finishes and `event` when the user decides (accept, reject...). It must never
 -- break the action: any write failure is ignored.
+local project = require "utils.project"
 local settings = require("core.settings").agent.history
 local store = require "agent.runs.store"
 
@@ -41,6 +42,7 @@ function M.call(req, sel, status, usage, ms, response)
   end
   pcall(function()
     usage = usage or {}
+    local cwd = vim.fn.getcwd()
     local entry = {
       t = "run",
       id = ("%d-c%d"):format(vim.uv.hrtime() / 1e6 % 1e9, math.random(1000)),
@@ -53,7 +55,8 @@ function M.call(req, sel, status, usage, ms, response)
       status = status,
       error = status == "error" and response or nil,
       ms = ms,
-      cwd = vim.fn.getcwd(),
+      cwd = cwd,
+      root = project.git_root(cwd),
       name = req.action,
       kind = "oneshot",
       usage = {

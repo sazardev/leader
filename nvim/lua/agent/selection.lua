@@ -82,6 +82,34 @@ function M.current(action)
   }
 end
 
+--- Selection for a specific backend's main/light model (the model the user chose for that backend, else its default),
+--- without checking that the backend is installed (pure enough to test).
+---@param backend string
+---@param tier "main"|"light"?
+---@return AgentSelection
+function M.model_for(backend, tier)
+  tier = tier or "main"
+  local light = tier == "light"
+  return {
+    backend = backend,
+    model = light and light_model(backend) or main_model(backend),
+    effort = (not light) and state.get "effort" or nil,
+    tier = tier,
+  }
+end
+
+--- Selection for a specific backend's main/light model. nil when the backend is not installed: the caller keeps the
+--- main selection.
+---@param backend string
+---@param tier "main"|"light"?
+---@return AgentSelection?
+function M.for_backend(backend, tier)
+  if not backends.is_available(backend) then
+    return nil
+  end
+  return M.model_for(backend, tier)
+end
+
 ---@param sel AgentSelection
 ---@return string
 function M.label(sel)

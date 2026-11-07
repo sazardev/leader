@@ -14,6 +14,13 @@ function M.root(markers)
   return vim.fs.root(0, markers) or M.file_dir()
 end
 
+--- Git root at or above `dir` (the folder itself when there is none)
+---@param dir string
+---@return string
+function M.git_root(dir)
+  return vim.fs.root(dir, ".git") or dir
+end
+
 --- Does `name` exist inside `dir`?
 ---@param dir string
 ---@param name string

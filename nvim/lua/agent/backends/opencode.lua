@@ -239,6 +239,7 @@ function M.build(req)
           mode = "primary",
           system = req.system,
           permissions = DENY_ALL,
+          options = thinking_off(req.model) and NO_THINKING or nil,
         }
       or {
         description = "Inline nvim agent (" .. req.action .. ")",
@@ -254,8 +255,14 @@ function M.build(req)
   local cmd
   if v2() then
     -- `#variant` replaces v1's `--variant`; `--server` replaces `--attach`; `--standalone` is what makes the
-    -- inline config (env) reach the process instead of the already-running background service
-    local mdl = req.effort and (req.model .. "#" .. req.effort) or req.model
+    -- inline config (env) reach the process instead of the already-running background service.
+    -- 2.x defaults to the model's `max` variant: on deepseek that is minutes of reasoning per request (measured
+    -- 7.5M reasoning tokens), so a model listed in `no_thinking` gets `low` unless the caller asked for an effort.
+    local variant = req.effort
+    if not variant and thinking_off(req.model) then
+      variant = "low"
+    end
+    local mdl = variant and (req.model .. "#" .. variant) or req.model
     cmd = { "opencode", "run", "--format", "json", "--title", "nvim " .. req.action, "-m", mdl, "--agent", agent }
     vim.list_extend(cmd, settings.attach and { "--server", settings.attach } or { "--standalone" })
   else

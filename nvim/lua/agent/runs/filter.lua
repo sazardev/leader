@@ -1,12 +1,16 @@
 -- ── Run history filters ──────────────────────────────────────────────────────
 -- Narrow the history by agent (the backend: claude, opencode, ollama…), provider (who serves the model), model,
--- action, outcome or project. Filters combine (all must match). Pure: runs in, runs out (tested in test-agent).
+-- action, outcome or project. Filters combine (all must match). `apply`, `values` and `label` are pure; `project`
+-- only reads the folders on disk to find the git root (tested in test-agent-history).
+local project = require "utils.project"
+
 local M = {}
 
 ---@class AgentRunFilterDim
 ---@field key string
 ---@field label string
 ---@field get fun(run: table): string
+---@field display? fun(value: string): string
 
 --- What the model's name says about who serves it: `anthropic/claude-sonnet` → `anthropic`; claude's CLI is Anthropic's;
 --- a local server (ollama) or a custom command is its own provider
@@ -25,6 +29,40 @@ local function provider(run)
     return "local (ollama)"
   end
   return run.backend or "?"
+end
+
+--- The project of a run: the git root above its cwd (a run made from a subfolder belongs to the repo), or what the
+--- record stored, or the folder itself
+---@param run table
+---@return string
+function M.project(run)
+  if run.root and run.root ~= "" then
+    return run.root
+  end
+  if not run.cwd or run.cwd == "" then
+    return "?"
+  end
+  return project.git_root(run.cwd)
+end
+
+--- The filter the history opens with: this project unless the setting says every one
+---@param scope? string "project" | "all"
+---@param cwd? string
+---@return table<string, string>?
+function M.default(scope, cwd)
+  if scope == "all" then
+    return nil
+  end
+  return { project = project.git_root(cwd or vim.fn.getcwd()) }
+end
+
+--- How a filter value is shown: a project by its folder, never its whole path
+---@param key string
+---@param value string
+---@return string
+function M.display(key, value)
+  local d = M.dim(key)
+  return d and d.display and d.display(value) or value
 end
 
 ---@type AgentRunFilterDim[]
@@ -61,8 +99,9 @@ M.DIMS = {
   {
     key = "project",
     label = "Project",
-    get = function(run)
-      return vim.fn.fnamemodify(run.cwd or "?", ":t")
+    get = M.project,
+    display = function(value)
+      return vim.fn.fnamemodify(value, ":t")
     end,
   },
 }
@@ -132,7 +171,7 @@ function M.label(filter)
   local parts = {}
   for _, d in ipairs(M.DIMS) do
     if filter and filter[d.key] then
-      parts[#parts + 1] = ("%s %s"):format(d.label:lower(), filter[d.key])
+      parts[#parts + 1] = ("%s %s"):format(d.label:lower(), M.display(d.key, filter[d.key]))
     end
   end
   return table.concat(parts, " · ")

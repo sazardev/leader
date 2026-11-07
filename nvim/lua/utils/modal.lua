@@ -292,25 +292,45 @@ function M.confirm(lines, opts, on_yes)
   lines[#lines + 1] = ""
   lines[#lines + 1] = buttons {
     { key = "y", label = opts.confirm or "Yes", kind = opts.danger and "danger" or "primary" },
-    { key = "n", label = "Cancel", kind = "soft" },
+    { key = "n", label = opts.cancel or "Cancel", kind = "soft" },
   }
   local buf, win, close = open(lines, { title = opts.title })
 
   local answered = false
+  local function no(declined)
+    answered = true
+    close()
+    if opts.on_cancel then
+      vim.schedule(function()
+        opts.on_cancel(declined)
+      end)
+    end
+  end
   if opts.on_cancel then
-    -- whichever way it closes (n, q, Esc, another window taking over), the caller hears about a no
+    -- whichever way it closes (another window taking over), the caller hears about a no; `declined` is false when it was
+    -- not the user saying no (so a permanent record is not written by accident)
     vim.api.nvim_create_autocmd("WinClosed", {
       pattern = tostring(win),
       once = true,
       callback = function()
         if not answered then
           answered = true
-          vim.schedule(opts.on_cancel)
+          vim.schedule(function()
+            opts.on_cancel(false)
+          end)
         end
       end,
     })
   end
-  vim.keymap.set("n", "n", close, { buffer = buf, nowait = true, desc = "Cancel" })
+  vim.keymap.set("n", "n", function()
+    no(true)
+  end, { buffer = buf, nowait = true, desc = "Cancel" })
+  vim.keymap.set("n", "q", function()
+    no(true)
+  end, { buffer = buf, nowait = true, desc = "Cancel" })
+  vim.keymap.set("n", "<Esc>", function()
+    no(true)
+  end, { buffer = buf, nowait = true, desc = "Cancel" })
   vim.keymap.set("n", "y", function()
     answered = true
     close()

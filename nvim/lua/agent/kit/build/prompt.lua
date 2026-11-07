@@ -3,6 +3,8 @@
 -- earlier files it uses. A fix gets the file, the tool's errors about it and the same context. The answer is the file alone.
 local M = {}
 
+local brief = require "agent.kit.build.brief"
+
 local SYSTEM = [[You are a coding agent writing ONE file of a project, following its documents exactly.
 Output ONLY the complete file content (a fix may ask for edit blocks instead: then only those): no explanation, no ``` fence, nothing before or after.
 Follow STACK.md (layout, conventions, rules for agents, engineering principles), DESIGN.md for anything the user sees (when it has `## Screens` wireframes, they are the layout: alignment, centering, frames and sizes exactly as drawn; its `## Toolkit`, when present, says how to express it in code), SPEC.md for behaviour, AGENTS.md for workflow rules.
@@ -168,19 +170,22 @@ function M.api(written, skip)
     .. "\n</api>"
 end
 
---- The system prompt of every file and fix request of a build: the instructions, ALL four documents (fixed order) and
---- the plan. Identical for the whole build, so the backend caches it once and every later request reads it at a tenth of
---- the price: cheaper than sending each file only its documents at full price (measured: subsets of documents per file
---- never hit the cache). The plan's per-file `docs` become the message's focus line instead.
+--- The system prompt of a file or fix request: the instructions, the documents the plan said THIS file needs (fixed
+--- order) and the plan. The documents are the **brief** (requirements/layout/conventions; DESIGN whole), not the whole
+--- text: a file needs the rules, not the summary, the problem or the milestones. `ids` nil = all four (diagnosis, use, a
+--- fix without a planned file); `trim` false = the whole documents (the diagnosis and use phases).
 ---@param plan BuildPlan
 ---@param docs table<string, string>
+---@param ids string[]?
+---@param trim boolean?
 ---@return string
-function M.system(plan, docs)
+function M.system(plan, docs, ids, trim)
   local line = require("agent.kit.build.scope").rules(plan.scope, plan.task).file
+  local shown = trim and brief.brief(docs) or docs
   return SYSTEM
     .. (line and ("\n" .. line) or "")
     .. "\n\n"
-    .. doc_blocks(docs, { "agents", "stack", "design", "spec" })
+    .. doc_blocks(shown, ids or { "agents", "stack", "design", "spec" })
     .. "\n\n"
     .. outline(plan, "")
 end
@@ -206,7 +211,7 @@ end
 ---@param written table<string, string>
 ---@return table req
 function M.file(file, plan, docs, written)
-  local system = M.system(plan, docs)
+  local system = M.system(plan, docs, file.docs, true)
   local parts = { M.focus(file.docs) }
   local api = M.api(written, file.path)
   if api ~= "" then
@@ -248,7 +253,7 @@ end
 ---@param role "test"|"subject"|nil  a failing test, or the code a failing test exercises
 ---@param note string? the diagnosis of the failure and what to change in this file
 function M.fix(path, content, errors, file, plan, docs, written, role, note)
-  local system = M.system(plan, docs)
+  local system = M.system(plan, docs, file and file.docs or nil, true)
   local parts = { M.focus(file and file.docs or { "stack" }) }
   local api = M.api(written, path)
   if api ~= "" then

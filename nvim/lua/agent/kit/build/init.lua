@@ -9,7 +9,10 @@
 --   write   one small request per file (prompt.lua: documents + plan in the cached system prompt, the API of what exists)
 --   check   the manifest's own tools (verify.lua), never commands from the model; gofmt fixes itself; then what the plan
 --           exports must be used by another file (wiring.lua: a feature only its tests reach is not finished)
---   fix     the files the errors name, with their errors, `max_fixes` rounds; then check again
+--   fix     the files the errors name, with their errors, `max_fixes` rounds; then check again. A file the diagnosis
+--           names but the errors do not (a missing config such as pnpm-workspace.yaml) is its own fix: `subject` is ONLY
+--           the code a failing test named, and its "otherwise this file is right as it is" made models answer UNCHANGED
+--           for a file that did not exist, stalling the round.
 --   use     the app used like its user would (use/: scenarios from SPEC.md, a driver per kind of app, free checks per
 --           step, one verdict request); what fails is fixed, the same scenarios replayed (`use_rounds`)
 --   look    the rendered screens against DESIGN.md (Go teatest golden files), `look_rounds` times at most
@@ -64,7 +67,8 @@ function M.signature(label, output)
 end
 
 --- What is running now: the request's process (to stop it) and when this stretch of running began
-local live = { handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {}, review_at = nil }
+local live =
+  { handle = nil, fix_handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {}, review_at = nil }
 
 local record -- forward (below: ADR and PROGRESS.md)
 
@@ -209,11 +213,42 @@ local ACTION = { plan = "kit_build_plan", files = "kit_build_file", fixes = "kit
 --- The phases whose model can be chosen, in the order the view lists them (keys 1 2 3 4)
 M.TIERED = { "plan", "files", "fixes", "use" }
 
+--- The plan is the long request: it can use its own backend/model (`agent.kit.build.plan_backend`/`plan_model`), while
+--- files and fixes keep the main one. nil = the main selection.
+---@return AgentSelection?
+local function plan_selection()
+  local build = (require("core.settings").agent.kit or {}).build or {}
+  local backend = build.plan_backend
+  if not backend then
+    return nil
+  end
+  local sel = require("agent.selection").for_backend(backend, "main")
+  if sel and build.plan_model and build.plan_model ~= "" then
+    sel.model = build.plan_model
+  end
+  return sel
+end
+
+--- The backend named by `agent.kit.build.plan_backend` when it is not installed: the plan then falls back to the main
+--- selection. It is said out loud instead of silently planning with another model (measured: `claude` configured, CLI
+--- absent, the plan quietly ran on opencode).
+---@return string?
+function M.plan_fallback()
+  local build = (require("core.settings").agent.kit or {}).build or {}
+  local backend = build.plan_backend
+  if backend and not require("agent.backends").is_available(backend) then
+    return backend
+  end
+end
+
 --- "claude/haiku" for a phase, from its tier (main/light) and what <leader>am chose for that tier
 ---@param phase "plan"|"files"|"fixes"|"use"
 ---@return string label, table? sel
 function M.model(phase)
-  local sel = require("agent.selection").current { name = ACTION[phase], tier = run().tiers[phase] or "main" }
+  local sel = phase == "plan" and plan_selection() or nil
+  if not sel then
+    sel = require("agent.selection").current { name = ACTION[phase], tier = run().tiers[phase] or "main" }
+  end
   return sel and require("agent.selection").label(sel) or "no backend", sel
 end
 
@@ -356,9 +391,86 @@ end
 ---@param phase "plan"|"files"|"fixes"|"use"
 ---@param on_text fun(delta: string)?
 ---@param cb fun(ok: boolean, text: string, usage: table?, ms: integer)
-local function call(req, phase, on_text, cb)
+--- A request that never reached the model (a reset socket, a refused connection, a gateway error): the same request is
+--- sent again instead of losing the file and the round. A timeout keeps its own retry where it has one.
+---@param text string?
+---@return boolean
+local function transient(text)
+  local s = tostring(text or ""):lower()
+  for _, word in ipairs { "econnreset", "econnrefused", "epipe", "socket connection", "connection reset", "transport" } do
+    if s:find(word, 1, true) then
+      return true
+    end
+  end
+  return s:find("%f[%d]50[234]%f[%D]") ~= nil -- 502, 503, 504 from a proxy or the gateway
+end
+
+--- The provider's rate limit (OpenCode answers 429 / inference_failed when the account is throttled): a quick retry
+--- makes it worse, so it waits longer than a socket reset.
+---@param text string?
+---@return boolean
+local function rate_limited(text)
+  local s = tostring(text or ""):lower()
+  return s:find("429", 1, true) ~= nil
+    or s:find("rate limit", 1, true) ~= nil
+    or s:find("too many requests", 1, true) ~= nil
+    or s:find("inference_failed", 1, true) ~= nil
+    or s:find("overloaded", 1, true) ~= nil -- "Upstream request failed: [overloaded] the server is overloaded"
+end
+
+--- One request to the model, with the transport retried. `on_retry` puts the view back to what it was before the
+--- partial answer (a streamed file is reset, not appended to). `attempt` is internal.
+local function call(req, phase, on_text, cb, attempt, on_retry)
+  attempt = attempt or 1
   local t0 = vim.uv.hrtime()
+  local warned = {}
+  local slow
+  local function stop_slow()
+    if slow then
+      pcall(slow.stop, slow)
+      pcall(slow.close, slow)
+      slow = nil
+    end
+  end
+  -- a big plan on a slow model can take minutes: say so instead of looking frozen (the view also counts the seconds)
+  slow = vim.uv.new_timer()
+  slow:start(
+    60000,
+    60000,
+    vim.schedule_wrap(function()
+      if not slow then
+        return
+      end
+      if not (live.handle and run().running) then
+        stop_slow()
+        return
+      end
+      local secs = math.floor((vim.uv.hrtime() - t0) / 1e9)
+      state.feed("info", ("%s · still waiting · %ds · %s"):format(phase, secs, M.model(phase)))
+      for _, at in ipairs { 60, 240 } do
+        if secs >= at and not warned[at] then
+          warned[at] = true
+          require("utils.log").info(
+            ("Build: the %s request is still running (%ds); the model is slow or the connection stalled"):format(
+              phase,
+              secs
+            )
+          )
+        end
+      end
+    end)
+  )
+  -- the build's requests are long: a file is a whole file and a fix carries its errors, so the default 120 s of a
+  -- one-shot action cuts a slow model in the middle (measured: the design tokens CSS passed 300 s). The plan keeps
+  -- its own 1200 s.
+  req.timeout_ms = req.timeout_ms or 600000
   req.tier = run().tiers[phase] or "main"
+  if phase == "plan" then
+    local sel = plan_selection()
+    if sel then
+      req.selection = sel
+    end
+  end
   if phase == "fixes" and (live.stuck or 0) > 0 then -- the last round changed nothing: think harder
     req.tier, req.effort = "main", "high"
   end
@@ -366,12 +478,32 @@ local function call(req, phase, on_text, cb)
   req.quiet = true -- the build has its own statusline chip
   req.preapproved = phase ~= "plan" -- the review was the yes; the plan request itself is small
   live.handle = require("agent").complete(req, function(ok, text, usage)
+    stop_slow()
     live.handle = nil
     if not run().running then -- stopped meanwhile: the answer is dropped
       return
     end
     state.add_usage(usage)
-    cb(ok, text, usage, math.floor((vim.uv.hrtime() - t0) / 1e6))
+    local ms = math.floor((vim.uv.hrtime() - t0) / 1e6)
+    -- a reset after a request that already ran for a minute is not a hiccup: retrying it repeats the same wait. A
+    -- 429 / inference_failed is different: OpenCode may hold it for minutes before cancelling, and the model never
+    -- saw it, so it is retried even after a long hold (the provider's window is what has to pass).
+    local limited = rate_limited(text)
+    if not ok and attempt < 3 and (limited or (transient(text) and ms <= 60000)) then
+      local why = tostring(text):gsub("%s+", " "):sub(1, 160)
+      local wait = limited and (10 * attempt) or attempt -- 10s, 20s for a throttled account; 1s, 2s for a socket
+      state.feed("info", ("%s · %s · retrying %d/3 in %ds"):format(phase, why, attempt + 1, wait))
+      if on_retry then
+        pcall(on_retry)
+      end
+      vim.defer_fn(function()
+        if run().running then
+          call(req, phase, on_text, cb, attempt + 1, on_retry)
+        end
+      end, wait * 1000)
+      return
+    end
+    cb(ok, text, usage, ms)
   end)
 end
 
@@ -506,6 +638,31 @@ record = function(what)
 end
 
 local check, look, use -- forward
+
+--- Runs an autofix or an approved install in the background, then checks again: a browser download or a golden update
+--- takes a while and must not freeze the editor. `what` is the feed line (the command when nil).
+---@param fixer string[]
+---@param label string the check it belongs to (the once-per-cycle key)
+---@param what string?
+local function run_tool(fixer, label, what)
+  live.autofixed[label] = true
+  local cmd = table.concat(fixer, " ")
+  local golden = cmd:find("-update", 1, true)
+  state.feed("info", (what or cmd) .. (golden and " · first golden files: review testdata/*.golden" or " · 0 tokens"))
+  live.fix_handle = vim.system(fixer, { cwd = run().root, text = true, timeout = 600000 }, function(res)
+    vim.schedule(function()
+      live.fix_handle = nil
+      if not run().running then
+        return
+      end
+      if res.code ~= 0 then
+        local why = vim.trim(((res.stderr or "") .. " " .. (res.stdout or "")):gsub("%s+", " ")):sub(1, 400)
+        state.feed("fail", cmd .. " failed" .. (why ~= "" and (": " .. why) or ""))
+      end
+      check()
+    end)
+  end)
+end
 ---@type table<string, "test"|"subject"> what each file of the coming fix round is (a failing test, the code it tests)
 local roles = {}
 
@@ -543,7 +700,10 @@ local function fix_files(list, note, blamed, head)
       state.feed("info", path .. " · a file the plan missed, added")
     end
     local file = state.file(path)
-    local role = verify.is_test(path) and "test" or (roles[path] or (not blamed[path] and "subject") or nil)
+    -- "subject" only when a failing test named it (set in check): a file the diagnosis names but the errors do not is
+    -- its own fix (a missing config, an asset), not code that may already be right
+    local role = diagnose.role(path, roles, verify.is_test(path))
+    local why = role or (blamed[path] and "named in the errors" or (item.new and "a new file" or "named in the diagnosis"))
     local errors = blamed[path] and table.concat(blamed[path], "\n") or head
     local before = written()[path] or ""
     local req = prompt.fix(
@@ -563,7 +723,7 @@ local function fix_files(list, note, blamed, head)
     if file then
       file.state = "writing"
     end
-    state.feed("in", path, ("%s · %s chars"):format(role or "named in the errors", size(#req.system + #req.prompt)))
+    state.feed("in", path, ("%s · %s chars"):format(why, size(#req.system + #req.prompt)))
     view().code_start(path, "fixing")
     local settle -- what the answer becomes (below): a refused test, a written fix, an unchanged file
     local function ask(request, retried)
@@ -572,11 +732,18 @@ local function fix_files(list, note, blamed, head)
           if file then
             file.state = "failed"
           end
-          return finish("failed", "✗ the fix of " .. path .. " failed", "fail", text)
+          return finish(
+            "stopped",
+            "✗ the fix of " .. path .. " was cut off",
+            "fail",
+            tostring(text) .. " · Enter retries this file"
+          )
         end
         local content, bad, whole
-        if edits.unchanged(text) then
+        if edits.unchanged(text) and before ~= "" then
           content = before
+        elseif edits.unchanged(text) then -- a new file cannot answer UNCHANGED: it has no content to keep
+          content, bad = "", "the file does not exist yet: UNCHANGED is not its content"
         elseif edits.has(text) then
           content, bad = edits.apply(before, text)
           bad = bad and ("its edit blocks do not apply (" .. bad .. ")")
@@ -598,6 +765,8 @@ local function fix_files(list, note, blamed, head)
           content = before ~= "" and before or (content or "")
         end
         return settle(content, usage, ms)
+      end, nil, function()
+        view().code_start(path, "retrying")
       end)
     end
     settle = function(content, usage, ms)
@@ -687,7 +856,16 @@ local function done(note)
   r.proof = proof
   local icon = (proof and proof_mod.verdict(proof, r.scope) == "partial") and "◐" or "✓"
   local tail = proof and proof_mod.line(proof) or ""
+  local waived = vim.tbl_filter(function(c)
+    return c.state == "waived"
+  end, r.checks or {})
   local outcome = ("%s built · %d files · checks pass%s"):format(icon, files, tail)
+  if #waived > 0 then
+    outcome = outcome .. (" · %d waived (docs/adr)"):format(#waived)
+    for _, c in ipairs(waived) do
+      state.feed("info", ("%s · waived: see docs/adr"):format(c.label))
+    end
+  end
   local kind = "info"
   if icon == "◐" then
     kind = "fail"
@@ -1008,16 +1186,22 @@ check = function()
       end,
     }
   end
+  local waived = require("agent.kit.adr").waived(r.root)
+  for _, c in ipairs(checks) do
+    if c.waive and waived[c.waive] then
+      c.waived = true -- an ADR records that the user declined this prerequisite: the check is done, not failed
+    end
+  end
   r.checks = vim.tbl_map(function(c)
-    return { label = c.label, state = "pending" }
+    return { label = c.label, state = c.waived and "waived" or "pending" }
   end, checks)
   local labels = vim.tbl_map(function(c)
     return c.label
   end, checks)
   state.feed("step", table.concat(labels, " · "), "0 tokens", "Check")
-  verify.run(r.root, checks, function(i, ok)
+  verify.run(r.root, checks, function(i, ok, output)
     if r.checks[i] then
-      r.checks[i].state = ok and "done" or "failed"
+      r.checks[i].state = ok and (output == "waived" and "waived" or "done") or "failed"
     end
     state.changed()
   end, function(ok, output, failed)
@@ -1028,19 +1212,64 @@ check = function()
       remember(r.root, r.scope, created())
       return use()
     end
+    -- a fix written here, no command and no model (pnpm's blocked build scripts): once per cycle, like the tools'
+    if failed and failed.mend and not live.autofixed[failed.label] then
+      live.autofixed[failed.label] = true
+      local fixed = failed.mend(r.root, output or "")
+      if fixed then
+        state.feed("info", ("%s · approved by Leader, no model: %s · 0 tokens"):format(failed.label, fixed))
+        return check()
+      end
+    end
+    -- a missing prerequisite (a browser): ask once; a no is an ADR and the check is waived, not a failure
+    local consent = failed and failed.consent
+    if consent and not live.autofixed[failed.label] then
+      local req = consent(output or "")
+      if req then
+        live.autofixed[failed.label] = true
+        local modal = require "utils.modal"
+        local lines = {
+          { { req.tool .. " is not installed", modal.hl.warn } },
+          "",
+          { { req.why .. ".", modal.hl.muted } },
+          "",
+          { { "Command: " .. table.concat(req.cmd, " "), modal.hl.key } },
+          "",
+          { { "If you decline, this check is waived and an ADR records it so Leader does not ask again.", modal.hl.muted } },
+        }
+        modal.confirm(lines, {
+          title = "Missing tool",
+          confirm = "Install",
+          cancel = "Don't install",
+          on_cancel = function(declined)
+            if not declined then -- the window was closed by something else: do not record a permanent no
+              live.autofixed[failed.label] = nil
+              state.feed("info", "the install question was closed · Enter retries the check")
+              return finish("stopped", "the install question was closed", "info", "Enter retries the check")
+            end
+            local ok, adr = pcall(require("agent.kit.adr").waiver, r.root, req.id, req.tool, req.why, failed.label, req.cmd)
+            state.feed(
+              "info",
+              ("%s · waived: %s (%s) · the build goes on"):format(
+                failed.label,
+                req.tool,
+                ok and adr or "the ADR could not be written"
+              )
+            )
+            check()
+          end,
+        }, function()
+          run_tool(req.cmd, failed.label, "installing " .. req.tool)
+        end)
+        return
+      end
+    end
     local fixer = failed and failed.autofix
     if type(fixer) == "function" then
       fixer = fixer(output or "")
     end
     if fixer and not live.autofixed[failed.label] then -- a tool fixes it, no model (once: what it cannot fix goes on)
-      live.autofixed[failed.label] = true
-      vim.system(fixer, { cwd = r.root }):wait()
-      local golden = table.concat(fixer, " "):find("-update", 1, true)
-      state.feed(
-        "info",
-        table.concat(fixer, " ") .. (golden and " · first golden files: review testdata/*.golden" or " · 0 tokens")
-      )
-      return check()
+      return run_tool(fixer, failed.label)
     end
     state.feed("fail", failed and failed.label or "check", (output or ""):sub(1, 1200))
     local planned = owned()
@@ -1061,7 +1290,7 @@ check = function()
       blamed[manifest] = vim.list_slice(lines, 1, 40)
       state.feed(
         "info",
-        ("no file named in the errors: %s goes back with them (a tool that does not run is a missing dependency)"):format(
+        ("no file named in the errors: %s goes back with them (the tool failed before naming a file; a missing dependency is one cause)"):format(
           manifest
         )
       )
@@ -1195,6 +1424,8 @@ local function write()
         state.feed("out", ("%s · %d lines"):format(file.path, file.lines), usage_text(usage, ms))
         state.save()
         next_file()
+      end, nil, function()
+        view().code_start(file.path, "retrying")
       end)
     end
     ask(req, false)
@@ -1231,6 +1462,7 @@ local function plan()
   local decisions = adr.summary(adr.read(r.root))
   local req = plan_mod.request(live.docs, r.scope, existing, r.task, decisions)
   live.prompts["plan.json"] = { system = req.system, prompt = req.prompt }
+  local brief_docs = plan_mod.brief(live.docs)
   local read = vim.tbl_filter(function(id)
     return live.docs[id] ~= nil
   end, plan_mod.DOCS)
@@ -1243,22 +1475,39 @@ local function plan()
     "Plan"
   )
   local followed = select(2, decisions:gsub("\nADR %d+ · ", ""))
+  local prompt_chars = #req.system + #req.prompt
   state.feed(
     "in",
     "plan",
-    ("%s%s · %s chars"):format(
+    ("%s%s · %s chars · %ds max"):format(
       table.concat(read, " "),
       followed > 0 and (" · follows %d ADR%s"):format(followed, followed == 1 and "" or "s") or "",
-      size(#req.system + #req.prompt)
+      size(prompt_chars),
+      math.floor((req.timeout_ms or 0) / 1000)
     )
   )
+  local fallback = M.plan_fallback()
+  if fallback then
+    state.feed(
+      "info",
+      ("plan · %s is not installed; using %s (agent.kit.build.plan_backend)"):format(fallback, M.model "plan")
+    )
+  end
+  if prompt_chars > 60000 then
+    state.feed(
+      "info",
+      ("plan · a large prompt (%s chars): the model may take minutes or hit its limit; a stronger model or a smaller scope helps"):format(
+        size(prompt_chars)
+      )
+    )
+  end
   view().code_start("plan.md", "planning")
   -- the plan read while it is made: first the model's thinking (a long plan thinks for a minute before writing), then the
   -- JSON that has arrived, rendered as plan.md (what is complete so far); a 1 s tick keeps the clock moving in between
   local so_far, thought, thinks, last_draw, t_plan = "", "", 0, 0, vim.uv.hrtime()
   -- what the model was given, shown while it thinks (the claude CLI streams the thinking without its text)
   local given = { "## Read", "" }
-  for _, d in ipairs(M.doc_sizes(live.docs, r.scope)) do
+  for _, d in ipairs(M.doc_sizes(brief_docs, r.scope)) do
     given[#given + 1] = ("- %s · %s chars"):format(d.file, size(d.chars))
   end
   vim.list_extend(given, {
@@ -1321,7 +1570,9 @@ local function plan()
   end, function(ok, text, usage, ms)
     stop_tick()
     if not ok then
-      return finish("ready", "✗ the plan failed", "fail", text)
+      local hint = transient(text) and " · the connection failed · Enter retries; a stronger model or a smaller scope helps"
+        or " · Enter retries"
+      return finish("ready", "✗ the plan failed", "fail", tostring(text) .. hint)
     end
     local parsed, why = plan_mod.parse(text, existing, r.scope)
     if parsed then
@@ -1361,6 +1612,9 @@ local function plan()
     end
     state.save()
     state.changed()
+  end, nil, function()
+    so_far, thought, thinks = "", "", 0
+    draw(true)
   end)
 end
 
@@ -1501,6 +1755,18 @@ function M.go()
     return build()
   end
   -- stopped, failed, done with failures: go on from where it stands
+  if r.phase == "fix" then -- a fix was cut off: the check says whether it is still needed (a failed fix is not a missing write)
+    for _, f in ipairs(r.files) do
+      if f.state == "failed" then
+        f.state = "fixed"
+      end
+    end
+    r.fix_round, live.autofixed = 0, {}
+    live.stuck, live.last_signature = 0, nil
+    state.feed("step", "the checks again, then the fix", "0 tokens", "Resume")
+    begin()
+    return check()
+  end
   local pending = false
   for _, f in ipairs(r.files) do
     if f.state == "writing" or f.state == "failed" then
@@ -1544,6 +1810,10 @@ function M.stop()
       live.handle:kill(15)
     end)
     live.handle = nil
+  end
+  if live.fix_handle then
+    pcall(live.fix_handle.kill, live.fix_handle, 15)
+    live.fix_handle = nil
   end
   for _, f in ipairs(r.files) do
     if f.state == "writing" then
