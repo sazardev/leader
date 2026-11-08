@@ -26,6 +26,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>s` | CSS | `css`, `scss`, `less` |
 | `<leader>C` | Comments | global |
 | `<leader>d` | Dart / Flutter | `dart` |
+| `<leader>E` | Env | global |
 | `<leader>F` | File | global |
 | `<leader>z` | Fold | global |
 | `<leader>G` | Git | files inside a git repo |
@@ -323,6 +324,26 @@ _Where: `dart`_
 | `<leader>dz1` | fold level 1 |
 | `<leader>dz2` | fold level 2 |
 | `<leader>dz3` | fold level 3 |
+
+### Env — `<leader>E`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>En` | create .env + .env.example |
+| `<leader>Ee` | open .env |
+| `<leader>Ex` | open .env.example |
+| `<leader>El` | open .env.local |
+| `<leader>Ed` | open .env.dev |
+| `<leader>Eq` | open .env.qa |
+| `<leader>Es` | open .env.staging |
+| `<leader>Ep` | open .env.prod |
+| `<leader>Ec` | check .env files |
+| `<leader>Ea` | AI generate env loader |
+| `<leader>Eo` | open env files |
+| `<leader>EN` | new environment |
+| `<leader>Ei` | ensure .gitignore |
 
 ### File — `<leader>F`
 
@@ -963,6 +984,24 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>xn` | n | Next block |
 | `<leader>xp` | n | Previous block |
 | `<leader>xx` | n | Project list |
+
+### Env
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>EN` | n | New environment |
+| `<leader>Ea` | n | AI generate env loader |
+| `<leader>Ec` | n | Check .env files |
+| `<leader>Ed` | n | Open .env.dev |
+| `<leader>Ee` | n | Open .env |
+| `<leader>Ei` | n | Ensure .gitignore |
+| `<leader>El` | n | Open .env.local |
+| `<leader>En` | n | Create .env + .env.example |
+| `<leader>Eo` | n | Open env files |
+| `<leader>Ep` | n | Open .env.prod |
+| `<leader>Eq` | n | Open .env.qa |
+| `<leader>Es` | n | Open .env.staging |
+| `<leader>Ex` | n | Open .env.example |
 
 ### File
 

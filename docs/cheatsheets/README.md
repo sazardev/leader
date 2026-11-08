@@ -23,6 +23,7 @@
 | [rust.md](rust.md) | **Rust** (`<leader>r`): rust-analyzer with clippy, cargo, tests in the editor, macros, codelldb, setup |
 | [sql.md](sql.md) | **SQL** (`<leader>Q`): run the statement under the cursor against PostgreSQL or SQLite, explain, schema |
 | [swift.md](swift.md) | **Swift** (`<leader>i`): SwiftPM, sourcekit-lsp, tests in the editor (XCTest, Swift Testing), setup |
+| [env.md](env.md) | **Env files** (`<leader>E`): `.env.example` per stack, `.env.dev/qa/staging/prod`, check, `.gitignore`, AI loader |
 | [dart-flutter.md](dart-flutter.md) | **Dart / Flutter** (`<leader>d`): run and debug, tests inside the editor, build_runner, completion for Riverpod/freezed, pub |
 | [java-kotlin.md](java-kotlin.md) | Java and Kotlin (Gradle / Maven) |
 | [lua.md](lua.md) | Lua (the config itself) |
@@ -33,7 +34,7 @@
 ## How the leader works
 
 Each language has **its own letter** under `<leader>` (g Go, d Dart, t TypeScript, p Python, r Rust, c C#, Q SQL, i Swift…) and **only exists in buffers of that filetype**;
-`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments) and `<leader>W` (Herdr) are global.
+`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>E` (env files), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments) and `<leader>W` (Herdr) are global.
 Press `<leader>` and which-key shows only what applies to the current file (no delay).
 
 The language menus open an integrated terminal (toggleterm) and run the commands at the **project root**

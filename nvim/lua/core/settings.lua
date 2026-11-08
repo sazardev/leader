@@ -116,6 +116,15 @@ local defaults = {
     confirm_risky = true, -- DELETE/UPDATE with no WHERE, DROP, TRUNCATE ask before they run
   },
 
+  -- Env files (<leader>E, lua/env/): the .env.example a language wants and the check that every real file matches it.
+  -- Environments are .env, .env.dev, .env.qa, .env.staging, .env.prod… plus the AI loader that reads them.
+  env = {
+    -- created by <leader>En from .env.example, same keys, APP_ENV set
+    environments = { "dev", "qa", "staging", "prod", "test", "local" },
+    -- when true, creating .env adds the secrets rules to .gitignore if they are missing
+    ensure_gitignore = true,
+  },
+
   -- Tests inside the editor for Python, TypeScript/JavaScript, Rust and Swift (lua/langtest/; Dart: lua/darttest/)
   tests = {
     timeout_ms = 600000, -- a run that takes longer is stopped
