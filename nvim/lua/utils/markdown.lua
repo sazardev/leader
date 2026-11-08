@@ -73,6 +73,8 @@ function M.reading_mode()
   vim.diagnostic.enable(false, { bufnr = buf })
   vim.b[buf].reading_locked = true
   vim.bo[buf].modifiable = false
+  -- no word highlight following the cursor in reading mode (illuminate checks `reading_locked` via should_enable)
+  pcall(vim.lsp.util.buf_clear_references, buf)
 
   vim.api.nvim_create_autocmd({ "WinResized", "VimResized" }, {
     group = vim.api.nvim_create_augroup("ReadingMode", { clear = true }),
