@@ -8,6 +8,8 @@
 --   DISABLE_PROMPT_CACHING=1  the cache only charges the write (every message is new): -40% per call
 -- It does not use --bare or CLAUDE_CODE_SIMPLE: they disable OAuth and would break subscription use. About
 -- ~560 fixed input tokens from the CLI itself remain that no safe flag trims.
+-- Leader skills still reach the model: `context/providers/skills.lua` injects ONE relevant
+-- SKILL.md body (cap settings.skills.max_chars) because this backend has no `skill` tool.
 local settings = require("core.settings").agent.claude
 local ndjson = require "agent.backends.ndjson"
 local sandbox = require "agent.sandbox"

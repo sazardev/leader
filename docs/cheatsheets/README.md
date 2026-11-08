@@ -13,6 +13,7 @@
 | [go.md](go.md) | **Go in depth**: struct tags, snippets, contextual completion, `<leader>g` menu |
 | [csharp.md](csharp.md) | **C# / .NET** (`<leader>c`): Roslyn or csharp-ls, smart ctor/props/DbSet/DI completion, tests in the editor (TRX), NuGet, solutions/projects, dotnet/EF Core, netcoredbg |
 | [agent.md](agent.md) | **Inline agent** (`<leader>a`): one-shot implement/review/explain/convert... with Claude, OpenCode or a local model (Ollama, OpenAI-compatible servers) |
+| [skills.md](skills.md) | **Agent skills** (`<leader>aK`): SKILL.md files the agents load on demand — marketplace, 0-config install by model/stack, and tolerance for legacy/already-worked repos |
 | [herdr.md](herdr.md) | **Herdr** (`<leader>W`): the workspace of agents — what every one of them is doing, and the setup |
 | [editing.md](editing.md) | **Undo, clipboard and yank history** (`<leader>u`): undo word by word, redo keys, undo tree, the file at the previous save, yank list |
 | [gitignore.md](gitignore.md) | **.gitignore** (`<leader>Gi`): what it detects, the topics, how it merges with an existing file |

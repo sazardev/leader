@@ -23,21 +23,25 @@ local M = {
 }
 
 -- opencode tools: all off. It is a text action, not an agent that edits.
-local TOOLS = {
-  bash = false,
-  edit = false,
-  write = false,
-  read = false,
-  grep = false,
-  glob = false,
-  list = false,
-  patch = false,
-  todowrite = false,
-  todoread = false,
-  webfetch = false,
-  task = false,
-  skill = false,
-} -- stylua: ignore
+-- `skill` is the exception: OpenCode lists installed SKILL.md descriptions and loads
+-- the body on demand (id+description per step, cheap). Off only when skills are disabled.
+local function tools()
+  return {
+    bash = false,
+    edit = false,
+    write = false,
+    read = false,
+    grep = false,
+    glob = false,
+    list = false,
+    patch = false,
+    todowrite = false,
+    todoread = false,
+    webfetch = false,
+    task = false,
+    skill = require("core.settings").skills.enabled ~= false,
+  }
+end
 local PERMISSIONS = { edit = "deny", bash = "deny", webfetch = "deny" }
 
 -- opencode 2.x rewrote the CLI: `--pure`, `--variant` and `--attach` are gone, the inline agent uses
@@ -185,7 +189,7 @@ local function server_config()
     description = "Inline nvim agent",
     mode = "primary",
     prompt = "You are a code-editing endpoint inside an editor. Follow the <instructions> block of the message exactly.",
-    tools = TOOLS,
+    tools = tools(),
     permission = PERMISSIONS,
   }
   return M.config {
@@ -245,7 +249,7 @@ function M.build(req)
         description = "Inline nvim agent (" .. req.action .. ")",
         mode = "primary",
         prompt = req.system,
-        tools = TOOLS,
+        tools = tools(),
         permission = PERMISSIONS,
         options = thinking_off(req.model) and NO_THINKING or nil,
       }

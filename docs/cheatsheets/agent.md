@@ -4,6 +4,9 @@
 conversation. Every action has a closed prompt, a bounded context and an output with a fixed format, so it is
 predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** menu).
 
+> **Agent skills** (`<leader>aK`): the SKILL.md files the agents load on demand (marketplace, 0-config install by
+> model/stack/cloud, tolerance for legacy/already-worked repos) — see [skills.md](skills.md).
+
 ## Flow
 
 1. Put the cursor inside a function (or select lines in visual mode) and press `<leader>a` + the action.

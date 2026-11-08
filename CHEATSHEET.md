@@ -43,6 +43,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>Q` | SQL | `sql` |
 | `<leader>P` | Session | global |
 | `<leader>S` | Settings | global |
+| `<leader>aK` | Skills | global |
 | `<leader>i` | Swift | `swift` |
 | `<leader>t` | TypeScript / JavaScript | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
 
@@ -677,6 +678,20 @@ _Where: global_
 | `<leader>Si` | info |
 | `<leader>Su` | updates |
 
+### Skills — `<leader>aK`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>aKo` | marketplace |
+| `<leader>aKn` | new skill |
+| `<leader>aKs` | apply suggestions |
+| `<leader>aKe` | edit skill |
+| `<leader>aKu` | check updates |
+| `<leader>aKd` | detected doctor |
+| `<leader>aKl` | list installed |
+
 ### Swift — `<leader>i`
 
 _Where: `swift`_
@@ -1193,6 +1208,18 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>Sp` | n | Panel |
 | `<leader>St` | n | Toggle theme |
 | `<leader>Su` | n | Updates |
+
+### Skills
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>aKd` | n | Detected doctor |
+| `<leader>aKe` | n | Edit skill |
+| `<leader>aKl` | n | List installed |
+| `<leader>aKn` | n | New skill |
+| `<leader>aKo` | n | Marketplace |
+| `<leader>aKs` | n | Apply suggestions |
+| `<leader>aKu` | n | Check updates |
 
 ### Surround
 

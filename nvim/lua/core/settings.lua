@@ -520,6 +520,18 @@ local defaults = {
     custom = {},
   },
 
+  -- Agent skills (lua/skills, <leader>aK): SKILL.md files the agents load on demand
+  -- (OpenCode `skill` tool via .agents/skills; tool-less backends receive ONE body as
+  -- a context section). The marketplace installs, edits and deletes them without leaving.
+  skills = {
+    enabled = true, -- false = no marketplace, no provider, backend skill tool off
+    auto = true, -- true = install what your model/stack suggests without asking (0-config)
+    scope = "project", -- "project" (.agents/skills here) | "global" (~/.config/opencode/skills)
+    max_chars = 1200, -- cap of ONE skill body injected into the prompt
+    disabled = {}, -- skill ids never suggested (opt-out per id); frontmatter off = dormant
+    sources = nil, -- nil = skills.sh CLI + opencodeskills HTTP + offline curated; or { { kind = "http", url = "…" } }
+  },
+
   format_on_save = {
     enabled = true,
     timeout_ms = 2000, -- the longest a save waits for the formatter
