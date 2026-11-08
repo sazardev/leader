@@ -1,0 +1,21 @@
+# GitHub Actions: stylua check and selene (Lua)
+# target: .github/workflows/ci.yml
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          args: --check .
+      - run: echo "selene: install and run `selene .`"

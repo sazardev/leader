@@ -36,6 +36,9 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md). What they do:
 - **Explain**: the plan of the statement (`EXPLAIN`, SQLite's `EXPLAIN QUERY PLAN`); **explain analyze** runs it, so
   anything but a read asks first.
 - **Schema**: the tables (`\dt+`, `.tables`), the table under the cursor described (`\d+`, `.schema`).
+- **Setup** (`<leader>QS`): `.sql-formatter.json` (PostgreSQL dialect by default, from `DATABASE_URL`; `dialect`
+  is the project's), a `compose.yaml` for the database, `.editorconfig`, GitHub Actions. Presets live in
+  `lua/langsetup/presets/sql/` and are filled from `DATABASE_URL` and the folder's name. Never overwrites.
 
 ## Snippets
 

@@ -169,6 +169,7 @@ M.AXES = {
   { id = "jobs", label = "Background jobs", exclusive = true },
   { id = "realtime", label = "Realtime", exclusive = true },
   { id = "i18n", label = "Internationalization", exclusive = true },
+  { id = "cache", label = "Cache", exclusive = true },
   { id = "analytics", label = "Analytics and flags", exclusive = false },
   { id = "unit-testing", label = "Unit tests", exclusive = true },
   { id = "e2e-testing", label = "End-to-end tests", exclusive = true },

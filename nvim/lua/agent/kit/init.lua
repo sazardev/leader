@@ -348,6 +348,41 @@ local function pick_principles(checked, done, back)
   )
 end
 
+--- The sections step: which `## ` to keep (all checked by default, the principles section is not offered).
+---@param text string the document as it will be written
+---@param done fun(text: string)
+---@param back fun()?
+local function pick_sections(text, done, back)
+  local sections = compose.sections(text)
+  local offered = vim.tbl_filter(function(s)
+    return s.title ~= compose.PRINCIPLES
+  end, sections)
+  if #offered == 0 then
+    return done(text)
+  end
+  require("utils.modal").checklist(
+    vim.tbl_map(function(s)
+      return { label = s.title, checked = true }
+    end, offered),
+    {
+      title = "Sections to keep?",
+      confirm = "Write",
+      footer = "  space toggle · a all · uncheck to leave a section out",
+      on_cancel = back,
+    },
+    function(indexes)
+      local keep = {}
+      for _, i in ipairs(indexes) do
+        keep[offered[i].title] = true
+      end
+      if #indexes == #offered then
+        return done(text)
+      end
+      done(compose.filter_sections(text, keep))
+    end
+  )
+end
+
 --- Writes a STACK.md the text became, with its own message
 ---@param root string
 ---@param text string
@@ -554,7 +589,13 @@ function M.stack(start)
       end, function(chosen, ids)
         st.principles = ids
         local text, names = apply(st.preset.body, st.list, st.checked)
-        write_stack(root, compose.set_principles(text, chosen), replace, summary(st.preset.name, names, #chosen))
+        local full = compose.set_principles(text, chosen)
+        local msg = summary(st.preset.name, names, #chosen)
+        pick_sections(full, function(final)
+          write_stack(root, final, replace, msg)
+        end, function()
+          step_principles()
+        end)
       end, function()
         if #st.list > 0 then
           step_customize()
@@ -644,7 +685,13 @@ function M.stack_prompt()
           ask(req, "stack", function(doc)
             local text = apply(doc, st.list, st.checked)
             require("agent.kit.draft").forget "stack"
-            write_stack(root, compose.set_principles(text, chosen), replace, summary(nil, addon_names, #chosen))
+            local full = compose.set_principles(text, chosen)
+            local msg = summary(nil, addon_names, #chosen)
+            pick_sections(full, function(final)
+              write_stack(root, final, replace, msg)
+            end, function()
+              step_principles()
+            end)
           end)
         end, function()
           if #st.list > 0 then
@@ -871,11 +918,16 @@ function M.design(start)
       M.customize(st.list, st.checked, st.preset.name, function(checked)
         st.checked = checked
         local text, names = apply(st.preset.body, st.list, checked)
-        local path, why = M.write(root, "DESIGN.md", text, replace)
-        if not path then
-          return log.warn("Setup: " .. why)
-        end
-        written(root, "DESIGN.md", path, replace, (summary(st.preset.name, names, 0):gsub(" · 0 principles", "")))
+        local msg = (summary(st.preset.name, names, 0):gsub(" · 0 principles", ""))
+        pick_sections(text, function(final)
+          local path, why = M.write(root, "DESIGN.md", final, replace)
+          if not path then
+            return log.warn("Setup: " .. why)
+          end
+          written(root, "DESIGN.md", path, replace, msg)
+        end, function()
+          step_customize()
+        end)
       end, step_design, { doc = "DESIGN.md", base = st.preset.body })
     end
 
@@ -946,12 +998,17 @@ function M.design_prompt()
           local req = require("agent.kit.prompts").design(st.description, st.base, names, addon_names)
           ask(req, "design", function(doc)
             local text = apply(doc, st.list, checked)
-            local path, why = M.write(root, "DESIGN.md", text, replace)
-            if not path then
-              return log.warn("Setup: " .. why)
-            end
             require("agent.kit.draft").forget "design"
-            written(root, "DESIGN.md", path, replace, st.base and ("based on " .. st.base.name) or nil)
+            local msg = st.base and ("based on " .. st.base.name) or nil
+            pick_sections(text, function(final)
+              local path, why = M.write(root, "DESIGN.md", final, replace)
+              if not path then
+                return log.warn("Setup: " .. why)
+              end
+              written(root, "DESIGN.md", path, replace, msg)
+            end, function()
+              step_customize()
+            end)
           end)
         end, step_draft, { doc = "DESIGN.md" })
       end
@@ -1151,6 +1208,65 @@ function M.overview()
       else
         v.start()
       end
+    end
+  )
+end
+
+-- ── Makefile retroactivo (<leader>aSM) ────────────────────────────────────────
+-- Foundation-lite: un solo archivo, sin STACK.md/SPEC.md, sin plan ni checks. Lee el repo tal cual está (languages,
+-- manifests, commands, tree) y escribe un Makefile solo con los comandos que el input sostiene. Reemplazar manda el
+-- anterior a la papelera; el picker <leader>R lo lista en cuanto existe (= 0 tokens por uso, 1 llamada al crear).
+
+--- Makefile para este proyecto, desde sus propios hechos
+function M.makefile()
+  local root = snapshot.root()
+  local facts = snapshot.collect(root)
+  unless_there(
+    root,
+    "Makefile",
+    "Replace",
+    "Reads the repo as it is (languages, manifests, commands) and writes one Makefile (the old one goes to the trash)",
+    function(replace)
+      local path = root .. "/Makefile"
+      if busy["Makefile"] then
+        return log.info("Setup: Makefile is already being written")
+      end
+      if unsaved(path) then
+        return log.warn("Setup: Makefile has unsaved changes in a buffer: save or discard them first")
+      end
+      local req = require("agent.kit.prompts").makefile(
+        facts,
+        require("utils.project").read(path)
+      )
+      local sel = require("agent.selection").current { name = req.action, tier = req.tier }
+      if not sel then
+        return log.warn("Setup: no agent backend found (<leader>am)")
+      end
+      busy["Makefile"] = true
+      req.label = "writing Makefile"
+      log.info(
+        ("Setup: writing Makefile with %s… (retroactive: languages, manifests, commands)"):format(
+          require("agent.selection").label(sel)
+        )
+      )
+      require("agent").complete(req, function(ok, text)
+        busy["Makefile"] = nil
+        if not ok or vim.trim(text or "") == "" then
+          return log.warn(("Setup: Makefile was not written: %s"):format(ok and "empty answer" or text))
+        end
+        local doc = compose.clean(text)
+        local written_path, why = M.write(root, "Makefile", doc, replace)
+        if not written_path then
+          return log.warn("Setup: " .. why)
+        end
+        vim.cmd.checktime()
+        vim.cmd.edit(vim.fn.fnameescape(written_path))
+        log.info(
+          ("Setup: %s Makefile (one file from the repo as it is; <leader>Rr lists its targets)"):format(
+            replace and "rewrote" or "created"
+          )
+        )
+      end)
     end
   )
 end

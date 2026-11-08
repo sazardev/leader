@@ -1,0 +1,10 @@
+// Lua language server for {{name}} (Neovim runtime)
+// target: .luarc.json
+{
+  "runtime": {
+    "version": "LuaJIT"
+  },
+  "diagnostics": {
+    "globals": ["vim"]
+  }
+}

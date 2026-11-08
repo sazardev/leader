@@ -1,0 +1,4 @@
+# Tool versions for asdf/mise (Kotlin {{kotlin}}, JVM {{jvm}} for {{name}})
+# target: .tool-versions
+java temurin-{{jvm}}
+kotlin {{kotlin}}

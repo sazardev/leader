@@ -1,0 +1,9 @@
+# Docker keeps the image small: no git, no docs, no logs
+# target: .dockerignore
+.git
+node_modules
+dist
+build
+target
+*.log
+*.md

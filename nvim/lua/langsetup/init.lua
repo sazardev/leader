@@ -10,7 +10,25 @@ local log = require "utils.log"
 
 local M = {}
 
-M.LANGS = { "typescript", "python", "rust", "csharp", "swift" }
+M.LANGS = {
+  "typescript",
+  "python",
+  "rust",
+  "csharp",
+  "swift",
+  "dart",
+  "java",
+  "kotlin",
+  "astro",
+  "docker",
+  "lua",
+  "sql",
+  "prisma",
+}
+
+-- Go is covered by gosetup (lua/gosetup/): same engine, different presets; kept separate for its misnamed check.
+-- HTML/CSS/Tailwind/JSON/YAML/TOML/Markdown/Make/YarnSpinner have no file of their own: their transversal files
+-- (.editorconfig, .prettierrc, .markdownlint) come with the language that owns the project root.
 
 ---@class LangSetupVariant
 ---@field name string
@@ -40,7 +58,15 @@ function M.dir()
 end
 
 -- files that take no comment: the description is not written into them
-local BARE = { [".nvmrc"] = true, [".node-version"] = true, [".python-version"] = true, [".swift-format"] = true }
+local BARE = {
+  [".nvmrc"] = true,
+  [".node-version"] = true,
+  [".python-version"] = true,
+  [".swift-format"] = true,
+  [".fvmrc"] = true,
+  [".tool-versions"] = true,
+  [".kettle.json"] = true,
+}
 
 --- Does this target take no comments? (JSON, version files)
 ---@param target string

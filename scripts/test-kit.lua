@@ -2171,6 +2171,67 @@ do
   vim.cmd "silent! tabonly"
 end
 
+-- ── compose: sections as a checklist, deduplication ──────────────────────────
+
+local secs = compose.sections "# S\n\n## Summary\n\nhi\n\n## Stack\n\na\n\n## Rules for agents\n\n- r\n"
+eq("sections: titles in order", vim.tbl_map(function(s)
+  return s.title
+end, secs), { "Summary", "Stack", "Rules for agents" })
+local kept = compose.filter_sections("# S\n\n## Summary\n\nhi\n\n## Stack\n\na\n\n## Rules for agents\n\n- r\n", { Summary = true, ["Rules for agents"] = true })
+ok("filter_sections: the Stack section gone, the others stay", not kept:find("## Stack", 1, true) and kept:find("## Summary", 1, true) and kept:find("## Rules for agents", 1, true))
+ok("filter_sections: title stays", kept:find("^# S") ~= nil)
+local dup_stack = "# STACK.md: X\n\n## Stack\n\n| Layer | Choice | Why |\n| --- | --- | --- |\n| Database | Postgres | a |\n| Database | SQLite | b |\n\n## Rules for agents\n\n- r\n"
+eq("duplicate_stack_rows: the key", vim.tbl_map(function(d)
+  return d.key
+end, compose.duplicate_stack_rows(dup_stack)), { "database" })
+local deduped = compose.dedupe_stack_rows(dup_stack)
+ok("dedupe_stack_rows: keeps the last", deduped:find("| Database | SQLite | b |", 1, true) and not deduped:find("Postgres", 1, true))
+local dup_lines = "# S\n\n## Rules for agents\n\n- one\n- one\n- two\n"
+eq("duplicate_lines: the repeated one", vim.tbl_map(function(d)
+  return d.section .. ":" .. d.line
+end, compose.duplicate_lines(dup_lines)), { "Rules for agents:- one" })
+ok("dedupe_lines: keeps one", select(2, compose.dedupe_lines(dup_lines):gsub("%- one", "")) == 1)
+eq("duplicate_headings: the repeated title", vim.tbl_map(function(d)
+  return d.title .. ":" .. d.n
+end, compose.duplicate_headings "# S\n\n## Stack\n\na\n\n## Stack\n\nb\n"), { "Stack:2" })
+
+-- ── reconcile: contradictions with a preview ──────────────────────────────
+local reconcile = require "agent.kit.reconcile"
+local rdocs = { stack = dup_stack, agents = "# AGENTS.md\n\n## Project\n\nx\n", spec = nil, design = nil }
+local rfinds = reconcile.find(rdocs, { files = { "package-lock.json", "STACK.md", "AGENTS.md" }, paths = { "STACK.md", "AGENTS.md" }, manifests = {} })
+ok("reconcile: duplicate row is a fixable finding", vim.iter(rfinds):any(function(f)
+  return f.fix ~= nil and f.title:find("database", 1, true) ~= nil
+end))
+local fix = vim.iter(rfinds):find(function(f)
+  return f.fix ~= nil and f.title:find("database", 1, true) ~= nil
+end)
+ok("reconcile: the fix dedupes", fix and fix.fix(dup_stack):find("| Database | SQLite | b |", 1, true) ~= nil and not fix.fix(dup_stack):find("Postgres", 1, true))
+local pm_docs = { stack = "| Package manager | pnpm | strict |\n\n## Stack\n\n| Package manager | pnpm | strict |\n", agents = nil, spec = nil, design = nil }
+local pm_finds = reconcile.find(pm_docs, { files = { "package-lock.json", "STACK.md" }, paths = { "STACK.md" }, manifests = {} })
+ok(
+  "reconcile: package manager mismatch",
+  vim.iter(pm_finds):any(function(f)
+    return f.fix ~= nil and f.title:find("pnpm", 1, true) and f.title:find("npm", 1, true)
+  end)
+)
+local pm_fix = vim.iter(pm_finds):find(function(f)
+  return f.fix ~= nil and f.title:find("pnpm", 1, true)
+end)
+ok("reconcile: package manager fix has no pnpm left", pm_fix and pm_fix.fix(pm_docs.stack):find("pnpm", 1, true) == nil)
+local link_finds = reconcile.find({ agents = "# AGENTS.md\n\n## Project\n\nx\n", stack = "hi\n", spec = nil, design = nil }, {
+  files = { "STACK.md", "AGENTS.md" },
+  paths = { "STACK.md", "AGENTS.md" },
+  manifests = {},
+})
+ok("reconcile: missing link is fixable", vim.iter(link_finds):any(function(f)
+  return f.fix ~= nil and f.title:find("does not link", 1, true) ~= nil
+end))
+eq("reconcile: no documents, no findings", #reconcile.find({ agents = nil, stack = nil, spec = nil, design = nil }, {
+  files = {},
+  paths = {},
+  manifests = {},
+}), 0)
+
 -- menu: keys and the Service level moved to aU (the build and its recipes are core: the whole list is offered)
 package.loaded["menus.agent_setup"] = nil
 local menu = require "menus.agent_setup"
@@ -2207,6 +2268,8 @@ eq(
     "w",
     "s",
     "m",
+    "j",
+    "M",
   }
 )
 eq("menu: Service lives on aU now", require("menus.agent_service").prefix, "aU")

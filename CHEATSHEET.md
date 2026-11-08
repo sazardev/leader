@@ -22,10 +22,12 @@ which-key only shows what belongs to the current buffer.
 | `<leader>aU` | Agent Service | global |
 | `<leader>aS` | Agent Setup | global |
 | `<leader>aT` | Agent Tests | global |
+| `<leader>o` | Astro | `astro` |
 | `<leader>c` | C# | `cs` |
 | `<leader>s` | CSS | `css`, `scss`, `less` |
 | `<leader>C` | Comments | global |
 | `<leader>d` | Dart / Flutter | `dart` |
+| `<leader>D` | Docker | `dockerfile` |
 | `<leader>E` | Env | global |
 | `<leader>F` | File | global |
 | `<leader>z` | Fold | global |
@@ -36,7 +38,9 @@ which-key only shows what belongs to the current buffer.
 | `<leader>j` | Java | `java` |
 | `<leader>k` | Kotlin | `kotlin` |
 | `<leader>L` | LSP | global |
+| `<leader>l` | Lua | `lua` |
 | `<leader>m` | Markdown | `markdown` |
+| `<leader>e` | Prisma | `prisma` |
 | `<leader>p` | Python | `python` |
 | `<leader>R` | Run | global |
 | `<leader>r` | Rust | `rust` |
@@ -181,6 +185,8 @@ _Where: global_
 | `<leader>aSw` | setup screens |
 | `<leader>aSs` | setup spec |
 | `<leader>aSm` | setup spec modules |
+| `<leader>aSj` | setup reconcile |
+| `<leader>aSM` | setup makefile |
 
 ### Agent Tests — `<leader>aT`
 
@@ -192,6 +198,28 @@ _Where: global_
 | `<leader>aTm` | test mock |
 | `<leader>aTf` | test fix |
 | `<leader>aTg` | test gaps |
+
+### Astro — `<leader>o`
+
+_Where: `astro`_
+
+| Key | Action |
+|---|---|
+| `<leader>od` | dev (astro dev) |
+| `<leader>ob` | build (astro build) |
+| `<leader>op` | preview |
+| `<leader>of` | format |
+| `<leader>oSa` | setup astro.config |
+| `<leader>oSt` | setup tsconfig |
+| `<leader>oSf` | setup Prettier |
+| `<leader>oSe` | setup .editorconfig |
+| `<leader>oSd` | setup Dockerfile |
+| `<leader>oSi` | setup .dockerignore |
+| `<leader>oSc` | setup GitHub Actions CI |
+| `<leader>oSn` | setup .nvmrc |
+| `<leader>oSp` | setup several files |
+| `<leader>oSm` | setup Makefile |
+| `<leader>oSg` | setup gitignore |
 
 ### C# — `<leader>c`
 
@@ -325,6 +353,34 @@ _Where: `dart`_
 | `<leader>dz1` | fold level 1 |
 | `<leader>dz2` | fold level 2 |
 | `<leader>dz3` | fold level 3 |
+| `<leader>dSa` | setup analysis_options.yaml |
+| `<leader>dSe` | setup .editorconfig |
+| `<leader>dSv` | setup .fvmrc (Flutter version) |
+| `<leader>dSc` | setup GitHub Actions CI |
+| `<leader>dSd` | setup Dockerfile (Dart server) |
+| `<leader>dSi` | setup .dockerignore |
+| `<leader>dSp` | setup several files |
+| `<leader>dSm` | setup Makefile |
+| `<leader>dSg` | setup gitignore |
+
+### Docker — `<leader>D`
+
+_Where: `dockerfile`_
+
+| Key | Action |
+|---|---|
+| `<leader>Db` | build image |
+| `<leader>Du` | compose up -d |
+| `<leader>Dd` | compose down |
+| `<leader>Dl` | compose logs |
+| `<leader>DSd` | setup Dockerfile |
+| `<leader>DSc` | setup compose.yaml |
+| `<leader>DSi` | setup .dockerignore |
+| `<leader>DSh` | setup hadolint config |
+| `<leader>DSe` | setup .editorconfig |
+| `<leader>DSp` | setup several files |
+| `<leader>DSm` | setup Makefile |
+| `<leader>DSg` | setup gitignore |
 
 ### Env — `<leader>E`
 
@@ -489,6 +545,15 @@ _Where: `java`_
 | `<leader>jm` | test |
 | `<leader>jv` | check / verify |
 | `<leader>jc` | clean |
+| `<leader>jSf` | setup Spotless / Checkstyle config |
+| `<leader>jSe` | setup .editorconfig |
+| `<leader>jSv` | setup .tool-versions (Java) |
+| `<leader>jSd` | setup Dockerfile (temurin) |
+| `<leader>jSi` | setup .dockerignore |
+| `<leader>jSc` | setup GitHub Actions CI |
+| `<leader>jSp` | setup several files |
+| `<leader>jSm` | setup Makefile |
+| `<leader>jSg` | setup gitignore |
 
 ### Kotlin — `<leader>k`
 
@@ -501,6 +566,15 @@ _Where: `kotlin`_
 | `<leader>km` | test |
 | `<leader>kv` | check / verify |
 | `<leader>kc` | clean |
+| `<leader>kSl` | setup ktlint config |
+| `<leader>kSe` | setup .editorconfig |
+| `<leader>kSv` | setup .tool-versions (Java + Kotlin) |
+| `<leader>kSd` | setup Dockerfile (temurin) |
+| `<leader>kSi` | setup .dockerignore |
+| `<leader>kSc` | setup GitHub Actions CI |
+| `<leader>kSp` | setup several files |
+| `<leader>kSm` | setup Makefile |
+| `<leader>kSg` | setup gitignore |
 
 ### LSP — `<leader>L`
 
@@ -513,6 +587,22 @@ _Where: global_
 | `<leader>Lr` | restart (this buffer) |
 | `<leader>Lp` | pause or resume everything |
 | `<leader>Li` | info (what is loading) |
+
+### Lua — `<leader>l`
+
+_Where: `lua`_
+
+| Key | Action |
+|---|---|
+| `<leader>lf` | format |
+| `<leader>lSs` | setup stylua.toml |
+| `<leader>lSl` | setup selene.toml |
+| `<leader>lSr` | setup .luarc.json |
+| `<leader>lSe` | setup .editorconfig |
+| `<leader>lSc` | setup GitHub Actions CI |
+| `<leader>lSp` | setup several files |
+| `<leader>lSm` | setup Makefile |
+| `<leader>lSg` | setup gitignore |
 
 ### Markdown — `<leader>m`
 
@@ -528,6 +618,23 @@ _Where: `markdown`_
 | `<leader>mx` | toggle checkbox |
 | `<leader>mo` | outline |
 | `<leader>mf` | format |
+
+### Prisma — `<leader>e`
+
+_Where: `prisma`_
+
+| Key | Action |
+|---|---|
+| `<leader>eg` | generate client |
+| `<leader>em` | migrate dev |
+| `<leader>eS` | studio |
+| `<leader>eSs` | setup prisma/schema.prisma |
+| `<leader>eSc` | setup compose.yaml (database) |
+| `<leader>eSe` | setup .editorconfig |
+| `<leader>eSy` | setup GitHub Actions CI |
+| `<leader>eSp` | setup several files |
+| `<leader>eSm` | setup Makefile |
+| `<leader>eSg` | setup gitignore |
 
 ### Python — `<leader>p`
 
@@ -651,6 +758,13 @@ _Where: `sql`_
 | `<leader>Qc` | connection |
 | `<leader>Ql` | last run again |
 | `<leader>Qf` | format |
+| `<leader>QSf` | setup .sql-formatter.json |
+| `<leader>QSc` | setup compose.yaml (database) |
+| `<leader>QSe` | setup .editorconfig |
+| `<leader>QSy` | setup GitHub Actions CI |
+| `<leader>QSp` | setup several files |
+| `<leader>QSm` | setup Makefile |
+| `<leader>QSg` | setup gitignore |
 
 ### Session — `<leader>P`
 
@@ -909,6 +1023,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSB` | n | Setup recheck |
 | `<leader>aSD` | n | Setup design write |
 | `<leader>aSK` | n | Setup design addons |
+| `<leader>aSM` | n | Setup makefile |
 | `<leader>aSP` | n | Setup progress |
 | `<leader>aST` | n | Setup stack write |
 | `<leader>aSa` | n | Setup agents |
@@ -920,6 +1035,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aSbu` | n | Setup build undo |
 | `<leader>aSc` | n | Setup claude link |
 | `<leader>aSd` | n | Setup design |
+| `<leader>aSj` | n | Setup reconcile |
 | `<leader>aSk` | n | Setup stack addons |
 | `<leader>aSl` | n | Setup leader data |
 | `<leader>aSm` | n | Setup spec modules |

@@ -1,0 +1,9 @@
+# selene lints for {{name}}: std + vim globals
+# target: selene.toml
+std = "vim"
+
+[lint.undefined_variable]
+code = "allow"
+
+[lint.unused_variable]
+code = "allow"

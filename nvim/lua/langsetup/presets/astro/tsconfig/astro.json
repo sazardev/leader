@@ -1,0 +1,9 @@
+// TypeScript for Astro: strict with Astro types
+// target: tsconfig.json
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src", "test", "tests"]
+}

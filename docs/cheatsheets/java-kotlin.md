@@ -25,3 +25,10 @@ It uses the wrappers (`./gradlew`, `./mvnw`) if they exist; otherwise `gradle` /
 | test | `test` | `test` |
 | check / verify | `check` | `verify` |
 | clean | `clean` | `clean` |
+
+## Setup (`<leader>jS` in Java, `<leader>kS` in Kotlin)
+
+Spotless (Gradle, `googleJavaFormat` + `removeUnusedImports`) or ktlint (`.editorconfig` with `max_line_length`),
+`.editorconfig`, `.tool-versions` (Java temurin / Kotlin), a Temurin `Dockerfile` and its `.dockerignore`, and GitHub
+Actions (`mvn -U verify` or `./gradlew check`). Presets live in `lua/langsetup/presets/java/` and `kotlin/` and are filled
+from the project (`pom.xml` `artifactId`, `rootProject.name`, Java/Kotlin versions). Never overwrites.

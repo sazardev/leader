@@ -13,6 +13,7 @@ STYLUA  ?= $(or $(shell command -v stylua),$(wildcard $(HOME)/.local/share/nvim/
 .DEFAULT_GOAL := help
 .PHONY: help dev run open build kill bench bench-edit timing snap restart \
         test test-app test-gui test-agent eval eval-table test-package check lint fmt fmt-lua docs cheatsheet \
+        doctor stack setup ai ai-auto \
         package install uninstall icons clean
 
 help: ## List the targets
@@ -90,6 +91,33 @@ docs: ## Regenerate the web docs from the Markdown (the pre-commit hook does it 
 
 cheatsheet: ## Regenerate CHEATSHEET.md from the real keymaps
 	@scripts/gen-cheatsheet.sh
+
+# -- AI / bootstrap: lee el repo, la config, los langs y el stack y te deja listo para arrancar --
+doctor: ## Diagnóstico: repo, config, langs, stack y backend de IA (solo lectura, 0 tokens)
+	@echo "== repo =="; git -C $(CURDIR) rev-parse --show-toplevel 2>/dev/null || echo "no git"; printf 'VERSION: %s\n' "$$(cat VERSION 2>/dev/null)"; git -C $(CURDIR) status --short | head -20
+	@echo "== config =="; ls nvim/lua/core/settings.lua nvim/lua/languages/init.lua nvim/lazy-lock.json 2>/dev/null; test -f nvim/lua/local.lua && echo "local.lua: sí (per-machine)" || echo "local.lua: no (usa defaults)"
+	@echo "== langs =="; ls nvim/lua/languages/*.lua | xargs -n1 basename | tr '\n' ' '; echo
+	@echo "== stack =="; grep -m1 '^edition' app/Cargo.toml 2>/dev/null; ls scripts/test.sh scripts/test-agent.sh scripts/eval.sh 2>/dev/null
+	@echo "== IA =="; scripts/agent-setup.sh || echo "IA: sin backend listo (ver make ai)"
+
+stack: ## Stack detectado: repo + config + langs + IA (lo que ve el picker <leader>R)
+	@printf 'repo:    %s (Leader v%s)\n' "$$(git -C $(CURDIR) rev-parse --show-toplevel 2>/dev/null || echo '?')" "$$(cat VERSION 2>/dev/null || echo '?')"
+	@printf 'config:  nvim/lua (NvChad v2.5 + lazy.nvim) + app/ (Rust 2024 workspace)\n'
+	@printf 'langs:   %s\n' "$$(ls nvim/lua/languages/*.lua | xargs -n1 basename | sed 's/\.lua$$//' | tr '\n' ' ')"
+	@printf 'ia:      nvim/lua/agent (claude/opencode/ollama/openai) via scripts/agent-setup.sh\n'
+
+ai: ## Estado del backend de IA y mejor modelo para esta máquina
+	@scripts/agent-setup.sh
+
+ai-auto: ## Aplica la recomendación de IA con los modelos que ya tienes
+	@scripts/agent-setup.sh --auto
+
+setup: ## Bootstrap idempotente: diagnóstico + build + config carga + IA lista
+	@$(MAKE) --no-print-directory doctor
+	@$(MAKE) --no-print-directory build PROFILE=$(PROFILE)
+	@scripts/test-startup.sh
+	@scripts/agent-setup.sh --auto || echo "IA: dejala lista con 'make ai-auto' cuando tengas un modelo"
+	@echo "listo: make dev (loop) · make run (app) · make test (todo) · ./install.sh (instalación completa)"
 
 # ── releases and installs ───────────────────────────────────────────────────
 package: ## Build the release files in app/dist (tarball, .deb, checksums, signatures)

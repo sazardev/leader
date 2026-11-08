@@ -1,0 +1,8 @@
+# Docker keeps the image small: no build artifacts, no .dart_tool, no docs
+# target: .dockerignore
+.git
+.dart_tool
+build
+.flutter-plugins
+.pub-cache
+*.log

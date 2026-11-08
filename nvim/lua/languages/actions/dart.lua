@@ -19,7 +19,7 @@ local function tool(flutter_sub, dart_sub)
   end
 end
 
-return {
+local maps = {
   -- run: on the remembered device and entry point (lua/dartrun); it asks only what is missing
   {
     "r",
@@ -227,3 +227,5 @@ return {
   { "z2", "fold level 2", function() require("utils.folds").level(2) end },
   { "z3", "fold level 3", function() require("utils.folds").level(3) end },
 }
+vim.list_extend(maps, require("langsetup").maps "dart")
+return maps

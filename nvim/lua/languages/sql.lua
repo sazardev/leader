@@ -14,5 +14,5 @@ return {
       end,
     },
   },
-  menu = { name = "SQL", prefix = "Q", maps = require "languages.actions.sql" },
+  menu = { name = "SQL", prefix = "Q", maps = require "languages.actions.sql", groups = { S = "setup" } },
 }

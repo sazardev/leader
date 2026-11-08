@@ -617,4 +617,234 @@ function M.named(description, list)
   return best and best.preset
 end
 
+-- ── Sections as a checklist (pick which ## to keep) ──────────────────────────
+-- When a STACK.md or DESIGN.md is built from a preset, the author chooses which sections to keep. The title and
+-- anything before the first `## ` always stays (the `# …` title). Pure: tested in test-kit.lua.
+
+---@class KitSection
+---@field title string
+---@field lines string[]
+
+--- The ordered `## ` sections of a document (outside code fences), with their lines (heading + body)
+---@param text string
+---@return KitSection[]
+function M.sections(text)
+  local lines = lines_of(text)
+  local out, cur, fenced = {}, nil, false
+  for _, line in ipairs(lines) do
+    if line:match "^```" then
+      fenced = not fenced
+    end
+    local h = not fenced and line:match "^##%s+(.-)%s*$" or nil
+    if h then
+      cur = { title = h, lines = { line } }
+      out[#out + 1] = cur
+    elseif cur then
+      cur.lines[#cur.lines + 1] = line
+    end
+  end
+  for _, sec in ipairs(out) do
+    while sec.lines[#sec.lines] == "" do
+      sec.lines[#sec.lines] = nil
+    end
+  end
+  return out
+end
+
+--- The document with only the sections in `keep` (a set of titles, case-insensitive); the preamble stays
+---@param text string
+---@param keep table<string, boolean>
+---@return string
+function M.filter_sections(text, keep)
+  local lines = lines_of(text)
+  local want = {}
+  for k in pairs(keep) do
+    want[k:lower()] = true
+  end
+  local first = #lines + 1
+  for i, line in ipairs(lines) do
+    if line:match "^##%s" then
+      first = i
+      break
+    end
+  end
+  local out = {}
+  for i = 1, first - 1 do
+    out[#out + 1] = lines[i]
+  end
+  vim.list_extend(out, lines, first)
+  -- rebuild: preamble + kept sections
+  local sec_list = M.sections(text)
+  local result = {}
+  for i = 1, first - 1 do
+    result[#result + 1] = lines[i]
+  end
+  for _, sec in ipairs(sec_list) do
+    if want[sec.title:lower()] then
+      vim.list_extend(result, sec.lines)
+      result[#result + 1] = ""
+    end
+  end
+  while result[#result] == "" do
+    result[#result] = nil
+  end
+  return join(result)
+end
+
+--- Is this row key duplicated in the Stack table? (first word of first cell, lowercased)
+---@param row string
+---@return string?
+function M.row_key_of(row)
+  return row_key(row)
+end
+
+--- Duplicate Stack rows (same first word, different rows) inside `## Stack`
+---@param text string
+---@return { key: string, rows: string[] }[]
+function M.duplicate_stack_rows(text)
+  local lines = lines_of(text)
+  local sec = sections_of(lines)["stack"]
+  if not sec then
+    return {}
+  end
+  local by_key = {}
+  for i = sec.first + 1, sec.last do
+    if lines[i]:match "^|" then
+      local key = row_key(lines[i])
+      if key then
+        by_key[key] = by_key[key] or {}
+        by_key[key][#by_key[key] + 1] = lines[i]
+      end
+    end
+  end
+  local out = {}
+  for key, rows in pairs(by_key) do
+    local distinct = {}
+    for _, r in ipairs(rows) do
+      distinct[r] = true
+    end
+    if vim.tbl_count(distinct) > 1 or #rows > 1 then
+      out[#out + 1] = { key = key, rows = rows }
+    end
+  end
+  table.sort(out, function(a, b)
+    return a.key < b.key
+  end)
+  return out
+end
+
+--- The document with duplicate Stack rows removed, keeping the last one per key
+---@param text string
+---@return string
+function M.dedupe_stack_rows(text)
+  local lines = lines_of(text)
+  local sec = sections_of(lines)["stack"]
+  if not sec then
+    return join(lines)
+  end
+  local seen, drop = {}, {}
+  for i = sec.first + 1, sec.last do
+    if lines[i]:match "^|" then
+      local key = row_key(lines[i])
+      if key then
+        if seen[key] then
+          drop[seen[key]] = true
+        end
+        seen[key] = i
+      end
+    end
+  end
+  local out = {}
+  for i, line in ipairs(lines) do
+    if not drop[i] then
+      out[#out + 1] = line
+    end
+  end
+  return join(out)
+end
+
+--- Non-empty lines that appear more than once in the same `## ` section
+---@param text string
+---@return { section: string, line: string, n: integer }[]
+function M.duplicate_lines(text)
+  local out, seen = {}, {}
+  for _, sec in ipairs(M.sections(text)) do
+    seen = {}
+    for _, line in ipairs(sec.lines) do
+      local t = vim.trim(line)
+      if t ~= "" and not line:match "^##" then
+        seen[t] = (seen[t] or 0) + 1
+        if seen[t] == 2 then
+          out[#out + 1] = { section = sec.title, line = t, n = 2 }
+        elseif seen[t] > 2 then
+          for _, d in ipairs(out) do
+            if d.section == sec.title and d.line == t then
+              d.n = seen[t]
+            end
+          end
+        end
+      end
+    end
+  end
+  return out
+end
+
+--- The document with duplicate non-empty lines removed (first of each kept, per section)
+---@param text string
+---@return string
+function M.dedupe_lines(text)
+  local lines = lines_of(text)
+  local seen, drop = {}, {}
+  local cur = "__preamble__"
+  seen[cur] = {}
+  for i, line in ipairs(lines) do
+    local h = line:match "^##%s+(.-)%s*$"
+    if h then
+      cur = h
+      seen[cur] = seen[cur] or {}
+    else
+      local t = vim.trim(line)
+      if t ~= "" then
+        if seen[cur][t] then
+          drop[i] = true
+        else
+          seen[cur][t] = true
+        end
+      end
+    end
+  end
+  local out = {}
+  for i, line in ipairs(lines) do
+    if not drop[i] then
+      out[#out + 1] = line
+    end
+  end
+  return join(out)
+end
+
+--- Headings that appear more than once (`## Title` twice)
+---@param text string
+---@return { title: string, n: integer }[]
+function M.duplicate_headings(text)
+  local seen, order = {}, {}
+  for _, line in ipairs(lines_of(text)) do
+    local h = line:match "^##%s+(.-)%s*$"
+    if h then
+      local key = h:lower()
+      if not seen[key] then
+        seen[key] = { title = h, n = 0 }
+        order[#order + 1] = key
+      end
+      seen[key].n = seen[key].n + 1
+    end
+  end
+  local out = {}
+  for _, key in ipairs(order) do
+    if seen[key].n > 1 then
+      out[#out + 1] = seen[key]
+    end
+  end
+  return out
+end
+
 return M

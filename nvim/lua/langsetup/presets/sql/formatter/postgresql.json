@@ -1,0 +1,10 @@
+// SQL formatter for {{dialect}} (sql-formatter)
+// target: .sql-formatter.json
+{
+  "language": "postgresql",
+  "indentStyle": "tabularLeft",
+  "indentWidth": 2,
+  "tabWidth": 2,
+  "keywordCase": "upper",
+  "identifierCase": "preserve"
+}

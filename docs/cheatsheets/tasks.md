@@ -68,6 +68,9 @@ the picker shows them at once.
 line is a `# description` comment (it stays in the created Makefile), every target has `## text`, recipes use **tabs**.
 `scripts/test-tasks.sh` runs a real `make` over every preset.
 
+To **update** one instead (or to fit it to the repo as it is, with a model), use `<leader>aSM` (Project documents →
+Makefile): one retroactive call that reads languages, manifests and commands and rewrites it, keeping its targets.
+
 ## Editing a Makefile
 
 Makefiles get their own treesitter parser and `checkmake` (pack `infra`) for the usual mistakes (a target with no

@@ -1,0 +1,8 @@
+# Docker keeps the image small: no build output, no IDE files
+# target: .dockerignore
+.git
+target
+build
+.gradle
+.idea
+*.log

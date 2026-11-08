@@ -1,0 +1,16 @@
+# analysis_options for Dart / Flutter: strict lints with recommended rules
+# target: analysis_options.yaml
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_final_fields
+    - prefer_const_constructors
+    - require_trailing_commas
+    - unawaited_futures
+    - use_key_in_widget_constructors
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true

@@ -1,0 +1,3 @@
+# Flutter version pin for FVM (plain version number)
+# target: .fvmrc
+3.24.0

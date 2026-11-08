@@ -1,0 +1,7 @@
+# hadolint: Dockerfile linter (pin versions, avoid latest)
+# target: .hadolint.yaml
+failure-threshold: warning
+
+ignored:
+  - DL3008
+  - DL3015

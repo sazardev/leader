@@ -5,4 +5,5 @@ return {
   lsp = { "astro" },
   mason = { full = { "astro-language-server", "prettier" } },
   formatters = { astro = { "prettier" } },
+  menu = { name = "Astro", prefix = "o", maps = require "languages.actions.astro", groups = { S = "setup" } },
 }

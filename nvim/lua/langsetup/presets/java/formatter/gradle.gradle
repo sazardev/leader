@@ -1,0 +1,18 @@
+# Spotless formatter for Gradle (googleJavaFormat): what it is, in one line
+# target: gradle/spotless.gradle
+// Apply with: ./gradlew spotlessApply (check with spotlessCheck)
+plugins {
+    id 'com.diffplug.spotless' version '7.0.2'
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    kotlin {
+        ktfmt()
+    }
+}

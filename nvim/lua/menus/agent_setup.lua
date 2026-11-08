@@ -4,7 +4,7 @@
 -- "· write" = described in your words, written by the model. `b` is the build: the whole project (bb) or one layer from
 -- the document that describes it, with the same letter that document has here (bt STACK.md → foundation, bs SPEC.md →
 -- domain, bd DESIGN.md → design) or one feature (bf: a requirement of SPEC.md, or a new one). `r` applies a recipe
--- (a prefab task for the stack), `m` adds SPEC.md modules (accounts, roles, payments…), `v` the coverage of SPEC/STACK/DESIGN by the code, `P` PROGRESS.md and the decisions.
+-- (a prefab task for the stack), `m` adds SPEC.md modules (accounts, roles, payments…), `v` the coverage of SPEC/STACK/DESIGN by the code, `P` PROGRESS.md and the decisions, `M` a Makefile retroactive (foundation-lite: reads the repo as it is, no STACK.md/SPEC.md).
 local function kit(fn)
   return function()
     require("agent.kit")[fn]()
@@ -58,6 +58,8 @@ local all = {
   { "w", "setup screens", kit "screens" },
   { "s", "setup spec", kit "spec" },
   { "m", "setup spec modules", kit_module("specmodules", "open") },
+  { "j", "setup reconcile", kit_module("reconcile", "open") },
+  { "M", "setup makefile", kit "makefile" },
 }
 
 -- Building a whole project with a model is part of the core: the `b` group, recipes and the recheck are everyday, like

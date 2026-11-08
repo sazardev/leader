@@ -1,8 +1,28 @@
 # Inline agent (`<leader>a`)
 
 **One-shot** actions on what you are looking at: a function, a class or a selection. No chat, no sidebar, no
-conversation. Every action has a closed prompt, a bounded context and an output with a fixed format, so it is
+conversation — except the **Chat** (`<leader>aC`, `agent/chat/`): the one persistent, backend-agnostic chat under Leader
+(see [Chat](#chat)). Every one-shot action has a closed prompt, a bounded context and an output with a fixed format, so it is
 predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** menu).
+
+## Chat (`<leader>aC`, `agent/chat/`)
+
+A right-side panel with a read-only transcript and an input box, like Opencode/Claude Code but orchestrated by Leader:
+pick **any backend/model on the machine** (claude, opencode, ollama, openai, custom — same list as `<leader>am`, in the chat
+chooser), pick effort, get streaming answers with thinking. Everything is shown: the header (`model claude/haiku · 3 turns ·
+1.2k in / 0.8k out · $0.0004`), what was **injected** per turn (rules, buffer, diagnostics, git, skills, mcp, @files) and the
+turn's tokens/cost/time. Hiding the panel (`q`, `Esc`, `<C-q>`) keeps the session — the statusline chip `⠹ chat · claude`
+keeps the progress from any buffer. Sessions persist per project (`stdpath("state")/agent-chat.json`); every turn also lands
+in the agent history, so the spend/budget guards apply unchanged.
+
+- **Send**: `⏎` in the input box (`Shift-⏎`/`Ctrl-J` newline). **Mentions**: `@file` (path), `@buf` (buffer), `@sel`
+  (selection), `@diag` (diagnostics), `#skill`, `$mcp`. **Slash**: `/new`, `/clear`, `/model`, `/effort`, `/adr`, `/export`,
+  `/help`. **Keys**: `Ctrl-N` new, `Ctrl-H` sessions, `Ctrl-M` model, `Ctrl-E` effort, `Ctrl-A` ADR, `Ctrl-X` stop.
+- **ADR**: `/adr` (or `Ctrl-A`) drafts an ADR from the chat into `docs/adr/` (same shape as the build's ADRs).
+- **Settings** (`settings.agent.chat`): `position` (`right`/`bottom`/`float`), `width`/`height`, `show_context`,
+  `show_thinking`, `show_tokens`, `max_history_chars`, `max_context_chars`, `max_mention_chars`, `timeout_ms`, `autosave`.
+
+**Clear file** moved from `<leader>aC` to `<leader>aW` (`:AgentClear file` still works).
 
 > **Agent skills** (`<leader>aK`): the SKILL.md files the agents load on demand (marketplace, 0-config install by
 > model/stack/cloud, tolerance for legacy/already-worked repos) — see [skills.md](skills.md).
@@ -44,7 +64,7 @@ to the prompt and takes precedence over the default behaviour. Useful for an emp
 `a` ask and `R` refactor require the text; `r` review and `e` explain run instantly.
 
 **Short menu**: `i` implement, `d` docs, `t` convert, `n` next edit, `r` review, `e` explain, `a` ask, `f` fix inline, `F` fix block, `R` refactor, `g` hand off (only inside
-Herdr), `h` history, `m` model (main, light and effort in a single selector), `c` clear (discards the finding on the line, or those in the selection in visual mode), `C` clear file (those in this file), `x` stop (cancels what is running and discards the
+Herdr), `C` chat (the persistent Chat), `h` history, `m` model (main, light and effort in a single selector), `c` clear (discards the finding on the line, or those in the selection in visual mode), `W` clear file (those in this file), `x` stop (cancels what is running and discards the
 pending proposals; it does **not** touch findings) and `l` last answer (reopens the last answer or rejected proposal). Everything that works on many pieces at once lives
 in its own **Advanced menu, `<leader>aA`**, so the everyday one stays short: `a` fix all, `o` / `O` fix from output / from a command, `p` plan across
 files, and for the proposals they leave waiting `]` / `[` next / previous, `y` accept all, `l` list. Accepting and
@@ -333,7 +353,7 @@ The findings of `review` and `ddd review`, and the violations of `ddd diagnose`,
   (`Agent: 1 saved finding no longer matches the code and was dropped`). Saving the file updates the positions.
 - Only the agent's are saved: LSP ones are not touched. If there is no findings file, opening a file costs nothing.
 - **Clearing them** (from memory and from disk; review and ddd alike): `<leader>ac` clear discards the one on the cursor line (in
-  visual mode, those in the selection) → one at a time; `<leader>aC` clear file, all those in this file; `:AgentClear [file|all]`
+  visual mode, those in the selection) → one at a time; `<leader>aW` clear file, all those in this file; `:AgentClear [file|all]`
   (with a range: `:'<,'>AgentClear`), `all` = all files. `<leader>aDc` ddd clear, the DDD diagnostic of the whole project. **`<leader>ax` stop does not delete them**: it only cancels what is running and discards pending proposals.
 - **Fixing them**: `<leader>af` (fix inline, the one on the line), `<leader>aF` (fix block, the whole function) and `<leader>aDf` (**ddd fix**) read the findings that fall in the function or selection,
   together with the LSP diagnostics, and propose the minimal change (in `ddd fix`, respecting the layers in `<ddd>`; if the fix
@@ -577,7 +597,7 @@ presets or the project's own facts; uppercase ones take what you describe in you
 | `a` | AGENTS.md | the model reads the project (file tree, languages, manifests, Makefile targets, `package.json` scripts, README, the other documents) and writes how to work in it: real commands, layout, conventions, workflow, boundaries, definition of done. With one there it **updates** it, keeping what is still true |
 | `A` | AGENTS.md | the same sections without a model (0 tokens): commands detected from the Makefile and manifests, top folders, general rules, `TODO:` lines for what only you know |
 | `c` | CLAUDE.md | Claude Code reads CLAUDE.md, not AGENTS.md: creates one that imports it (`@AGENTS.md`), or adds that line to yours |
-| `t` | STACK.md | preset: kind of project → stack (with a preview) → **customize** → principles. Kinds: backend (Go stdlib / chi / Fiber / Huma / gRPC / workers, Bun + Hono / Elysia, Hono, NestJS, FastAPI, Axum, tonic, Spring, Ktor), web (Next.js, React + Vite, Vite vanilla, Solid, Preact, Alpine.js, Lit, SvelteKit, Astro, Nuxt), full stack (Go + templ + htmx, Bun full stack, Leptos, Next.js + Supabase, T3, Django + htmx, Laravel), mobile (Flutter with Riverpod, Bloc, Supabase, Firebase, offline-first, desktop or no package; Expo, SwiftUI, Compose), self-hosted (Go + SQLite + Litestream, PocketBase, Docker Compose stack, Bun + SQLite), monorepo, CLI / desktop / TUI (Bubble Tea, Wish over SSH, Ratatui, cobra, clap, Tauri) |
+| `t` | STACK.md | preset: kind of project → stack (with a preview) → **customize** → principles → **sections**. Kinds: backend (Go stdlib / chi / Fiber / Huma / gRPC / workers, Bun + Hono / Elysia, Hono, NestJS, FastAPI, Django, Flask, Rails API, Axum, tonic, Spring, Ktor), web (Next.js, React + Vite, Vite vanilla, Solid, Preact, Alpine.js, Lit, SvelteKit, Astro, Nuxt), full stack (Go + templ + htmx, Bun full stack, Leptos, Next.js + Supabase, T3, Django + htmx, Laravel), mobile (Flutter with Riverpod, Bloc, Supabase, Firebase, offline-first, desktop or no package; Expo, SwiftUI, Compose), self-hosted (Go + SQLite + Litestream, PocketBase, Docker Compose stack, Bun + SQLite), monorepo, CLI / desktop / TUI (Bubble Tea, Wish over SSH, Ratatui, cobra, clap, Tauri) |
 | `T` | STACK.md | described ("Go API for invoices, Postgres, self-hosted"), then customize (the add-ons that fit the words you used) and principles; the model writes it knowing the add-ons, and they are merged after |
 | `k` | STACK.md | customize the one there: add deploy, CI, observability… (those already in it come checked) |
 | `p` | STACK.md | change the principles it carries: the section is rebuilt from the presets you check |
@@ -585,6 +605,8 @@ presets or the project's own facts; uppercase ones take what you describe in you
 | `D` | DESIGN.md | described ("like Linear but warmer", "an ASCII art TUI with amber phosphor"), then customize; a design you name is sent as the base, a terminal description gets the terminal add-ons |
 | `w` | DESIGN.md | **screens**: one request draws a wireframe of every main screen SPEC.md names (and the states that change the layout: empty, error, too small) in DESIGN.md's own style, character by character at the minimum size, with what each region uses and how it adapts; written as its `## Screens` section (replaced when there is one, the old file to the trash). Needs SPEC.md and DESIGN.md. Models copy a picture far more faithfully than prose, so the build lays screens out as drawn |
 | `s` | SPEC.md | write what you are building in any shape; it comes back as a spec: requirements `FR-n` with Given/When/Then acceptance criteria, non-functional `NFR-n`, data, interfaces, edge cases, milestones, and **every gap as an open question** (never invented). With a SPEC.md there, the page starts from it: edit freely and it comes back tidy, ids kept |
+| `j` | the documents | **reconcile**: contradictions and redundancies between the documents and the code, with a preview of every fix (0 tokens). Duplicate Stack rows (the same layer twice, one-of group), duplicate lines or headings, a package manager the lockfile contradicts, and the `Read first` links AGENTS.md misses; report-only: tools STACK names that the manifest lacks and folders no document mentions. `Space` picks, Enter previews, `y` applies |
+| `M` | Makefile | **retroactive, foundation-lite** (one light-tier call, no plan, no STACK.md/SPEC.md, no checks): reads the repo as it is — languages, manifests, commands, tree, the Makefile there if any — and writes **one** Makefile with only the commands that input backs up (`help`, `install`/`setup`, `build`, `test`, `lint`, `fmt`, `run`, `check`, `clean`; `.PHONY`, `##` per target, tabs). With one there it keeps its targets and adds the missing standard ones. The old file goes to the trash; `<leader>Rr` lists the new targets at once |
 
 **Customize** is one list in groups, merged into STACK.md without a model (rows replace the row with the same first
 word, rules and commands are added once, so applying twice changes nothing). It opens with **the best picks for that stack
@@ -600,7 +622,10 @@ text the document would gain, `Space` picks (in a one-of group the others go off
 filters, `Tab` folds a group, `?` lists the keys. `<leader>aSk` opens it on an existing STACK.md and `<leader>aSK` on an
 existing DESIGN.md.
 
-**Esc goes back one step** (Principles → Customize → stack → kind of project; in `T`, Customize → the page with what you
+**Sections** (the last step of `t`/`T`/`d`/`D`): which `## ` to keep — all checked by default, uncheck to leave a section out
+(a small API needs no Screens, a library needs no Commands). The title and the principles (when you chose them) always stay.
+
+**Esc goes back one step** (Sections → Principles → Customize → stack → kind of project; in `T`, Customize → the page with what you
 wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes.
 
 | Group | Choices |
@@ -615,6 +640,7 @@ wrote), keeping what you chose; Enter moves on. Only the first step's Esc closes
 | Payments (one of) | Stripe, Lemon Squeezy, RevenueCat |
 | Email (one of) | Resend, Postmark, SES, SMTP |
 | File storage (one of) | S3-compatible (S3, R2, MinIO), Cloudinary, local disk |
+| Cache (one of) | Redis 7 |
 | Search (one of) | Meilisearch, Typesense, Postgres full-text |
 | Background jobs (one of) | BullMQ, River, Celery, Inngest, cron only |
 | Realtime (one of) | WebSockets, Server-Sent Events, Ably |

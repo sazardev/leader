@@ -1,0 +1,3 @@
+# Tool versions for asdf/mise (Java {{java}} for {{name}})
+# target: .tool-versions
+java temurin-{{java}}

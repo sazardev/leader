@@ -23,6 +23,11 @@ In Lua the blink sources are: `lazydev`, LSP, path, snippets, buffer (lazydev wi
 | `:lua =expr` | evaluate and print an expression |
 | `:Lazy sync` | install/update plugins (the `git pull` auto-reload does not do it) |
 
+## Setup (`<leader>lS`)
+
+`stylua.toml`, `selene.toml`, `.luarc.json`, `.editorconfig`, GitHub Actions (`stylua --check` + `selene`). Presets live in
+`lua/langsetup/presets/lua/`. Never overwrites: what is there is opened.
+
 ## Auto-reload
 
 After `git pull`, the `.githooks/post-merge` hook leaves a marker and, when nvim opens (`UIEnter`),

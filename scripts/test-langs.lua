@@ -634,6 +634,14 @@ local fake_roots = {
       .. "<TargetFramework>net10.0</TargetFramework><AssemblyName>Api</AssemblyName></PropertyGroup></Project>\n",
   },
   swift = { ["Package.swift"] = '// swift-tools-version: 6.1\nlet package = Package(name: "Calc")\n' },
+  dart = { ["pubspec.yaml"] = "name: calc\nenvironment:\n  sdk: '>=3.5.0'\n" },
+  java = { ["pom.xml"] = "<project><modelVersion>4.0.0</modelVersion><artifactId>calc</artifactId></project>\n" },
+  kotlin = { ["build.gradle.kts"] = 'rootProject.name = "calc"\n' },
+  astro = { ["package.json"] = '{"name":"web","engines":{"node":">=22"}}', ["pnpm-lock.yaml"] = "" },
+  docker = { ["Dockerfile"] = "FROM alpine\n" },
+  lua = { ["init.lua"] = "local M = {}\nreturn M\n" },
+  sql = { [".env"] = "DATABASE_URL=postgres://app:changeme@localhost:5432/app_dev\n" },
+  prisma = { ["prisma/schema.prisma"] = "datasource db {\n  provider = \"postgresql\"\n}\n", ["package.json"] = '{"name":"web"}' },
 }
 for _, lang in ipairs(ls.LANGS) do
   local l = ls.lang(lang)

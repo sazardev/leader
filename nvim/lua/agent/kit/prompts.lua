@@ -340,4 +340,32 @@ Rules:
   }
 end
 
+--- Makefile retroactivo desde el repo tal cual está (<leader>aSM): foundation-lite, un solo archivo, sin STACK.md/SPEC.md
+---@param facts KitFacts
+---@param current string? el Makefile que ya hay, si lo hay
+---@return table
+function M.makefile(facts, current)
+  local task = [[Write ONE Makefile for this repository, retroactive: it reads the project as it is in <project> (languages, manifests, commands found, tree) and leaves it ready to start.
+Output ONLY the Makefile: it starts with a `# <project>: ...` comment line, nothing before or after it, no ``` fence around it.
+Rules:
+- `SHELL := bash`, `.DEFAULT_GOAL := help`, every target in `.PHONY`, each target with `## ` description on its line, recipes with TABS.
+- A `help` target that lists them (awk on `## ` over $(MAKEFILE_LIST)), and the standard targets the commands in <project> back up: install/setup/deps, build, test, lint, fmt/format, run/dev, check, clean. Use ONLY the commands from <project> (Makefile targets, manifests, scripts); never invent a command that is not backed by the input, and leave a target out when nothing backs it.
+- Keep it small and simple, under ~60 lines: it is foundation-lite, not a build.
+- When <current> exists, keep its targets and their commands and add only the missing standard ones; refresh the header comment to name the project.]]
+  return {
+    action = "kit_makefile",
+    tier = "light",
+    system = [[You write a Makefile for a project: one file with conventional targets that run the real commands the input backs up.
+Output ONLY the Makefile: it starts with a `# <project>: ...` comment line, nothing before or after it, no ``` fence around it. Be concrete: real names, real commands, no placeholder targets, no emojis.]],
+    prompt = project(facts)
+      .. block("current", current)
+      .. task
+      .. ("\n\nThe first line is exactly: `# %s: <one line, what it does>`.\n%s\nLanguage: write every line in %s, including what comes from the input in another language (translate it; keep proper names, commands and code as they are)."):format(
+        facts.name,
+        FACTS,
+        (require("core.settings").agent.kit or {}).language or "English"
+      ),
+  }
+end
+
 return M

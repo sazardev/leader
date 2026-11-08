@@ -10,7 +10,7 @@ local function sql(fn, ...)
   end
 end
 
-return {
+local maps = {
   { "r", "run statement or selection", sql "run", { "n", "x" } },
   { "a", "run file", sql "run_file" },
   { "e", "explain", sql("explain", false) },
@@ -21,3 +21,4 @@ return {
   { "l", "last run again", sql "again" },
   { "f", "format", actions.format },
 }
+return vim.list_extend(maps, require("langsetup").maps "sql")

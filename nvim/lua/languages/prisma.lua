@@ -4,4 +4,5 @@ return {
   treesitter = { "prisma" },
   lsp = { "prismals" },
   mason = { full = { "prisma-language-server" } },
+  menu = { name = "Prisma", prefix = "e", maps = require "languages.actions.prisma", groups = { S = "setup" } },
 }

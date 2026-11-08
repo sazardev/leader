@@ -1,0 +1,7 @@
+# Docker keeps the image small: no build artifacts, no docs
+# target: .dockerignore
+node_modules
+dist
+.astro
+.git
+*.log

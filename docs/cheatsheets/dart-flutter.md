@@ -130,6 +130,12 @@ lands below the class.
 - Generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`, protobuf) are never edited by the agent
   (explain/ask still work there) and are left out of its context and of code search (`utils/generated.lua`).
 
+## Setup (`<leader>dS`)
+
+`analysis_options.yaml` (strict), `.editorconfig`, `.fvmrc` (Flutter version pin), GitHub Actions (`flutter pub get`,
+`analyze`, `test`), a Dart server `Dockerfile` and its `.dockerignore`. Presets live in `lua/langsetup/presets/dart/` and
+are filled from `pubspec.yaml` (`name`, `sdk`). Never overwrites: what is there is opened.
+
 ## Pitfalls
 
 - Requires `pubspec.yaml`: it detects whether the project is Flutter (`flutter:` block) or plain Dart and uses the
