@@ -53,7 +53,6 @@ return {
         { "<leader>fa", hidden = true },
         { "<leader>fz", hidden = true },
         { "<leader>fh", hidden = true },
-        { "<leader>fc", hidden = true },
         { "<leader>xb", hidden = true },
       },
     }

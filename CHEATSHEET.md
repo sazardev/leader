@@ -61,6 +61,7 @@ _Where: global_
 | `<leader>at` | convert |
 | `<leader>an` | next edit |
 | `<leader>aR` | refactor |
+| `<leader>ag` | hand off |
 | `<leader>am` | model |
 | `<leader>ah` | history |
 | `<leader>ac` | clear |
@@ -914,6 +915,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>ad` | n,x | Docs |
 | `<leader>ae` | n,x | Explain |
 | `<leader>af` | n,x | Fix inline |
+| `<leader>ag` | n,x | Hand off |
 | `<leader>ah` | n | History |
 | `<leader>ai` | n,x | Implement |
 | `<leader>al` | n | Last answer |
@@ -985,6 +987,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | Key | Mode | Action |
 |---|---|---|
 | `<leader>H` | n | File history (session) |
+| `<leader>fc` | n | In current file |
 | `<leader>fo` | n | Recent files of this project |
 | `<leader>fr` | n | Replace in project |
 | `<leader>fs` | n | Project symbols |
