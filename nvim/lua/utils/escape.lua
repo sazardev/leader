@@ -161,6 +161,14 @@ function M.dismiss()
   if M.close_current() or M.close_floats() then
     return
   end
+  -- locked reading mode (*.md/*.mdx): <Esc> leaves it (restores the window and `modifiable`)
+  do
+    local md = require "utils.markdown"
+    if md.is_reading() then
+      md.reading_mode()
+      return
+    end
+  end
   if not require("utils.navigation").back() then
     vim.cmd "noh"
   end

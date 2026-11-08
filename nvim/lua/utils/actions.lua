@@ -30,6 +30,9 @@ end
 
 --- Format the buffer with conform (falling back to LSP)
 function M.format()
+  if vim.b.reading_locked then
+    return log.info "Reading mode: Esc to edit"
+  end
   require("conform").format { lsp_format = "fallback" }
 end
 

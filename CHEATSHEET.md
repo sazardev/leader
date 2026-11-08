@@ -61,7 +61,6 @@ _Where: global_
 | `<leader>at` | convert |
 | `<leader>an` | next edit |
 | `<leader>aR` | refactor |
-| `<leader>ag` | hand off |
 | `<leader>am` | model |
 | `<leader>ah` | history |
 | `<leader>ac` | clear |
@@ -501,7 +500,7 @@ _Where: `markdown`_
 |---|---|
 | `<leader>mr` | toggle render |
 | `<leader>md` | toggle linter diagnostics (this buffer only) |
-| `<leader>mz` | reading mode (centered, distraction-free) |
+| `<leader>mz` | reading mode (centered, locked; Esc exits) |
 | `<leader>ms` | spell check (es, en) |
 | `<leader>mw` | word count and reading time |
 | `<leader>mx` | toggle checkbox |
@@ -915,7 +914,6 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>ad` | n,x | Docs |
 | `<leader>ae` | n,x | Explain |
 | `<leader>af` | n,x | Fix inline |
-| `<leader>ag` | n,x | Hand off |
 | `<leader>ah` | n | History |
 | `<leader>ai` | n,x | Implement |
 | `<leader>al` | n | Last answer |

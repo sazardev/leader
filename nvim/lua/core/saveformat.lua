@@ -23,6 +23,9 @@ end
 ---@param buf integer
 ---@return table?
 function M.on_save(buf)
+  if vim.b[buf].reading_locked then -- locked reading mode (*.md/*.mdx): nothing to format, saving only writes
+    return nil
+  end
   if M.mode(vim.api.nvim_buf_line_count(buf)) == "sync" then
     return { timeout_ms = settings.format_on_save.timeout_ms, lsp_format = "fallback" }
   end
@@ -32,6 +35,9 @@ end
 ---@param buf integer
 ---@return table?
 function M.after_save(buf)
+  if vim.b[buf].reading_locked then
+    return nil
+  end
   if M.mode(vim.api.nvim_buf_line_count(buf)) == "async" then
     return { lsp_format = "fallback" }
   end
