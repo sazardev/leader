@@ -24,4 +24,6 @@ printf '%s\n' "$plan" | grep -q 'would fetch .* into /nonexistent/my-nvim' || { 
 printf '%s\n' "$plan" | grep -q -- '--lang go' || { echo "FAIL the bootstrap does not forward its options"; status=1; }
 # from a clone it must NOT bootstrap (no "would fetch")
 "$ROOT/install.sh" --dry-run --no-deps --no-plugins 2>&1 | grep -q 'would fetch' && { echo "FAIL install.sh bootstraps from inside a clone"; status=1; }
+# the `leader` command (= nvim) is created by the installer
+"$ROOT/install.sh" --dry-run --no-deps --no-plugins 2>&1 | grep -q 'Command: leader' || { echo "FAIL install.sh does not create the leader command"; status=1; }
 exit "$status"

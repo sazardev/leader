@@ -8,7 +8,9 @@
 # That clones the repo into ~/.local/share/leader (override: NVIM_CONFIG_DIR, NVIM_CONFIG_REPO, NVIM_CONFIG_BRANCH) and
 # runs its install.sh. From a clone: ./install.sh [options]. In a terminal it asks one thing, which languages to set up (a
 # checklist of packs, the ones this machine already uses checked); everything else it just does (--ask prompts for the
-# system packages too). An existing nvim config is moved to nvim.bak-<date>, never deleted.
+# system packages too). An existing nvim config is moved to nvim.bak-<date>, never deleted. It also creates the `leader`
+# command (~/.local/bin/leader): in a terminal it is `nvim` itself (same arguments, same exit code); with --app the
+# desktop binary takes that name, and it does the same dispatch (terminal = nvim, menu or --gui = window).
 #
 #   --lang python,sql      those language packs (go dart typescript csharp web python rust sql swift jvm infra yarnspinner) or
 #                          single languages; `all` for every one. Skips the checklist. The base (Lua, Markdown, JSON,
@@ -249,6 +251,31 @@ else
   ok "$TARGET → $ROOT/nvim"
 fi
 
+# ── 2b. The `leader` command: nvim itself ─────────────────────────────────────
+# `leader` typed in a terminal is `nvim` with this config (nvim already loads it: the command is an exec wrapper, so the
+# arguments, the TTY and the exit code are nvim's own). With --app the desktop binary takes this name instead (an ELF
+# binary, not a script), and it does the same dispatch by itself (terminal = nvim, menu or --gui = window): never
+# overwrite it here.
+step "Command: leader (= nvim)"
+LEADER_BIN="$HOME/.local/bin/leader"
+is_leader_wrapper() { [ -f "$LEADER_BIN" ] && grep -q 'Leader in a terminal' "$LEADER_BIN" 2>/dev/null; }
+is_leader_binary() { [ -f "$LEADER_BIN" ] && [ "$(head -c 2 "$LEADER_BIN" 2>/dev/null)" != "#!" ]; }
+if is_leader_binary; then
+  ok "$LEADER_BIN already installed (the desktop app): keeping it (in a terminal it is nvim, from the menu, the window)"
+elif [ -e "$LEADER_BIN" ] && ! is_leader_wrapper; then
+  warn "$LEADER_BIN already exists and is not ours: leaving it alone (remove it and re-run ./install.sh for the wrapper)"
+else
+  run mkdir -p "$(dirname "$LEADER_BIN")"
+  if [ "$DRY" = 1 ]; then
+    printf '  [dry-run] write %s (exec nvim "$@" )\n' "$LEADER_BIN"
+  else
+    printf '#!/bin/sh\n# Leader in a terminal: Neovim with this config, exactly like `nvim`.\n# The desktop app (./install.sh --app) replaces this file with its binary, which does the same dispatch itself.\nexec "${LEADER_NVIM:-nvim}" "$@"\n' >"$LEADER_BIN"
+    chmod +x "$LEADER_BIN"
+  fi
+  ok "$LEADER_BIN: leader = nvim (every nvim argument works: leader file.go)"
+fi
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) warn "add ~/.local/bin to your PATH to type \`leader\` in a shell" ;; esac
+
 # ── 3. Git hooks (up-to-date cheatsheet, conventional commits) ────────────────
 if [ -d "$ROOT/.git" ] && have git; then
   run git -C "$ROOT" config core.hooksPath .githooks
@@ -377,4 +404,4 @@ fi
 
 step "Done in $((SECONDS))s"
 [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ] && printf '  (install log: %s)\n' "${TMPDIR:-/tmp}/nvim-config-install.log"
-ok "open nvim: <Space> shows the menus; CHEATSHEET.md has all the keys"
+ok "open nvim (or leader, the same thing in a terminal): <Space> shows the menus; CHEATSHEET.md has all the keys"

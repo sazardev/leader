@@ -174,7 +174,7 @@ fi
 
 # ── 4. Ready ─────────────────────────────────────────────────────────────────
 step "Ready"
-printf '   Open %sLeader%s from your applications menu, or type %sleader%s (any nvim argument works: leader file.go).\n' "$B" "$N" "$B" "$N"
+printf '   In a terminal, %sleader%s is %snvim%s itself (any nvim argument works: leader file.go); from your applications menu (or with %sleader --gui%s) it opens the window.\n' "$B" "$N" "$B" "$N" "$B" "$N"
 printf '   The first launch shows the %swelcome screen%s: it checks the install and fixes what is missing with Enter.\n' "$B" "$N"
 printf '   %sF10%s the menu · %sCtrl+Shift+P%s the command palette · %sCtrl+Shift+O%s your projects · %sSpace%s every editor menu\n' "$B" "$N" "$B" "$N" "$B" "$N" "$B" "$N"
 case "$HERE" in

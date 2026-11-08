@@ -29,7 +29,8 @@ JSON, YAML, TOML, is always on). Change them later in `<Space>Sp` → Languages.
 4. writes your **per-machine settings** (`nvim/lua/local.lua`, git-ignored): the languages you chose and the options below;
 5. installs the plugins at the versions pinned in `nvim/lazy-lock.json` (in parallel), the LSPs/formatters/linters (Mason) and builds the
    treesitter parsers (`tree-sitter-cli` comes from Mason), reporting the time each step took;
-6. **sets up the AI agent** with the best backend it finds (Claude Code, OpenCode, Ollama…); `--agent none` skips it.
+6. creates the `leader` command (`~/.local/bin/leader`: in a terminal it is `nvim` itself, same arguments and exit code);
+7. **sets up the AI agent** with the best backend it finds (Claude Code, OpenCode, Ollama…); `--agent none` skips it.
 
 Options go after `bash -s --`, for example a Go laptop, fully configured:
 
@@ -40,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh |
 Prefer to clone it yourself (to hack on it)? `git clone https://github.com/sazardev/leader && cd leader && ./install.sh` does exactly
 the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVIM_CONFIG_BRANCH`.
 
-Then open `nvim`. Press `<Space>` and which-key shows you the menus.
+Then open `nvim` — or `leader`, which the installer also creates (`~/.local/bin/leader`): in a terminal it is `nvim` itself. Press `<Space>` and which-key shows you the menus.
 
 There is also a landing page, `docs/index.html` (flat and square like the config, no build, self-hosted Geist in `docs/fonts/`, dark/light with `t`), and the documentation at `docs/docs/index.html` (generated from the Markdown by `scripts/gen-docs.sh`); serve `docs/` with GitHub Pages (`cd docs && python3 -m http.server`).
 
@@ -99,7 +100,7 @@ From a clone:
 app/install.sh --uninstall  # remove the app (the config stays)
 ```
 
-- Open it with `leader [files…]` (any `nvim` argument works) or from the menu; files dropped on the window open in it.
+- In a terminal, `leader [files…]` is `nvim` itself (any `nvim` argument works); from the menu (or with `leader --gui`) it opens the window. Files dropped on the window open in it.
 - The system clipboard works on its own (`"+y`, `"+p`, `Ctrl+Shift+V`), no wl-copy/xclip/OSC 52 needed.
 - Its own title bar, painted with the editor's background so it is part of it (it steps back while a modal such as Telescope is open), in a smaller type than the code, laid out like Zed's. Leader's dotted N (it ripples on hover; also `F10`) opens the **app menu**: File, Edit, Selection, View, Go, Run, Git (inside a repo), Agent, Window and Help, each a submenu whose items do exactly what Leader's own keys do and show them, plus the **command palette** (`Ctrl+Shift+P`: every menu item and every key of the config in one search). The project's name opens the **projects menu** (every folder you worked in, newest first; switching saves the session and restores the other project's, unsaved files are never dropped) and **Open Project…** (`Ctrl+Shift+O`) a full-screen picker: your recent projects and every git project under your home, with the one under the cursor described on the right (branch and changes, last commit, when you opened it, whether a session brings your windows back, its stack, its README); ⏎ opens it, `o` in a new window, `d` forgets it, plus a folder by path, a new project or a clone. ⌂ goes to the start screen, ↺ opens your recent files. Center: the current file's path, every part clickable. Right, live: what is running (LSP indexing with its progress, installs, a save: a dot spinner and a thin progress line), what is left to install, a macro being recorded, the file's git changes, unusual encodings or line endings; then minimize · maximize · close as three small flat squares. Configure it in `gui.appbar`: `controls`, `buttons = { mark, project, home, history }`, `activity`, `show`, `enabled = false` for the system's title bar.
 - Full mouse: everything you can choose follows the pointer and answers a click. Menus light up the item under the pointer and open submenus as you pass over them; the project picker (and every full-screen list of the config) selects the row under the pointer with its details beside it, opens it on a click, and its key chips are buttons; modals light up their buttons; Telescope (the palette and every picker) selects on hover and opens on a click; the file tree opens a file or a folder with one click; the start screen's buttons follow the pointer. Over menus and pickers the pointer is an arrow, over text an I-beam.

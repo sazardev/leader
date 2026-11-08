@@ -1,18 +1,25 @@
 .TH LEADER 1 "" "Leader" "User Commands"
 .SH NAME
-leader \- Neovim with the Leader config in its own GPU window
+leader \- Neovim with the Leader config: nvim in a terminal, its own GPU window from the menu
 .SH SYNOPSIS
 .B leader
-[\fINEOVIM ARGUMENTS\fR...]
+[\-\-gui] [\fINEOVIM ARGUMENTS\fR...]
 .br
 .B leader \-\-help
 |
 .B \-\-version
 .SH DESCRIPTION
 .B leader
-opens the Leader editor: Neovim with Leader's configuration, drawn by the GPU in a native window with its own app bar,
-menus, command palette and project picker. Everything after the command name goes to Neovim, so files, \fB+cmd\fR and
-\fB\-d\fR work as usual.
+is the Leader editor: Neovim with Leader's configuration.
+.PP
+In a terminal (stdin or stdout is a TTY) it is
+.BR nvim
+itself: it replaces its own process with Neovim, so every argument goes to Neovim exactly as typed, with the same
+terminal, job control and exit code. A launch without a terminal (the applications menu) opens Neovim drawn by the GPU
+in a native window with its own app bar, menus, command palette and project picker.
+.B \-\-gui
+(and \fBLEADER_GUI=1\fR) forces the window even from a terminal. Everything after the command name goes to Neovim, so
+files, \fB+cmd\fR and \fB\-d\fR work as usual in both.
 .PP
 The first launch without any Neovim configuration runs
 .BR leader\-setup (1)
@@ -21,6 +28,9 @@ in the window itself, which installs Leader's config.
 .TP
 .B LEADER_NVIM
 The Neovim binary to run (default: nvim on PATH).
+.TP
+.B LEADER_GUI
+Always open the GPU window, even in a terminal (same as \-\-gui).
 .TP
 .B LEADER_FONT
 Font before the config sets guifont, e.g. "Iosevka:h13".

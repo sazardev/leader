@@ -77,6 +77,31 @@ if (Test-Path (Join-Path $Root '.git')) {
   Write-Host '  git hooks enabled (.githooks)'
 }
 
+# The `leader` command: nvim itself. leader.cmd next to nvim.exe when writable, else under %LOCALAPPDATA%\leader\bin
+# (then that folder has to go to PATH). An existing file that is not ours is left alone.
+Step 'Command: leader (= nvim)'
+$leaderCmd = Join-Path (Split-Path (Get-Command nvim).Source) 'leader.cmd'
+$leaderBin = Join-Path $env:LOCALAPPDATA 'leader\bin\leader.cmd'
+$leaderBody = "@echo off`r`nrem Leader in a terminal: Neovim with this config, exactly like nvim.`r`nnvim %*`r`n"
+function Test-OurLeader($p) {
+  try { return ((Get-Content $p -Raw -ErrorAction Stop) -match 'Leader in a terminal') } catch { return $false }
+}
+if (Test-OurLeader $leaderCmd) {
+  Write-Host "  $leaderCmd (already our wrapper)"
+} elseif (Test-OurLeader $leaderBin) {
+  Write-Host "  $leaderBin (already our wrapper)"
+} elseif ((Test-Path $leaderCmd) -and -not (Test-OurLeader $leaderCmd)) {
+  Write-Warning "$leaderCmd already exists and is not ours: leaving it alone"
+} else {
+  $dest = $leaderCmd
+  try { Set-Content $dest $leaderBody -Encoding Ascii -ErrorAction Stop; Write-Host "  $dest : leader = nvim (every nvim argument works: leader file.go)" }
+  catch {
+    New-Item -ItemType Directory -Force -Path (Split-Path $leaderBin) | Out-Null
+    Set-Content $leaderBin $leaderBody -Encoding Ascii
+    Write-Host "  $leaderBin : leader = nvim (add its folder to PATH to type leader in a shell)"
+  }
+}
+
 # Languages: the one question, like install.sh (packs from nvim/lua/languages/packs.lua via install-local.lua --packs)
 if (-not $Lang -and -not (Test-Path (Join-Path $Root 'nvim/lua/local.lua'))) {
   $packs = @(& nvim -u NONE --headless -l (Join-Path $Root 'scripts/install-local.lua') --packs 2>$null | ForEach-Object {
@@ -161,4 +186,4 @@ if (Get-Command herdr -ErrorAction SilentlyContinue) {
 }
 
 Step 'Done'
-Write-Host '  Open nvim: <Space> shows the menus; CHEATSHEET.md has all the keys.'
+Write-Host '  Open nvim (or leader, the same thing in a terminal): <Space> shows the menus; CHEATSHEET.md has all the keys.'

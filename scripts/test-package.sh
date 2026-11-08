@@ -31,6 +31,7 @@ assert len(r.findall('screenshots/screenshot')) >= 3
 PY"
 if command -v groff >/dev/null 2>&1; then
   check "the manual pages are valid roff" "for p in leader.1 leader-setup.1; do ! groff -man -Tutf8 -ww -z '$APP/assets'/\$p 2>&1 | grep -qiE 'error|warning'; done"
+check "the manual says leader in a terminal is nvim and --gui opens the window" "grep -q 'gui' '$APP/assets/leader.1' && grep -q 'LEADER_GUI' '$APP/assets/leader.1'"
 else
   echo "skip groff is not installed"
 fi
