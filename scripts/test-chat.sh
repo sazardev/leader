@@ -1,0 +1,318 @@
+#!/bin/sh
+# Chat (<leader>aC) smoke tests: loads, menus, session/store/prompt/mention/render.
+# Sources hermetic.sh so tests never touch the real state.
+set -e
+cd "$(dirname "$0")/.."
+. scripts/hermetic.sh
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/tmp/leader-test-xdg-chat}"
+mkdir -p "$XDG_CONFIG_HOME"
+ln -sfn "$PWD/nvim" "$XDG_CONFIG_HOME/nvim"
+
+fails=0
+check() { # check <name> <got> <want>
+  if [ "$2" != "$3" ]; then
+    echo "FAIL $1: got $2 want $3"
+    fails=$((fails+1))
+  else
+    echo "ok   $1"
+  fi
+}
+
+nvim --headless -c "lua
+local chat = require('agent.chat')
+local window = require('agent.chat.window')
+local session = require('agent.chat.session')
+local store = require('agent.chat.store')
+local mention = require('agent.chat.mention')
+local render = require('agent.chat.render')
+local prompt = require('agent.chat.prompt')
+
+-- session new + add + totals
+local s = session.new({ root = vim.uv.cwd() })
+session.add(s, { role = 'user', text = 'hola' })
+session.add(s, { role = 'assistant', text = 'hey' })
+session.charge(s, { tokens_in = 100, tokens_out = 50, cost = 0.001 })
+vim.api.nvim_input('')
+
+-- store put/get roundtrip
+store.put(s)
+local back = store.get(s.id)
+assert(back ~= nil, 'store get returns the session')
+assert(back.title ~= '', 'title non-empty')
+
+-- mention parse: no @ -> no sections, slash detection
+local clean, secs, slash = mention.parse('hola mundo')
+assert(slash == nil, 'no slash on plain text')
+assert(#secs == 0, 'no sections on plain text')
+local c2, _, sl = mention.parse('/new')
+assert(sl == 'new', 'slash /new detected')
+
+-- prompt build: stable head + history + sections
+local system, p, injected = prompt.build(s, 'hi', { { name = 'rules', text = 'obey' } })
+assert(system:find('Leader Chat'), 'system mentions Leader Chat')
+assert(p:find('rules'), 'prompt carries sections')
+assert(injected[1] == 'rules', 'injected names')
+
+-- render: header + user + assistant lines, no errors
+local lines = render.lines(s, {})
+assert(#lines > 5, 'render produced lines')
+local joined = table.concat(lines, '\n')
+assert(joined:find('Leader Chat'), 'header shows Chat')
+assert(joined:find('hola'), 'user message visible')
+assert(joined:find('hey'), 'assistant message visible')
+
+-- window open/hide + statusline when idle is empty
+window.session = s
+window.toggle()
+assert(window.is_open(), 'panel open')
+window.hide()
+assert(not window.is_open(), 'panel hidden keeps session')
+assert(window.statusline() == '', 'statusline idle is empty')
+
+-- the input is free text: no completion popup may sit over it and eat <CR>
+window.toggle()
+assert(vim.b[window.input_buf].completion == false, 'blink is off in the chat input')
+assert(vim.bo[window.input_buf].omnifunc == '' and vim.bo[window.input_buf].completefunc == '', 'native completion off')
+window.hide()
+-- premium: open is a right-anchored float, not a bottom split; collapse keeps it on the right
+window.toggle()
+assert(window.is_open(), 'panel reopens')
+local cfg = vim.api.nvim_win_get_config(window.transcript_win)
+assert(cfg.relative ~= '', 'transcript is a float (right-anchored)')
+local mini_w = cfg.width
+-- fullscreen: same floats, full width, still right-anchored blocks
+window.toggle_view()
+assert(window.is_open(), 'full stays open')
+assert(window.current_view() == 'full', 'full view set')
+local full_cfg = vim.api.nvim_win_get_config(window.transcript_win)
+assert(full_cfg.width > mini_w, 'full is wider than mini')
+assert(full_cfg.col == 0 and full_cfg.row == 0, 'full starts at the screen edge')
+assert(full_cfg.width == vim.o.columns, 'full spans every column')
+local full_input = vim.api.nvim_win_get_config(window.input_win)
+assert(full_input.col == 0 and full_input.width == vim.o.columns, 'input spans every column')
+assert(full_input.row == full_cfg.height, 'input is glued below the transcript')
+assert(full_input.row + full_input.height <= vim.o.lines - 1, 'the single statusline row stays free')
+window.toggle_view()
+assert(window.current_view() == 'mini', 'mini restored')
+local mini_cfg = vim.api.nvim_win_get_config(window.transcript_win)
+assert(mini_cfg.width <= mini_w + 4, 'mini width restored')
+window.toggle_collapse()
+assert(window.is_open(), 'rail stays open')
+assert(window.collapsed, 'collapsed flag set')
+local rail_cfg = vim.api.nvim_win_get_config(window.transcript_win)
+assert(rail_cfg.width <= 12, 'rail is narrow')
+assert(window.input_win == nil, 'rail hides the input')
+window.toggle_collapse()
+assert(not window.collapsed, 'expand restores the input')
+assert(window.input_win ~= nil, 'input back')
+window.hide()
+
+-- Esc closes the panel (insert mode included): one Esc from insert hides it
+window.toggle()
+assert(window.is_open(), 'panel open for esc test')
+vim.api.nvim_set_current_win(window.input_win)
+vim.cmd 'startinsert'
+vim.wait(100)
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'mx', false)
+vim.wait(200)
+assert(not window.is_open(), 'esc in insert hides the panel')
+-- and from the transcript in normal mode
+window.toggle()
+vim.api.nvim_set_current_win(window.transcript_win)
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'mx', false)
+vim.wait(200)
+assert(not window.is_open(), 'esc in transcript hides the panel')
+local rail_lines = render.lines(s, { rail = true })
+assert(#rail_lines >= 4, 'rail lines produced')
+local rail_joined = table.concat(rail_lines, '\n')
+assert(rail_joined:find('C'), 'rail shows C')
+
+-- input triggers: "/" commands, "@" files, "#" skills, "$" mcp
+local completion = require('agent.chat.completion')
+local kind, q = completion.detect('/m', 2)
+assert(kind == 'command' and q == 'm', 'detect a slash command')
+assert(#completion.candidates('command', 'm') == 2, 'commands filter')
+assert(completion.candidates('command', '')[1].value == 'new', 'commands in order')
+assert(completion.detect('hola', 4) == nil, 'no trigger on plain text')
+local k2, q2, sc2 = completion.detect('hola @nv', 8)
+assert(k2 == 'file' and q2 == 'nv' and sc2 == 5, 'detect a file mention after text')
+local k3, q3 = completion.detect('lee #cave', 9)
+assert(k3 == 'skill' and q3 == 'cave', 'detect a skill mention')
+local k4 = completion.detect('usa ' .. string.char(36) .. 'open', 9)
+assert(k4 == 'mcp', 'detect an mcp mention')
+-- a command runs at once; a mention is inserted in place
+window.session = s
+window.toggle()
+vim.api.nvim_set_current_win(window.input_win)
+local chat = require('agent.chat')
+local sent
+local orig_send = chat.send
+chat.send = function(text) sent = text end
+vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { '/' })
+vim.api.nvim_win_set_cursor(window.input_win, { 1, 1 })
+completion.sync(window.input_buf, window.input_win)
+assert(completion.is_visible(), 'popup shows for /')
+completion.move(1) -- next: model
+assert(completion.accept() == true, 'command accept consumes')
+assert(sent == '/model', 'command runs immediately')
+assert(not completion.is_visible(), 'popup hides after accept')
+chat.send = orig_send
+vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { 'mira @nvim/init' })
+vim.api.nvim_win_set_cursor(window.input_win, { 1, 14 })
+completion.sync(window.input_buf, window.input_win)
+assert(completion.is_visible(), 'file popup shows for @')
+assert(completion.accept() == true, 'file accept consumes')
+local line_after = vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1]
+assert(line_after:match '^mira @%S+ $', 'mention inserted with trailing space')
+window.hide()
+
+-- menu: <leader>aC is Chat open, <leader>aW is clear file
+local maps = require('menus.agent').maps
+local found_c, found_w = false, false
+for _, m in ipairs(maps) do
+  if m[1] == 'C' then found_c = true end
+  if m[1] == 'W' then found_w = true end
+end
+assert(found_c, '<leader>aC present')
+assert(found_w, '<leader>aW present')
+
+-- live turn (fake backend, no model/network): send("hola") appends a turn
+local backends = require('agent.backends')
+backends.register('chatfake', {
+  name = 'chatfake', label = 'ChatFake', default_model = 'fake-1',
+  available = function() return true end,
+  models = function(cb) cb({ { id = 'fake-1' } }) end,
+  build = function() return { cmd = { 'echo', 'hello from fake' } } end,
+  parser = function()
+    local acc = {}
+    return {
+      feed = function(chunk) acc[#acc + 1] = chunk; return chunk end,
+      finish = function(code) return { ok = true, text = table.concat(acc), usage = { tokens_in = 10, tokens_out = 5, cost = 0 } } end,
+    }
+  end,
+})
+local fake_session = require('agent.chat.session').new({ root = vim.uv.cwd(), backend = 'chatfake', model = 'fake-1' })
+window.session = fake_session
+window.toggle()
+chat.send('hola')
+local waited = vim.wait(3000, function() return not window.running end, 50)
+assert(waited, 'fake turn finished')
+assert(#fake_session.messages == 2, 'fake turn appended user+assistant')
+assert(fake_session.turns == 1, 'fake turn counted')
+assert(fake_session.messages[2].role == 'assistant', 'assistant answered')
+
+-- rendered ranges: one per message, and copy under the cursor copies THAT message
+window.session = fake_session
+window.draw()
+local lines2, _, ranges = render.lines(fake_session, {})
+assert(#ranges == 2, 'one range per message')
+local ui = require('agent.chat.window')
+if not ui.is_open() then ui.toggle() end
+ui.draw()
+vim.api.nvim_set_current_win(ui.transcript_win)
+vim.api.nvim_win_set_cursor(ui.transcript_win, { ui.ranges[1].first, 0 })
+assert(ui.copy_message(), 'copy message under cursor')
+assert(vim.fn.getreg(string.char(34)) == 'hola', 'copied the exact user text')
+-- view more (o): the message opens full size and y copies it
+vim.api.nvim_set_current_win(ui.transcript_win)
+vim.api.nvim_win_set_cursor(ui.transcript_win, { ui.ranges[2].first, 0 })
+vim.api.nvim_feedkeys('o', 'mx', false)
+vim.wait(200)
+assert(ui.zoom and vim.api.nvim_win_is_valid(ui.zoom.win), 'o opens the message view')
+assert(ui.zoom.msg.text == fake_session.messages[2].text, 'view holds the message')
+vim.api.nvim_feedkeys('y', 'mx', false)
+vim.wait(100)
+assert(vim.fn.getreg(string.char(34)) == fake_session.messages[2].text, 'y copies the viewed message')
+ui.hide()
+assert(ui.zoom == nil, 'hide closes the message view')
+
+-- reopening the panel: TextChangedI must not anchor the popup to a dead window
+if not window.is_open() then window.toggle() end
+local stale = window.input_win
+window.hide()
+window.toggle()
+vim.api.nvim_set_current_win(window.input_win)
+vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { '/' })
+vim.api.nvim_win_set_cursor(window.input_win, { 1, 1 })
+local ok_sync, err_sync = pcall(completion.sync, window.input_buf, stale)
+assert(ok_sync, 'sync survives a stale input window: ' .. tostring(err_sync))
+assert(completion.is_visible(), 'popup shows after reopening')
+completion.hide()
+window.hide()
+
+-- input history (Up/Down) and auto-grow
+if not window.is_open() then window.toggle() end
+local hist = require('agent.chat.session').new({ root = vim.uv.cwd(), backend = 'chatfake', model = 'fake-1' })
+require('agent.chat.session').add(hist, { role = 'user', text = 'primero' })
+require('agent.chat.session').add(hist, { role = 'user', text = 'segundo' })
+window.session = hist
+window.clear_input()
+window.history_step(-1)
+assert(vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1] == 'segundo', 'Up recalls the last message')
+window.history_step(-1)
+assert(vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1] == 'primero', 'Up again goes older')
+window.history_step(1)
+assert(vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1] == 'segundo', 'Down goes newer')
+window.history_step(1)
+assert(vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1] == '', 'Down again returns to the draft')
+window.clear_input()
+vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { 'una', 'dos', 'tres' })
+window.auto_height()
+assert(window.input_lines == 3, 'input grows with its lines')
+assert(vim.api.nvim_win_get_height(window.input_win) == 3, 'window height follows')
+window.clear_input()
+assert(window.input_lines == 1, 'clearing shrinks it back')
+window.hide()
+
+-- every model of a backend is offered (chat_models when it exists)
+backends.register('multimodel', {
+  name = 'multimodel', label = 'Multi', default_model = 'a',
+  available = function() return true end,
+  models = function(cb) cb({ { id = 'a' } }) end,
+  chat_models = function(cb) cb({ { id = 'a' }, { id = 'b' }, { id = 'c' } }) end,
+})
+local listed
+chat.models(function(items) listed = items end)
+vim.wait(8000, function() return listed ~= nil end, 50)
+assert(listed ~= nil, 'models answered')
+local multi = vim.tbl_filter(function(it) return it.backend == 'multimodel' end, listed or {})
+assert(#multi == 3, 'all chat_models offered (not the one-shot shortlist)')
+-- ⏎ sends immediately: a backend with no model gets one silently (no picker)
+backends.register('needmodel', {
+  name = 'needmodel', label = 'NeedModel', requires_model = true,
+  available = function() return true end,
+  models = function(cb) cb({ { id = 'only-one' } }) end,
+  build = function() return { cmd = { 'echo', 'model picked answer' } } end,
+  parser = function()
+    local acc = {}
+    return {
+      feed = function(c) acc[#acc + 1] = c; return c end,
+      finish = function() return { ok = true, text = table.concat(acc), usage = { tokens_in = 1, tokens_out = 1 } } end,
+    }
+  end,
+})
+local need = require('agent.chat.session').new({ root = vim.uv.cwd(), backend = 'needmodel' })
+window.session = need
+if not window.is_open() then window.toggle() end
+window.clear_input()
+vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { 'hola sin modelo' })
+local accepted = chat.send('hola sin modelo')
+assert(accepted == true, 'enter sends immediately (no picker step)')
+vim.wait(3000, function() return #need.messages >= 2 end, 50)
+assert(#need.messages >= 2, 'the message was sent with the auto-picked model')
+assert(need.model == 'only-one', 'the picked model is remembered')
+assert(vim.api.nvim_buf_get_lines(window.input_buf, 0, -1, false)[1] == '', 'input cleared when sent')
+window.clear_input()
+
+-- export copies the whole transcript
+chat.export()
+local reg = vim.fn.getreg(string.char(34))
+assert(reg:find('hola sin modelo', 1, true) and reg:find('model picked answer', 1, true), 'export copies every message')
+window.hide()
+
+print('CHAT OK')
+" -c "qa" 2>&1 | tee /tmp/chat-test.out
+grep -q "CHAT OK" /tmp/chat-test.out || { echo "FAIL chat smoke"; fails=$((fails+1)); }
+if [ $fails -gt 0 ]; then echo "FAILURES: $fails"; exit 1; fi
+echo "ALL OK"

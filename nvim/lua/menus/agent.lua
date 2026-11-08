@@ -56,6 +56,13 @@ vim.list_extend(maps, {
   },
   {
     "C",
+    "Chat open",
+    function()
+      require("agent.chat").open()
+    end,
+  },
+  {
+    "W",
     "clear file",
     function()
       agent().clear "file"

@@ -18,6 +18,8 @@ run() {
 }
 
 run "agent and commits" "$ROOT/scripts/test-agent.sh"
+run "chat" "$ROOT/scripts/test-chat.sh"
+run "chat pure/render" "$ROOT/scripts/test-chat-pure.sh"
 run "Go helpers" "$ROOT/scripts/test-go.sh"
 run "C# helpers" "$ROOT/scripts/test-csharp.sh"
 run "installer" "$ROOT/scripts/test-install.sh"

@@ -518,6 +518,37 @@ local defaults = {
     -- docs/cheatsheets/agent.md → "Backends". Example (CHECK the flags of your version):
     --   custom = { hermes = { cmd = { "hermes", "chat", "-q", "{prompt}" }, system_in_prompt = true, models = { "default" } } }
     custom = {},
+
+    -- Chat (<leader>aC, lua/agent/chat/): persistent multi-turn chat, backend-agnostic.
+    -- A panel like Opencode/Claude Code under Leader: choose any backend/model from
+    -- your machine (claude, opencode, ollama, openai, custom), pick effort, mention
+    -- files (@path), run /commands, invoke #skills and $mcp servers. Everything it
+    -- injects (rules, diagnostics, files, skills), the thinking stream, the tokens
+    -- and the cost are shown in the transcript. Hiding the panel does not stop the
+    -- session: the statusline chip keeps the progress.
+    chat = {
+      enabled = true,
+      view = "mini", -- "mini" (right panel, default) | "full" (borderless full screen). Ctrl-F or :Chat full/mini
+      position = "right", -- legacy position key, kept for compat (view decides now)
+      width = 0.38, -- fraction of columns (right), clamped to 48..72 cols
+      rail_width = 9, -- collapsed width (vertical "CHAT" tab on the right edge)
+      height = 0.35, -- fraction of lines (bottom, only when position = "bottom")
+      input_height = 5, -- lines of the input box
+      top_margin = 2, -- rows from the top (like the commit panel)
+      right_margin = 2, -- cols from the right edge
+      gap = 1, -- rows of editor between transcript, input and status
+      show_context = true, -- collapsible disclosure of what was injected per turn
+      show_thinking = true,
+      show_tokens = true,
+      max_history_chars = 60000, -- history sent to the model (oldest turns dropped)
+      max_mention_chars = 12000, -- cap per @file mention
+      mention_chars = 12000, -- alias of max_mention_chars (older docs)
+      max_context_chars = 12000, -- cap of auto context (rules, diagnostics, git, open files)
+      autosave = true, -- persist sessions in stdpath("state")/agent-chat.json
+      confirm_send = false, -- ask before each turn (budget-style estimate)
+      timeout_ms = 180000, -- a chat turn may answer longer than a one-shot action
+      title_from_first = true, -- name the session from the first user message
+    },
   },
 
   -- Agent skills (lua/skills, <leader>aK): SKILL.md files the agents load on demand

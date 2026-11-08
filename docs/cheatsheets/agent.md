@@ -8,19 +8,37 @@ predictable and cheap. Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md) (**Agent** m
 ## Chat (`<leader>aC`, `agent/chat/`)
 
 A right-side panel with a read-only transcript and an input box, like Opencode/Claude Code but orchestrated by Leader:
-pick **any backend/model on the machine** (claude, opencode, ollama, openai, custom — same list as `<leader>am`, in the chat
-chooser), pick effort, get streaming answers with thinking. Everything is shown: the header (`model claude/haiku · 3 turns ·
-1.2k in / 0.8k out · $0.0004`), what was **injected** per turn (rules, buffer, diagnostics, git, skills, mcp, @files) and the
-turn's tokens/cost/time. Hiding the panel (`q`, `Esc`, `<C-q>`) keeps the session — the statusline chip `⠹ chat · claude`
-keeps the progress from any buffer. Sessions persist per project (`stdpath("state")/agent-chat.json`); every turn also lands
+pick **any backend/model on the machine** (claude, opencode, ollama, openai, custom). The picker lists **every model the
+backend knows** (opencode: all `opencode models`, curated fast ones first), not just the one-shot shortlist. Pick effort,
+get streaming answers with thinking. Everything is shown: the header (`model claude/haiku · 3 turns · 1.2k in / 0.8k out ·
+$0.0004`), what was **injected** per turn (rules, buffer, diagnostics, git, skills, mcp, @files) and the turn's
+tokens/cost/time. Hiding the panel (`q`, `Esc`, `<C-q>`) keeps the session — a single statusline chip (`⠹ deepseek-v4.1-flash`)
+keeps the progress from any buffer. The panel itself has no extra status line or input title: one block of
+messages, one input, nothing repeated. Sessions persist per project (`stdpath("state")/agent-chat.json`); every turn also lands
 in the agent history, so the spend/budget guards apply unchanged.
 
-- **Send**: `⏎` in the input box (`Shift-⏎`/`Ctrl-J` newline). **Mentions**: `@file` (path), `@buf` (buffer), `@sel`
-  (selection), `@diag` (diagnostics), `#skill`, `$mcp`. **Slash**: `/new`, `/clear`, `/model`, `/effort`, `/adr`, `/export`,
-  `/help`. **Keys**: `Ctrl-N` new, `Ctrl-H` sessions, `Ctrl-M` model, `Ctrl-E` effort, `Ctrl-A` ADR, `Ctrl-X` stop.
+- **Send**: `⏎` sends at once with the current model (session pick > `<leader>am` > the backend's default). It never stops
+  to ask for a model: a backend that needs one and has none resolves it silently (the CLI's first) and says
+  `Chat: using <model>`. `Shift-⏎`/`Ctrl-J` newline.
+- **Input triggers** (a filtered selector under the cursor; `⏎`/`Tab` accepts, `↑`/`↓` moves, `Esc` closes it):
+  `/` at the start of the line → commands (`/new`, `/model`, `/effort`, `/clear`, `/adr`, `/export`, `/full`, `/mini`,
+  `/collapse`, `/help`, run as soon as you pick one); `@` → project files (tracked + untracked, gitignore respected; it
+  inserts `@path`) plus `@buf`, `@sel`, `@diag`; `#` → skills; `$` → MCP servers. `↑`/`↓` with no selector recalls the
+  previous user messages, `↓` past the newest returns to your draft. The input grows with its content
+  (`input_height` is the maximum) and `Esc` hides the panel.
+- **View**: `Ctrl-F` toggles **mini ↔ full screen** (`:Chat full`/`:Chat mini`, `/full`, `/mini`). Full is borderless and
+  edge to edge (no padding, no titles): the transcript fills every column and row, the input sits glued at the bottom and
+  the single statusline stays. `Ctrl-T` collapses to the right rail (mini only). **Keys**: `Ctrl-N` new, `Ctrl-H` sessions (history), `Ctrl-M` model, `Ctrl-E` effort, `Ctrl-A` ADR,
+  `Ctrl-X` stop, `Ctrl-Q` hide.
+- **Transcript**: `y` copies the message under the cursor, `c` the fenced code block under it (the clipboard gets the
+  code, not the fences), `Y` the whole transcript, `o`/`⏎` opens that message full size (markdown; `y` copies it there too),
+  `h` sessions, `i` back to the input. Markdown is kept verbatim (fences at column 0, headings, lists, quotes) so
+  treesitter/render-markdown style it and the copy is byte-exact; CRLF, ANSI escapes and control characters are cleaned
+  for display AND copy, tabs and wide characters are preserved.
 - **ADR**: `/adr` (or `Ctrl-A`) drafts an ADR from the chat into `docs/adr/` (same shape as the build's ADRs).
-- **Settings** (`settings.agent.chat`): `position` (`right`/`bottom`/`float`), `width`/`height`, `show_context`,
-  `show_thinking`, `show_tokens`, `max_history_chars`, `max_context_chars`, `max_mention_chars`, `timeout_ms`, `autosave`.
+- **Settings** (`settings.agent.chat`): `view` (`mini`/`full`), `width`, `rail_width`, `input_height`, `top_margin`,
+  `right_margin`, `gap`, `show_context`, `show_thinking`, `show_tokens`, `max_history_chars`, `max_context_chars`,
+  `max_mention_chars`, `timeout_ms`, `autosave`.
 
 **Clear file** moved from `<leader>aC` to `<leader>aW` (`:AgentClear file` still works).
 

@@ -33,6 +33,8 @@ M.PANELS = {
   query = true,
   ["gitsigns-blame"] = true,
   NeogitStatus = true,
+  leaderchat = true,
+  leaderchat_input = true,
 }
 
 --- Windows that keep their own Esc or are the thing you are working in.

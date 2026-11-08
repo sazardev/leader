@@ -108,6 +108,24 @@ function M.build_status()
   }
 end
 
+--- The chat (<leader>aC) while a turn runs, even when the panel is hidden:
+--- "⠹ chat · claude". It does not load the chat when it was never opened.
+---@return table lualine component
+function M.chat_status()
+  local function text()
+    local chat = package.loaded["agent.chat.window"]
+    return chat and chat.statusline() or ""
+  end
+  return {
+    text,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = "AgentStatus",
+    padding = 0,
+  }
+end
+
 --- The statusline of the build tab (<leader>aSb), for its buffers (filetype agentbuild): the phase as the mode chip,
 --- the keys of the moment, then progress · money · cache · time
 ---@return table lualine extension

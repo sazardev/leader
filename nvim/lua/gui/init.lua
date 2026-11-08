@@ -515,6 +515,7 @@ function M.app_menu()
         { label = "Write Docs", keys = "<leader>ad" },
         { label = "Next Edit", keys = "<leader>an" },
         { sep = true },
+        { label = "Chat…", keys = "<leader>aC" },
         { label = "History", keys = "<leader>ah" },
         { label = "Model…", keys = "<leader>am" },
         { label = "Stop", keys = "<leader>ax" },
@@ -881,6 +882,9 @@ M.actions = {
   end,
   agent = function(col)
     require("gui.menu").open(M.agent_menu(), { col = col })
+  end,
+  chat = function()
+    require("agent.chat").open()
   end,
   tree = function()
     pcall(vim.cmd, "NvimTreeToggle")

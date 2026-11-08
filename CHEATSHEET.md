@@ -70,7 +70,8 @@ _Where: global_
 | `<leader>am` | model |
 | `<leader>ah` | history |
 | `<leader>ac` | clear |
-| `<leader>aC` | clear file |
+| `<leader>aC` | Chat open |
+| `<leader>aW` | clear file |
 | `<leader>au` | undo run |
 | `<leader>ax` | stop |
 | `<leader>al` | last answer |
@@ -999,7 +1000,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aAo` | n | Fix from output |
 | `<leader>aAp` | n | Plan across files |
 | `<leader>aAy` | n | Accept all |
-| `<leader>aC` | n | Clear file |
+| `<leader>aC` | n | Chat open |
 | `<leader>aDa` | n,x | Ddd ask |
 | `<leader>aDc` | n | Ddd clear |
 | `<leader>aDd` | n | Ddd diagnose |
@@ -1053,6 +1054,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>aUd` | n | Service deps |
 | `<leader>aUi` | n,x | Service implement |
 | `<leader>aUr` | n,x | Service review |
+| `<leader>aW` | n | Clear file |
 | `<leader>aXc` | n | Doctor command |
 | `<leader>aXd` | n | Doctor describe |
 | `<leader>aXh` | n | Doctor health |

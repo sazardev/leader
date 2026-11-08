@@ -64,6 +64,38 @@ function M.setup()
     end,
     desc = "Discard agent findings: line (default), file or all",
   })
+
+  -- :Chat — the persistent chat (<leader>aC). One panel, backend-agnostic.
+  vim.api.nvim_create_user_command("Chat", function(o)
+    local arg = (o.args or ""):match "%S+"
+    if arg == "new" then
+      require("agent.chat").new_session()
+    elseif arg == "history" or arg == "sessions" then
+      require("agent.chat").pick_session()
+    elseif arg == "model" then
+      require("agent.chat").pick_model()
+    elseif arg == "effort" then
+      require("agent.chat").pick_effort()
+    elseif arg == "adr" then
+      require("agent.chat").draft_adr()
+    elseif arg == "collapse" then
+      require("agent.chat").toggle_collapse()
+    elseif arg == "full" then
+      require("agent.chat").set_view "full"
+    elseif arg == "mini" then
+      require("agent.chat").set_view "mini"
+    elseif arg == "help" then
+      require("agent.chat").help()
+    else
+      require("agent.chat").open()
+    end
+  end, {
+    nargs = "?",
+    complete = function()
+      return { "new", "history", "sessions", "model", "effort", "adr", "collapse", "full", "mini", "help" }
+    end,
+    desc = "Toggle Leader Chat (backend-agnostic, <leader>aC)",
+  })
 end
 
 return M

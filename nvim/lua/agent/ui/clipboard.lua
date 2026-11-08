@@ -8,7 +8,8 @@ local M = {}
 ---@param text string
 ---@param what string what was copied ("run", "prompt"...)
 function M.copy(text, what)
-  vim.fn.setreg("+", text)
+  -- a headless/test machine may have no clipboard provider: the unnamed register still works
+  pcall(vim.fn.setreg, "+", text)
   vim.fn.setreg('"', text)
   log.info(("Agent: copied %s (%.1f KB)"):format(what, #text / 1024))
 end

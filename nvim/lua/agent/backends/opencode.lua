@@ -78,16 +78,13 @@ end
 local cached
 
 ---@param cb fun(models: table[])
-function M.models(cb)
-  if settings.models then
-    return cb(vim.tbl_map(function(id)
-      return { id = id }
-    end, settings.models))
-  end
+local function all_models(cb)
   if cached then
     return cb(cached)
   end
-  vim.system({ "opencode", "models" }, { text = true }, function(out)
+  -- `stdin` must be closed: without `</dev/null` the CLI never exits (it waits on stdin);
+  -- `timeout` guarantees an answer even when its managed service is stuck
+  vim.system({ "opencode", "models" }, { text = true, stdin = "", timeout = 6000 }, function(out)
     vim.schedule(function()
       local list = {}
       for line in (out.stdout or ""):gmatch "[^\r\n]+" do
@@ -95,10 +92,49 @@ function M.models(cb)
           list[#list + 1] = { id = line }
         end
       end
+      -- the curated shortlist wins the top of the list (fast/cheap) but never hides the rest;
+      -- only names the CLI actually lists are kept. If it answered nothing (offline, a
+      -- managed-service port taken), the shortlist is still offered so the picker is usable.
+      if settings.models then
+        local available = {}
+        for _, m in ipairs(list) do
+          available[m.id] = true
+        end
+        local ordered, seen = {}, {}
+        for _, id in ipairs(settings.models) do
+          if #list == 0 or available[id] then
+            ordered[#ordered + 1] = { id = id }
+            seen[id] = true
+          end
+        end
+        for _, m in ipairs(list) do
+          if not seen[m.id] then
+            ordered[#ordered + 1] = m
+          end
+        end
+        list = ordered
+      end
       cached = list
       cb(list)
     end)
   end)
+end
+
+---@param cb fun(models: table[])
+function M.models(cb)
+  if settings.models then
+    return cb(vim.tbl_map(function(id)
+      return { id = id }
+    end, settings.models))
+  end
+  all_models(cb)
+end
+
+--- Every model the CLI lists (the curated `settings.models` is only the
+--- one-shot shortlist): the Chat picker must show all of them. Same signature.
+---@param cb fun(models: table[])
+function M.chat_models(cb)
+  all_models(cb)
 end
 
 --- MCP servers of the user's global opencode config: name → definition. The inline config merges over it, so

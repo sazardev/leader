@@ -13,13 +13,41 @@ local M = {}
 M.FRESH_STEPS = 6 -- frames of the "just changed" flash (FlatFresh1 … FlatFreshN, fading to nothing)
 
 --- The inline agent: instruction block, running chip, proposed diff, answer window
+--- Chat (<leader>aC): right-anchored floating panel, same blocks as the commit panel
+--- (blue title chips, deep input bar, faint hints).
+---@param t FlatTokens
+---@return table<string, table>
+function M.chat(t)
+  local function veil(c, a)
+    return palette.veil(t, c, a)
+  end
+  local input_bg = color.blend(t.soft, t.deep, 0.5)
+  return {
+    ChatHeader = { fg = t.on, bg = t.blue, bold = true },
+    ChatHeaderWarn = { fg = t.on, bg = t.yellow, bold = true },
+    ChatTitle = { fg = t.fg, bg = t.soft, bold = true },
+    ChatMeta = { fg = t.faint, bg = t.soft },
+    ChatUser = { fg = t.fg, bg = veil(t.blue, 0.12) },
+    ChatUserIcon = { fg = t.yellow, bg = veil(t.blue, 0.12), bold = true },
+    ChatAssistant = { fg = t.fg, bg = t.soft },
+    ChatAssistantIcon = { fg = t.purple, bg = t.soft, bold = true },
+    ChatThinking = { fg = t.faint, bg = t.soft, italic = true },
+    ChatTool = { fg = t.purple, bg = t.soft },
+    ChatToolIcon = { fg = t.purple, bg = t.soft, bold = true },
+    ChatFloat = { fg = t.fg, bg = t.soft },
+    ChatBorder = { fg = t.soft, bg = t.soft },
+    ChatInput = { fg = t.fg, bg = input_bg },
+    ChatInputPlaceholder = { fg = t.faint, bg = input_bg, italic = true },
+  }
+end
+
 ---@param t FlatTokens
 ---@return table<string, table>
 function M.agent(t)
   local function veil(c, a)
     return palette.veil(t, c, a)
   end
-  return {
+  local g = {
     AgentTarget = { bg = veil(t.fg, 0.05) }, -- the code that was sent, while it runs: a veil barely stronger than the background
     AgentStatus = { fg = t.purple, bg = veil(t.purple, 0.14), bold = true }, -- the spinner chip at the end of the line
     AgentDone = { fg = t.green, bg = veil(t.green, 0.12) },
@@ -36,6 +64,10 @@ function M.agent(t)
     AgentBorder = { fg = t.soft, bg = t.soft },
     AgentTitle = { fg = t.faint, bg = t.soft, bold = true },
   }
+  for name, def in pairs(M.chat(t)) do
+    g[name] = def
+  end
+  return g
 end
 
 --- The commit panel (<leader>G c): same surfaces as the agent, title bars like the demo

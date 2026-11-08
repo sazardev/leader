@@ -84,7 +84,7 @@ function M.clear(scope, first, last)
     n = findings.resolve(buf, first, last) + ddd.resolve(buf, first, last)
     if n == 0 then
       return log.info(
-        first == last and "Agent: no finding on this line (<leader>aC clears the whole file)"
+        first == last and "Agent: no finding on this line (<leader>aW clears the whole file)"
           or "Agent: no findings in the selection"
       )
     end
@@ -160,6 +160,11 @@ end
 --- Main model, light model and effort, in a single picker
 function M.settings()
   require("agent.chooser").menu()
+end
+
+--- The persistent chat (<leader>aC): backend-agnostic, right panel, transparent.
+function M.chat(...)
+  require("agent.chat").open(...)
 end
 
 return M

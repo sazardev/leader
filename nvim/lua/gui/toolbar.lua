@@ -143,6 +143,22 @@ M.TOOLS = {
     action = "agent",
   },
   {
+    id = "chat",
+    side = "right",
+    on = true,
+    title = "Chat",
+    desc = "the persistent Leader Chat (backend-agnostic, <leader>aC)",
+    icon = "\u{f086}",
+    tip = function()
+      return "Chat · <leader>aC"
+    end,
+    action = "chat",
+    active = function()
+      local chat = package.loaded["agent.chat.window"]
+      return chat and chat.is_open() or false
+    end,
+  },
+  {
     id = "theme",
     side = "right",
     on = true,
