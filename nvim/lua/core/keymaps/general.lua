@@ -101,7 +101,7 @@ function M.setup()
     require("codesearch").open()
   end, { desc = "Find project symbols" })
   map("n", "<leader>fc", function()
-    require("telescope.builtin").current_buffer_fuzzy_find()
+    require("find.current").open()
   end, { desc = "Find in current file" })
 
   -- CTRL+click → go to definition (LSP); <Esc> or <C-o> goes back, <C-i> forward
