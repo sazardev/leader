@@ -14,6 +14,6 @@ return {
     name = "C#",
     prefix = "c",
     maps = require "languages.actions.csharp",
-    groups = { S = "setup", D = "debug", L = "project" },
+    groups = { S = "setup", D = "debug", L = "project", G = "run" },
   },
 }

@@ -1,0 +1,82 @@
+{
+  "page": {
+    "prefix": ["page"],
+    "body": ["@page \"${1:/path}\"", "", "$0"],
+    "description": "Blazor @page directive"
+  },
+  "code": {
+    "prefix": ["code"],
+    "body": ["@code {", "\t$0", "}"],
+    "description": "@code block"
+  },
+  "inject": {
+    "prefix": ["inject"],
+    "body": ["@inject ${1: IService} ${2:Service}"],
+    "description": "@inject a service"
+  },
+  "using": {
+    "prefix": ["using"],
+    "body": ["@using ${1:Namespace}"],
+    "description": "@using directive"
+  },
+  "namespace": {
+    "prefix": ["namespace"],
+    "body": ["@namespace ${1:MyApp.Pages}"],
+    "description": "@namespace directive"
+  },
+  "implements": {
+    "prefix": ["implements"],
+    "body": ["@implements ${1:IDisposable}"],
+    "description": "@implements an interface"
+  },
+  "attribute": {
+    "prefix": ["attribute"],
+    "body": ["@attribute [${1:Authorize}]"],
+    "description": "@attribute"
+  },
+  "rendermode": {
+    "prefix": ["rendermode"],
+    "body": ["@rendermode ${1:InteractiveServer(prerender: false)}"],
+    "description": "@rendermode (InteractiveServer / InteractiveWebAssembly)"
+  },
+  "functions": {
+    "prefix": ["functions"],
+    "body": ["@functions {", "\t$0", "}"],
+    "description": "@functions block"
+  },
+  "parameter": {
+    "prefix": ["parameter"],
+    "body": ["[Parameter] public ${1:string} ${2:Name} { get; set; } = default!;"],
+    "description": "[Parameter] property"
+  },
+  "eventcallback": {
+    "prefix": ["eventcallback"],
+    "body": ["[Parameter] public EventCallback<${1:T}> ${2:OnChanged} { get; set; }"],
+    "description": "EventCallback parameter"
+  },
+  "if": {
+    "prefix": ["if"],
+    "body": ["@if (${1:condition}) {", "\t$0", "}"],
+    "description": "@if block"
+  },
+  "foreach": {
+    "prefix": ["foreach"],
+    "body": ["@foreach (var ${1:item} in ${2:items}) {", "\t$0", "}"],
+    "description": "@foreach block"
+  },
+  "for": {
+    "prefix": ["for"],
+    "body": ["@for (var ${1:i} = 0; ${1:i} < ${2:count}; ${1:i}++) {", "\t$0", "}"],
+    "description": "@for block"
+  },
+  "component": {
+    "prefix": ["component"],
+    "body": ["<${1:MyComponent} ${2:Param}=\"${3:value}\" />"],
+    "description": "Component tag"
+  },
+  "ref": {
+    "prefix": ["ref"],
+    "body": ["@ref ${1:_element}"],
+    "description": "@ref to an element"
+  }
+}

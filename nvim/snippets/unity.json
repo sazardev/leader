@@ -1,0 +1,42 @@
+{
+  "monobehaviour": {
+    "prefix": ["monobehaviour", "mb"],
+    "body": ["using UnityEngine;", "", "public class ${1:Name} : MonoBehaviour", "{", "\tvoid Start()", "\t{", "\t\t$0", "\t}", "", "\tvoid Update()", "\t{", "\t\t", "\t}", "}"],
+    "description": "MonoBehaviour script"
+  },
+  "serializedfield": {
+    "prefix": ["serializedfield"],
+    "body": ["[SerializeField] private ${1:float} ${2:value};"],
+    "description": "[SerializeField] field"
+  },
+  "header": {
+    "prefix": ["header"],
+    "body": ["[Header(\"${1:Movement}\")]"],
+    "description": "[Header] attribute"
+  },
+  "requirecomponent": {
+    "prefix": ["requirecomponent"],
+    "body": ["[RequireComponent(typeof(${1:Rigidbody}))]"],
+    "description": "[RequireComponent]"
+  },
+  "start": {
+    "prefix": ["start"],
+    "body": ["void Start()", "{", "\t$0", "}"],
+    "description": "Start method"
+  },
+  "update": {
+    "prefix": ["update"],
+    "body": ["void Update()", "{", "\t$0", "}"],
+    "description": "Update method"
+  },
+  "fixedupdate": {
+    "prefix": ["fixedupdate"],
+    "body": ["void FixedUpdate()", "{", "\t$0", "}"],
+    "description": "FixedUpdate method"
+  },
+  "ontriggerenter": {
+    "prefix": ["ontriggerenter"],
+    "body": ["void OnTriggerEnter(Collider other)", "{", "\t$0", "}"],
+    "description": "OnTriggerEnter handler"
+  }
+}

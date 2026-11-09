@@ -11,7 +11,7 @@ return {
     { id = "go", label = "Go", langs = { "go" }, detect = { "go" } },
     { id = "dart", label = "Dart / Flutter", langs = { "dart" }, detect = { "flutter", "dart" } },
     { id = "typescript", label = "TypeScript / JavaScript", langs = { "typescript" }, detect = { "tsc", "bun", "deno", "pnpm", "yarn" } },
-    { id = "csharp", label = "C# / .NET", langs = { "csharp" }, detect = { "dotnet" } },
+    { id = "csharp", label = "C# / .NET (+ Razor/XAML/Unity)", langs = { "csharp", "razor", "xaml", "unity" }, detect = { "dotnet" } },
     { id = "web", label = "Web: HTML, CSS, Tailwind, Astro", langs = { "html", "css", "tailwind", "astro" }, detect = { "bun", "pnpm" } },
     { id = "python", label = "Python", langs = { "python" }, detect = { "uv", "poetry", "pipx", "pyenv" } },
     { id = "rust", label = "Rust", langs = { "rust" }, detect = { "cargo", "rustup" } },

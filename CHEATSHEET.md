@@ -42,6 +42,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>m` | Markdown | `markdown` |
 | `<leader>e` | Prisma | `prisma` |
 | `<leader>p` | Python | `python` |
+| `<leader>c` | Razor | `razor` |
 | `<leader>R` | Run | global |
 | `<leader>r` | Rust | `rust` |
 | `<leader>Q` | SQL | `sql` |
@@ -49,7 +50,10 @@ which-key only shows what belongs to the current buffer.
 | `<leader>S` | Settings | global |
 | `<leader>aK` | Skills | global |
 | `<leader>i` | Swift | `swift` |
+| `<leader>T` | Terminal | global |
 | `<leader>t` | TypeScript / JavaScript | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
+| `<leader>U` | Unity | `unity` |
+| `<leader>x` | XAML | `xaml` |
 
 ### Agent — `<leader>a`
 
@@ -247,6 +251,11 @@ _Where: `cs`_
 | `<leader>cE` | EF database update |
 | `<leader>cI` | SDK info |
 | `<leader>cH` | inlay hints |
+| `<leader>ch` | HTTP test file (.http + curl) |
+| `<leader>cNo` | Noodle collection (open TUI) |
+| `<leader>cLo` | solution explorer |
+| `<leader>cGr` | run configurations |
+| `<leader>cx` | NuGet manager |
 | `<leader>cLl` | list solutions/projects |
 | `<leader>cLa` | add project to solution |
 | `<leader>cLr` | add project reference |
@@ -682,6 +691,65 @@ _Where: `python`_
 | `<leader>pSm` | setup Makefile |
 | `<leader>pSg` | setup gitignore |
 
+### Razor — `<leader>c`
+
+_Where: `razor`_
+
+| Key | Action |
+|---|---|
+| `<leader>cr` | dotnet run |
+| `<leader>cw` | dotnet watch (hot reload) |
+| `<leader>cb` | dotnet build |
+| `<leader>cp` | dotnet publish Release |
+| `<leader>cf` | format (CSharpier) |
+| `<leader>cF` | dotnet format |
+| `<leader>cv` | verify formatting |
+| `<leader>co` | open solution/project |
+| `<leader>cn` | new project (dotnet new) |
+| `<leader>cP` | add NuGet package |
+| `<leader>cR` | remove NuGet package |
+| `<leader>cN` | search NuGet packages |
+| `<leader>cU` | update outdated packages |
+| `<leader>cQ` | vulnerable packages (quickfix) |
+| `<leader>cu` | dotnet restore |
+| `<leader>ce` | EF migration add |
+| `<leader>cE` | EF database update |
+| `<leader>cI` | SDK info |
+| `<leader>cH` | inlay hints |
+| `<leader>ch` | HTTP test file (.http + curl) |
+| `<leader>cNo` | Noodle collection (open TUI) |
+| `<leader>cLo` | solution explorer |
+| `<leader>cGr` | run configurations |
+| `<leader>cx` | NuGet manager |
+| `<leader>cLl` | list solutions/projects |
+| `<leader>cLa` | add project to solution |
+| `<leader>cLr` | add project reference |
+| `<leader>cm` | test under cursor |
+| `<leader>cM` | test file |
+| `<leader>cA` | test all |
+| `<leader>c.` | test again |
+| `<leader>cT` | test file toggle |
+| `<leader>cO` | test output |
+| `<leader>cDd` | debug program |
+| `<leader>cDb` | debug breakpoint toggle |
+| `<leader>cDB` | debug breakpoint condition |
+| `<leader>cDc` | debug continue |
+| `<leader>cDn` | debug step over |
+| `<leader>cDi` | debug step into |
+| `<leader>cDo` | debug step out |
+| `<leader>cDu` | debug panel |
+| `<leader>cSe` | setup .editorconfig |
+| `<leader>cSb` | setup Directory.Build.props |
+| `<leader>cSG` | setup global.json (SDK pin) |
+| `<leader>cSc` | setup GitHub Actions CI |
+| `<leader>cSd` | setup Dockerfile (ASP.NET) |
+| `<leader>cSi` | setup .dockerignore |
+| `<leader>cSp` | setup several files |
+| `<leader>cSm` | setup Makefile |
+| `<leader>cSg` | setup gitignore |
+| `<leader>cSr` | setup Roslyn server |
+| `<leader>cSf` | setup dotnet-ef |
+
 ### Run — `<leader>R`
 
 _Where: global_
@@ -847,6 +915,17 @@ _Where: `swift`_
 | `<leader>iSm` | setup Makefile |
 | `<leader>iSg` | setup gitignore |
 
+### Terminal — `<leader>T`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Tt` | Terminal show / hide |
+| `<leader>Tl` | Terminal list |
+| `<leader>Tn` | Terminal new shell |
+| `<leader>Ts` | Terminal stop |
+
 ### TypeScript / JavaScript — `<leader>t`
 
 _Where: `typescript`, `typescriptreact`, `javascript`, `javascriptreact`_
@@ -887,6 +966,30 @@ _Where: `typescript`, `typescriptreact`, `javascript`, `javascriptreact`_
 | `<leader>tSp` | setup several files |
 | `<leader>tSm` | setup Makefile |
 | `<leader>tSg` | setup gitignore |
+
+### Unity — `<leader>U`
+
+_Where: `unity`_
+
+| Key | Action |
+|---|---|
+| `<leader>Uf` | format (prettier) |
+| `<leader>Uo` | open project in Unity |
+| `<leader>UR` | refresh Asset Database |
+| `<leader>US` | generate .sln (C# tools) |
+| `<leader>UI` | project info |
+
+### XAML — `<leader>x`
+
+_Where: `xaml`_
+
+| Key | Action |
+|---|---|
+| `<leader>xf` | format (prettier) |
+| `<leader>xb` | dotnet build |
+| `<leader>xF` | dotnet format |
+| `<leader>xu` | dotnet restore |
+| `<leader>xI` | SDK info |
 
 ## LSP (when a server attaches)
 
@@ -1363,6 +1466,10 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<A-i>` | n,t | Toggle floating term |
 | `<A-v>` | n,t | Toggleable vertical term |
 | `<C-x>` | t | Escape terminal mode |
+| `<leader>Tl` | n | Terminal list |
+| `<leader>Tn` | n | Terminal new shell |
+| `<leader>Ts` | n | Terminal stop |
+| `<leader>Tt` | n | Terminal show / hide |
 
 ### Textobject
 

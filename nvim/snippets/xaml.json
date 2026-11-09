@@ -1,0 +1,47 @@
+{
+  "window": {
+    "prefix": ["window"],
+    "body": ["<Window x:Class=\"${1:MyApp.MainWindow}\"", "        xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"", "        xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">", "\t$0", "</Window>"],
+    "description": "Window root"
+  },
+  "grid": {
+    "prefix": ["grid"],
+    "body": ["<Grid>", "\t$0", "</Grid>"],
+    "description": "Grid panel"
+  },
+  "stackpanel": {
+    "prefix": ["stackpanel"],
+    "body": ["<StackPanel Orientation=\"${1:Vertical}\">", "\t$0", "</StackPanel>"],
+    "description": "StackPanel"
+  },
+  "button": {
+    "prefix": ["button"],
+    "body": ["<Button Content=\"${1:Click}\" Click=\"${2:OnClick}\" />"],
+    "description": "Button"
+  },
+  "textbox": {
+    "prefix": ["textbox"],
+    "body": ["<TextBox Text=\"{Binding ${1:Name}}\" />"],
+    "description": "TextBox with binding"
+  },
+  "textblock": {
+    "prefix": ["textblock"],
+    "body": ["<TextBlock Text=\"{Binding ${1:Title}}\" />"],
+    "description": "TextBlock with binding"
+  },
+  "image": {
+    "prefix": ["image"],
+    "body": ["<Image Source=\"${1:/Assets/logo.png}\" />"],
+    "description": "Image"
+  },
+  "resource": {
+    "prefix": ["resource"],
+    "body": ["<Window.Resources>", "\t$0", "</Window.Resources>"],
+    "description": "Resources dictionary"
+  },
+  "style": {
+    "prefix": ["style"],
+    "body": ["<Style TargetType=\"${1:Button}\">", "\t$0", "</Style>"],
+    "description": "Style"
+  }
+}

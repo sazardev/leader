@@ -188,5 +188,15 @@
       "}"
     ],
     "description": "xUnit test class with one [Fact]"
+  },
+  "unity monobehaviour": {
+    "prefix": ["monobehaviour", "mb"],
+    "body": ["using UnityEngine;", "", "public class ${1:Name} : MonoBehaviour", "{", "\tvoid Start()", "\t{", "\t\t$0", "\t}", "", "\tvoid Update()", "\t{", "\t\t", "\t}", "}"],
+    "description": "Unity MonoBehaviour script"
+  },
+  "unity serialized field": {
+    "prefix": ["serializedfield"],
+    "body": ["[SerializeField] private ${1:float} ${2:value};"],
+    "description": "Unity [SerializeField] field"
   }
 }
