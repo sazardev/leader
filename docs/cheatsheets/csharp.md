@@ -10,8 +10,13 @@ Filetype: `cs`. Pack `csharp`.
 | Format on save | `csharpier` (Mason, or the project's local tool) |
 | Debug | `netcoredbg` (Mason): the assembly `dotnet build` produced |
 | Tests | `dotnet test` with a TRX report, inside the editor (`langtest`, adapter `dotnet`) |
-| Treesitter | `c_sharp` |
+| Treesitter | `c_sharp` (plus `razor`, `xml`, `yaml` for the pack's markup) |
 | SDK | `dotnet-sdk` (the runtime alone is not enough) |
+
+The pack `csharp` now covers **Razor/Blazor** (`.razor`, `.cshtml` → `razor`), **XAML** (`.xaml` → `xaml`,
+parsed as `xml`), and **Unity** (`.unity`/`.prefab`/`.meta`/… → `unity`, parsed as `yaml`, plus the
+`Assets/` + `ProjectSettings/` root detection in `utils/csharpproj.lua`). The pre-Razor API-only projects
+(like `tracking-system-amphenol`) are untouched: the new filetypes simply never appear there.
 
 The server is chosen in `lua/servers/csharp.lua`: `auto` prefers Roslyn and falls back to csharp-ls, and the
 settings panel (`<leader>Sp` → C# → Language server) can force either one (`settings.lsp.csharp_server`).
@@ -40,6 +45,18 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md). What they do, at the sol
 - **dotnet**: run, watch with hot reload, build, publish Release, restore and SDK info. Commands run in the
   integrated terminal at the folder of the `.sln`/`.slnx`/`.csproj`; when a solution has several projects the
   action asks which one. `run`/`watch` use the launch profile the C# settings chose (`first`, `ask` or `none`).
+  With no project around the current buffer (dashboard, tree, terminal) it falls back to the working directory;
+  with no project at all the command is bare (`dotnet build` in the cwd) instead of a broken `--project ''`.
+- **HTTP test file** (`h`): reads `Program.cs` next to the .csproj and writes `requests.http` (Rider/JetBrains
+  format: one request per `MapGet/MapPost/…`, `{param}` → `world`, base URL from the first launch profile):
+  created once, never overwritten, opened, and the GET routes fired with curl in a separate `http test`
+  terminal (never the one the app runs in). Start the app first (`<leader>cr`).
+  Routes behind `MapGroup("/prefix")` keep only their suffix.
+- **Noodle collection** (`No`): generates `noodle/` next to the .csproj from the same routes — `settings.yml`
+  (env `local`), `.environments/local.env` (base URL), one `.yml` request per route with native `:param`
+  tokens + `path_params` samples and status-200 asserts on reads — and opens it in the Noodle TUI in its own
+  `noodle` terminal. Files that exist are never overwritten. From the TUI: send requests, run the collection,
+  or automate with `noodle collection run ./noodle --env local` (CI-ready). Needs the `noodle` binary on PATH.
 - **Tests in the editor** (`m` nearest, `M` file, `A` all, `.` again, `T` toggle, `O` output): xUnit (`[Fact]`,
   `[Theory]`), NUnit (`[Test]`, `[TestCase]`) and MSTest (`[TestMethod]`, `[DataTestMethod]`). Marks per test,
   a failure as a diagnostic on the stack-trace line with the assertion's message, the quickfix list, a summary.
@@ -51,6 +68,20 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md). What they do, at the sol
 - **Solution / project** (`L`): list and open solutions/projects, add a project to the solution
   (`dotnet sln add`), add a project reference (`dotnet add reference`). `n` creates a new project from a
   `dotnet new` template.
+- **Solution Explorer** (`Lo`): the Rider-like full-screen view (`csharp/explorer.lua` on
+  `utils/csharpsolution.lua`): left, the solution by folder with TFM/output/test badges; right, the selected
+  project (TFMs, SDK, output kind, dependencies resolved from `ProjectReference`, direct packages). Keys:
+  `Enter` open the `.csproj`, `b` build it, `r` run it, `a` add it to the solution, `/` filter, `Tab` fold a
+  folder. Edits happen through `dotnet sln`/`dotnet add` in the terminal (no drag-and-drop tree editing).
+- **Run Configurations** (`Gr`): the saveable dropdown (`csharp/run.lua` on `utils/csharprun.lua`): launch
+  profiles per project, Docker/Compose when present, and saved custom/compound configs
+  (`stdpath("state")/csharp-run.json`, one entry per root). Keys: `Enter` run, `d` debug (dotnet, netcoredbg),
+  `s` save as custom (name + command), `x` delete a saved one, `/` filter.
+- **NuGet Manager** (`x`): the visual manager (`csharp/nuget.lua` on `utils/csharpnuget.lua`): Direct /
+  Transitive / Vulnerable / Outdated groups from `dotnet list package --format json`, right pane with
+  versions, project, advisory and the `obj/project.assets.json` graph (`depends on`). Keys: `Enter` update
+  to latest, `a` add, `x` remove a direct package, `/` filter. Without `assets.json` (`dotnet restore`
+  first) transitive packages are flat grouped by framework.
 - **EF Core**: `dotnet ef migrations add <name>` and `dotnet ef database update` (needs the global `dotnet-ef`).
 - **Format**: CSharpier through conform (`f`), `dotnet format` (`F`) and its verification mode (`v`).
 - **Inlay hints** (`H`): Roslyn's parameter/type hints for this buffer; off by default, saved in the C# settings.
@@ -97,16 +128,52 @@ the next restart), and the unsaved buffer always replaces its file on disk.
 
 `namespace`, `class`, `record`, `interface`, `enum`, `prop`, `propg`, `field`, `ctor`, `method`, `async`, `if`,
 `foreach`, `trycatch`, `using`, `switch`, `main`, `webapi` (minimal API with Swagger), `mapget`, `mappost`,
-`controller`, `action`, `dbcontext`, `entity`, `options`, `xunit`.
+`controller`, `action`, `dbcontext`, `entity`, `options`, `xunit`, `monobehaviour` (Unity), `serializedfield`.
 
 They are plain VSCode snippets (`nvim/snippets/cs.json`), so they work with blink.cmp's `snippets` source; the
 built-in LSP completion remains the first source.
 
+Razor (`nvim/snippets/razor.json`, prefix `page code inject using namespace implements attribute rendermode
+functions parameter eventcallback if foreach for component ref`) and XAML (`nvim/snippets/xaml.json`, prefix
+`window grid stackpanel button textbox textblock image resource style`) ship their own snippets. Unity
+scripts are `cs`, so `monobehaviour`/`serializedfield` there plus `nvim/snippets/unity.json` for the
+YAML files.
+
+## Razor / Blazor
+
+`.razor` and `.cshtml` are filetype `razor` (Neovim core). Treesitter `razor` highlights the markup; the
+`html` LSP also attaches to `razor` (`nvim/lua/servers/html.lua`) for tag/attribute completion, and the
+`<leader>c` menu (the same dotnet actions as C#: `r` run, `w` watch with hot reload, `b` build, `F` format)
+is the hot-reload loop — there is no visual preview in Neovim, only the running app in its browser.
+Full C# inside `@code` (go-to-definition, diagnostics, rename) needs `seblyng/roslyn.nvim`: it co-hosts
+with Roslyn and supersedes the archived `rzls.nvim` (the stock `nvim-lspconfig` `roslyn_ls` warns that
+Razor is not supported). Hot reload itself is already done (`dotnet watch`, `<leader>cw`). For
+`tracking-system-amphenol` (ASP.NET API + Docker, no `.razor` today) nothing changes until a Blazor/MVC UI
+is added; then `dotnet watch run` + the browser is the preview.
+
+## XAML
+
+`.xaml` is filetype `xaml` (`ftdetect/xaml.lua`), parsed as `xml`, formatted with `prettier` (the project's
+`prettier-plugin-xml`). The `<leader>x` menu (`f` format, `b` build, `F` `dotnet format`, `u` restore,
+`I` SDK info) runs at the `.sln`/`.csproj` root. Rider's XAML preview/designer has no Neovim equivalent:
+`dotnet build` plus running the app is the check.
+
+## Unity
+
+Scripts are `cs` under `Assets/` (Roslyn + the C# menu). Scenes/prefabs/meta (`.unity`, `.prefab`, `.meta`,
+`.anim`, `.controller`, `.mat`, `.asset`) are filetype `unity` (`ftdetect/unity.lua`), parsed as `yaml`,
+formatted with `prettier`. The index skips `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Build/` and
+`Builds/`, and `utils/csharpproj` recognises a Unity root (`Assets/` + `ProjectSettings/`). The `<leader>U`
+menu (`o` open in Unity, `R` refresh Asset Database, `S` generate `.sln`, `I` project info, `f` format) is
+for the YAML files and the project; Rider's scene preview remains inside the Unity Editor.
+
 ## Pitfalls
 
-- **Razor / `.cshtml` / `.razor`**: nvim-lspconfig's `roslyn_ls` only attaches to `cs` and explicitly warns that
-  Razor needs `seblyng/roslyn.nvim`; this config does not add that plugin. C# classes, minimal APIs and controllers
-  are fully covered.
+- **Razor LSP**: Treesitter + `html` give highlighting and markup completion today. Full C# in `.razor`
+  needs `seblyng/roslyn.nvim` (co-hosting; `rzls.nvim` is archived). Until then, `@code` blocks are plain
+  text for the LSP (compilation still via `dotnet build`). See the Razor section above.
+- **XAML / Unity previews**: Rider draws XAML and scenes inside the IDE; Neovim shows `xml`/`yaml` syntax
+  only. Use `dotnet build`/Unity itself for the visual check.
 - **Roslyn is a prerelease tool**: `dotnet tool install --global roslyn-language-server --prerelease` is what
   Microsoft documents. If a version stops starting, switch the C# server to `csharp_ls` in the settings panel;
   it is stable and Mason-managed.

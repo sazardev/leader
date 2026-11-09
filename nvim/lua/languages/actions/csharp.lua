@@ -18,14 +18,23 @@ local function choose(items, opts, on_select)
   require("tasks.picker").choose(items, opts, on_select)
 end
 
---- Runs `fn(project, dir)` with the only .csproj or the one picked
+--- Runs `fn(project, dir)` with the only .csproj or the one picked.
+--- Falls back to the working directory when the current buffer is not inside a project (dashboard, tree,
+--- terminal): what `dotnet <sub>` needs is a project, not a particular buffer.
 ---@param fn fun(project: string, dir: string)
 ---@param prompt string?
 local function with_project(fn, prompt)
   local dir = root()
   local list = proj.projects(dir)
   if #list == 0 then
-    return log.warn "C#: no .csproj around this file"
+    local cwd = vim.fn.getcwd()
+    if cwd ~= dir then
+      dir = cwd
+      list = proj.projects(dir)
+    end
+  end
+  if #list == 0 then
+    return log.warn "C#: no .csproj around here (open a .cs file or :cd to the project)"
   end
   if #list == 1 then
     return fn(list[1], dir)
@@ -97,11 +106,10 @@ local function launch(sub)
   return function()
     with_project(function(path, dir)
       with_profile(path, function(profile)
-        local flag = profile and (" --launch-profile " .. vim.fn.shellescape(profile)) or ""
         if sub == "watch" then
-          run(("dotnet watch --project %s run%s"):format(vim.fn.shellescape(path), flag), dir)
+          run(require("utils.csharpdotnet").watch_cmd(path, profile), dir)
         else
-          run(("dotnet run --project %s%s"):format(vim.fn.shellescape(path), flag), dir)
+          run(require("utils.csharpdotnet").run_cmd(path, profile), dir)
         end
       end)
     end)
@@ -117,8 +125,7 @@ local function dotnet(sub, opts)
   opts = opts or {}
   return function()
     with_project(function(path, dir)
-      local arg = opts.project_flag and (" --project " .. vim.fn.shellescape(path)) or (" " .. vim.fn.shellescape(path))
-      run(("dotnet %s%s%s"):format(sub, arg, opts.extra and (" " .. opts.extra) or ""), dir)
+      run(require("utils.csharpdotnet").cmd(sub, path, opts), dir)
     end)
   end
 end
@@ -453,6 +460,45 @@ local maps = {
     end,
   },
   { "H", "inlay hints", toggle_inlay_hints },
+  {
+    "h",
+    "HTTP test file (.http + curl)",
+    function()
+      with_project(function(path)
+        require("csharp.http").open_for_project(path)
+      end, "HTTP test project")
+    end,
+  },
+  {
+    "No",
+    "Noodle collection (open TUI)",
+    function()
+      with_project(function(path)
+        require("csharp.noodle").open_collection(path)
+      end, "Noodle collection project")
+    end,
+  },
+  {
+    "Lo",
+    "solution explorer",
+    function()
+      require("csharp.explorer").open()
+    end,
+  },
+  {
+    "Gr",
+    "run configurations",
+    function()
+      require("csharp.run").open()
+    end,
+  },
+  {
+    "x",
+    "NuGet manager",
+    function()
+      require("csharp.nuget").open()
+    end,
+  },
   { "Ll", "list solutions/projects", open_project },
   { "La", "add project to solution", add_to_solution },
   { "Lr", "add project reference", add_reference },

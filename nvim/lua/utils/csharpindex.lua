@@ -19,6 +19,13 @@ local SKIP_DIRS = {
   ["TestResults"] = true,
   ["publish"] = true,
   ["Migrations"] = true,
+  -- Unity generated folders
+  ["Library"] = true,
+  ["Temp"] = true,
+  ["Logs"] = true,
+  ["UserSettings"] = true,
+  ["Build"] = true,
+  ["Builds"] = true,
 }
 
 local TYPE_KINDS = {
