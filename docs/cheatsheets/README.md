@@ -31,11 +31,12 @@
 | [markdown.md](markdown.md) | Markdown |
 | [web.md](web.md) | HTML, CSS, Tailwind, Astro |
 | [data-formats.md](data-formats.md) | JSON, YAML, TOML, Docker, Prisma, YarnSpinner |
+| [terminal.md](terminal.md) | **Terminal** (`<leader>T`): command vs named vs own shells, `Esc`/`Shift+Esc`/`Ctrl+x`, reopen without re-sending |
 
 ## How the leader works
 
 Each language has **its own letter** under `<leader>` (g Go, d Dart, t TypeScript, p Python, r Rust, c C#, Q SQL, i Swift…) and **only exists in buffers of that filetype**;
-`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>E` (env files), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments) and `<leader>W` (Herdr) are global.
+`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>E` (env files), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments), `<leader>T` (terminal) and `<leader>W` (Herdr) are global.
 Press `<leader>` and which-key shows only what applies to the current file (no delay).
 
 The language menus open an integrated terminal (toggleterm) and run the commands at the **project root**
@@ -55,7 +56,13 @@ The exact keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md); here, how they com
 - **Format**: `<leader>fm` formats (conform); it also formats on save.
 - **Telescope**: the preview is always visible. `flex` layout: on the right in windows ≥ 110 columns, at the bottom in narrow ones (`lua/plugins/navigation/telescope.lua`).
 - **nvim-tree**: opening a file closes the tree; `I` shows/hides what git ignores. Deleting a folder warns how many files it contains.
-- **Terminal**: `Alt+i` (float), `Alt+v` (vertical) and `Alt+h` (horizontal) open NvChad's terminals, `<leader>g…` the toggleterm one. `Esc` (Terminal or its Normal mode) closes the window and the shell keeps running; `Shift+Esc` only hands the focus back to the previous window and leaves the terminal open. `Shift+Esc` needs a terminal that tells it apart from `Esc`; if yours doesn't, it behaves like `Esc`.
+- **Terminal** (`<leader>T` menu, plus NvChad's `Alt+i` float / `Alt+v` vertical / `Alt+h` horizontal
+  toggles): `t` shows/hides the command terminal (where every language and task command runs — reopening
+  after `Esc` sends nothing), `l` lists every terminal to jump to, `n` opens a new shell, `s` sends Ctrl-C.
+  `Esc` (in the terminal or its Normal mode) closes the window and the shell keeps running; `Shift+Esc` only
+  hands the focus back to the code and leaves the terminal open; `Ctrl+x` leaves terminal mode (`i` types
+  again, `y`/`/` copy and search the output). `Shift+Esc` needs a terminal that tells it apart from `Esc`;
+  if yours doesn't, it behaves like `Esc`.
 - **Completion** (blink.cmp): the documentation appears **instantly** on selection and, for snippets, shows **what will be inserted**. Nothing comes preselected, except inside a Go struct tag (there `Enter` accepts the first suggestion). Sources: LSP, path, snippets, buffer; in Go `gotags` and `gosmart` are added; in Lua, `lazydev`.
   - **With the menu open**, `Tab` / `Shift+Tab` pick a suggestion (and `Enter` inserts it). **Without a menu**, inside a snippet (e.g. `gorm.Open(dialector, opts)`), they jump to the next / previous placeholder.
   - **Keep what you typed and move on**: `Esc` (closes the menu without leaving the snippet) and then `Tab`.
