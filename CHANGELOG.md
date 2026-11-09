@@ -2,6 +2,45 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.15.0] - 2026-11-09
+
+### Highlights
+
+- **The terminal stops surprising you**: `terminal.run` went through `:TermExec` string parsing, which cut every
+  quoted path (`dotnet run --project '/a b/x.csproj'` arrived as `dotnet run --project`). It now uses toggleterm's
+  Lua API, and `<leader>T` (show / list / new / stop) reopens terminals without re-sending anything into them.
+- **C# grows up**: a Solution Explorer (`<leader>cLo`), saveable run configurations with Docker (`<leader>cGr`),
+  a visual NuGet manager (`<leader>cx`), `requests.http` generated from `Program.cs` routes (`<leader>ch`) and a
+  Noodle collection with its TUI (`<leader>cNo`).
+- **Razor, XAML and Unity join the pack**: `.razor`/`.cshtml` (html LSP), `.xaml` (as XML) and Unity YAML files
+  (`.unity`, `.prefab`, `.meta`) with `Assets/` root detection.
+
+### Features
+
+- **terminal:** <leader>T menu, named terminals, honest docs (6f9ee10)
+- **csharp:** explorer, run configs, nuget, http file, noodle (014f9cf)
+- **csharp:** razor, xaml and unity packs (88e8cff)
+- **chat:** persistent backend-agnostic chat under Leader (e38aa2f)
+- **setup:** langsetup all languages, sections, reconcile (56a0fa7)
+- **find:** dev-mode search in current file (8ac279f)
+- **leader:** leader is nvim in a terminal (d1e25bd)
+- **skills:** add Skills manager (<leader>aK) (705a945)
+- **env:** environment file kit per stack with check and AI loader (4cd29f6)
+- **markdown:** auto locked reading mode for md and mdx (03ea13e)
+- **find:** add <leader>fc for current file (35fa7fa)
+- **languages:** C#/.NET pack and MDX as Markdown (1ba0993)
+- **pacakge:** update (0b45ae3)
+
+### Fixes
+
+- **markdown:** no cursor highlight in locked reading mode (f25c6eb)
+- **agent:** build survives slow, rate-limited OpenCode (e2b1e54)
+
+### Other changes
+
+- chore(deps): update pinned plugins (634b1ef)
+- chore(packaging): point the Arch packages at v1.14.2 (a9dc10b)
+
 ## [1.14.2] - 2026-10-21
 
 ### Highlights
