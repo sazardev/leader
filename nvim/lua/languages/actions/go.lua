@@ -1,7 +1,8 @@
 -- ── Go actions ───────────────────────────────────────────────────────────────
--- run/build run on the file's DIRECTORY (a Go package is per
--- folder): "." if it hangs under a go.mod, or the single file if there is no module.
--- vet/fix/test run "./..." from the module root.
+-- run/build run the CURRENT file's package when it can run (a `main` package
+-- with `func main`, so each main.go variant — root, cmd/api, cmd/worker… —
+-- runs its own binary) and fall back to the module's main otherwise; without
+-- a go.mod they run the single file. vet/fix/test run "./..." from the module root.
 local actions = require "utils.actions"
 local log = require "utils.log"
 local project = require "utils.project"
@@ -16,8 +17,17 @@ end
 
 local function target(sub)
   return function()
-    local dir, mod_root = paths()
-    terminal.run(("go %s %s"):format(sub, mod_root and "." or vim.fn.shellescape(vim.fn.expand "%:t")), dir)
+    local gorun = require "utils.gorun"
+    local file = vim.api.nvim_buf_get_name(0)
+    local buf_text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+    local res, err = gorun.resolve(file, buf_text)
+    if not res then
+      return log.warn(err or "Go: no main package to run")
+    end
+    terminal.run(("go %s %s"):format(sub, vim.fn.shellescape(res.pkg)), res.cwd)
+    if res.note then
+      log.info("Go: " .. res.note)
+    end
   end
 end
 

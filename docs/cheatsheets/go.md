@@ -15,7 +15,10 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicate
 
 - Struct actions (tags, fill literal, `if err`, add test) act on the cursor. The **tag** ones (`ga`/`gA`/`gD`) **save the file** when done (that is how go.nvim works).
 - In light mode go.nvim does not load: those actions warn instead of failing.
-- `run` and `build` run on the file's directory (`.` if there is a `go.mod`, or the single file if not). The rest run from the module root.
+- `run` and `build` run the current file's package when it can run (a `main` package with `func main`, so each
+  `main.go` variant — root, `cmd/api`, `cmd/worker`… — runs its own binary) and fall back to the module's main
+  otherwise (the only one, or the preferred `cmd/*`); without a `go.mod` they run the single file.
+  They always run from the module root (`go run ./cmd/api`), so relative files resolve the same way. The rest run from the module root.
 
 ## Project setup (`<leader>gS`, `lua/gosetup/`)
 
