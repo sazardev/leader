@@ -60,6 +60,9 @@ local dir = K.project {
     "\treturn a + b",
     "}",
     "",
+    "// Name returns the name of the calculator.",
+    "//",
+    "// It is shown in the window title.",
     "func Name() string {",
     "\treturn \"calc\"",
     "}",
@@ -77,13 +80,13 @@ git("branch", "-M", "main")
 git("checkout", "-qb", "feature")
 local feature = vim.deepcopy(base_lines)
 feature[4] = "\treturn (a + b) * 2"
-feature[8] = "\treturn \"calculator\""
+feature[11] = "\treturn \"calculator\""
 write("calc.go", feature)
 git("commit", "-qam", "feature: double the total and rename")
 git("checkout", "-q", "main")
 local main = vim.deepcopy(base_lines)
 main[4] = "\treturn a + b + 1"
-main[8] = "\treturn \"calc v2\""
+main[11] = "\treturn \"calc v2\""
 write("calc.go", main)
 git("commit", "-qam", "main: add a fee and bump the name")
 local code = git("merge", "feature")
