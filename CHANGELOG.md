@@ -2,6 +2,38 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.16.0] - 2026-11-10
+
+### Highlights
+
+- **GitHub lives in the editor now**: `<leader>Gh` (inside a repo) opens **gh-dash** (PRs and issues), **gh-observer**
+  (the current PR's checks, live), **gh-enhance** (Actions runs and logs) and **gh-news** (notifications) in their own
+  terminals. The first launch of a missing extension shows the exact `gh extension install …` command and installs and
+  starts it after you confirm; `<leader>Ghs` is the checklist. **octo.nvim** adds PRs, issues and reviews inside Neovim
+  (`Ghp`/`Ghi`/`Ghr`), with the core `gh` commands (`v`, `c`, `b`, `a`, `A`) next to them.
+- **Remotes from the Git menu**: `GP` pushes (setting the upstream the first time), `Gu` pulls with `--ff-only` (a
+  divergent branch is reported, never merged behind your back) and `GF` fetches every remote with `--prune`. They run in
+  the integrated terminal, which keeps the focus, and `Esc` closes the window without stopping the command.
+- **The chat has profiles and a home**: Zed-style **Ask** (read-only), **Write** (the full coding partner) and
+  **Minimal** (terse), saved with each session; `<leader>aC` on a project with conversations opens its history, newest
+  first, instead of a blank buffer.
+- **Go runs the package you are in**: `run`/`build` run the current file's package in repos with several `main`s
+  (root, `cmd/api`, `cmd/worker`…), and `<leader>gl` tests that package (`go test ./folder`, a `main` package with
+  tests included) while `m`/`R`/`c` keep testing the whole module. Commands launched from the menus keep the cursor in
+  the terminal.
+- **Find**: a visual selection pre-fills **grug-far**'s search (`<leader>fr`), so replacing what you selected is one
+  key away.
+
+### Features
+
+- chat profiles, GitHub menu and git remotes (e128fcc)
+- **go:** run the current file's package and test it in place (80b707a)
+- **find:** prefill grug-far search from visual selection (2a9616e)
+
+### Fixes
+
+- **github:** keep `<leader>G` intact outside repos (73a4ed9)
+
 ## [1.15.0] - 2026-11-09
 
 ### Highlights
