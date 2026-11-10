@@ -40,7 +40,7 @@ end
 local function repo_root()
   local root = git.root()
   if not root then
-    log.warn "GitHub: this one needs a repository (gh-dash and gh-news work anywhere)"
+    log.warn "GitHub: this one needs a repository"
   end
   return root
 end

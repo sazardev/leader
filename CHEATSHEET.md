@@ -32,7 +32,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>F` | File | global |
 | `<leader>z` | Fold | global |
 | `<leader>G` | Git | files inside a git repo |
-| `<leader>Gh` | GitHub | global |
+| `<leader>Gh` | GitHub | files inside a git repo |
 | `<leader>g` | Go | `go`, `gomod`, `gowork` |
 | `<leader>W` | Herdr | global |
 | `<leader>u` | History | global |
@@ -493,7 +493,7 @@ _Where: files inside a git repo_
 
 ### GitHub — `<leader>Gh`
 
-_Where: global_
+_Where: files inside a git repo_
 
 | Key | Action |
 |---|---|
@@ -1331,24 +1331,6 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>q` | n | Close buffer / quit |
 | `<leader>w` | n | Save |
 | `jk` | i | Leave insert (closes the completion menu first) |
-
-### GitHub
-
-| Key | Mode | Action |
-|---|---|---|
-| `<leader>GhA` | n | Auth login |
-| `<leader>Gha` | n | Auth status |
-| `<leader>Ghb` | n | Open the repository in the browser |
-| `<leader>Ghc` | n | Checks of the current PR |
-| `<leader>Ghd` | n | Dash: PRs and issues (gh-dash) |
-| `<leader>Ghe` | n | Actions: runs and logs (gh-enhance) |
-| `<leader>Ghi` | n | Issues (octo) |
-| `<leader>Ghn` | n | Notifications (gh-news) |
-| `<leader>Gho` | n | Checks: current PR, live (gh-observer) |
-| `<leader>Ghp` | n | PRs (octo) |
-| `<leader>Ghr` | n | Review the current PR (octo) |
-| `<leader>Ghs` | n | Setup: install the extensions |
-| `<leader>Ghv` | n | Open the current PR in the browser |
 
 ### Harpoon
 

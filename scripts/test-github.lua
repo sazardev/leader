@@ -167,7 +167,7 @@ before = #run_calls
 github.run_in_repo "gh browse"
 eq("run_in_repo: outside a repository warns", { #run_calls, notes[#notes] }, {
   before,
-  "warn: GitHub: this one needs a repository (gh-dash and gh-news work anywhere)",
+  "warn: GitHub: this one needs a repository",
 })
 vim.cmd.cd(cwd)
 

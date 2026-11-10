@@ -1,11 +1,14 @@
 -- ── GitHub: the gh CLI, its TUIs and octo.nvim ───────────────────────────────
--- Global on purpose: gh-dash and the notifications are about your account, not the folder. The actions that need a
--- repository say so (`lua/github/init.lua`). `s` installs the extensions the first time; the launch keys do it too.
+-- Inside a repo, like <leader>G (the GitHub actions all start from a clone anyway, and a global menu under `G`
+-- made `<leader>G` look broken outside one: only `h` showed). `s` installs the extensions the first time; the
+-- launch keys do it too.
 return {
   name = "GitHub",
   prefix = "Gh",
-  where = "everywhere (a repository for the actions that need one)",
-  global = true,
+  where = "files inside a git repo",
+  detect = function(buf)
+    return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" and vim.fs.root(buf, ".git") ~= nil
+  end,
   maps = {
     {
       "d",

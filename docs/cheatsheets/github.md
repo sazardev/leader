@@ -1,8 +1,7 @@
 # GitHub (`<leader>Gh`)
 
-A global menu for the `gh` CLI: the TUIs that visualize your work and octo.nvim for editing PRs and issues without
-leaving Neovim. It is global on purpose (gh-dash and the notifications are about your account, not the folder); the
-actions that need a repository say so. The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md).
+A menu for the `gh` CLI inside a repository (like `<leader>G`): the TUIs that visualize your work and octo.nvim for
+editing PRs and issues without leaving Neovim. The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md).
 
 ## TUIs (`gh` extensions)
 
