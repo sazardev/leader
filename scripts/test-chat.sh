@@ -88,6 +88,27 @@ local md_ns = vim.api.nvim_create_namespace('render-markdown.nvim')
 assert(#vim.api.nvim_buf_get_extmarks(window.transcript_buf, md_ns, 0, -1, {}) > 0, 'markdown is rendered')
 window.session = s
 window.draw()
+-- activity animation: a waiting strip before the first token, a pulsing caret while text streams
+window.set_running(true)
+window.pending_text, window.pending_think = '', ''
+window.activity()
+local activity_ns = vim.api.nvim_create_namespace('chat.activity')
+local function activity_text()
+  local out = {}
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(window.transcript_buf, activity_ns, 0, -1, { details = true })) do
+    for _, c in ipairs((m[4] and m[4].virt_text) or {}) do
+      out[#out + 1] = c[1]
+    end
+  end
+  return table.concat(out, '')
+end
+assert(activity_text():find('Working', 1, true) ~= nil, 'waiting activity strip')
+window.pending_text = 'hola'
+window.activity()
+assert(activity_text():find('▌', 1, true) ~= nil, 'typing caret')
+window.pending_text, window.pending_think = '', ''
+window.set_running(false)
+assert(activity_text() == '', 'activity cleared when the turn ends')
 window.hide()
 assert(not window.is_open(), 'panel hidden keeps session')
 assert(window.statusline() == '', 'statusline idle is empty')
@@ -97,22 +118,31 @@ window.toggle()
 assert(vim.b[window.input_buf].completion == false, 'blink is off in the chat input')
 assert(vim.bo[window.input_buf].omnifunc == '' and vim.bo[window.input_buf].completefunc == '', 'native completion off')
 window.hide()
--- premium: the mini view is a right half partition, flush to the edge
+-- premium: the mini view is a REAL right split (dock), the editor shrinks
 window.toggle()
 assert(window.is_open(), 'panel reopens')
-local cfg = vim.api.nvim_win_get_config(window.transcript_win)
-assert(cfg.relative ~= '', 'transcript is a float (right-anchored)')
-local mini_w = cfg.width
+assert(window.docked, 'mini is docked in real splits')
+local tcfg = vim.api.nvim_win_get_config(window.transcript_win)
+assert(tcfg.relative == '', 'transcript is a split, not a float')
+assert(vim.api.nvim_win_get_config(window.input_win).relative == '', 'input is a split too')
+local mini_w = vim.api.nvim_win_get_width(window.transcript_win)
 assert(math.abs(mini_w - math.floor(vim.o.columns * 0.5)) <= 2, 'mini takes half the columns: ' .. mini_w)
-assert(cfg.col + cfg.width == vim.o.columns, 'partition ends on the last column')
-assert(cfg.row == 0, 'partition starts at the top')
-local mini_input = vim.api.nvim_win_get_config(window.input_win)
-assert(mini_input.col + mini_input.width == vim.o.columns, 'input aligns with the partition')
-assert(cfg.height + mini_input.height <= vim.o.lines - 1, 'blocks fill the usable height, statusline free')
--- fullscreen: same floats, full width, still right-anchored blocks
+assert(vim.api.nvim_win_get_width(window.input_win) == mini_w, 'input shares the column')
+local editor_w, editor_win
+for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+  local b = vim.api.nvim_win_get_buf(win)
+  local ft = vim.bo[b].filetype
+  if vim.api.nvim_win_get_config(win).relative == '' and ft ~= 'leaderchat' and ft ~= 'leaderchat_input' then
+    editor_w, editor_win = vim.api.nvim_win_get_width(win), win
+  end
+end
+assert(editor_win ~= nil and editor_w + mini_w + 1 == vim.o.columns, 'the editor shrinks beside the panel')
+assert(vim.api.nvim_win_get_height(window.input_win) == window.input_lines, 'input keeps its height')
+-- fullscreen: floats, full width, still right-anchored blocks
 window.toggle_view()
 assert(window.is_open(), 'full stays open')
 assert(window.current_view() == 'full', 'full view set')
+assert(not window.docked, 'full is not docked')
 local full_cfg = vim.api.nvim_win_get_config(window.transcript_win)
 assert(full_cfg.width > mini_w, 'full is wider than mini')
 assert(full_cfg.col == 0 and full_cfg.row == 0, 'full starts at the screen edge')
@@ -123,11 +153,13 @@ assert(full_input.row == full_cfg.height, 'input is glued below the transcript')
 assert(full_input.row + full_input.height <= vim.o.lines - 1, 'the single statusline row stays free')
 window.toggle_view()
 assert(window.current_view() == 'mini', 'mini restored')
+assert(window.docked, 'mini comes back as a real split')
 local mini_cfg = vim.api.nvim_win_get_config(window.transcript_win)
-assert(mini_cfg.width <= mini_w + 4, 'mini width restored')
+assert(mini_cfg.relative == '' and vim.api.nvim_win_get_width(window.transcript_win) <= mini_w + 4, 'mini width restored')
 window.toggle_collapse()
 assert(window.is_open(), 'rail stays open')
 assert(window.collapsed, 'collapsed flag set')
+assert(not window.docked, 'the rail is a float')
 local rail_cfg = vim.api.nvim_win_get_config(window.transcript_win)
 assert(rail_cfg.width <= 12, 'rail is narrow')
 assert(rail_cfg.col + rail_cfg.width == vim.o.columns, 'rail flush right')
@@ -135,6 +167,23 @@ assert(window.input_win == nil, 'rail hides the input')
 window.toggle_collapse()
 assert(not window.collapsed, 'expand restores the input')
 assert(window.input_win ~= nil, 'input back')
+assert(window.docked, 'expanding comes back to the real split')
+local chat_wins = 0
+for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+  local ft = vim.bo[vim.api.nvim_win_get_buf(win)].filetype
+  if ft == 'leaderchat' or ft == 'leaderchat_input' then
+    chat_wins = chat_wins + 1
+  end
+end
+assert(chat_wins == 2, 'expanding closes the rail (no leftover window)')
+-- setting dock = false keeps the old floating partition
+window.hide()
+require('core.settings').agent.chat.dock = false
+window.toggle()
+assert(window.is_open() and not window.docked, 'dock = false opens the float')
+assert(vim.api.nvim_win_get_config(window.transcript_win).relative ~= '', 'the float is right-anchored')
+window.hide()
+require('core.settings').agent.chat.dock = true
 -- history home inside the panel (the same buffer, no floating picker)
 window.show_home(vim.uv.cwd())
 window.draw()
@@ -159,7 +208,8 @@ assert(window.home.sel and window.home.sel >= 2, 'the last chat is selected')
 window.hide()
 window.session, window.home = s, nil
 
--- Esc closes the panel (insert mode included): one Esc from insert hides it
+-- Esc leaves insert / does nothing in the panel: it NEVER hides it (Ctrl-Q or
+-- <leader>aC do). A real split stays, like the terminal opened with Alt-V.
 window.toggle()
 assert(window.is_open(), 'panel open for esc test')
 vim.api.nvim_set_current_win(window.input_win)
@@ -167,13 +217,25 @@ vim.cmd 'startinsert'
 vim.wait(100)
 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'mx', false)
 vim.wait(200)
-assert(not window.is_open(), 'esc in insert hides the panel')
+assert(window.is_open(), 'esc in insert leaves the panel open')
+assert(vim.fn.mode() ~= 'i', 'esc leaves insert mode')
 -- and from the transcript in normal mode
-window.toggle()
 vim.api.nvim_set_current_win(window.transcript_win)
 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'mx', false)
 vim.wait(200)
-assert(not window.is_open(), 'esc in transcript hides the panel')
+assert(window.is_open(), 'esc in transcript leaves the panel open')
+vim.api.nvim_feedkeys('q', 'mx', false)
+vim.wait(200)
+assert(window.is_open(), 'q does not hide the panel either')
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-q>', true, false, true), 'mx', false)
+vim.wait(200)
+assert(not window.is_open(), 'Ctrl-Q hides the panel')
+-- closing one of the panel's windows hides the whole panel, never a half one
+window.toggle()
+vim.api.nvim_set_current_win(window.transcript_win)
+vim.cmd 'q'
+vim.wait(200)
+assert(not window.is_open(), 'closing a panel window hides the panel')
 local rail_lines = render.lines(s, { rail = true })
 assert(#rail_lines >= 4, 'rail lines produced')
 local rail_joined = table.concat(rail_lines, '\n')
@@ -323,7 +385,7 @@ window.auto_height()
 assert(window.input_lines == 3, 'input grows with its lines')
 assert(vim.api.nvim_win_get_height(window.input_win) == 3, 'window height follows')
 window.clear_input()
-assert(window.input_lines == 1, 'clearing shrinks it back')
+assert(window.input_lines == 3, 'clearing shrinks it back to the composer minimum')
 window.hide()
 
 -- every model of a backend is offered (chat_models when it exists)
@@ -339,7 +401,7 @@ vim.wait(8000, function() return listed ~= nil end, 50)
 assert(listed ~= nil, 'models answered')
 local multi = vim.tbl_filter(function(it) return it.backend == 'multimodel' end, listed or {})
 assert(#multi == 3, 'all chat_models offered (not the one-shot shortlist)')
--- ⏎ sends immediately: a backend with no model gets one silently (no picker)
+-- Enter sends immediately: a backend with no model gets one silently (no picker)
 backends.register('needmodel', {
   name = 'needmodel', label = 'NeedModel', requires_model = true,
   available = function() return true end,

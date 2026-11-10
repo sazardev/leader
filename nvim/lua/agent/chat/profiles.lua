@@ -15,7 +15,6 @@ M.ORDER = { "ask", "write", "minimal" }
 ---@class ChatProfile
 ---@field id string
 ---@field label string
----@field icon string
 ---@field description string
 ---@field hint string
 ---@field context table<string, boolean>
@@ -30,7 +29,6 @@ M.PROFILES = {
   ask = {
     id = "ask",
     label = "Ask",
-    icon = "?",
     description = "Read-only answers about the code",
     hint = "explains, never edits",
     context = { rules = true, buffer = true, diagnostics = true, git = true, skills = true, mcp = false },
@@ -54,7 +52,6 @@ Ask-mode contract (never break it):
   write = {
     id = "write",
     label = "Write",
-    icon = "✎",
     description = "The full coding partner",
     hint = "plans, code and changes",
     context = { rules = true, buffer = true, diagnostics = true, git = true, skills = true, mcp = true },
@@ -69,17 +66,17 @@ One turn per request, no tools of your own: you propose, Leader executes and sho
 Transparency contract (never break it):
 - Say what you will do before doing it (plan, steps).
 - When you need a file you do not have, name it and Leader will inject it next turn.
-- Code answers are fenced blocks with the path in the language field when they are a full file,
-  e.g. ```lua: nvim/lua/foo.lua
+- To change a file, return the COMPLETE new file in one fenced block whose info string is
+  `language: path`, e.g. ```go: main.go — Leader writes that block to the file after the turn.
+- Use a fenced fragment without a path only for an example that must not touch a file.
 - Never invent APIs, fields or files. If information is missing, say exactly what is missing.
 - Show your reasoning briefly when it matters, then the answer. No filler, no repetition.
 ]],
-    task = "Answer the user's last turn. In %s. Markdown; code in fenced blocks. If you propose edits, list them as steps first. If you need more context, name the sections (file:…, diagnostics, rules) you need — Leader will add them next turn.",
+    task = "Answer the user's last turn. In %s. Markdown; every file you change goes as a COMPLETE fenced block with its path (```lang: path). List the steps first. If you need more context, name the sections (file:…, diagnostics, rules) you need — Leader will add them next turn.",
   },
   minimal = {
     id = "minimal",
     label = "Minimal",
-    icon = "·",
     description = "Short answers, almost no context",
     hint = "fast and terse",
     context = { rules = false, buffer = false, diagnostics = false, git = false, skills = false, mcp = false },

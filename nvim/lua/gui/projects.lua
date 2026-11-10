@@ -134,6 +134,12 @@ function M.enter(dir)
     require("utils.session").close_auxiliary()
     pcall(persistence.save)
   end
+  -- the chat's real splits would be closed by :only anyway; hide it cleanly so
+  -- its windows and buffers stay consistent
+  local chat = package.loaded["agent.chat.window"]
+  if chat then
+    pcall(chat.hide)
+  end
   pcall(vim.cmd, "silent! only")
   pcall(vim.cmd, "silent! %bwipeout!")
   vim.cmd.cd(vim.fn.fnameescape(dir))

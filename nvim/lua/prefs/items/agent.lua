@@ -22,6 +22,8 @@ return {
       { value = "minimal", label = "Minimal · few tokens" },
     },
   },
+  { group = "Agent", label = "Chat docked (split)", kind = "toggle", id = "agent.chat.dock" },
+  { group = "Agent", label = "Chat applies Write files", kind = "toggle", id = "agent.chat.apply" },
   { group = "Agent", label = "Chat opens on history", kind = "toggle", id = "agent.chat.history_on_open" },
   {
     group = "Agent",

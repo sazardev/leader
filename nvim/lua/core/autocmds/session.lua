@@ -18,6 +18,15 @@ local function has_files()
   return false
 end
 
+--- The chat panel lives in real splits: mksession would save its (nofile)
+--- buffers as files and restore two ghost windows. Autosave waits until it is
+--- hidden (on exit `close_auxiliary` closes it before the session is written).
+---@return boolean
+local function chat_open()
+  local window = package.loaded["agent.chat.window"]
+  return window and window.is_open and window.is_open() or false
+end
+
 --- Saves without closing auxiliary windows (unlike on exit, here you are working)
 local function autosave(group)
   local dirty = false
@@ -35,7 +44,7 @@ local function autosave(group)
     ms,
     vim.schedule_wrap(function()
       local ok, persistence = pcall(require, "persistence")
-      if dirty and ok and persistence.active() and has_files() then
+      if dirty and ok and persistence.active() and has_files() and not chat_open() then
         dirty = false
         pcall(persistence.save)
       end

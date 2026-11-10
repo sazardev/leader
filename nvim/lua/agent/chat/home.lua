@@ -103,7 +103,15 @@ function M.lines(home, opts)
     return #lines
   end
 
-  add("◆ Leader Chat", "ChatHeader", { eol = true })
+  local function hint(key, text)
+    local pad = math.max(1, 14 - #key)
+    add("  " .. key .. string.rep(" ", pad) .. text, "ChatMeta", {
+      spans = { { 2, #key, "ChatHomeIcon" } },
+    })
+  end
+
+  add("", nil) -- a row of air above the bar, like the transcript
+  add("  Leader Chat", "ChatHeader", { eol = true })
   add("  Recent chats", "ChatHomeTitle")
   local profile = require("agent.chat.profiles").get(home.profile)
   add(
@@ -117,9 +125,8 @@ function M.lines(home, opts)
   )
   add ""
 
-  local first = add("  ✚  New chat", selected == 1 and "ChatHomeSel" or "ChatHomeNew", {
+  local first = add("  New chat", selected == 1 and "ChatHomeSel" or "ChatHomeNew", {
     eol = selected == 1,
-    spans = selected == 1 and nil or { { 2, 3, "ChatHomeIcon" } },
   })
   ranges[#ranges + 1] = { first = first, last = first, row = 1, kind = "new" }
   add ""
@@ -133,10 +140,7 @@ function M.lines(home, opts)
       local is_selected = row == selected
       local title_hl = is_selected and "ChatHomeSel" or "ChatHomeRow"
       local meta_hl = is_selected and "ChatHomeSelMeta" or "ChatHomeMeta"
-      local title_line = add("  ❯  " .. M.title(session.title), title_hl, {
-        eol = is_selected,
-        spans = is_selected and nil or { { 2, 3, "ChatHomeIcon" } },
-      })
+      local title_line = add("  " .. M.title(session.title), title_hl, { eol = is_selected })
       local meta_line = add("     " .. M.meta(session, now), meta_hl, { eol = is_selected })
       ranges[#ranges + 1] = {
         first = title_line,
@@ -145,11 +149,27 @@ function M.lines(home, opts)
         kind = "session",
         session = session,
       }
+      if i < #sessions then
+        add "" -- breathing room between conversations
+      end
     end
   end
 
   add ""
-  add("  ↑↓ select · ⏎ open · Ctrl-N new · Esc: n new / D delete", "ChatHomeHint")
+  add("  COMMANDS", "ChatSection")
+  hint("/help", "all commands")
+  hint("/new", "new chat")
+  hint("/model", "model, effort, profile")
+  hint("@file", "add a file")
+  hint("#skill, $mcp", "skill and MCP server")
+  add ""
+  add("  KEYS", "ChatSection")
+  hint("Up / Down", "move (j / k too)")
+  hint("Enter", "open")
+  hint("n / D", "new / delete")
+  hint("A", "apply a message's files")
+  hint("Ctrl-Q", "hide")
+  add ""
   return lines, marks, ranges
 end
 

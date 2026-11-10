@@ -147,7 +147,7 @@ local function derive()
     AgentFloat = { fg = fg, bg = float_bg },
     AgentBorder = { fg = color.ensure_contrast(border, float_bg, fg, 1.8), bg = float_bg },
     AgentTitle = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
-    -- chat (<leader>aC): right-anchored float, blue title chips, deep input bar
+    -- chat (<leader>aC): right split (or float), blue title bar, deep input bar
     ChatHeader = { fg = "#ffffff", bg = blue, bold = true },
     ChatHeaderWarn = { fg = "#ffffff", bg = "#b8860b", bold = true },
     ChatTitle = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
@@ -156,14 +156,12 @@ local function derive()
     ChatUser = { fg = fg, bg = input_bg },
     ChatUserIcon = { fg = color.ensure_contrast("#b8860b", input_bg, fg, 4.5), bg = input_bg, bold = true },
     ChatAssistant = { fg = fg, bg = float_bg },
-    ChatAssistantIcon = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatThinking = {
       fg = color.ensure_contrast(color.blend(fg, float_bg, 0.55), float_bg, fg, 3.0),
       bg = float_bg,
       italic = true,
     },
     ChatTool = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg },
-    ChatToolIcon = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatFloat = { fg = fg, bg = float_bg },
     ChatBorder = { fg = color.ensure_contrast(border, float_bg, fg, 1.8), bg = float_bg },
     ChatInput = { fg = fg, bg = color.blend(float_bg, bg, 0.35) },
@@ -173,6 +171,18 @@ local function derive()
       italic = true,
     },
     ChatHomeTitle = { fg = fg, bg = float_bg, bold = true },
+    ChatSection = {
+      fg = color.ensure_contrast(color.blend(fg, float_bg, 0.45), float_bg, fg, 3.0),
+      bg = float_bg,
+      bold = true,
+    },
+    ChatActivity = {
+      fg = color.ensure_contrast(color.blend(fg, float_bg, 0.45), float_bg, fg, 3.0),
+      bg = float_bg,
+    },
+    ChatTyping = { fg = color.ensure_contrast(yellow, float_bg, fg, 4.5), bg = float_bg, bold = true },
+    ChatApplied = { fg = color.ensure_contrast(green, float_bg, fg, 4.5), bg = float_bg },
+    ChatApplyError = { fg = color.ensure_contrast(yellow, float_bg, fg, 4.5), bg = float_bg },
     ChatHomeNew = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatHomeIcon = { fg = color.ensure_contrast(yellow, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatHomeRow = { fg = fg, bg = float_bg },

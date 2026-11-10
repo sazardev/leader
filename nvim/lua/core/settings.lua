@@ -528,16 +528,18 @@ local defaults = {
     -- session: the statusline chip keeps the progress.
     chat = {
       enabled = true,
-      view = "mini", -- "mini" (right half partition, default) | "full" (borderless full screen). Ctrl-F or :Chat full/mini
+      view = "mini", -- "mini" (real right split, default) | "full" (borderless full screen). Ctrl-F or :Chat full/mini
+      dock = true, -- mini is a REAL right vertical split (the editor shrinks, like Alt-V); false = the old floating partition
       position = "right", -- legacy position key, kept for compat (view decides now)
       width = 0.5, -- fraction of the columns: the right half (a true partition, flush to the edge)
       rail_width = 9, -- collapsed width (vertical "CHAT" tab on the right edge)
       height = 0.35, -- legacy fraction of lines (only the old bottom position used it)
-      input_height = 5, -- lines of the input box
+      input_height = 5, -- max lines of the composer (it starts at 3 and grows with its text)
       top_margin = 0, -- legacy margin (the half partition is flush; kept for older local.lua files)
       right_margin = 0, -- legacy margin (same)
       gap = 0, -- rows between transcript and input (the input's own surface separates them)
       profile = "write", -- default profile: "ask" (read-only) | "write" (code) | "minimal" (fast, no auto context)
+      apply = true, -- write answers apply their full-file blocks (```go: path) to existing project files
       history_on_open = true, -- first open in a repo with chats lands on its history (select or type a new one)
       show_context = true, -- show what was injected per turn
       show_thinking = true, -- profiles may turn this off (minimal)

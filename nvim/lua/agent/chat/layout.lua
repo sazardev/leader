@@ -4,8 +4,9 @@
 -- screen size and view is testable.
 --
 -- mini (the default) is a partition: half the screen, flush to the right edge
--- and the full usable height, separated from the editor by a half-cell edge;
--- transcript and input are stacked with no editor row between them.
+-- and the full usable height, separated from the editor by an edge (a real
+-- split when settings.agent.chat.dock, the old float otherwise); transcript and
+-- input are stacked with no editor row between them.
 -- full is borderless and edge to edge; collapsed is the right-edge rail.
 local M = {}
 

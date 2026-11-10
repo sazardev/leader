@@ -1,5 +1,6 @@
--- Chat panel: a right-side partition (half the screen, Opencode/Claude Code
--- shape, flat design) with a transcript block and an input block. It can also
+-- Chat panel: a real right split by default (settings.agent.chat.dock = false
+-- brings back the old floating partition) with a transcript block and an input
+-- block, half the screen, Opencode/Claude Code shape, flat design. It can also
 -- show the project's chat history (the "home") instead of a transcript.
 -- ONE place reports progress (the statusline chip); hiding keeps the session alive.
 local settings = require "core.settings"
@@ -17,19 +18,24 @@ M.pending_think = ""
 M.running = false
 M.injected_names = nil
 M.collapsed = false -- rail on the right edge (vertical "CHAT")
+M.docked = false -- true while mini lives in real splits (the editor shrinks)
 M.view = nil -- "mini" | "full"; nil = settings default (mini)
 M.ranges = {}
 M.zoom = nil
 M._prev_win = nil
-M.input_lines = 1 -- desired input height (1 grows to settings.agent.chat.input_height)
+M.input_lines = 3 -- desired input height (starts at 3, grows to settings.agent.chat.input_height)
 M.hist_idx = 0 -- 0 = the draft being written, 1.. = older user messages
 M.hist_draft = ""
+M.run_started = nil -- hrtime of the running turn (the activity strip shows its age)
 
-local FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local ACTIVITY_NS = vim.api.nvim_create_namespace "chat.activity"
+local activity = { timer = nil, frame = 0 }
 
 local function chat_cfg()
   return settings.agent.chat or {}
 end
+
+local MIN_INPUT = 3 -- the composer is never thinner than this: a one-row box felt cramped
 
 local function border()
   return require("ui.flat").border()
@@ -59,6 +65,14 @@ local function layout()
 end
 
 local relayout -- defined after open_windows (paint may ask for a height change)
+local hide_all -- defined after the history helpers (an autocmd asks for it)
+
+--- The view the mini panel should use: the settings `dock` unless the old
+--- floating partition was asked for.
+---@return boolean
+local function docked_here()
+  return not M.collapsed and M.current_view() == "mini" and chat_cfg().dock ~= false
+end
 
 --- Placeholder for the input, by state and profile: it teaches the keys once
 --- and then gets out of the way.
@@ -71,17 +85,17 @@ local function placeholder_text()
       if vim.fn.strdisplaywidth(title) > 28 then
         title = vim.fn.strcharpart(title, 0, 27) .. "…"
       end
-      return ("⏎ open “%s” · or type a new message…"):format(title)
+      return ("Enter open “%s” · or type a new message…"):format(title)
     end
     return "Type a message to start a new chat…"
   end
   local profile = require("agent.chat.profiles").of(M.session, chat_cfg().profile)
   if profile.id == "ask" then
-    return "Ask about the code…"
+    return "Ask about the code… (/help for commands)"
   elseif profile.id == "minimal" then
-    return "Ask…"
+    return "Ask… (/help for commands)"
   end
-  return "Describe the change… (Shift-⏎ new line)"
+  return "Describe the change… (Shift-Enter new line)"
 end
 
 --- Input placeholder (virt_text overlay like the commit panel), not a fake line.
@@ -159,21 +173,62 @@ function M.is_open()
   ) or (M.input_win and vim.api.nvim_win_is_valid(M.input_win))
 end
 
+--- The window the chat column grows beside: the LARGEST editable window of the
+--- tab (a sidebar, a terminal or a float is never the host). The chat windows
+--- themselves are excluded, so a relayout can never split from the panel.
+---@return integer?
 local function editing_window()
+  local best, best_area
   for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     if vim.api.nvim_win_is_valid(win) then
       local buf = vim.api.nvim_win_get_buf(win)
       local cfg = vim.api.nvim_win_get_config(win)
-      if cfg.relative == "" and (vim.bo[buf].buftype == "" or vim.bo[buf].filetype == "nvdash") then
-        return win
+      local ft = vim.bo[buf].filetype
+      if
+        cfg.relative == ""
+        and (vim.bo[buf].buftype == "" or ft == "nvdash")
+        and ft ~= "leaderchat"
+        and ft ~= "leaderchat_input"
+      then
+        local area = vim.api.nvim_win_get_width(win) * vim.api.nvim_win_get_height(win)
+        if not best_area or area > best_area then
+          best, best_area = win, area
+        end
       end
     end
   end
-  return nil
+  return best
+end
+
+--- Mini in REAL splits (the default): a column on the right holding the
+--- transcript (top) and the input (bottom). `w` is the text width of the
+--- column; the editor keeps the rest and reflows, like a terminal opened with
+--- a vertical split (Alt-V), so no code hides under the panel.
+---@param w integer
+---@param input_h integer
+local function open_docked(w, input_h)
+  local host = editing_window() or vim.api.nvim_get_current_win()
+  vim.api.nvim_set_current_win(host)
+  vim.cmd "botright vsplit"
+  local transcript = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(transcript, M.transcript_buf)
+  vim.cmd "belowright split"
+  local input = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(input, M.input_buf)
+  M.transcript_win, M.input_win = transcript, input
+  M.docked = true
+  for _, win in ipairs { transcript, input } do
+    vim.w[win].leader_keep = true
+    vim.wo[win].winfixwidth = true
+  end
+  vim.wo[input].winfixheight = true
+  pcall(vim.api.nvim_win_set_width, transcript, w)
+  pcall(vim.api.nvim_win_set_height, input, input_h)
 end
 
 local function open_windows()
   ensure_buffers()
+  M.docked = false
   local w, col, top, transcript_h, input_h, full = layout()
   local function mark_kept(win)
     vim.w[win].leader_keep = true
@@ -224,9 +279,11 @@ local function open_windows()
       zindex = 51,
     })
     mark_kept(M.input_win)
+  elseif docked_here() then
+    open_docked(w, input_h)
   else
-    -- a true partition: full height, half width, flush to the right edge, one
-    -- half-cell edge on the left, a single row of air between the blocks
+    -- the old floating partition: full height, half width, flush to the right
+    -- edge, one half-cell edge on the left, a row of air between the blocks
     M.transcript_win = float(M.transcript_buf, {
       row = top,
       col = col,
@@ -258,15 +315,27 @@ local function open_windows()
       wo.number = false
       wo.relativenumber = false
       wo.signcolumn = "no"
+      wo.statuscolumn = "" -- the global diagnostic column has no place in the panel
       wo.foldcolumn = "0"
       wo.foldenable = false
       wo.spell = false
       wo.list = false
+      wo.scrolloff = 0
+      wo.cursorline = false
+      wo.cursorcolumn = false
+      wo.winbar = "" -- the global winbar is for files; a block has no chrome
+      if M.docked then
+        -- a real split has no border to pad with: one blank fold cell on the
+        -- left and a one-column wrap margin on the right give the panel air
+        wo.foldcolumn = "1"
+        wo.fillchars = "eob: ,fold: ,horiz: ,vert: "
+      end
       local b = vim.api.nvim_win_get_buf(win)
+      vim.bo[b].wrapmargin = M.docked and 1 or 0
       vim.b[b].completion = false -- blink must not cover the chat (it would eat <CR>)
       wo.winhighlight = win == M.transcript_win
-          and "NormalFloat:ChatFloat,Normal:ChatFloat,FloatBorder:ChatBorder,FloatTitle:ChatHeader,FloatFooter:ChatMeta,EndOfBuffer:ChatFloat"
-        or "NormalFloat:ChatInput,Normal:ChatInput,FloatBorder:ChatBorder,EndOfBuffer:ChatInput"
+          and "NormalFloat:ChatFloat,Normal:ChatFloat,NormalNC:ChatFloat,FloatBorder:ChatBorder,FloatTitle:ChatHeader,FloatFooter:ChatMeta,EndOfBuffer:ChatFloat,WinSeparator:ChatBorder,FoldColumn:ChatFloat"
+        or "NormalFloat:ChatInput,Normal:ChatInput,NormalNC:ChatInput,FloatBorder:ChatBorder,EndOfBuffer:ChatInput,WinSeparator:ChatBorder,FoldColumn:ChatInput"
     end
   end
 
@@ -280,13 +349,19 @@ local function open_windows()
     end),
   })
 
-  -- if the user closes the transcript with :q, hide the whole panel
+  -- if the user closes one of the panel's windows (:q), hide the whole panel
+  local closed = { tostring(M.transcript_win) }
+  if M.input_win then
+    closed[#closed + 1] = tostring(M.input_win)
+  end
   vim.api.nvim_create_autocmd("WinClosed", {
     group = vim.api.nvim_create_augroup("ChatClosed", { clear = true }),
-    pattern = { tostring(M.transcript_win) },
+    pattern = closed,
     callback = function()
       vim.schedule(function()
-        if M.transcript_win and not vim.api.nvim_win_is_valid(M.transcript_win) then
+        local t_gone = M.transcript_win and not vim.api.nvim_win_is_valid(M.transcript_win)
+        local i_gone = M.input_win and not vim.api.nvim_win_is_valid(M.input_win)
+        if t_gone or i_gone then
           hide_all()
         end
       end)
@@ -326,6 +401,22 @@ relayout = function(keep_input)
     end
     return
   end
+  if M.docked then
+    -- real splits: the column keeps its fraction of the screen and the input
+    -- its height; the editor takes the rest on its own
+    local t, i = M.transcript_win, M.input_win
+    if not (t and vim.api.nvim_win_is_valid(t) and i and vim.api.nvim_win_is_valid(i)) then
+      return
+    end
+    local wo_t, wo_i = vim.wo[t], vim.wo[i]
+    wo_t.winfixwidth, wo_i.winfixwidth = false, false
+    pcall(vim.api.nvim_win_set_width, t, w)
+    wo_t.winfixwidth, wo_i.winfixwidth = true, true
+    wo_i.winfixheight = false
+    pcall(vim.api.nvim_win_set_height, i, input_h)
+    wo_i.winfixheight = true
+    return
+  end
   if M.transcript_win and vim.api.nvim_win_is_valid(M.transcript_win) then
     pcall(vim.api.nvim_win_set_config, M.transcript_win, {
       relative = "editor",
@@ -362,9 +453,12 @@ M.auto_height = function()
   if not (win and vim.api.nvim_win_is_valid(win)) then
     return
   end
+  -- the float's border/padding and the split's fold column + wrap margin are
+  -- both worth two columns of wrapping width
   local width = math.max(10, vim.api.nvim_win_get_width(win) - 2)
   local lines = vim.api.nvim_buf_get_lines(M.input_buf, 0, -1, false)
   local h = require("agent.chat.input").height(lines, width, chat_cfg().input_height or 5)
+  h = math.max(MIN_INPUT, h)
   if h ~= M.input_lines then
     M.input_lines = h
     if M.is_open() then
@@ -511,20 +605,40 @@ function M.home_delete()
   end)
 end
 
-function hide_all()
+hide_all = function()
+  M.stop_activity()
   pcall(require("agent.chat.completion").hide)
   if M.zoom and M.zoom.win and vim.api.nvim_win_is_valid(M.zoom.win) then
     vim.api.nvim_win_close(M.zoom.win, true)
   end
   M.zoom = nil
-  for _, win in ipairs { M.input_win, M.transcript_win } do
-    if win and vim.api.nvim_win_is_valid(win) then
-      vim.api.nvim_win_close(win, true)
-    end
+  -- where the focus goes: the window the user is in when it is not the panel
+  -- (a save or a session restore hides the chat without stealing it), else the
+  -- one that was current when the panel opened
+  local cur = vim.api.nvim_get_current_win()
+  local keep = cur ~= M.transcript_win and cur ~= M.input_win and vim.api.nvim_win_is_valid(cur)
+  -- clear the fields BEFORE closing: WinClosed is queued and must not hide the
+  -- panel again (or steal the focus) while this one is already going away.
+  -- Build the list explicitly: { input, transcript } with a nil input would stop
+  -- ipairs at the first hole and leave the rail float open.
+  local wins = {}
+  if M.input_win then
+    wins[#wins + 1] = M.input_win
+  end
+  if M.transcript_win then
+    wins[#wins + 1] = M.transcript_win
   end
   M.transcript_win, M.input_win = nil, nil
-  if M._prev_win and vim.api.nvim_win_is_valid(M._prev_win) then
-    vim.api.nvim_set_current_win(M._prev_win)
+  M.docked = false
+  for _, win in ipairs(wins) do
+    if vim.api.nvim_win_is_valid(win) then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+  if keep and vim.api.nvim_win_is_valid(cur) then
+    pcall(vim.api.nvim_set_current_win, cur)
+  elseif M._prev_win and vim.api.nvim_win_is_valid(M._prev_win) then
+    pcall(vim.api.nvim_set_current_win, M._prev_win)
   else
     local win = editing_window()
     if win then
@@ -544,6 +658,15 @@ function M.focus()
   if not M.is_open() then
     return M.toggle()
   end
+  -- coming from the code: hiding later returns HERE, not to the window the
+  -- panel was first opened from
+  local cur = vim.api.nvim_get_current_win()
+  if cur ~= M.input_win and cur ~= M.transcript_win and vim.api.nvim_win_is_valid(cur) then
+    local buf = vim.api.nvim_win_get_buf(cur)
+    if vim.bo[buf].buftype == "" or vim.bo[buf].filetype == "nvdash" then
+      M._prev_win = cur
+    end
+  end
   if M.collapsed then
     M.collapsed = false
     hide_all()
@@ -562,7 +685,8 @@ function M.toggle()
   if M.is_open() then
     if M.collapsed then
       M.collapsed = false
-      relayout()
+      hide_all()
+      open_windows()
       M.draw()
       if M.input_win and vim.api.nvim_win_is_valid(M.input_win) then
         vim.api.nvim_set_current_win(M.input_win)
@@ -664,6 +788,100 @@ function M.draw()
       })
     end
   end
+  if M.running then
+    M.start_activity()
+    M.activity()
+  else
+    M.stop_activity()
+  end
+end
+
+--- Stop the activity animation and clear its overlay.
+function M.stop_activity()
+  if activity.timer then
+    pcall(activity.timer.stop, activity.timer)
+    if not activity.timer:is_closing() then
+      pcall(activity.timer.close, activity.timer)
+    end
+    activity.timer = nil
+  end
+  activity.frame = 0
+  if M.transcript_buf and vim.api.nvim_buf_is_valid(M.transcript_buf) then
+    vim.api.nvim_buf_clear_namespace(M.transcript_buf, ACTIVITY_NS, 0, -1)
+  end
+end
+
+--- One activity frame: faint "Working" dots before the first token, a blinking
+--- caret at the end of the streamed text after it. It only moves extmarks: the
+--- transcript is not rewritten at animation speed.
+function M.activity()
+  local buf = M.transcript_buf
+  if not (buf and vim.api.nvim_buf_is_valid(buf) and M.running and M.is_open()) then
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_clear_namespace(buf, ACTIVITY_NS, 0, -1)
+    end
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(buf, ACTIVITY_NS, 0, -1)
+  local count = vim.api.nvim_buf_line_count(buf)
+  local waiting = (M.pending_text or "") == "" and (M.pending_think or "") == ""
+  if waiting then
+    -- the render always leaves a blank soft row at the end: the strip lives there
+    local line = count
+    local text = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
+    local chunks = {
+      { "  Working", "ChatActivity" },
+      { string.rep(".", activity.frame % 4), "ChatTyping" },
+    }
+    local secs = M.run_started and math.floor((vim.uv.hrtime() - M.run_started) / 1e9) or 0
+    if secs >= 1 then
+      chunks[#chunks + 1] = { ("  %ds"):format(secs), "ChatActivity" }
+    end
+    pcall(vim.api.nvim_buf_set_extmark, buf, ACTIVITY_NS, line - 1, text == "" and 0 or #text, {
+      id = 1,
+      virt_text = chunks,
+      virt_text_pos = text == "" and "overlay" or "eol",
+    })
+  else
+    -- the last non-empty line is the text being written: a caret that pulses
+    local line = count
+    while line > 1 do
+      local text = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
+      if text ~= "" then
+        break
+      end
+      line = line - 1
+    end
+    local hl = activity.frame % 2 == 0 and "ChatTyping" or "ChatActivity"
+    pcall(vim.api.nvim_buf_set_extmark, buf, ACTIVITY_NS, line - 1, 0, {
+      id = 1,
+      virt_text = { { "▌", hl } },
+      virt_text_pos = "eol",
+    })
+  end
+end
+
+--- Start the activity timer (idempotent; only while a turn runs with the panel open).
+function M.start_activity()
+  if not (M.running and M.is_open()) then
+    return
+  end
+  if activity.timer and not activity.timer:is_closing() then
+    return
+  end
+  activity.frame = 0
+  activity.timer = assert(vim.uv.new_timer())
+  activity.timer:start(
+    0,
+    320,
+    vim.schedule_wrap(function()
+      if not (M.running and M.is_open()) then
+        return M.stop_activity()
+      end
+      activity.frame = (activity.frame + 1) % 8
+      M.activity()
+    end)
+  )
 end
 
 --- Message whose rendered block contains `line` (1-based); nil on headers/gaps.
@@ -693,6 +911,43 @@ function M.copy_message()
   end
   require("agent.ui.clipboard").copy(require("agent.chat.render").message_text(msg), msg.role or "message")
   return true
+end
+
+--- Applies the full-file blocks of the assistant message under the cursor.
+--- Also the manual path when auto-apply is off or the buffer was unsaved.
+---@return boolean applied
+function M.apply_message()
+  local msg
+  if M.zoom and M.zoom.msg then
+    msg = M.zoom.msg
+  elseif vim.api.nvim_get_current_buf() == M.transcript_buf then
+    msg = M.message_at(vim.api.nvim_win_get_cursor(0)[1])
+  end
+  if not msg or msg.role ~= "assistant" then
+    require("utils.log").info "Chat: no assistant message on this line"
+    return false
+  end
+  if not M.session then
+    return false
+  end
+  local res = require("agent.chat.apply").run(M.session, msg.text)
+  msg.meta = msg.meta or {}
+  msg.meta.applied = res.files
+  msg.meta.apply_unchanged = res.unchanged
+  msg.meta.apply_skipped = res.skipped
+  msg.meta.apply_errors = res.errors
+  M.draw()
+  if #res.files > 0 then
+    require("utils.log").info(("Chat: applied %s"):format(table.concat(res.files, ", ")))
+    return true
+  elseif #res.errors > 0 then
+    require("utils.log").warn(("Chat: not applied %s"):format(table.concat(res.errors, "; ")))
+  elseif #res.unchanged > 0 then
+    require("utils.log").info(("Chat: already up to date: %s"):format(table.concat(res.unchanged, ", ")))
+  else
+    require("utils.log").info "Chat: no full-file block to apply"
+  end
+  return false
 end
 
 --- Copies the fenced code block under the cursor (fallback: the whole message).
@@ -753,7 +1008,7 @@ function M.open_message(msg)
     height = height,
     style = "minimal",
     border = border(),
-    title = { { (" ◆ %s "):format(role), "ChatHeader" }, { " y copy · q close ", "ChatMeta" } },
+    title = { { (" %s "):format(role), "ChatHeader" }, { " y copy · q close ", "ChatMeta" } },
     title_pos = "left",
     zindex = 70,
   })
@@ -785,13 +1040,13 @@ function M.bind_keys()
   if not (M.input_buf and vim.api.nvim_buf_is_valid(M.input_buf)) then
     return
   end
-  -- input: ⏎ send (Shift-⏎ / Ctrl-J inserts a newline); with the slash popup open, ⏎/Tab accept
+  -- input: Enter sends (Shift-Enter / Ctrl-J inserts a newline); with the slash popup open, Enter/Tab accept
   map(M.input_buf, "i", "<CR>", function()
     if require("agent.chat.completion").accept() then
       return
     end
     local text = table.concat(vim.api.nvim_buf_get_lines(M.input_buf, 0, -1, false), "\n")
-    -- empty ⏎ on the history opens the highlighted chat instead of sending nothing
+    -- empty Enter on the history opens the highlighted chat instead of sending nothing
     if M.home and text:match "^%s*$" then
       vim.cmd "stopinsert"
       M.home_open()
@@ -889,30 +1144,25 @@ function M.bind_keys()
   map(M.input_buf, { "n", "i" }, "<leader>aC", function()
     M.hide()
   end, "Chat hide")
-  map(M.input_buf, "n", "q", function()
-    M.hide()
-  end, "Chat hide")
-  map(M.input_buf, "n", "<Esc>", function()
-    M.hide()
-  end, "Chat hide (Esc)")
+  map(M.input_buf, "n", "q", function() end, "Chat stays open")
+  map(M.input_buf, "n", "<Esc>", function() end, "Chat stays open")
   map(M.input_buf, "i", "<Esc>", function()
-    -- with the slash popup up, Esc only closes the popup
+    -- with the slash popup up, Esc only closes the popup; otherwise it leaves
+    -- insert mode. The panel stays: hiding is Ctrl-Q / <leader>aC.
     local completion = require "agent.chat.completion"
     if completion.is_visible() then
       completion.hide()
       return
     end
     vim.cmd "stopinsert"
-    M.hide()
-  end, "Chat hide (Esc)")
-  -- transcript: reading, q hides, i focuses the input
+  end, "Chat leave insert")
+  -- transcript: reading, i focuses the input; the panel only closes with Ctrl-Q / <leader>aC
   if M.transcript_buf and vim.api.nvim_buf_is_valid(M.transcript_buf) then
-    map(M.transcript_buf, "n", "q", function()
+    map(M.transcript_buf, "n", "q", function() end, "Chat stays open")
+    map(M.transcript_buf, "n", "<Esc>", function() end, "Chat stays open")
+    map(M.transcript_buf, { "n", "i" }, "<C-q>", function()
       M.hide()
     end, "Chat hide")
-    map(M.transcript_buf, "n", "<Esc>", function()
-      M.hide()
-    end, "Chat hide (Esc)")
     map(M.transcript_buf, { "n", "i" }, "<C-t>", function()
       M.toggle_collapse()
     end, "Chat collapse")
@@ -976,6 +1226,9 @@ function M.bind_keys()
     map(M.transcript_buf, "n", "h", function()
       require("agent.chat").pick_session()
     end, "Chat sessions")
+    map(M.transcript_buf, "n", "A", function()
+      M.apply_message()
+    end, "Chat apply files")
     map(M.transcript_buf, "n", "i", function()
       if M.collapsed then
         return M.toggle_collapse()
@@ -1002,14 +1255,21 @@ function M.statusline()
     model = vim.fn.strcharpart(model, 0, 19) .. "…"
   end
   local profile = require("agent.chat.profiles").of(M.session, chat_cfg().profile)
-  local frame = FRAMES[math.floor(vim.uv.hrtime() / 1e8) % #FRAMES + 1]
-  return (" %s %s · %s "):format(frame, profile.label, model ~= "" and model or "chat")
+  -- plain text: the chip only exists while a turn runs, no spinner glyph
+  return (" %s · %s "):format(profile.label, model ~= "" and model or "chat")
 end
 
---- Called by chat/init when a turn starts/stops. The statusline chip is the
---- single progress indicator; the transcript header carries the profile.
+--- Called by chat/init when a turn starts/stops. The statusline chip keeps the
+--- progress outside the panel; inside, the activity strip/caret animates.
 function M.set_running(on)
   M.running = on
+  if on then
+    M.run_started = vim.uv.hrtime()
+    M.start_activity()
+  else
+    M.run_started = nil
+    M.stop_activity()
+  end
 end
 
 return M

@@ -36,6 +36,7 @@ function M.build(session, clean, sections, profile)
     .. profile.label
     .. "\nLanguage: "
     .. (settings.language or "English")
+    .. "\nFormat: every fenced code block carries its language (go, bash, json…), so the editor can highlight it."
   return system, table.concat(parts, "\n"), vim.tbl_map(function(s)
     return s.name
   end, sections or {})

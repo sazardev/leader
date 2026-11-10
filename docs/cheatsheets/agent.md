@@ -12,8 +12,14 @@ by Leader: pick **any backend/model on the machine** (claude, opencode, ollama, 
 model the backend knows** (opencode: all `opencode models`, curated fast ones first), not just the one-shot shortlist.
 Pick effort, get streaming answers with thinking. Everything is shown: the blue header (`profile · model · turns · tokens ·
 cost`), what was **injected** per turn (rules, buffer, diagnostics, git, skills, mcp, @files) and the turn's tokens/cost/time.
-Hiding the panel (`q`, `Esc`, `<C-q>`) keeps the session — a single statusline chip (`⠹ Write · deepseek-v4.1-flash`) keeps
-the progress from any buffer. Sessions persist per project (`stdpath("state")/agent-chat.json`); every turn also lands in
+Hiding the panel (`Ctrl-Q`, or `<leader>aC` while it has the focus) keeps the session — a single statusline chip (`Write · deepseek-v4.1-flash`) keeps
+the progress from any buffer. The panel is a **real right split** (the editor shrinks beside it, like a terminal opened
+with `Alt-V`); `Esc` only leaves insert and `q` does nothing, so it stays while you work. The transcript is **icon-free**
+and padded: a blank fold column on the left, a wrap margin on the right and a row of air above the brand bar; the composer
+starts at three rows and grows up to `input_height`. The user turn is a filled bubble with its own top/bottom air, and the
+sections use faint uppercase labels and the flat yellow key color. An **empty chat and the history home** carry a plain-text
+reference of the commands, mentions and keys, so the panel explains itself without opening `/help`. Sessions persist per
+project (`stdpath("state")/agent-chat.json`); every turn also lands in
 the agent history, so the spend/budget guards apply unchanged.
 
 - **Profiles** (Zed-style, `Ctrl-P` or `/profile`): **Ask** answers about the code and never proposes edits; **Write** is the
@@ -31,23 +37,35 @@ the agent history, so the spend/budget guards apply unchanged.
   `/full`, `/mini`, `/collapse`, `/help`, run as soon as you pick one); `@` → project files (tracked + untracked,
   gitignore respected; it inserts `@path`) plus `@buf`, `@sel`, `@diag`; `#` → skills; `$` → MCP servers. `↑`/`↓` with no
   selector recalls the previous user messages, `↓` past the newest returns to your draft. The input grows with its content
-  (`input_height` is the maximum) and `Esc` hides the panel.
-- **View**: the default is the **half partition**: flush to the right edge, full usable height, one half-cell edge on the
-  left, the input as its own surface at the bottom. `Ctrl-F` toggles **half ↔ full screen** (`:Chat full`/`:Chat mini`,
-  `/full`, `/mini`); full is borderless and edge to edge, with the single statusline still free. `Ctrl-T` collapses to the
-  right rail. **Keys**: `Ctrl-N` new, `Ctrl-H` history, `Ctrl-M` model, `Ctrl-E` effort, `Ctrl-P` profile, `Ctrl-A` ADR,
-  `Ctrl-X` stop, `Ctrl-Q` hide.
+  (`input_height` is the maximum), `Esc` leaves insert (or closes the selector) without hiding the panel, and `Ctrl-Q`
+  hides it.
+- **View**: the default is the **real half split**: a dedicated right column, full usable height, the editor reflowed
+  to the left (like `Alt-V`), the input as its own surface at the bottom. `Ctrl-F` toggles **half ↔ full screen**
+  (`:Chat full`/`:Chat mini`, `/full`, `/mini`); full is borderless and edge to edge, with the single statusline still
+  free. `settings.agent.chat.dock = false` (also in `<leader>Sp`) goes back to the old floating partition.
+  `Ctrl-T` collapses to the right rail. **Keys**: `Ctrl-N` new, `Ctrl-H` history, `Ctrl-M` model, `Ctrl-E` effort,
+  `Ctrl-P` profile, `Ctrl-A` ADR, `Ctrl-X` stop, `Ctrl-Q` hide. `Esc`/`q` never close the panel.
 - **Markdown**: answers are rendered with treesitter and render-markdown as soon as the turn settles (streaming stays raw
-  and cheap): accent heading bands, real code blocks with their language line on a deeper surface, inline code, quotes,
-  links, tables, checkboxes and bullets; profile labels stay readable on light and dark themes. The transcript keeps the
-  source verbatim, so copying is byte-exact; CRLF, ANSI escapes and control characters are cleaned for display AND copy,
-  tabs and wide characters are preserved.
+  and cheap): accent heading bands, real code blocks with their language name on a deeper surface, inline code, quotes,
+  links, tables, checkboxes and bullets. **No icons**: headings, list bullets and task boxes keep their source text
+  (`-`, `[ ]`, the heading text) instead of glyphs, and code blocks show the language name without a language icon. **Code
+  blocks are highlighted by treesitter**: an apply fence (`language: path`) is shown as `language` in the transcript, and
+  an unlabeled block whose first line starts with a common command is shown as `bash`; copy and apply keep the original
+  text. The transcript keeps the source verbatim, so copying is byte-exact; CRLF, ANSI escapes and control characters are
+  cleaned for display AND copy, tabs and wide characters are preserved.
 - **Transcript**: `y` copies the message under the cursor, `c` the fenced code block under it (the clipboard gets the
   code, not the fences), `Y` the whole transcript, `o`/`⏎` opens that message full size (markdown; `y` copies it there too),
   `h` history, `i` back to the input.
+- **Write mode writes files**: a Write answer returns every changed file as a **complete fenced block with its path**
+  (the info string is `go: main.go`); when the turn settles Leader applies those blocks to the project (existing files only, loaded
+  buffers must be saved, a closed file is backed up to the trash first) and the turn footer says `applied main.go`.
+  `A` on any assistant message applies its blocks again (useful for an old answer or after saving a buffer);
+  `settings.agent.chat.apply = false` turns it off.
 - **ADR**: `/adr` (or `Ctrl-A`) drafts an ADR from the chat into `docs/adr/` (same shape as the build's ADRs).
-- **Settings** (`settings.agent.chat`): `view` (`mini` = half partition / `full`), `width` (fraction of columns, 0.5),
-  `profile` (default `write`), `history_on_open`, `rail_width`, `input_height`, `gap`, `show_context`, `show_thinking`,
+- **Settings** (`settings.agent.chat`): `view` (`mini` = real half split / `full`), `dock` (`true` = real split, `false` = the
+  old floating partition), `apply` (`true` = Write answers write their full-file blocks), `width` (fraction of columns, 0.5),
+  `profile` (default `write`), `history_on_open`, `rail_width`,
+  `input_height` (max rows of the composer, which starts at 3), `gap`, `show_context`, `show_thinking`,
   `show_tokens`, `max_history_chars`, `max_context_chars`, `max_mention_chars`, `timeout_ms`, `autosave`.
 
 **Clear file** moved from `<leader>aC` to `<leader>aW` (`:AgentClear file` still works).

@@ -56,6 +56,11 @@ end
 function M.save()
   local p = persistence()
   if p then
+    -- the chat's real splits would be saved as ghost file windows: hide it first
+    local chat = package.loaded["agent.chat.window"]
+    if chat then
+      pcall(chat.hide)
+    end
     p.save()
     log.info "Session saved"
   end

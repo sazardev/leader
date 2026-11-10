@@ -20,17 +20,22 @@ end
 -- bands with the flat accents. It overrides the global nofile override (which
 -- is tuned for small hover/answer floats) because it is passed last.
 local MD_CONFIG = {
-  heading = { width = "full", left_pad = 1, right_pad = 1, border = false },
+  heading = { width = "full", left_pad = 1, right_pad = 1, border = false, icons = { "", "", "", "", "", "" } },
   code = {
     style = "full",
     border = "hide",
     language = true,
-    language_icon = true,
+    language_icon = false,
     language_name = true,
     left_pad = 1,
     right_pad = 1,
     width = "full",
   },
+  -- no pictograms in the conversation: the markdown source (-, [ ], ---) stays
+  -- visible and the flat design carries the hierarchy with color and air
+  bullet = { enabled = false },
+  checkbox = { enabled = false },
+  dash = { enabled = false },
   quote = { enabled = true },
   pipe_table = { style = "normal" },
 }
@@ -63,18 +68,20 @@ function M.markdown(buf, win)
   render_markdown(buf, win)
 end
 
---- Vertical rail for the collapsed panel (vertical "CHAT" tab).
+--- Vertical rail for the collapsed panel (vertical "CHAT" tab). Plain text: the
+--- transcript and the statusline carry the state, the rail only names the panel.
 ---@param session table
 ---@param running boolean
 ---@return string[]
 function M.rail(session, running)
-  local lines = { "C", "H", "A", "T", " ", "│" }
+  local lines = { "C", "H", "A", "T", " " }
   local sel = require("agent.selection").current()
   local backend = (session and session.backend) or (sel and sel.backend) or "?"
-  lines[#lines + 1] = running and "⠹" or "●"
-  lines[#lines + 1] = " "
   lines[#lines + 1] = backend:sub(1, 3)
   lines[#lines + 1] = tostring(session and session.turns or 0)
+  if running then
+    lines[#lines + 1] = "run"
+  end
   return lines
 end
 
@@ -135,17 +142,182 @@ local function pick(value, default)
   return default
 end
 
---- A line that starts a markdown block (fence, heading, quote, list, ordered
---- item): adding an icon before it would break the parser, so those messages
---- start without the icon and keep their markdown pristine.
+--- A `lang: path` fence is the apply convention, not a treesitter language:
+--- the transcript shows `lang` so the parser/injection highlights the code;
+--- copying and applying still read the original message text.
 ---@param line string
----@return boolean
-local function structural(line)
-  return line:match "^%s*```" ~= nil
-    or line:match "^%s*#" ~= nil
-    or line:match "^%s*>" ~= nil
-    or line:match "^%s*[-*+]%s" ~= nil
-    or line:match "^%s*%d+[.)]%s" ~= nil
+---@return string
+local function display_fence(line)
+  local prefix, lang = line:match "^(%s*```%s*)([%w%+%._%-]+):%s*[^%s].*$"
+  if prefix and lang ~= "" then
+    return prefix .. lang
+  end
+  local prefix, info = line:match "^(%s*```%s*)([^%s]+)%s*$"
+  if info and info:find "[/%.]" then
+    return prefix
+  end
+  return line
+end
+
+-- Common first words of a terminal block. Used only for an UNLABELED fence, so
+-- an old answer that wrote its commands without a language still gets bash color.
+local SHELL = {}
+for _, word in ipairs {
+  "sudo",
+  "go",
+  "npm",
+  "pnpm",
+  "yarn",
+  "bun",
+  "cargo",
+  "make",
+  "docker",
+  "git",
+  "curl",
+  "wget",
+  "python",
+  "python3",
+  "pip",
+  "pip3",
+  "uv",
+  "dotnet",
+  "flutter",
+  "dart",
+  "swift",
+  "node",
+  "npx",
+  "deno",
+  "just",
+  "task",
+  "kubectl",
+  "terraform",
+  "aws",
+  "gcloud",
+  "systemctl",
+  "ls",
+  "cd",
+  "mkdir",
+  "rm",
+  "cp",
+  "mv",
+  "cat",
+  "echo",
+  "brew",
+  "apt",
+  "apt-get",
+  "pacman",
+  "yum",
+  "dnf",
+  "zypper",
+  "apk",
+  "chmod",
+  "chown",
+  "export",
+  "source",
+  "printf",
+  "sed",
+  "awk",
+  "grep",
+  "rg",
+  "find",
+  "jq",
+  "yq",
+  "psql",
+  "sqlite3",
+  "redis-cli",
+} do
+  SHELL[word] = true
+end
+
+---@param line string?
+---@return string?
+local function infer_language(line)
+  if not line then
+    return nil
+  end
+  if line:match "^%s*[%$>] " then
+    return "bash"
+  end
+  local word = line:match "^%s*([%w_%-%.]+)"
+  if word and SHELL[word] then
+    return "bash"
+  end
+  return nil
+end
+
+--- Display form of a message's lines: parser-friendly fences (`go: path` → `go`)
+--- and a bash hint for an unlabeled terminal block. Copy still uses the source.
+---@param parts string[]
+---@return string[]
+local function display_lines(parts)
+  local out = {}
+  local i = 1
+  while i <= #parts do
+    local line = parts[i]
+    local prefix, info = line:match "^(%s*```%s*)(.-)%s*$"
+    if prefix and info == "" then
+      local first
+      local j = i + 1
+      while j <= #parts do
+        if parts[j]:match "^%s*```%s*$" then
+          break
+        end
+        if parts[j]:find "%S" then
+          first = parts[j]
+          break
+        end
+        j = j + 1
+      end
+      local lang = infer_language(first)
+      out[#out + 1] = lang and (prefix .. lang) or line
+    else
+      out[#out + 1] = display_fence(line)
+    end
+    i = i + 1
+  end
+  return out
+end
+
+--- A row of the reference block: the token in the yellow key color, its
+--- description faint. Plain text only (no icons), aligned to a fixed column.
+---@param add_line fun(text: string, hl: string?, o: table?)
+---@param key string
+---@param text string
+local function hint(add_line, key, text)
+  local pad = math.max(1, 14 - #key)
+  add_line("  " .. key .. string.rep(" ", pad) .. text, "ChatMeta", {
+    spans = { { 2, #key, "ChatHomeIcon" } },
+  })
+end
+
+--- What an empty chat shows instead of a blank transcript: how to send and the
+--- commands/mentions that make the panel understandable without opening /help.
+---@param add_line fun(text: string, hl: string?, o: table?)
+local function welcome(add_line)
+  add_line("  Type a message below and press Enter.", "ChatHomeHint")
+  add_line("  Write mode writes full files tagged with their path.", "ChatMeta")
+  add_line ""
+  add_line("  COMMANDS", "ChatSection")
+  hint(add_line, "/help", "all commands")
+  hint(add_line, "/new", "new chat")
+  hint(add_line, "/history", "previous chats")
+  hint(add_line, "/model", "model")
+  hint(add_line, "/profile", "profile")
+  hint(add_line, "/full", "full screen")
+  hint(add_line, "/mini", "half split")
+  add_line ""
+  add_line("  MENTIONS", "ChatSection")
+  hint(add_line, "@file", "add a file")
+  hint(add_line, "@buf, @sel", "buffer and selection")
+  hint(add_line, "@diag", "diagnostics")
+  hint(add_line, "#skill", "a skill or $mcp MCP")
+  add_line ""
+  add_line("  KEYS", "ChatSection")
+  hint(add_line, "Enter", "send · Shift-Enter newline")
+  hint(add_line, "Ctrl-Q", "hide")
+  hint(add_line, "Up / Down", "previous messages")
+  hint(add_line, "A", "apply the files of a message")
+  add_line ""
 end
 
 local function view(opts, profile)
@@ -197,33 +369,48 @@ function M.blocks(session, opts)
   end
 
   -- header: a blue brand bar, the chat title, then profile · model · totals
+  add_line("", nil) -- a row of air above the bar: the block starts soft, not flush
   local sel = require("agent.selection").current()
-  local backend = (session.backend or (sel and sel.backend)) or "?"
   local model = (session.model or (sel and sel.model)) or "default"
   local effort = session.effort or (sel and sel.effort)
-  add_line("◆ Leader Chat", "ChatHeader", { eol = true })
+  add_line("  Leader Chat", "ChatHeader", { eol = true })
   add_line("  " .. (session.title or "New chat"), "ChatTitle", { eol = true })
-  local stats
-  if profile.show_meta == false then
-    stats = ("  %s · %s/%s%s"):format(profile.label, backend, model, effort and (" · " .. effort) or "")
-  else
-    stats = ("  %s · %s/%s%s · %d turn%s · %s in / %s out · $%.4f"):format(
-      profile.label,
-      backend,
-      model,
-      effort and (" · " .. effort) or "",
-      session.turns or 0,
-      (session.turns or 0) == 1 and "" or "s",
-      chat_text.tokens(session.tokens_in or 0),
-      chat_text.tokens(session.tokens_out or 0),
-      session.cost or 0
+  -- short model id (drop the provider prefix) so the header stays on one line
+  -- in the half split; the totals get their own row
+  local short = model:gsub("^[^/]+/", "")
+  if vim.fn.strdisplaywidth(short) > 24 then
+    short = vim.fn.strcharpart(short, 0, 23) .. "…"
+  end
+  add_line(
+    ("  %s · %s%s"):format(profile.label, short, effort and (" · " .. effort) or ""),
+    "ChatMeta",
+    { spans = { { 2, #profile.label, "ChatProfile" } } }
+  )
+  if profile.show_meta ~= false then
+    add_line(
+      ("  %d turn%s · %s in / %s out · $%.4f"):format(
+        session.turns or 0,
+        (session.turns or 0) == 1 and "" or "s",
+        chat_text.tokens(session.tokens_in or 0),
+        chat_text.tokens(session.tokens_out or 0),
+        session.cost or 0
+      ),
+      "ChatMeta"
     )
   end
-  add_line(stats, "ChatMeta", { spans = { { 2, #profile.label, "ChatProfile" } } })
   if opts.injected and #opts.injected > 0 then
-    add_line("⌗ injected: " .. table.concat(opts.injected, ", "), "ChatTool")
+    add_line("injected: " .. table.concat(opts.injected, ", "), "ChatTool")
   end
   add_line("", nil)
+
+  -- no conversation yet: teach the commands instead of leaving the block blank
+  local empty = #(session.messages or {}) == 0
+    and not (opts.pending and opts.pending ~= "")
+    and not (opts.thinking and opts.thinking ~= "")
+  if empty then
+    welcome(add_line)
+    return lines, marks, ranges
+  end
 
   for _, msg in ipairs(session.messages) do
     local first_line = #lines + 1
@@ -231,37 +418,30 @@ function M.blocks(session, opts)
     local parts = vim.split(text, "\n", { plain = true })
 
     if msg.role == "user" then
-      for i, l in ipairs(parts) do
-        if i == 1 and not structural(l) then
-          add_line("❯ " .. l, "ChatUser", { eol = true, spans = { { 0, 2, "ChatUserIcon" } } })
-        else
-          add_line(l, "ChatUser", { eol = true })
-        end
+      -- the user turn is a filled bubble: one row of air inside it on each
+      -- side, so text never touches the block's edges
+      add_line("", "ChatUser", { eol = true })
+      for _, l in ipairs(display_lines(parts)) do
+        add_line(l, "ChatUser", { eol = true })
       end
+      add_line("", "ChatUser", { eol = true })
     elseif msg.role == "assistant" then
-      for i, l in ipairs(parts) do
-        if i == 1 and not structural(l) then
-          add_line("✦ " .. l, "ChatAssistant", { spans = { { 0, 2, "ChatAssistantIcon" } } })
-        else
-          add_line(l, "ChatAssistant")
-        end
+      for _, l in ipairs(display_lines(parts)) do
+        add_line(l, "ChatAssistant")
       end
     elseif msg.role == "thinking" then
       if v.thinking then
-        for i, l in ipairs(parts) do
-          add_line((i == 1 and "· " or "  ") .. l, "ChatThinking", { eol = true })
+        for _, l in ipairs(display_lines(parts)) do
+          add_line(l, "ChatThinking", { eol = true })
         end
       end
     elseif msg.role == "tool" then
-      for i, l in ipairs(parts) do
-        add_line((i == 1 and "⛭ " or "  ") .. l, "ChatTool", {
-          eol = true,
-          spans = i == 1 and { { 0, 2, "ChatToolIcon" } } or nil,
-        })
+      for _, l in ipairs(display_lines(parts)) do
+        add_line(l, "ChatTool", { eol = true })
       end
     elseif msg.role == "context" then
       if v.context then
-        add_line("⌗ " .. text, "ChatMeta")
+        add_line(text, "ChatMeta")
       end
     end
 
@@ -282,9 +462,23 @@ function M.blocks(session, opts)
         end
       end
       if #bits > 0 and v.tokens then
-        add_line("    · " .. table.concat(bits, " · "), "ChatMeta")
+        add_line("    " .. table.concat(bits, " · "), "ChatMeta")
+      end
+      if msg.meta.applied and #msg.meta.applied > 0 then
+        add_line("    applied " .. table.concat(msg.meta.applied, ", "), "ChatApplied")
+      end
+      if msg.meta.apply_errors and #msg.meta.apply_errors > 0 then
+        add_line("    not applied " .. table.concat(msg.meta.apply_errors, "; "), "ChatApplyError")
+      end
+      if msg.meta.apply_unchanged and #msg.meta.apply_unchanged > 0 then
+        add_line("    unchanged " .. table.concat(msg.meta.apply_unchanged, ", "), "ChatMeta")
+      end
+      if msg.meta.apply_skipped and #msg.meta.apply_skipped > 0 then
+        add_line("    skipped " .. table.concat(msg.meta.apply_skipped, "; "), "ChatMeta")
       end
     end
+    -- a soft row after every turn: separation, and the place the activity strip
+    -- lives while the answer has not started yet
     add_line("", nil)
     ranges[#ranges + 1] = { first = first_line, last = #lines, msg = msg }
   end
@@ -292,18 +486,14 @@ function M.blocks(session, opts)
   -- streaming answer (the transcript grows while the model writes)
   if opts.thinking and opts.thinking ~= "" then
     local parts = vim.split(chat_text.clean(opts.thinking), "\n", { plain = true })
-    for i, l in ipairs(parts) do
-      add_line((i == 1 and "· " or "  ") .. l, "ChatThinking", { eol = true })
+    for _, l in ipairs(display_lines(parts)) do
+      add_line(l, "ChatThinking", { eol = true })
     end
   end
   if opts.pending and opts.pending ~= "" then
     local parts = vim.split(chat_text.clean(opts.pending), "\n", { plain = true })
-    for i, l in ipairs(parts) do
-      if i == 1 and not structural(l) then
-        add_line("✦ " .. l, "ChatAssistant", { spans = { { 0, 2, "ChatAssistantIcon" } } })
-      else
-        add_line(l, "ChatAssistant")
-      end
+    for _, l in ipairs(display_lines(parts)) do
+      add_line(l, "ChatAssistant")
     end
   end
 
@@ -335,6 +525,7 @@ local function write(buf, lines, marks, opts)
       pcall(vim.api.nvim_buf_set_extmark, buf, ns, m.line - 1, sp[1], {
         end_col = sp[1] + sp[2],
         hl_group = sp[3],
+        priority = 20, -- a token (yellow key, role) wins over the line's surface
       })
     end
     if m.eol then
@@ -343,6 +534,9 @@ local function write(buf, lines, marks, opts)
         end_col = 0,
         hl_group = m.hl,
         hl_eol = true,
+        -- below treesitter (100): the line paints the surface, the parser paints
+        -- the syntax on top of it
+        priority = 10,
       })
     else
       local len = #(lines[m.line] or "")
@@ -351,6 +545,7 @@ local function write(buf, lines, marks, opts)
           end_row = m.line - 1,
           end_col = len,
           hl_group = m.hl,
+          priority = 10,
         })
       end
     end

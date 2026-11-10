@@ -214,11 +214,20 @@ end
 add(session, { role = "user", text = "hola" })
 add(session, { role = "assistant", text = "Hola, ¿en qué te ayudo?" })
 local lines, marks, ranges = blocks_of(session)
-ok("render: user line with icon", table.concat(lines, "\n"):find("❯ hola", 1, true) ~= nil)
-ok("render: assistant line with icon", table.concat(lines, "\n"):find("✦ Hola", 1, true) ~= nil)
+local plain = table.concat(lines, "\n")
+ok("render: user line clean (no icon)", plain:find("\nhola\n", 1, true) ~= nil)
+ok("render: assistant line clean (no icon)", plain:find("\nHola, ¿en qué te ayudo?\n", 1, true) ~= nil)
 eq("render: ranges for both messages", #ranges, 2)
 ok("render: range holds its message", ranges[1].msg.role == "user" and ranges[2].msg.role == "assistant")
 ok("render: ranges do not overlap", ranges[1].last < ranges[2].first, { ranges[1].last, ranges[2].first })
+
+-- an empty chat teaches the commands instead of leaving the block blank
+local fresh = require("agent.chat.session").new({ root = root, backend = "chatfake", model = "m" })
+local wl = table.concat(render.lines(fresh, {}), "\n")
+ok("render: empty chat lists commands", wl:find("COMMANDS", 1, true) ~= nil and wl:find("/help", 1, true) ~= nil)
+ok("render: empty chat lists mentions", wl:find("@file", 1, true) ~= nil and wl:find("#skill", 1, true) ~= nil)
+ok("render: empty chat lists keys", wl:find("Shift-Enter", 1, true) ~= nil and wl:find("Ctrl-Q", 1, true) ~= nil)
+ok("render: welcome has no brand icons", not wl:find("◆", 1, true) and not wl:find("✦", 1, true))
 
 -- markdown as is
 local md = table.concat({
@@ -243,12 +252,25 @@ ok("render: list kept", body:find("\n- uno", 1, true) ~= nil)
 ok("render: quote kept", body:find("\n> cita", 1, true) ~= nil)
 ok("render: fence at column 0", body:find("\n```lua", 1, true) ~= nil)
 ok(
-  "render: a message starting with a fence has no icon before it",
-  body:find("\n```lua", 1, true) ~= nil and body:find("✦ ```", 1, true) == nil
+  "render: a message starting with a fence keeps its markdown (no prefix)",
+  body:find("\n```lua", 1, true) ~= nil and body:find("✦ ", 1, true) == nil
 )
 ok("render: code line untouched", body:find("\nprint('hola')", 1, true) ~= nil)
 ok("render: closing fence", body:find("\n```\n", 1, true) ~= nil or body:find("\n```$") ~= nil)
 ok("render: inline code kept", body:find("Inline `code`", 1, true) ~= nil)
+
+-- a `lang: path` fence is display-only metadata: the transcript must keep a
+-- parser-friendly language or treesitter cannot highlight the code block
+local defs = require("agent.chat.session").new({ root = root, backend = "chatfake", model = "m" })
+require("agent.chat.session").add(defs, { role = "assistant", text = "```go: main.go\npackage main\n```" })
+local dtext = table.concat(render.lines(defs, {}), "\n")
+ok("render: path is not the code language", dtext:find("\n```go\n", 1, true) ~= nil and dtext:find("```go: main.go", 1, true) == nil)
+eq("render: copy keeps the path", render.message_text(defs.messages[1]), "```go: main.go\npackage main\n```")
+local shell = require("agent.chat.session").new({ root = root, backend = "chatfake", model = "m" })
+require("agent.chat.session").add(shell, { role = "assistant", text = "```\ngo run main.go\n```" })
+local stext = table.concat(render.lines(shell, {}), "\n")
+ok("render: unlabeled terminal block gets bash", stext:find("\n```bash\n", 1, true) ~= nil)
+eq("render: copy keeps the bare fence", render.message_text(shell.messages[1]), "```\ngo run main.go\n```")
 
 -- copy is exact (no icons, no indentation added)
 local copy = render.message_text(session.messages[#session.messages])
@@ -282,23 +304,23 @@ eq(
   "日本語のテキスト 🚀 emoji 👩‍💻 y acentos: ñandú"
 )
 
--- multi-line user message: icon only on the first line
+-- multi-line user message: every line clean, no prefix
 add(session, { role = "user", text = "primera\nsegunda\n\ncuarta" })
 lines = blocks_of(session)
 local joined = table.concat(lines, "\n")
-ok("render: multiline user starts with icon", joined:find("❯ primera", 1, true) ~= nil)
+ok("render: multiline user starts clean", joined:find("\nprimera\n", 1, true) ~= nil)
 ok("render: multiline user second line raw", joined:find("\nsegunda", 1, true) ~= nil)
 ok("render: blank line kept", joined:find("segunda\n\ncuarta", 1, true) ~= nil)
 eq("copy: multiline user", render.message_text(session.messages[#session.messages]), "primera\nsegunda\n\ncuarta")
 
 -- thinking, tool, context
 add(session, { role = "thinking", text = "pienso" })
-add(session, { role = "tool", text = "⚠ error de red" })
+add(session, { role = "tool", text = "error de red" })
 add(session, { role = "context", text = "x" })
 lines = blocks_of(session)
 all = table.concat(lines, "\n")
-ok("render: thinking", all:find("· pienso", 1, true) ~= nil)
-ok("render: tool error", all:find("⛭ ⚠ error", 1, true) ~= nil)
+ok("render: thinking clean", all:find("\npienso\n", 1, true) ~= nil)
+ok("render: tool error clean", all:find("\nerror de red\n", 1, true) ~= nil)
 local hidden = render.lines(session, { show_thinking = false, show_context = false })
 ok("render: thinking can be hidden", not table.concat(hidden, "\n"):find("pienso", 1, true))
 add(session, {
@@ -318,8 +340,8 @@ ok("render: tokens can be hidden", not table.concat(no_tokens, "\n"):find("tok",
 -- streaming pending, rail
 local pending = render.lines(session, { pending = "escribiendo", thinking = "pensando" })
 all = table.concat(pending, "\n")
-ok("render: pending stream", all:find("✦ escribiendo", 1, true) ~= nil)
-ok("render: streaming thinking", all:find("pensando", 1, true) ~= nil)
+ok("render: pending stream clean", all:find("\nescribiendo", 1, true) ~= nil and all:find("✦", 1, true) == nil)
+ok("render: streaming thinking clean", all:find("\npensando\n", 1, true) ~= nil)
 local rail = render.lines(session, { rail = true, running = true })
 ok("render: rail", table.concat(rail, ""):find("CHAT", 1, true) ~= nil)
 
@@ -379,10 +401,13 @@ local hs = {
 local hh = { sessions = hs, root = "/tmp/x", display_root = "~/x", sel = 2, profile = "ask" }
 local hlines, hmarks, hranges = home.lines(hh, { now = now })
 local htext = table.concat(hlines, "\n")
-ok("home: brand", htext:find("◆ Leader Chat", 1, true) ~= nil)
+ok("home: brand", htext:find("Leader Chat", 1, true) ~= nil)
 ok("home: project and profile", htext:find("~/x · 2 chats · Ask", 1, true) ~= nil)
-ok("home: new chat row", htext:find("✚  New chat", 1, true) ~= nil)
-ok("home: session title cleaned", htext:find("❯  Fix the repo", 1, true) ~= nil)
+ok("home: new chat row", htext:find("  New chat", 1, true) ~= nil)
+ok("home: session title cleaned", htext:find("  Fix the repo", 1, true) ~= nil)
+ok("home: commands explained", htext:find("COMMANDS", 1, true) ~= nil and htext:find("/help", 1, true) ~= nil)
+ok("home: keys explained", htext:find("KEYS", 1, true) ~= nil and htext:find("Ctrl-Q", 1, true) ~= nil)
+ok("home: no brand icons", not htext:find("◆", 1, true) and not htext:find("✚", 1, true) and not htext:find("❯", 1, true))
 ok("home: session meta", htext:find("2m · 2 messages · claude/haiku", 1, true) ~= nil)
 eq("home: one range for new + one per session", #hranges, 3)
 eq("home: selected row is the second session", hh.sel, 2)
@@ -403,7 +428,7 @@ ok("home: empty state", table.concat(home.lines(hempty, { now = now }), "\n"):fi
 -- markdown header carries the profile and the brand
 local hp = render.lines(session, { profile = "ask" })
 local hpt = table.concat(hp, "\n")
-ok("render: brand header", hpt:find("◆ Leader Chat", 1, true) ~= nil)
+ok("render: brand header", hpt:find("Leader Chat", 1, true) ~= nil)
 ok("render: profile in header", hpt:find("Ask · ", 1, true) ~= nil)
 ok("render: write profile by default", table.concat(render.lines(session, {}), "\n"):find("Write · ", 1, true) ~= nil)
 
@@ -414,7 +439,37 @@ ok("prompt: ask closing instruction", ask_prompt:find("Read%-only") ~= nil)
 local min_system = require("agent.chat.prompt").build(session, "hi", {}, profiles.get("minimal"))
 ok("prompt: minimal role", min_system:find("Minimal mode", 1, true) ~= nil)
 
--- ── fuzz: random text must never break rendering or copy ───────────────────
+-- ── apply: Write answers that carry full files ───────────────────────────────
+group("apply")
+local apply = require "agent.chat.apply"
+local ab = apply.blocks "```go: main.go\npackage main\n\nfunc main() {}\n```\n"
+eq("apply: one block", #ab, 1)
+eq("apply: path", ab[1].path, "main.go")
+eq("apply: body", ab[1].body, { "package main", "", "func main() {}" })
+eq("apply: a snippet without path is not a file", #apply.blocks "```go\nfmt.Println()\n```\n", 0)
+eq("apply: a bare path as info", apply.blocks("```main.go\npackage main\n```\n")[1].path, "main.go")
+local aroot = vim.fn.tempname()
+vim.fn.mkdir(aroot, "p")
+vim.fn.writefile({ "package main" }, aroot .. "/main.go")
+local ares = apply.run({ root = aroot }, "```go: main.go\n--- a/main.go\n+++ b/main.go\n```\n")
+eq("apply: a diff is skipped", { #ares.files, #ares.skipped }, { 0, 1 })
+ares = apply.run({ root = aroot }, "```go: main.go\npackage main\n\nfunc main() {}\n```\n")
+eq("apply: written", { #ares.files, ares.files[1] }, { 1, "main.go" })
+eq("apply: disk", vim.fn.readfile(aroot .. "/main.go"), { "package main", "", "func main() {}" })
+ares = apply.run({ root = aroot }, "```go: main.go\npackage main\n\nfunc main() {}\n```\n")
+eq("apply: unchanged", #ares.unchanged, 1)
+vim.fn.writefile({ "old" }, aroot .. "/note.txt")
+vim.cmd("edit " .. vim.fn.fnameescape(aroot .. "/note.txt"))
+ares = apply.run({ root = aroot }, "```text: note.txt\nnew\n```\n")
+eq("apply: loaded buffer is written", { #ares.files, vim.fn.readfile(aroot .. "/note.txt") }, { 1, { "new" } })
+eq("apply: loaded buffer content", vim.api.nvim_buf_get_lines(0, 0, -1, false), { "new" })
+vim.api.nvim_buf_delete(0, { force = true })
+ares = apply.run({ root = aroot }, "```text: ../escape.txt\nx\n```\n")
+eq("apply: outside the project is skipped", #ares.skipped, 1)
+ares = apply.run({ root = aroot }, "```text: new.txt\nx\n```\n")
+eq("apply: a new file is skipped", #ares.skipped, 1)
+vim.fn.delete(aroot, "rf")
+
 group("fuzz")
 math.randomseed(7)
 local alphabet = {

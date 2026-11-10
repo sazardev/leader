@@ -24,5 +24,18 @@ return {
         require("utils.session").close_auxiliary()
       end,
     })
+
+    -- Restoring a session replaces the window layout: the chat (real splits)
+    -- would be clobbered or restored as ghost windows. Hide it first.
+    vim.api.nvim_create_autocmd("User", {
+      group = vim.api.nvim_create_augroup("PersistenceChat", { clear = true }),
+      pattern = "PersistenceLoadPre",
+      callback = function()
+        local chat = package.loaded["agent.chat.window"]
+        if chat then
+          pcall(chat.hide)
+        end
+      end,
+    })
   end,
 }

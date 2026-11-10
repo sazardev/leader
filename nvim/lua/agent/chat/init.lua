@@ -330,26 +330,27 @@ function M.stop()
   window.draw()
 end
 
---- Show help (only on demand: the chrome shows just "⏎ send").
+--- Show help (only on demand: the chrome shows just "Enter send").
 function M.help()
   local lines = {
     "Leader Chat — help",
     "",
     "Profiles: Ask (read-only) · Write (code and plans) · Minimal (fast, no auto context). Ctrl-P or /profile.",
-    "History: Ctrl-H or /history. On the home: ↑↓ select · ⏎ open · n new · D delete. Typing starts a new chat.",
-    "Send: ⏎ · New line: Shift-⏎ · Hide: q / Ctrl-Q (session keeps running).",
-    "Triggers, filtered as you type (⏎/Tab accepts): / commands · @ project files (@buf, @sel, @diag) · # skills · $ MCP.",
+    "History: Ctrl-H or /history. On the home: Up/Down select, Enter open, n new, D delete. Typing starts a new chat.",
+    "Send: Enter · New line: Shift-Enter · Hide: Ctrl-Q (the session keeps running).",
+    "Triggers, filtered as you type (Enter/Tab accepts): / commands · @ project files (@buf, @sel, @diag) · # skills · $ MCP.",
     "Commands: /new · /history · /model · /effort · /profile · /clear · /adr · /export · /full · /mini · /collapse · /help.",
-    "Input: ↑/↓ previous messages · Shift-⏎ new line · it grows with the text.",
+    "Input: Up/Down previous messages · Shift-Enter new line · it grows with the text.",
     "View: Ctrl-F (half/full) · Ctrl-T (collapse to rail).",
     "Keys: Ctrl-N new · Ctrl-H history · Ctrl-M model · Ctrl-E effort · Ctrl-P profile · Ctrl-A ADR · Ctrl-X stop.",
-    "Transcript: y copy message · c copy its code block · Y copy all · o view message · h history · i input · q hide.",
+    "Transcript: y copy message · c copy its code block · Y copy all · o view message · h history · i input · A apply its files · Ctrl-Q hide.",
+    "Write mode applies full files returned as ```lang: path blocks to existing project files (toggle: settings.agent.chat.apply).",
   }
   require("agent.ui.panel").open(lines, "Leader Chat · help")
 end
 
 --- Send one user turn: parse mentions, collect context, run a turn.
---- `⏎` sends with whatever is already selected (session > <leader>am > the
+--- `Enter` sends with whatever is already selected (session > <leader>am > the
 --- backend's default model): no picker, no extra step. A backend that needs a
 --- model and has none resolves one silently (the CLI's first) and says which.
 ---@param raw string text from the input box
@@ -579,16 +580,34 @@ function M._launch(session, sel, clean, system, prompt, injected, profile)
     window.pending_text, window.pending_think = "", ""
     -- keep the turn in the transcript even on failure (the error is visible)
     require("agent.chat.session").add(session, { role = "user", text = clean })
+    local applied = { files = {}, unchanged = {}, skipped = {}, errors = {} }
+    if ok and (session.profile or "write") == "write" and require("core.settings").agent.chat.apply ~= false then
+      applied = require("agent.chat.apply").run(session, body)
+      if #applied.files > 0 then
+        require("utils.log").info(("Chat: applied %s"):format(table.concat(applied.files, ", ")))
+      end
+      if #applied.errors > 0 then
+        require("utils.log").warn(("Chat: not applied %s"):format(table.concat(applied.errors, "; ")))
+      end
+    end
     if ok then
-      require("agent.chat.session").add(
-        session,
-        { role = "assistant", text = body, usage = usage, meta = { injected = injected } }
-      )
+      require("agent.chat.session").add(session, {
+        role = "assistant",
+        text = body,
+        usage = usage,
+        meta = {
+          injected = injected,
+          applied = applied.files,
+          apply_unchanged = applied.unchanged,
+          apply_skipped = applied.skipped,
+          apply_errors = applied.errors,
+        },
+      })
       if thinking and thinking ~= "" then
         require("agent.chat.session").add(session, { role = "thinking", text = thinking })
       end
     else
-      require("agent.chat.session").add(session, { role = "tool", text = ("⚠ %s"):format(err or "error") })
+      require("agent.chat.session").add(session, { role = "tool", text = ("error: %s"):format(err or "error") })
     end
     window.injected_names = nil
     cleanup(ok, usage, err)
