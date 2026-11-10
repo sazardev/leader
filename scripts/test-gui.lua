@@ -90,7 +90,7 @@ local actions = function(list)
   end, list)
 end
 check("default left tools", vim.deep_equal(actions(left), { "projects", "home", "history" }), actions(left))
-check("default right tools", vim.deep_equal(actions(right), { "agent", "theme" }), actions(right))
+check("default right tools", vim.deep_equal(actions(right), { "agent", "chat", "theme" }), actions(right))
 check(
   "tools carry a tooltip",
   vim.iter(right):all(function(t)

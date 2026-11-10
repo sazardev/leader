@@ -2,10 +2,14 @@
 -- Where the transcript/input blocks go for the active view. Takes the numbers
 -- in (columns, rows, config) and returns them: no editor calls, so every
 -- screen size and view is testable.
+--
+-- mini (the default) is a partition: half the screen, flush to the right edge
+-- and the full usable height, separated from the editor by a half-cell edge;
+-- transcript and input are stacked with no editor row between them.
+-- full is borderless and edge to edge; collapsed is the right-edge rail.
 local M = {}
 
 M.MIN_WIDTH = 28
-M.MAX_WIDTH = 72
 M.MIN_TRANSCRIPT = 4
 
 --- Width of the panel.
@@ -21,15 +25,15 @@ function M.width(cfg, cols, collapsed, view)
   if view == "full" then
     return math.max(1, cols)
   end
-  local want = math.floor(cols * (cfg.width or 0.38))
-  want = math.max(40, math.min(M.MAX_WIDTH, want))
-  local editor_min = cols >= 60 and 20 or 0
-  want = math.min(want, math.max(M.MIN_WIDTH, cols - 4 - editor_min))
+  local want = math.floor(cols * (cfg.width or 0.5))
+  -- leave the editor usable; a huge terminal still gives a true half partition
+  local editor_min = cols >= 60 and math.floor(cols * 0.25) or 0
+  want = math.min(want, cols - editor_min - 1)
   return math.max(M.MIN_WIDTH, want)
 end
 
 --- Geometry of the blocks.
---- mini: right-anchored floats (like commit/panel.lua).
+--- mini: right-anchored blocks flush to the edge (one half-cell edge to the left).
 --- full: two borderless floats edge to edge, the last row left for the statusline.
 ---@param cfg table
 ---@param cols integer
@@ -48,22 +52,20 @@ function M.geometry(cfg, cols, rows, collapsed, view, input_lines)
   end
 
   local w = M.width(cfg, cols, collapsed, view)
-  local right = cfg.right_margin or 2
-  local top = cfg.top_margin or 2
-  if rows < 24 then
-    top = 1
-  end
-  local input_h = cfg.input_height or 5
-  if rows < 30 then
-    input_h = math.min(input_h, 3)
-  end
-  input_h = math.min(input_h, input_lines)
+  local usable = math.max(6, rows - 1) -- one row for the command line / statusline
+  local top = 0
   if collapsed then
-    return w, cols - (w + 2) - math.max(1, right - 1), top, math.max(6, rows - top - 4), 0, false
+    return w, math.max(0, cols - w), top, usable, 0, false
   end
-  local transcript_h = math.max(6, rows - top - input_h - 6)
-  local col = cols - (w + 2) - math.max(1, right - 1)
-  return w, math.max(0, col), top, transcript_h, input_h, false
+
+  local max_input = math.min(cfg.input_height or 5, math.max(3, usable - 6))
+  local input_h = math.min(max_input, input_lines)
+  local gap = cfg.gap or 1
+  local transcript_h = math.max(M.MIN_TRANSCRIPT, usable - input_h - gap)
+  -- with the flat partition border (one half-cell column at the left) the
+  -- content starts at cols - w, so the block ends exactly on the last column
+  local col = math.max(0, cols - w)
+  return w, col, top, transcript_h, input_h, false
 end
 
 return M

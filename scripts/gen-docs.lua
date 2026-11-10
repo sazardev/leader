@@ -31,6 +31,7 @@ local PAGES = {
   { "tasks", "Project tasks", "docs/cheatsheets/tasks.md", "Features" },
   { "gitignore", ".gitignore", "docs/cheatsheets/gitignore.md", "Features" },
   { "release", "Release", "docs/cheatsheets/release.md", "Features" },
+  { "github", "GitHub", "docs/cheatsheets/github.md", "Features" },
   { "go", "Go", "docs/cheatsheets/go.md", "Languages" },
   { "dart-flutter", "Dart / Flutter", "docs/cheatsheets/dart-flutter.md", "Languages" },
   { "typescript", "TypeScript / JS", "docs/cheatsheets/typescript.md", "Languages" },

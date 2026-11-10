@@ -25,8 +25,8 @@ end
 local root = vim.fn.getcwd()
 
 -- ── trigger ──────────────────────────────────────────────────────────────────
-group "trigger"
-local trigger = require "agent.chat.trigger"
+group("trigger")
+local trigger = require("agent.chat.trigger")
 
 local kind, q, sc = trigger.detect("/mo", 3)
 eq("command: kind", kind, "command")
@@ -52,22 +52,45 @@ eq("mcp: trigger", kind, "mcp")
 local _, _, start_col, end_col = trigger.detect("/model", 3)
 eq("token end: cursor mid command", { start_col, end_col }, { 0, 6 })
 eq("replace: whole token", { trigger.replace("/model", 0, 6, "") }, { "", 0 })
-eq("replace: keeps what follows", { trigger.replace("hola @nvim/x tail", 5, 12, "@nvim/x ") }, { "hola @nvim/x  tail", 13 })
+eq(
+  "replace: keeps what follows",
+  { trigger.replace("hola @nvim/x tail", 5, 12, "@nvim/x ") },
+  { "hola @nvim/x  tail", 13 }
+)
 eq("replace: cursor after insert", ({ trigger.replace("lee @a", 4, 6, "@abc ") })[2], 9)
-eq("signs", { trigger.sign "command", trigger.sign "file" }, { "/", "@" })
+eq("signs", { trigger.sign("command"), trigger.sign("file") }, { "/", "@" })
 
 -- ── commands ────────────────────────────────────────────────────────────────
-group "commands"
-local commands = require "agent.chat.commands"
-eq("filter: prefix", commands.filter "mo", { "model" })
+group("commands")
+local commands = require("agent.chat.commands")
+eq("filter: prefix", commands.filter("mo"), { "model" })
 eq("filter: empty lists all, in order", commands.filter("")[1], "new")
-ok("filter: case insensitive", #commands.filter "M" >= 1)
-eq("has", { commands.has "new", commands.has "nope" }, { true, false })
-eq("candidates: value+desc", (commands.candidates "he")[1], { value = "help", desc = "help" })
+ok("filter: case insensitive", #commands.filter("M") >= 1)
+eq("has", { commands.has("new"), commands.has("nope") }, { true, false })
+eq("has: profile/history", { commands.has("profile"), commands.has("history") }, { true, true })
+eq("candidates: value+desc", (commands.candidates("he"))[1], { value = "help", desc = "help" })
+
+-- ── profiles ────────────────────────────────────────────────────────────────
+group("profiles")
+local profiles = require("agent.chat.profiles")
+eq("profiles: order", profiles.ORDER, { "ask", "write", "minimal" })
+eq(
+  "profiles: labels",
+  { profiles.label("ask"), profiles.label("write"), profiles.label("minimal") },
+  { "Ask", "Write", "Minimal" }
+)
+eq("profiles: unknown falls back to write", profiles.get("nope").id, "write")
+eq("profiles: cycle wraps", profiles.cycle("minimal", 1), "ask")
+eq("profiles: cycle backwards", profiles.cycle("ask", -1), "minimal")
+ok("profiles: ask is read-only by prompt", profiles.get("ask").system:find("read%-only") ~= nil)
+ok("profiles: write has the full context", profiles.get("write").context.buffer and profiles.get("write").context.mcp)
+ok("profiles: minimal injects no automatic context", profiles.get("minimal").context.buffer == false)
+eq("profiles: minimal context collector is empty", #require("agent.chat.context").collect(profiles.get("minimal")), 0)
+eq("profiles: session fallback", profiles.of({}, "ask").id, "ask")
 
 -- ── files.filter ────────────────────────────────────────────────────────────
-group "files"
-local files = require "agent.chat.files"
+group("files")
+local files = require("agent.chat.files")
 local sample = { "a/b/c.lua", "src/chat.lua", "src/cache.lua", "README.md", "docs/x.md" }
 eq("filter: empty takes the head", files.filter(sample, "", 2), { "a/b/c.lua", "src/chat.lua" })
 eq("filter: exact prefix wins", files.filter(sample, "src/ch")[1], "src/chat.lua")
@@ -76,14 +99,18 @@ eq("filter: subsequence", files.filter(sample, "rme")[1], "README.md")
 eq("filter: no match", #files.filter(sample, "zzzz"), 0)
 ok("filter: limit", #files.filter(sample, "", 1) == 1)
 ok("files.list returns project files", #files.list() > 10, #files.list())
-ok("files.resolve finds a project file", files.resolve "nvim/init.lua" ~= nil)
+ok("files.resolve finds a project file", files.resolve("nvim/init.lua") ~= nil)
 
 -- ── input (history + height) ────────────────────────────────────────────────
-group "input"
-local input = require "agent.chat.input"
+group("input")
+local input = require("agent.chat.input")
 local list = { "uno", "dos" }
 local text, state = input.step({ idx = 0, draft = "" }, list, -1, "borrador")
-eq("history: first up returns the newest and stores the draft", { text, state.idx, state.draft }, { "dos", 1, "borrador" })
+eq(
+  "history: first up returns the newest and stores the draft",
+  { text, state.idx, state.draft },
+  { "dos", 1, "borrador" }
+)
 text, state = input.step(state, list, -1, "lo escrito")
 eq("history: second up goes older", { text, state.idx }, { "uno", 2 })
 text, state = input.step(state, list, -1, "")
@@ -102,75 +129,81 @@ eq("height: clamps to max", input.height({ "a", "b", "c" }, 40, 2), 2)
 eq("height: empty is 1", input.height({ "" }, 40, 5), 1)
 
 -- ── layout (geometry is pure) ───────────────────────────────────────────────
-group "layout"
-local layout = require "agent.chat.layout"
-local cfg = { width = 0.38, rail_width = 9, input_height = 5, top_margin = 2, right_margin = 2 }
+group("layout")
+local layout = require("agent.chat.layout")
+local cfg = { width = 0.5, rail_width = 9, input_height = 5, gap = 0 }
 local w, col, top, th, ih, full = layout.geometry(cfg, 160, 48, false, "mini", 3)
-ok("mini: width clamped", w >= 40 and w <= 72, w)
-eq("mini: not full", full, false)
-eq("mini: right anchored", col, 160 - (w + 2) - 1)
-eq("mini: input height follows content", ih, 3)
-ok("mini: transcript fills", th > 20, th)
+eq("half: half the columns", w, 80)
+eq("half: not full", full, false)
+eq("half: content flush to the right edge", { col + w, top }, { 160, 0 })
+eq("half: input height follows content", ih, 3)
+eq("half: transcript fills the usable height", th, 48 - 1 - 3)
+ok("half: blocks fill every usable row", th + ih == 48 - 1, { th, ih })
 local fw, fcol, frow, fth, fih, isfull = layout.geometry(cfg, 160, 48, false, "full", 5)
 eq("full: every column", fw, 160)
 eq("full: origin", { fcol, frow, isfull }, { 0, 0, true })
 ok("full: leaves the statusline row", fth + fih <= 48 - 1, { fth, fih })
 ok("full: transcript takes the rest", fth > 30, fth)
 eq("collapsed: rail width", layout.geometry(cfg, 160, 48, true, "mini", 3), 9)
+eq("collapsed: rail flush right", select(2, layout.geometry(cfg, 160, 48, true, "mini", 3)), 151)
 local narrow = layout.geometry(cfg, 50, 20, false, "mini", 2)
 ok("narrow: panel still fits", narrow >= 28 and narrow <= 50, narrow)
-eq("small rows: top margin shrinks", select(3, layout.geometry(cfg, 80, 20, false, "mini", 2)), 1)
+eq("small rows: still flush to the top", select(3, layout.geometry(cfg, 80, 20, false, "mini", 2)), 0)
 
 -- ── text ────────────────────────────────────────────────────────────────────
-group "text"
-local chat_text = require "agent.chat.text"
-eq("text: CRLF normalizes", chat_text.normalize "a\r\nb\rc", "a\nb\nc")
-eq("text: ANSI escapes go", chat_text.strip_ansi "a\27[31mred\27[0m b", "ared b")
-eq("text: clean does both", chat_text.clean "x\r\n\27[1mY\27[0m", "x\nY")
-eq("text: trim", chat_text.trim "  x  ", "x")
+group("text")
+local chat_text = require("agent.chat.text")
+eq("text: CRLF normalizes", chat_text.normalize("a\r\nb\rc"), "a\nb\nc")
+eq("text: ANSI escapes go", chat_text.strip_ansi("a\27[31mred\27[0m b"), "ared b")
+eq("text: clean does both", chat_text.clean("x\r\n\27[1mY\27[0m"), "x\nY")
+eq("text: trim", chat_text.trim("  x  "), "x")
 ok("text: clip cuts", chat_text.clip(string.rep("a", 100), 10):find("…") ~= nil)
 eq("text: tokens", chat_text.tokens(1234), "1.2k")
 
 -- ── mention parsing ─────────────────────────────────────────────────────────
-group "mention"
-local mention = require "agent.chat.mention"
-local clean, sections, slash = mention.parse "hola mundo"
+group("mention")
+local mention = require("agent.chat.mention")
+local clean, sections, slash = mention.parse("hola mundo")
 eq("mention: plain text", { clean, #sections, slash }, { "hola mundo", 0, nil })
-clean, sections, slash = mention.parse "/model foo"
+clean, sections, slash = mention.parse("/model foo")
 eq("mention: slash and rest", { clean, slash }, { "foo", "model" })
-clean, sections, slash = mention.parse "/nope"
+clean, sections, slash = mention.parse("/nope")
 eq("mention: unknown slash is text", { clean, slash }, { "/nope", nil })
-clean, sections = mention.parse "revisa @nvim/init.lua porfa"
+clean, sections = mention.parse("revisa @nvim/init.lua porfa")
 eq("mention: @file adds one section", #sections, 1)
 ok("mention: @file names the path", sections[1].name:find("nvim/init.lua", 1, true) ~= nil, sections[1].name)
 ok("mention: @file carries content", #sections[1].text > 0)
-clean, sections = mention.parse "lee @does/not/exist"
+clean, sections = mention.parse("lee @does/not/exist")
 eq("mention: missing file adds nothing", #sections, 0)
 eq("mention: text is kept", clean, "lee @does/not/exist")
 
 -- @buf reads the current buffer
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { "linea uno", "linea dos" })
-local _, secs = mention.parse "mira @buf"
+local _, secs = mention.parse("mira @buf")
 eq("mention: @buf", #secs, 1)
 ok("mention: @buf content", secs[1].text:find("linea uno", 1, true) ~= nil)
 -- @diag reads diagnostics
-local ns = vim.api.nvim_create_namespace "chat.test"
+local ns = vim.api.nvim_create_namespace("chat.test")
 vim.diagnostic.set(ns, 0, { { lnum = 0, col = 0, message = "boom", severity = vim.diagnostic.severity.ERROR } })
-local _, dsecs = mention.parse "arregla @diag"
+local _, dsecs = mention.parse("arregla @diag")
 eq("mention: @diag", #dsecs, 1)
 ok("mention: @diag content", dsecs[1].text:find("boom", 1, true) ~= nil)
 vim.diagnostic.reset(ns, 0)
 -- #skill (stubbed store)
-package.loaded["skills.store"] = { body = function(id) return "SKILL " .. id end }
-local _, ssecs = mention.parse "#caveman y #flutter"
+package.loaded["skills.store"] = {
+  body = function(id)
+    return "SKILL " .. id
+  end,
+}
+local _, ssecs = mention.parse("#caveman y #flutter")
 eq("mention: two skills", #ssecs, 2)
 eq("mention: skill body", ssecs[1].text, "SKILL caveman")
 package.loaded["skills.store"] = nil
 
 -- ── rendering: every shape a model can produce ──────────────────────────────
-group "render"
-local render = require "agent.chat.render"
-local session = require("agent.chat.session").new { root = root, backend = "chatfake", model = "m" }
+group("render")
+local render = require("agent.chat.render")
+local session = require("agent.chat.session").new({ root = root, backend = "chatfake", model = "m" })
 local add = require("agent.chat.session").add
 
 local function blocks_of(s)
@@ -209,7 +242,10 @@ ok("render: heading kept at column 0", body:find("\n## Título", 1, true) ~= nil
 ok("render: list kept", body:find("\n- uno", 1, true) ~= nil)
 ok("render: quote kept", body:find("\n> cita", 1, true) ~= nil)
 ok("render: fence at column 0", body:find("\n```lua", 1, true) ~= nil)
-ok("render: a message starting with a fence has no icon before it", body:find("\n```lua", 1, true) ~= nil and body:find("✦ ```", 1, true) == nil)
+ok(
+  "render: a message starting with a fence has no icon before it",
+  body:find("\n```lua", 1, true) ~= nil and body:find("✦ ```", 1, true) == nil
+)
 ok("render: code line untouched", body:find("\nprint('hola')", 1, true) ~= nil)
 ok("render: closing fence", body:find("\n```\n", 1, true) ~= nil or body:find("\n```$") ~= nil)
 ok("render: inline code kept", body:find("Inline `code`", 1, true) ~= nil)
@@ -225,10 +261,14 @@ eq("copy: outside a fence is nil", render.code_block_at(session.messages[#sessio
 add(session, { role = "assistant", text = "linea1\r\nlinea2\r\n\27[31mrojo\27[0m\r\n\tta\tb" })
 lines = blocks_of(session)
 local all = table.concat(lines, "\n")
-ok("render: no CR", not all:find "\r", all:gsub("\r", "<CR>"))
-ok("render: ANSI stripped", not all:find "\27", "escape left")
+ok("render: no CR", not all:find("\r"), all:gsub("\r", "<CR>"))
+ok("render: ANSI stripped", not all:find("\27"), "escape left")
 ok("render: tab kept", (all:find("\tta\tb", 1, true)) ~= nil)
-eq("copy: tabs and LF normalized", render.message_text(session.messages[#session.messages]), "linea1\nlinea2\nrojo\n\tta\tb")
+eq(
+  "copy: tabs and LF normalized",
+  render.message_text(session.messages[#session.messages]),
+  "linea1\nlinea2\nrojo\n\tta\tb"
+)
 
 -- wide chars and emoji
 add(session, { role = "assistant", text = "日本語のテキスト 🚀 emoji 👩‍💻 y acentos: ñandú" })
@@ -236,7 +276,11 @@ lines = blocks_of(session)
 all = table.concat(lines, "\n")
 ok("render: wide text kept", all:find("日本語", 1, true) ~= nil)
 ok("render: emoji kept", all:find("🚀", 1, true) ~= nil)
-eq("copy: wide text", render.message_text(session.messages[#session.messages]), "日本語のテキスト 🚀 emoji 👩‍💻 y acentos: ñandú")
+eq(
+  "copy: wide text",
+  render.message_text(session.messages[#session.messages]),
+  "日本語のテキスト 🚀 emoji 👩‍💻 y acentos: ñandú"
+)
 
 -- multi-line user message: icon only on the first line
 add(session, { role = "user", text = "primera\nsegunda\n\ncuarta" })
@@ -257,7 +301,11 @@ ok("render: thinking", all:find("· pienso", 1, true) ~= nil)
 ok("render: tool error", all:find("⛭ ⚠ error", 1, true) ~= nil)
 local hidden = render.lines(session, { show_thinking = false, show_context = false })
 ok("render: thinking can be hidden", not table.concat(hidden, "\n"):find("pienso", 1, true))
-add(session, { role = "assistant", text = "ok", meta = { injected = { "rules", "git" }, usage = { tokens_in = 1200, tokens_out = 30, cost = 0.001, ms = 1500 } } })
+add(session, {
+  role = "assistant",
+  text = "ok",
+  meta = { injected = { "rules", "git" }, usage = { tokens_in = 1200, tokens_out = 30, cost = 0.001, ms = 1500 } },
+})
 lines = blocks_of(session)
 all = table.concat(lines, "\n")
 ok("render: injected footer", all:find("injected rules,git", 1, true) ~= nil)
@@ -308,10 +356,97 @@ eq("trigger: unicode prefix", { k, q2b, scb }, { "file", "nv", 5 })
 local mixed = { string.rep("x", 90), "corta", string.rep("y", 45) }
 eq("height: mixed lines", input.height(mixed, 40, 10), 3 + 1 + 2)
 
+-- ── history home ────────────────────────────────────────────────────────────
+group("home")
+local home = require("agent.chat.home")
+local now = 1700000000
+eq("home: age now", home.relative_time(now - 5, now), "now")
+eq("home: age minutes", home.relative_time(now - 120, now), "2m")
+eq("home: age hours", home.relative_time(now - 7200, now), "2h")
+eq("home: age days", home.relative_time(now - 3 * 86400, now), "3d")
+eq("home: title strips markdown", home.title("## `fix` the **thing**"), "fix the **thing**")
+local hs = {
+  {
+    id = "a",
+    title = "## Fix the repo",
+    updated = now - 120,
+    messages = { {}, {} },
+    backend = "claude",
+    model = "haiku",
+  },
+  { id = "b", title = "Second", updated = now - 7200, messages = {}, backend = "opencode", model = "flash" },
+}
+local hh = { sessions = hs, root = "/tmp/x", display_root = "~/x", sel = 2, profile = "ask" }
+local hlines, hmarks, hranges = home.lines(hh, { now = now })
+local htext = table.concat(hlines, "\n")
+ok("home: brand", htext:find("◆ Leader Chat", 1, true) ~= nil)
+ok("home: project and profile", htext:find("~/x · 2 chats · Ask", 1, true) ~= nil)
+ok("home: new chat row", htext:find("✚  New chat", 1, true) ~= nil)
+ok("home: session title cleaned", htext:find("❯  Fix the repo", 1, true) ~= nil)
+ok("home: session meta", htext:find("2m · 2 messages · claude/haiku", 1, true) ~= nil)
+eq("home: one range for new + one per session", #hranges, 3)
+eq("home: selected row is the second session", hh.sel, 2)
+eq("home: row at line", home.row_at(hranges, hranges[3].first), 3)
+local function mark_at(marks, line)
+  for _, m in ipairs(marks) do
+    if m.line == line then
+      return m
+    end
+  end
+end
+local selected = mark_at(hmarks, hranges[2].first)
+ok("home: selected row painted", selected and selected.hl == "ChatHomeSel")
+ok("home: selected row is a full-width bar", selected and selected.eol == true)
+local hempty = { sessions = {}, root = "/tmp/y", display_root = "~/y", sel = 1, profile = "minimal" }
+ok("home: empty state", table.concat(home.lines(hempty, { now = now }), "\n"):find("No chats", 1, true) ~= nil)
+
+-- markdown header carries the profile and the brand
+local hp = render.lines(session, { profile = "ask" })
+local hpt = table.concat(hp, "\n")
+ok("render: brand header", hpt:find("◆ Leader Chat", 1, true) ~= nil)
+ok("render: profile in header", hpt:find("Ask · ", 1, true) ~= nil)
+ok("render: write profile by default", table.concat(render.lines(session, {}), "\n"):find("Write · ", 1, true) ~= nil)
+
+-- prompt uses the selected profile
+local ask_system, ask_prompt = require("agent.chat.prompt").build(session, "hi", {}, profiles.get("ask"))
+ok("prompt: ask role", ask_system:find("Ask mode", 1, true) ~= nil)
+ok("prompt: ask closing instruction", ask_prompt:find("Read%-only") ~= nil)
+local min_system = require("agent.chat.prompt").build(session, "hi", {}, profiles.get("minimal"))
+ok("prompt: minimal role", min_system:find("Minimal mode", 1, true) ~= nil)
+
 -- ── fuzz: random text must never break rendering or copy ───────────────────
-group "fuzz"
+group("fuzz")
 math.randomseed(7)
-local alphabet = { "a", "Z", "0", " ", "\n", "\t", "@", "#", "$", "/", "`", "```", ">", "-", "*", "😀", "日", "😀‍💻", "\27[31m", "\27[0m", "\r", "\0", "ñ", "[", "]", "(", ")", "é" }
+local alphabet = {
+  "a",
+  "Z",
+  "0",
+  " ",
+  "\n",
+  "\t",
+  "@",
+  "#",
+  "$",
+  "/",
+  "`",
+  "```",
+  ">",
+  "-",
+  "*",
+  "😀",
+  "日",
+  "😀‍💻",
+  "\27[31m",
+  "\27[0m",
+  "\r",
+  "\0",
+  "ñ",
+  "[",
+  "]",
+  "(",
+  ")",
+  "é",
+}
 local function random_text()
   local n = math.random(0, 60)
   local out = {}
@@ -323,7 +458,7 @@ end
 local fuzz_ok, fuzz_err = true, nil
 for i = 1, 200 do
   local t = random_text()
-  local s2 = require("agent.chat.session").new { root = root, backend = "chatfake", model = "m" }
+  local s2 = require("agent.chat.session").new({ root = root, backend = "chatfake", model = "m" })
   local ok_add = pcall(function()
     add(s2, { role = "user", text = t })
     add(s2, { role = "assistant", text = t })
@@ -343,7 +478,7 @@ for i = 1, 200 do
     break
   end
   local clean = render.message_text(s2.messages[2])
-  if clean:find "\0" or clean:find "\27" or clean:find "\r" then
+  if clean:find("\0") or clean:find("\27") or clean:find("\r") then
     fuzz_ok = false
     fuzz_err = ("case %d left control chars: %s"):format(i, vim.inspect(clean))
     break
@@ -367,9 +502,9 @@ end
 ok("fuzz: 200 random texts render and copy cleanly", fuzz_ok, fuzz_err)
 
 -- ── window-level copy (code block and message) ──────────────────────────────
-group "window copy"
-local window = require "agent.chat.window"
-local s = require("agent.chat.session").new { root = root, backend = "chatfake", model = "m" }
+group("window copy")
+local window = require("agent.chat.window")
+local s = require("agent.chat.session").new({ root = root, backend = "chatfake", model = "m" })
 require("agent.chat.session").add(s, { role = "assistant", text = "```lua\nlocal x = 1\n```" })
 window.session = s
 window.toggle()
@@ -377,12 +512,20 @@ window.draw()
 vim.api.nvim_set_current_win(window.transcript_win)
 local r = window.ranges[1]
 vim.api.nvim_win_set_cursor(window.transcript_win, { r.first + 1, 0 }) -- inside the fence
-eq("copy: code block under the cursor", { window.copy_code_block(), vim.fn.getreg(string.char(34)) }, { true, "local x = 1" })
+eq(
+  "copy: code block under the cursor",
+  { window.copy_code_block(), vim.fn.getreg(string.char(34)) },
+  { true, "local x = 1" }
+)
 vim.api.nvim_win_set_cursor(window.transcript_win, { r.first, 0 })
-eq("copy: message under the cursor", { window.copy_message(), vim.fn.getreg(string.char(34)) }, { true, "```lua\nlocal x = 1\n```" })
+eq(
+  "copy: message under the cursor",
+  { window.copy_message(), vim.fn.getreg(string.char(34)) },
+  { true, "```lua\nlocal x = 1\n```" }
+)
 window.hide()
 
 print(("\n%d checks, %d failed"):format(total, fails))
 if fails > 0 then
-  vim.cmd "cq 1"
+  vim.cmd("cq 1")
 end

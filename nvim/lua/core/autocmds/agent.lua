@@ -76,6 +76,8 @@ function M.setup()
       require("agent.chat").pick_model()
     elseif arg == "effort" then
       require("agent.chat").pick_effort()
+    elseif arg == "profile" then
+      require("agent.chat").pick_profile()
     elseif arg == "adr" then
       require("agent.chat").draft_adr()
     elseif arg == "collapse" then
@@ -92,7 +94,7 @@ function M.setup()
   end, {
     nargs = "?",
     complete = function()
-      return { "new", "history", "sessions", "model", "effort", "adr", "collapse", "full", "mini", "help" }
+      return { "new", "history", "sessions", "model", "effort", "profile", "adr", "collapse", "full", "mini", "help" }
     end,
     desc = "Toggle Leader Chat (backend-agnostic, <leader>aC)",
   })

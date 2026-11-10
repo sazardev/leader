@@ -6,6 +6,9 @@ vim.opt.rtp:prepend(root .. "/nvim")
 package.path = root .. "/nvim/lua/?.lua;" .. root .. "/nvim/lua/?/init.lua;" .. package.path
 
 local fails, total = 0, 0
+local function pack(...)
+  return { n = select("#", ...), ... }
+end
 local function eq(name, got, want)
   total = total + 1
   if not vim.deep_equal(got, want) then
@@ -20,6 +23,7 @@ local function ok(name, cond)
 end
 
 package.loaded["toggleterm"] = { exec = function() end }
+local exec_calls = {}
 local terms = {}
 package.loaded["toggleterm.terminal"] = {
   get_all = function()
@@ -132,6 +136,58 @@ terms = {}
 _G._picked = nil
 term.pick()
 eq("pick: empty shows a hint instead of an empty picker", { _G._picked, terms }, { nil, {} })
+
+-- ── run: the cursor stays in the terminal (Esc closes it there) ──────────────
+
+package.loaded["toggleterm"].exec = function(...)
+  exec_calls[#exec_calls + 1] = pack(...)
+end
+terms = {}
+term.run("go run ./cmd/api", "/p")
+eq(
+  "run: cmd, dir and direction reach toggleterm, go_back = false",
+  exec_calls[1],
+  pack("go run ./cmd/api", nil, nil, "/p", term.direction(), nil, false)
+)
+-- going into an already open terminal only moves the window, so terminal mode is entered explicitly
+local term_buf = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_set_current_buf(term_buf)
+local term_job = vim.fn.termopen "cat"
+local real_cmd, seen_cmds = vim.cmd, {}
+vim.cmd = function(c)
+  seen_cmds[#seen_cmds + 1] = c
+end
+term.run("go run ./cmd/api", "/p")
+vim.cmd = real_cmd
+eq("run: the focused terminal is put in terminal mode", seen_cmds, { "startinsert" })
+pcall(vim.fn.jobstop, term_job)
+vim.api.nvim_buf_delete(term_buf, { force = true })
+
+-- ── tui: a running TUI is focused, never typed into ──────────────────────────
+
+local real_named, real_busy, real_run_in, real_focus = term.named, term.busy, term.run_in, term.focus_term
+local tui_calls = {}
+term.named = function()
+  return { id = 9 }
+end
+term.busy = function()
+  return true
+end
+term.focus_term = function()
+  tui_calls[#tui_calls + 1] = "focus"
+end
+term.run_in = function()
+  tui_calls[#tui_calls + 1] = "run_in"
+end
+term.tui("gh-dash", "gh dash", "/p")
+eq("tui: an already running TUI is only focused", tui_calls, { "focus" })
+term.busy = function()
+  return false
+end
+tui_calls = {}
+term.tui("gh-dash", "gh dash", "/p")
+eq("tui: a stopped one is started", tui_calls, { "run_in" })
+term.named, term.busy, term.run_in, term.focus_term = real_named, real_busy, real_run_in, real_focus
 
 -- ── stop: current terminal buffer first ──────────────────────────────────────
 

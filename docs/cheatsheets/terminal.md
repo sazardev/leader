@@ -34,6 +34,9 @@ Normal mode (move, copy output with `y`, search with `/`); `i` goes back to typi
 
 ## Workflows
 
+- **Running from a menu** (`<leader>gr`, a language `run`, a Makefile target): the command terminal keeps the
+  focus, in terminal mode, so you see the output and can answer a prompt. `Esc` closes it (the command keeps
+  running); the next command reuses the same terminal.
 - **A command is running** (`dotnet run`, `noodle` TUI): `Esc` hides it, `<leader>Tt`/`<leader>Tl` (or the
   action that opened it) brings it back. Nothing restarts, nothing is typed into it by reopening.
 - **Run something else meanwhile**: `<leader>Tn` opens a second terminal; `<leader>Tl` jumps between them.

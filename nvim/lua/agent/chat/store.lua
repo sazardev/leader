@@ -60,6 +60,7 @@ function M.put(s)
     id = s.id,
     title = s.title,
     root = s.root,
+    profile = s.profile,
     backend = s.backend,
     model = s.model,
     effort = s.effort,
@@ -86,12 +87,42 @@ function M.get(id)
   return require("agent.chat.session").new(s)
 end
 
+--- The last session explicitly used in `root`, and ONLY that project: opening
+--- the chat in a repo with no history must not borrow another repo's chat.
 ---@param root string
 ---@return table?
 function M.last_for_root(root)
-  local data = read()
-  local id = data.by_root[root] or data.last
+  local id = read().by_root[root]
   return id and M.get(id) or nil
+end
+
+--- Every session of a project, newest first (the chat history home).
+---@param root string
+---@return table[]
+function M.list_for_root(root)
+  local out = {}
+  for _, session in pairs(read().sessions) do
+    if session.root == root then
+      out[#out + 1] = session
+    end
+  end
+  table.sort(out, function(a, b)
+    return (a.updated or 0) > (b.updated or 0)
+  end)
+  return out
+end
+
+--- Remembers which session is current for a project without rewriting it.
+---@param root string
+---@param id string
+function M.remember(root, id)
+  local data = read()
+  if not data.sessions[id] then
+    return
+  end
+  data.by_root[root] = id
+  data.last = id
+  M.save()
 end
 
 ---@return table[] newest first
@@ -107,6 +138,14 @@ end
 function M.remove(id)
   local data = read()
   data.sessions[id] = nil
+  for root, stored in pairs(data.by_root) do
+    if stored == id then
+      data.by_root[root] = nil
+    end
+  end
+  if data.last == id then
+    data.last = nil
+  end
   M.save()
 end
 

@@ -106,6 +106,8 @@ local function derive()
   local green = accent({ "Added", "GitSignsAdd", "DiagnosticOk", "String" }, "#5faf5f")
   local red = accent({ "Removed", "GitSignsDelete", "DiagnosticError", "ErrorMsg" }, "#d75f5f")
   local blue = accent({ "DiagnosticInfo", "Function", "Special" }, "#5f87d7")
+  local yellow = accent({ "Todo", "DiagnosticWarn", "WarningMsg" }, "#c9a227")
+  local purple = accent({ "Statement", "Keyword", "Type" }, blue)
   local border = accent({ "FloatBorder", "Special" }, blue)
 
   green = with_hue(green, 70, 170, "#4fa04f")
@@ -149,6 +151,7 @@ local function derive()
     ChatHeader = { fg = "#ffffff", bg = blue, bold = true },
     ChatHeaderWarn = { fg = "#ffffff", bg = "#b8860b", bold = true },
     ChatTitle = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
+    ChatProfile = { fg = color.ensure_contrast(yellow, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatMeta = { fg = color.ensure_contrast(color.blend(fg, float_bg, 0.45), float_bg, fg, 3.0), bg = float_bg },
     ChatUser = { fg = fg, bg = input_bg },
     ChatUserIcon = { fg = color.ensure_contrast("#b8860b", input_bg, fg, 4.5), bg = input_bg, bold = true },
@@ -169,6 +172,23 @@ local function derive()
       bg = color.blend(float_bg, bg, 0.35),
       italic = true,
     },
+    ChatHomeTitle = { fg = fg, bg = float_bg, bold = true },
+    ChatHomeNew = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
+    ChatHomeIcon = { fg = color.ensure_contrast(yellow, float_bg, fg, 4.5), bg = float_bg, bold = true },
+    ChatHomeRow = { fg = fg, bg = float_bg },
+    ChatHomeMeta = { fg = color.ensure_contrast(color.blend(fg, float_bg, 0.45), float_bg, fg, 3.0), bg = float_bg },
+    ChatHomeEmpty = {
+      fg = color.ensure_contrast(color.blend(fg, float_bg, 0.55), float_bg, fg, 3.0),
+      bg = float_bg,
+      italic = true,
+    },
+    ChatHomeHint = {
+      fg = color.ensure_contrast(color.blend(fg, float_bg, 0.55), float_bg, fg, 3.0),
+      bg = float_bg,
+      italic = true,
+    },
+    ChatHomeSel = { fg = "#ffffff", bg = blue, bold = true },
+    ChatHomeSelMeta = { fg = "#ffffff", bg = blue },
   }
 end
 

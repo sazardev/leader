@@ -5,6 +5,7 @@
 -- Markdown is kept AS IS (fences at column 0, headings, lists, quotes), so the
 -- treesitter parser and render-markdown can style it and copying is exact.
 local chat_text = require "agent.chat.text"
+local profiles = require "agent.chat.profiles"
 
 local M = {}
 
@@ -12,6 +13,54 @@ local NS = "chat.render"
 
 local function chat_cfg()
   return require("core.settings").agent.chat or {}
+end
+
+-- Per-buffer markdown style for the transcript: code blocks are a deep block
+-- (visible inside the soft panel), with their language line, and headings are
+-- bands with the flat accents. It overrides the global nofile override (which
+-- is tuned for small hover/answer floats) because it is passed last.
+local MD_CONFIG = {
+  heading = { width = "full", left_pad = 1, right_pad = 1, border = false },
+  code = {
+    style = "full",
+    border = "hide",
+    language = true,
+    language_icon = true,
+    language_name = true,
+    left_pad = 1,
+    right_pad = 1,
+    width = "full",
+  },
+  quote = { enabled = true },
+  pipe_table = { style = "normal" },
+}
+
+--- Loads render-markdown even when no markdown file was opened yet (the chat
+--- buffer's filetype is `leaderchat`, so the plugin's ft hook never fires) and
+--- renders this buffer with the chat's style. Best-effort: no plugin = plain
+--- markdown, never an error.
+---@param buf integer
+---@param win integer?
+local function render_markdown(buf, win)
+  pcall(function()
+    if not package.loaded["render-markdown"] then
+      require("lazy").load { plugins = { "render-markdown.nvim" } }
+    end
+    require("render-markdown.api").render {
+      buf = buf,
+      win = win or vim.api.nvim_get_current_win(),
+      force = true,
+      config = MD_CONFIG,
+    }
+  end)
+end
+
+--- Renders a markdown buffer with the chat's style (also used by the full-size
+--- message view, so it reads exactly like the transcript).
+---@param buf integer
+---@param win integer?
+function M.markdown(buf, win)
+  render_markdown(buf, win)
 end
 
 --- Vertical rail for the collapsed panel (vertical "CHAT" tab).
@@ -99,12 +148,24 @@ local function structural(line)
     or line:match "^%s*%d+[.)]%s" ~= nil
 end
 
-local function view(opts)
+local function view(opts, profile)
   local cfg = chat_cfg()
+  local thinking = pick(opts.show_thinking, cfg.show_thinking ~= false)
+  local tokens = pick(opts.show_tokens, cfg.show_tokens ~= false)
+  local context = pick(opts.show_context, cfg.show_context ~= false)
+  if profile then
+    if profile.show_thinking == false then
+      thinking = false
+    end
+    if profile.show_meta == false then
+      tokens = false
+      context = false
+    end
+  end
   return {
-    thinking = pick(opts.show_thinking, cfg.show_thinking ~= false),
-    tokens = pick(opts.show_tokens, cfg.show_tokens ~= false),
-    context = pick(opts.show_context, cfg.show_context ~= false),
+    thinking = thinking,
+    tokens = tokens,
+    context = context,
   }
 end
 
@@ -124,7 +185,8 @@ function M.blocks(session, opts)
     return rail, marks, {}
   end
 
-  local v = view(opts)
+  local profile = profiles.get(opts.profile or session.profile or chat_cfg().profile)
+  local v = view(opts, profile)
   local lines, marks, ranges = {}, {}, {}
 
   local function add_line(text, hl, o)
@@ -134,24 +196,30 @@ function M.blocks(session, opts)
     end
   end
 
-  -- header: title + model + totals
+  -- header: a blue brand bar, the chat title, then profile · model · totals
   local sel = require("agent.selection").current()
   local backend = (session.backend or (sel and sel.backend)) or "?"
   local model = (session.model or (sel and sel.model)) or "default"
   local effort = session.effort or (sel and sel.effort)
-  add_line("Leader Chat — " .. (session.title or "New chat"), "ChatTitle", { eol = true })
-  add_line(
-    ("  %s/%s%s · %d turn(s) · %s in / %s out · $%.4f"):format(
+  add_line("◆ Leader Chat", "ChatHeader", { eol = true })
+  add_line("  " .. (session.title or "New chat"), "ChatTitle", { eol = true })
+  local stats
+  if profile.show_meta == false then
+    stats = ("  %s · %s/%s%s"):format(profile.label, backend, model, effort and (" · " .. effort) or "")
+  else
+    stats = ("  %s · %s/%s%s · %d turn%s · %s in / %s out · $%.4f"):format(
+      profile.label,
       backend,
       model,
       effort and (" · " .. effort) or "",
       session.turns or 0,
+      (session.turns or 0) == 1 and "" or "s",
       chat_text.tokens(session.tokens_in or 0),
       chat_text.tokens(session.tokens_out or 0),
       session.cost or 0
-    ),
-    "ChatMeta"
-  )
+    )
+  end
+  add_line(stats, "ChatMeta", { spans = { { 2, #profile.label, "ChatProfile" } } })
   if opts.injected and #opts.injected > 0 then
     add_line("⌗ injected: " .. table.concat(opts.injected, ", "), "ChatTool")
   end
@@ -245,29 +313,24 @@ end
 -- Backwards-compatible name (tests and callers use render.lines).
 M.lines = M.blocks
 
---- Apply `blocks` to `buf`, keeping the cursor at the bottom when it was there.
---- Code fences get treesitter once and render-markdown when the answer settles.
+--- Writes lines + marks into a buffer. No treesitter, no markdown: shared by
+--- the transcript (which adds markdown afterwards) and the history home.
 ---@param buf integer
----@param session table
----@param opts table?
----@return table[] ranges
-function M.apply(buf, session, opts)
-  if not vim.api.nvim_buf_is_valid(buf) then
-    return {}
-  end
+---@param lines string[]
+---@param marks table[]
+---@param opts { ns?: string, keep_cursor?: boolean, win?: integer }?
+local function write(buf, lines, marks, opts)
   opts = opts or {}
-  local lines, marks, ranges = M.blocks(session, opts)
   local win = opts.win or vim.api.nvim_get_current_win()
-  local at_bottom = false
-  if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
-    at_bottom = vim.api.nvim_win_get_cursor(win)[1] >= vim.api.nvim_buf_line_count(buf) - 1
-  end
+  local current = vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf
+  local at_bottom = current and vim.api.nvim_win_get_cursor(win)[1] >= vim.api.nvim_buf_line_count(buf) - 1
+  local cursor = current and vim.api.nvim_win_get_cursor(win) or nil
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
-  local ns = vim.api.nvim_create_namespace(NS)
+  local ns = vim.api.nvim_create_namespace(opts.ns or NS)
   vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
-  for _, m in ipairs(marks) do
+  for _, m in ipairs(marks or {}) do
     for _, sp in ipairs(m.spans or {}) do
       pcall(vim.api.nvim_buf_set_extmark, buf, ns, m.line - 1, sp[1], {
         end_col = sp[1] + sp[2],
@@ -292,20 +355,67 @@ function M.apply(buf, session, opts)
       end
     end
   end
+  if current and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf and at_bottom then
+    pcall(vim.api.nvim_win_set_cursor, win, { math.max(1, #lines), 0 })
+  elseif current and vim.api.nvim_win_is_valid(win) and cursor and opts.keep_cursor then
+    pcall(vim.api.nvim_win_set_cursor, win, { math.min(cursor[1], math.max(1, #lines)), 0 })
+  end
+  return win
+end
+
+--- Apply `blocks` to `buf`, keeping the cursor at the bottom when it was there.
+--- Code fences get treesitter once and render-markdown when the answer settles.
+---@param buf integer
+---@param session table
+---@param opts table?
+---@return table[] ranges
+function M.apply(buf, session, opts)
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return {}
+  end
+  opts = opts or {}
+  local lines, marks, ranges = M.blocks(session, opts)
+  local win = write(buf, lines, marks, { keep_cursor = true, win = opts.win })
   if not opts.rail then
+    -- render-markdown looks the parser up by filetype: register the chat as
+    -- markdown without giving it the filetype (no LSP, lint or ft hooks)
+    pcall(vim.treesitter.language.register, "markdown", "leaderchat")
     if not vim.b[buf].chat_treesitter then
       vim.b[buf].chat_treesitter = true
       pcall(vim.treesitter.start, buf, "markdown")
     end
     local streaming = (opts.pending and opts.pending ~= "") or (opts.thinking and opts.thinking ~= "")
-    if not streaming then
-      pcall(function()
-        require("render-markdown.api").render { buf = buf, win = win }
-      end)
+    if streaming then
+      -- raw markdown while the answer streams: drop the previous render and
+      -- its conceallevel (the settle pass renders again)
+      pcall(vim.api.nvim_buf_clear_namespace, buf, vim.api.nvim_create_namespace "render-markdown.nvim", 0, -1)
+      local target = opts.win or win
+      if target and vim.api.nvim_win_is_valid(target) then
+        vim.wo[target].conceallevel = 0
+      end
+    else
+      render_markdown(buf, opts.win or win)
     end
   end
-  if at_bottom and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
-    pcall(vim.api.nvim_win_set_cursor, win, { math.max(1, #lines), 0 })
+  return ranges
+end
+
+--- Paints the history home (plain lines; no markdown parser).
+---@param buf integer
+---@param home table
+---@param opts { now?: integer, win?: integer }?
+---@return table[] ranges
+function M.apply_home(buf, home, opts)
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return {}
+  end
+  opts = opts or {}
+  local lines, marks, ranges = require("agent.chat.home").lines(home, { now = opts.now })
+  write(buf, lines, marks, { keep_cursor = true, win = opts.win })
+  -- leave no markdown decoration from a previous transcript over the plain home
+  pcall(vim.api.nvim_buf_clear_namespace, buf, vim.api.nvim_create_namespace "render-markdown.nvim", 0, -1)
+  if opts.win and vim.api.nvim_win_is_valid(opts.win) then
+    vim.wo[opts.win].conceallevel = 0
   end
   return ranges
 end

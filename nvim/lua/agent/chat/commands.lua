@@ -5,19 +5,34 @@ local M = {}
 
 M.ALL = {
   new = "new session",
+  history = "history",
   model = "model",
   effort = "effort",
+  profile = "profile",
   clear = "clear",
   adr = "ADR",
   export = "copy",
   full = "full screen",
-  mini = "mini panel",
+  mini = "half panel",
   collapse = "collapse",
   help = "help",
 }
 
 --- Ordered by usefulness: the first row is the most common action.
-M.ORDER = { "new", "model", "effort", "clear", "adr", "export", "full", "mini", "collapse", "help" }
+M.ORDER = {
+  "new",
+  "history",
+  "model",
+  "effort",
+  "profile",
+  "clear",
+  "adr",
+  "export",
+  "full",
+  "mini",
+  "collapse",
+  "help",
+}
 
 ---@param name string
 ---@return boolean

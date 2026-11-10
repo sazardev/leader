@@ -32,6 +32,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>F` | File | global |
 | `<leader>z` | Fold | global |
 | `<leader>G` | Git | files inside a git repo |
+| `<leader>Gh` | GitHub | global |
 | `<leader>g` | Go | `go`, `gomod`, `gowork` |
 | `<leader>W` | Herdr | global |
 | `<leader>u` | History | global |
@@ -463,6 +464,9 @@ _Where: files inside a git repo_
 | `<leader>Gm` | commit + AI draft |
 | `<leader>GM` | commit auto |
 | `<leader>Ga` | amend |
+| `<leader>GP` | push |
+| `<leader>Gu` | pull (fast-forward only) |
+| `<leader>GF` | fetch --all --prune |
 | `<leader>Gv` | review staged |
 | `<leader>Gi` | ignore rules |
 | `<leader>GRc` | release changelog |
@@ -487,6 +491,26 @@ _Where: files inside a git repo_
 | `<leader>Gxf` | conflict files |
 | `<leader>Gxs` | conflict resolved |
 
+### GitHub — `<leader>Gh`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Ghd` | dash: PRs and issues (gh-dash) |
+| `<leader>Gho` | checks: current PR, live (gh-observer) |
+| `<leader>Ghe` | actions: runs and logs (gh-enhance) |
+| `<leader>Ghn` | notifications (gh-news) |
+| `<leader>Ghp` | PRs (octo) |
+| `<leader>Ghi` | issues (octo) |
+| `<leader>Ghr` | review the current PR (octo) |
+| `<leader>Ghv` | open the current PR in the browser |
+| `<leader>Ghc` | checks of the current PR |
+| `<leader>Ghb` | open the repository in the browser |
+| `<leader>Gha` | auth status |
+| `<leader>GhA` | auth login |
+| `<leader>Ghs` | setup: install the extensions |
+
 ### Go — `<leader>g`
 
 _Where: `go`, `gomod`, `gowork`_
@@ -505,6 +529,7 @@ _Where: `go`, `gomod`, `gowork`_
 | `<leader>gf` | format |
 | `<leader>gt` | go mod tidy |
 | `<leader>gx` | golangci-lint --fix |
+| `<leader>gl` | test the package of this file |
 | `<leader>gm` | go test ./... |
 | `<leader>gR` | go test -race ./... |
 | `<leader>gc` | go test -cover ./... |
@@ -1306,6 +1331,24 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>q` | n | Close buffer / quit |
 | `<leader>w` | n | Save |
 | `jk` | i | Leave insert (closes the completion menu first) |
+
+### GitHub
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>GhA` | n | Auth login |
+| `<leader>Gha` | n | Auth status |
+| `<leader>Ghb` | n | Open the repository in the browser |
+| `<leader>Ghc` | n | Checks of the current PR |
+| `<leader>Ghd` | n | Dash: PRs and issues (gh-dash) |
+| `<leader>Ghe` | n | Actions: runs and logs (gh-enhance) |
+| `<leader>Ghi` | n | Issues (octo) |
+| `<leader>Ghn` | n | Notifications (gh-news) |
+| `<leader>Gho` | n | Checks: current PR, live (gh-observer) |
+| `<leader>Ghp` | n | PRs (octo) |
+| `<leader>Ghr` | n | Review the current PR (octo) |
+| `<leader>Ghs` | n | Setup: install the extensions |
+| `<leader>Ghv` | n | Open the current PR in the browser |
 
 ### Harpoon
 

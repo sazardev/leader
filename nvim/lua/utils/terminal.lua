@@ -60,7 +60,7 @@ function M.attach_keys(buf, close)
   end, "Terminal unfocus (Shift+Esc)")
 end
 
---- Run `cmd` in the integrated terminal with cwd `dir`.
+--- Run `cmd` in the integrated terminal with cwd `dir`, leaving the cursor in it (Esc closes the window).
 --- Through toggleterm's Lua API (not `:TermExec cmd='...'`): the command line parser of `:TermExec` cuts the
 --- command at the first inner single quote, so any command with a quoted path (`dotnet run --project '/a b/x.csproj'`)
 --- arrived truncated (`dotnet run --project \`). The API takes `cmd` as one value, no parsing involved.
@@ -74,7 +74,14 @@ function M.run(cmd, dir)
       term.direction = direction
     end
   end
-  require("toggleterm").exec(cmd, nil, nil, dir, direction)
+  -- go_back = false: toggleterm's default sends the command and hands the focus back to the editor, which left
+  -- the cursor OUTSIDE the terminal you just asked to run something in (and Esc, the terminal's own key, did
+  -- nothing there). Passing false keeps it in the terminal: it is focused (or opened) and ready to type.
+  require("toggleterm").exec(cmd, nil, nil, dir, direction, nil, false)
+  -- going back to an already open terminal only moves the window: enter terminal mode explicitly
+  if vim.bo.buftype == "terminal" then
+    pcall(vim.cmd, "startinsert")
+  end
 end
 
 --- The dedicated terminals, one per `name` (the app keeps running in its own while something else uses theirs)
@@ -113,6 +120,19 @@ function M.run_in(name, cmd, dir)
     term:open()
   end
   term:send(cmd)
+end
+
+--- Run a full-screen TUI (gh-dash, gh-observer, noodle…) in the terminal kept under `name`: an already running one
+--- is only focused (sending the command again would type it into the TUI), otherwise it is opened and started.
+---@param name string display name ("gh-dash")
+---@param cmd string
+---@param dir string
+function M.tui(name, cmd, dir)
+  local term = M.named(name)
+  if term and M.busy(term) then
+    return M.focus_term(term)
+  end
+  M.run_in(name, cmd, dir)
 end
 
 --- The toggleterm terminal with this id, only if it ever started a job (a window closed with Esc keeps it)

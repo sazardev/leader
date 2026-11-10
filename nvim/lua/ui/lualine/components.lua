@@ -109,7 +109,7 @@ function M.build_status()
 end
 
 --- The chat (<leader>aC) while a turn runs, even when the panel is hidden:
---- "⠹ chat · claude". It does not load the chat when it was never opened.
+--- "⠹ Write · claude". It does not load the chat when it was never opened.
 ---@return table lualine component
 function M.chat_status()
   local function text()

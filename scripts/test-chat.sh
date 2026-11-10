@@ -36,10 +36,21 @@ session.charge(s, { tokens_in = 100, tokens_out = 50, cost = 0.001 })
 vim.api.nvim_input('')
 
 -- store put/get roundtrip
+s.profile = 'ask'
 store.put(s)
 local back = store.get(s.id)
 assert(back ~= nil, 'store get returns the session')
 assert(back.title ~= '', 'title non-empty')
+assert(back.profile == 'ask', 'store keeps the profile')
+-- history is scoped to the project: no session from elsewhere is borrowed
+local other = session.new({ root = '/tmp/other-chat-project', backend = 'x' })
+store.put(other)
+assert(#store.list_for_root('/tmp/other-chat-project') == 1, 'list_for_root finds its session')
+assert(#store.list_for_root(vim.uv.cwd()) >= 1, 'list_for_root keeps projects apart')
+assert(store.last_for_root('/tmp/does-not-exist') == nil, 'last_for_root never falls back to another project')
+assert(store.last_for_root('/tmp/other-chat-project').id == other.id, 'last_for_root matches its project')
+store.remove(other.id)
+assert(store.last_for_root('/tmp/other-chat-project') == nil, 'removing forgets the project pointer')
 
 -- mention parse: no @ -> no sections, slash detection
 local clean, secs, slash = mention.parse('hola mundo')
@@ -66,6 +77,17 @@ assert(joined:find('hey'), 'assistant message visible')
 window.session = s
 window.toggle()
 assert(window.is_open(), 'panel open')
+assert(package.loaded['render-markdown'] ~= nil, 'render-markdown loads on demand for the transcript')
+-- the parser is registered for the chat filetype, so the renderer really draws
+local md_session = session.new({ root = vim.uv.cwd(), backend = 'claude', model = 'haiku', profile = 'ask' })
+session.add(md_session, { role = 'assistant', text = '## Title\n\n**bold** and a [link](https://example.com)\n\n- one\n- two' })
+window.session = md_session
+window.draw()
+vim.wait(300)
+local md_ns = vim.api.nvim_create_namespace('render-markdown.nvim')
+assert(#vim.api.nvim_buf_get_extmarks(window.transcript_buf, md_ns, 0, -1, {}) > 0, 'markdown is rendered')
+window.session = s
+window.draw()
 window.hide()
 assert(not window.is_open(), 'panel hidden keeps session')
 assert(window.statusline() == '', 'statusline idle is empty')
@@ -75,12 +97,18 @@ window.toggle()
 assert(vim.b[window.input_buf].completion == false, 'blink is off in the chat input')
 assert(vim.bo[window.input_buf].omnifunc == '' and vim.bo[window.input_buf].completefunc == '', 'native completion off')
 window.hide()
--- premium: open is a right-anchored float, not a bottom split; collapse keeps it on the right
+-- premium: the mini view is a right half partition, flush to the edge
 window.toggle()
 assert(window.is_open(), 'panel reopens')
 local cfg = vim.api.nvim_win_get_config(window.transcript_win)
 assert(cfg.relative ~= '', 'transcript is a float (right-anchored)')
 local mini_w = cfg.width
+assert(math.abs(mini_w - math.floor(vim.o.columns * 0.5)) <= 2, 'mini takes half the columns: ' .. mini_w)
+assert(cfg.col + cfg.width == vim.o.columns, 'partition ends on the last column')
+assert(cfg.row == 0, 'partition starts at the top')
+local mini_input = vim.api.nvim_win_get_config(window.input_win)
+assert(mini_input.col + mini_input.width == vim.o.columns, 'input aligns with the partition')
+assert(cfg.height + mini_input.height <= vim.o.lines - 1, 'blocks fill the usable height, statusline free')
 -- fullscreen: same floats, full width, still right-anchored blocks
 window.toggle_view()
 assert(window.is_open(), 'full stays open')
@@ -102,11 +130,34 @@ assert(window.is_open(), 'rail stays open')
 assert(window.collapsed, 'collapsed flag set')
 local rail_cfg = vim.api.nvim_win_get_config(window.transcript_win)
 assert(rail_cfg.width <= 12, 'rail is narrow')
+assert(rail_cfg.col + rail_cfg.width == vim.o.columns, 'rail flush right')
 assert(window.input_win == nil, 'rail hides the input')
 window.toggle_collapse()
 assert(not window.collapsed, 'expand restores the input')
 assert(window.input_win ~= nil, 'input back')
+-- history home inside the panel (the same buffer, no floating picker)
+window.show_home(vim.uv.cwd())
+window.draw()
+local home_text = table.concat(vim.api.nvim_buf_get_lines(window.transcript_buf, 0, -1, false), '\n')
+assert(home_text:find('Recent chats', 1, true), 'home shows the history')
+assert(home_text:find('hola', 1, true), 'home lists this project\'s chats')
+assert(window.home ~= nil and window.home.sel >= 2, 'the current chat is selected')
+window.session = nil
+window.home.sel = 2
+window.home_open()
+assert(window.session and window.session.id == s.id, 'home opens the selected session')
+window.home = nil
+window.session = s
+window.draw()
 window.hide()
+-- the first open in a repo with chats lands on that repo's history
+window.session, window.home = nil, nil
+chat.open()
+assert(window.home ~= nil, 'first open with history shows the home')
+assert(window.home.root == vim.uv.cwd(), 'home belongs to this repository')
+assert(window.home.sel and window.home.sel >= 2, 'the last chat is selected')
+window.hide()
+window.session, window.home = s, nil
 
 -- Esc closes the panel (insert mode included): one Esc from insert hides it
 window.toggle()
@@ -149,11 +200,10 @@ local chat = require('agent.chat')
 local sent
 local orig_send = chat.send
 chat.send = function(text) sent = text end
-vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { '/' })
-vim.api.nvim_win_set_cursor(window.input_win, { 1, 1 })
+vim.api.nvim_buf_set_lines(window.input_buf, 0, -1, false, { '/mo' })
+vim.api.nvim_win_set_cursor(window.input_win, { 1, 3 })
 completion.sync(window.input_buf, window.input_win)
 assert(completion.is_visible(), 'popup shows for /')
-completion.move(1) -- next: model
 assert(completion.accept() == true, 'command accept consumes')
 assert(sent == '/model', 'command runs immediately')
 assert(not completion.is_visible(), 'popup hides after accept')
@@ -201,6 +251,17 @@ assert(waited, 'fake turn finished')
 assert(#fake_session.messages == 2, 'fake turn appended user+assistant')
 assert(fake_session.turns == 1, 'fake turn counted')
 assert(fake_session.messages[2].role == 'assistant', 'assistant answered')
+-- typing from the history home starts a NEW chat with the draft's profile/model
+local draft = session.new({ root = vim.uv.cwd(), backend = 'chatfake', model = 'fake-1', profile = 'minimal' })
+window.session = draft
+window.show_home(vim.uv.cwd())
+assert(window.home ~= nil, 'home is showing')
+assert(chat.send('nueva desde home') == true, 'message from home accepted')
+local waited_home = vim.wait(3000, function() return not window.running end, 50)
+assert(waited_home, 'home turn finished')
+assert(window.home == nil and window.session ~= draft, 'a message from home starts a new chat')
+assert(window.session.profile == 'minimal', 'new chat inherits the profile')
+assert(#window.session.messages == 2, 'new chat has the turn')
 
 -- rendered ranges: one per message, and copy under the cursor copies THAT message
 window.session = fake_session

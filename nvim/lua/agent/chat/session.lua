@@ -15,6 +15,7 @@ local M = {}
 ---@field id string
 ---@field title string
 ---@field root string
+---@field profile string?
 ---@field backend string?
 ---@field model string?
 ---@field effort string?
@@ -40,6 +41,7 @@ function M.new(opts)
     id = opts.id or sid(),
     title = opts.title or "New chat",
     root = opts.root or (vim.uv.cwd() or ""),
+    profile = opts.profile,
     backend = opts.backend,
     model = opts.model,
     effort = opts.effort,
@@ -61,8 +63,19 @@ function M.add(s, msg)
   s.messages[#s.messages + 1] = msg
   s.updated = os.time()
   if s.title == "New chat" and msg.role == "user" then
-    local first = (msg.text or ""):match "^([^\n]+)" or "Chat"
-    s.title = (#first > 48) and (first:sub(1, 48) .. "…") or first
+    -- the first line that says something: list/heading markers and backticks out, one line only
+    for line in (msg.text or ""):gmatch "[^\n]+" do
+      line =
+        line:gsub("\27%[[%d;?]*[ -/]*[@-~]", ""):gsub("^%s*#*%s*", ""):gsub("^%s*[-*+]%s+", ""):gsub("^%s*>%s*", "")
+      line = line:gsub("`", ""):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+      if line ~= "" then
+        s.title = #line > 60 and (line:sub(1, 60) .. "…") or line
+        break
+      end
+    end
+    if s.title == "New chat" then
+      s.title = "Chat"
+    end
   end
 end
 

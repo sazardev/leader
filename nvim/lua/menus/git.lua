@@ -39,6 +39,28 @@ return {
         require("commit").amend()
       end,
     },
+    -- remotes (lua/gitsync/): in the integrated terminal, so credentials, SSH passphrases and hooks work
+    {
+      "P",
+      "push",
+      function()
+        require("gitsync").push()
+      end,
+    },
+    {
+      "u",
+      "pull (fast-forward only)",
+      function()
+        require("gitsync").pull()
+      end,
+    },
+    {
+      "F",
+      "fetch --all --prune",
+      function()
+        require("gitsync").fetch()
+      end,
+    },
     -- the staged changes, read before they become a commit (secrets and leftovers for free, the code once)
     {
       "v",

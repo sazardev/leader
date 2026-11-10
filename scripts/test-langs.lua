@@ -731,6 +731,40 @@ eq("write: never overwrites", select(2, ls.write(made, v, { python = "3.12" })),
 -- ── small pure helpers of the menus ──────────────────────────────────────────
 
 package.loaded["utils.terminal"] = { run = function() end }
+
+-- Go: `test the package of this file` runs `go test ./folder` from the module root, so a folder with main.go and
+-- its `_test.go` files (a main package) is tested on its own instead of the whole module
+local go_root = vim.fn.tempname()
+vim.fn.mkdir(go_root .. "/cmd/api", "p")
+vim.fn.writefile({ "module example.com/t", "", "go 1.21" }, go_root .. "/go.mod")
+vim.fn.writefile({ "package main", "", "func main() {}", "" }, go_root .. "/cmd/api/main.go")
+local go_test = go_root .. "/cmd/api/main_test.go"
+vim.fn.writefile({ "package main", "" }, go_test)
+local go_ran = {}
+package.loaded["utils.terminal"].run = function(cmd, dir)
+  go_ran = { cmd, dir }
+end
+local goa = require "languages.actions.go"
+local gmap = {}
+for _, m in ipairs(goa) do
+  gmap[m[1]] = m
+end
+ok("go menu: test the package of this file", gmap.l ~= nil)
+vim.cmd.edit(go_test)
+gmap.l[3]()
+eq(
+  "go menu: go test runs the file's folder from the module root",
+  go_ran,
+  { "go test " .. vim.fn.shellescape "./cmd/api", go_root }
+)
+local go_main = go_root .. "/main.go"
+vim.fn.writefile({ "package main", "", "func main() {}", "" }, go_main)
+vim.cmd.edit(go_main)
+gmap.l[3]()
+eq("go menu: go test at the module root runs the root package", go_ran, { "go test " .. vim.fn.shellescape ".", go_root })
+vim.cmd "bwipeout!"
+vim.fn.delete(go_root, "rf")
+
 local tsa = require "languages.actions.typescript"
 eq(
   "tsc errors as quickfix entries",

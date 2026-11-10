@@ -146,6 +146,23 @@ validation** (`✔ feat(scope) · 38/72`), assisted type and scope, and a line s
 the AI writes ONE message in English, it is validated and committed; if anything fails, it undoes what it staged) and `Ga` rewrites the last one. The
 AI message is always in English, on one line, in ~2 s with a light model.
 
+The remotes are there too: `GP` pushes (setting the upstream the first time), `Gu` pulls with `--ff-only` (a divergent
+branch is reported, never merged behind your back) and `GF` fetches every remote with `--prune`. They run in the
+integrated terminal, so credentials, SSH passphrases and hooks work, and `Esc` closes the window without stopping
+the command.
+
+### GitHub (`<leader>Gh`)
+
+The `gh` CLI and its TUIs, one key each: **`d`** [gh-dash](https://github.com/dlvhdr/gh-dash) (PRs and issues in one
+dashboard), **`o`** [gh-observer](https://github.com/fini-net/gh-observer) (the current PR's checks, live), **`e`**
+[gh-enhance](https://github.com/dlvhdr/gh-enhance) (Actions runs and logs) and **`n`**
+[gh-news](https://github.com/chmouel/gh-news) (notifications). Each lives in its own terminal: the same key brings it
+back while it runs, `Esc` closes the window and it keeps running. The first launch of a missing extension shows the
+exact `gh extension install …` command and does both after you confirm; `s` is the checklist of all of them. **`p`**,
+**`i`** and **`r`** use [octo.nvim](https://github.com/pwntester/octo.nvim) for PRs, issues and reviews inside
+Neovim, and `v`/`c`/`b`/`a`/`A` cover the core commands (PR in the browser, checks, repo, auth status/login).
+Details in [docs/cheatsheets/github.md](docs/cheatsheets/github.md).
+
 ### AI agent (`<leader>a`)
 
 It is not a plugin: it is Lua code in this config, with no dependencies, and it does nothing until you invoke it. Claude Code, OpenCode, **Ollama (CPU/CUDA)**,

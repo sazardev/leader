@@ -19,6 +19,7 @@
 | [gitignore.md](gitignore.md) | **.gitignore** (`<leader>Gi`): what it detects, the topics, how it merges with an existing file |
 | [tasks.md](tasks.md) | **Makefile tasks** (`<leader>R`): the picker, writing targets it can list, the preset Makefiles per language |
 | [release.md](release.md) | **Release kit** (`<leader>GR`): changelog and next version from Conventional Commits, PR description, release checklist |
+| [github.md](github.md) | **GitHub** (`<leader>Gh`): gh-dash, gh-observer, gh-enhance and gh-news TUIs, octo.nvim for PRs/issues/reviews, installing the extensions |
 | [typescript.md](typescript.md) | **TypeScript / JavaScript** (`<leader>t`): scripts, typecheck to quickfix, tests in the editor (vitest, jest, bun), biome or prettier, setup |
 | [python.md](python.md) | **Python** (`<leader>p`): basedpyright + ruff, uv, tests in the editor (pytest), debugpy, setup |
 | [rust.md](rust.md) | **Rust** (`<leader>r`): rust-analyzer with clippy, cargo, tests in the editor, macros, codelldb, setup |

@@ -2,7 +2,10 @@
 -- run/build run the CURRENT file's package when it can run (a `main` package
 -- with `func main`, so each main.go variant — root, cmd/api, cmd/worker… —
 -- runs its own binary) and fall back to the module's main otherwise; without
--- a go.mod they run the single file. vet/fix/test run "./..." from the module root.
+-- a go.mod they run the single file. `test the package of this file` runs
+-- `go test ./folder` from the module root (a folder with main.go and its
+-- `_test.go` files is tested on its own); vet/fix/test ./... run from the
+-- module root.
 local actions = require "utils.actions"
 local log = require "utils.log"
 local project = require "utils.project"
@@ -11,6 +14,9 @@ local terminal = require "utils.terminal"
 ---@return string dir, string? mod_root
 local function paths()
   local dir = project.file_dir()
+  if dir == "" then
+    dir = vim.fn.getcwd()
+  end
   local gomod = vim.fs.find("go.mod", { path = dir, upward = true })[1]
   return dir, gomod and vim.fs.dirname(gomod)
 end
@@ -36,6 +42,14 @@ local function in_root(cmd)
     local dir, mod_root = paths()
     terminal.run(cmd, mod_root or dir)
   end
+end
+
+--- `go test` of the CURRENT folder's package (the `main.go` + `*_test.go` folder included): `./cmd/api` from
+--- the module root, like `run`, so relative files resolve the same way, and in the folder itself without a go.mod.
+local function test_package()
+  local dir, mod_root = paths()
+  local pkg = mod_root and require("utils.gorun").rel_pkg(mod_root, dir) or "."
+  terminal.run("go test " .. vim.fn.shellescape(pkg), mod_root or dir)
 end
 
 -- go.nvim commands (not loaded in light mode)
@@ -77,6 +91,7 @@ local maps = {
     end,
   },
   { "x", "golangci-lint --fix", in_root "golangci-lint run --fix ./..." },
+  { "l", "test the package of this file", test_package },
   { "m", "go test ./...", in_root "go test ./..." },
   { "R", "go test -race ./...", in_root "go test -race ./..." },
   { "c", "go test -cover ./...", in_root "go test -cover ./..." },

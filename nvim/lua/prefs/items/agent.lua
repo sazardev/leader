@@ -13,6 +13,18 @@ return {
   },
   {
     group = "Agent",
+    label = "Chat profile",
+    kind = "choice",
+    id = "agent.chat.profile",
+    choices = {
+      { value = "ask", label = "Ask · read-only" },
+      { value = "write", label = "Write · code and plans" },
+      { value = "minimal", label = "Minimal · few tokens" },
+    },
+  },
+  { group = "Agent", label = "Chat opens on history", kind = "toggle", id = "agent.chat.history_on_open" },
+  {
+    group = "Agent",
     label = "Answer language",
     kind = "choice",
     id = "agent.language",

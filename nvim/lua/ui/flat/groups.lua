@@ -26,7 +26,8 @@ function M.chat(t)
     ChatHeader = { fg = t.on, bg = t.blue, bold = true },
     ChatHeaderWarn = { fg = t.on, bg = t.yellow, bold = true },
     ChatTitle = { fg = t.fg, bg = t.soft, bold = true },
-    ChatMeta = { fg = t.faint, bg = t.soft },
+    ChatProfile = { fg = t.yellow, bg = t.soft, bold = true },
+    ChatMeta = { fg = t.dim, bg = t.soft },
     ChatUser = { fg = t.fg, bg = veil(t.blue, 0.12) },
     ChatUserIcon = { fg = t.yellow, bg = veil(t.blue, 0.12), bold = true },
     ChatAssistant = { fg = t.fg, bg = t.soft },
@@ -38,6 +39,16 @@ function M.chat(t)
     ChatBorder = { fg = t.soft, bg = t.soft },
     ChatInput = { fg = t.fg, bg = input_bg },
     ChatInputPlaceholder = { fg = t.faint, bg = input_bg, italic = true },
+    -- the history home: one blue bar for the selected row, faint metadata
+    ChatHomeTitle = { fg = t.fg, bg = t.soft, bold = true },
+    ChatHomeNew = { fg = t.blue, bg = t.soft, bold = true },
+    ChatHomeIcon = { fg = t.yellow, bg = t.soft, bold = true },
+    ChatHomeRow = { fg = t.fg, bg = t.soft },
+    ChatHomeMeta = { fg = t.dim, bg = t.soft },
+    ChatHomeEmpty = { fg = t.faint, bg = t.soft, italic = true },
+    ChatHomeHint = { fg = t.faint, bg = t.soft, italic = true },
+    ChatHomeSel = { fg = t.on, bg = t.blue, bold = true },
+    ChatHomeSelMeta = { fg = t.on, bg = t.blue },
   }
 end
 
@@ -247,6 +258,37 @@ function M.build(t)
   g["@comment.warning"] = { fg = t.orange, bold = true }
   g["@comment.danger"] = { fg = t.red, bold = true }
   g["@markup.quote"] = { fg = t.dim }
+  -- markdown (render-markdown): flat accent bands for headings, a clear code
+  -- block inside the chat's soft panel, quiet quotes and links in the accent.
+  local md = {
+    { "H1", t.blue },
+    { "H2", t.purple },
+    { "H3", t.yellow },
+    { "H4", t.aqua },
+    { "H5", t.dim },
+    { "H6", t.faint },
+  }
+  for _, entry in ipairs(md) do
+    g["RenderMarkdown" .. entry[1]] = { fg = entry[2], bold = true }
+    g["RenderMarkdown" .. entry[1] .. "Bg"] = { bg = veil(entry[2], entry[1] == "H1" and 0.18 or 0.12) }
+  end
+  g.RenderMarkdownCode = { bg = veil(t.fg, 0.08) }
+  g.RenderMarkdownCodeBorder = g.RenderMarkdownCode
+  g.RenderMarkdownCodeInfo = { fg = t.faint, bg = veil(t.fg, 0.08) }
+  g.RenderMarkdownCodeFallback = { fg = t.faint, bg = veil(t.fg, 0.08) }
+  g.RenderMarkdownCodeInline = { fg = t.yellow, bg = veil(t.fg, 0.10) }
+  g.RenderMarkdownQuote = { fg = t.dim }
+  for i = 1, 6 do
+    g["RenderMarkdownQuote" .. i] = { fg = t.dim }
+  end
+  g.RenderMarkdownLink = { fg = t.blue, underline = true }
+  g.RenderMarkdownLinkTitle = { fg = t.faint }
+  g.RenderMarkdownWikiLink = { fg = t.blue, underline = true }
+  g.RenderMarkdownUnchecked = { fg = t.faint }
+  g.RenderMarkdownChecked = { fg = t.green }
+  g.RenderMarkdownTodo = { fg = t.yellow }
+  g.RenderMarkdownDash = { fg = t.faint }
+  g.RenderMarkdownIndent = { fg = veil(t.fg, 0.10) }
   -- markdown tables (render-markdown): flat columns, the heading row bold
   g.RenderMarkdownTableHead = { fg = t.faint, bold = true }
   g.RenderMarkdownTableRow = { fg = t.faint }

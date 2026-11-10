@@ -1,5 +1,6 @@
--- Chat panel: a floating panel anchored to the right edge (Opencode/Claude Code
--- shape, flat design). A transcript block and an input block, one editor row apart.
+-- Chat panel: a right-side partition (half the screen, Opencode/Claude Code
+-- shape, flat design) with a transcript block and an input block. It can also
+-- show the project's chat history (the "home") instead of a transcript.
 -- ONE place reports progress (the statusline chip); hiding keeps the session alive.
 local settings = require "core.settings"
 
@@ -10,6 +11,7 @@ M.input_buf = nil
 M.transcript_win = nil
 M.input_win = nil
 M.session = nil
+M.home = nil -- { root, display_root, sessions, sel, profile } while the history is shown
 M.pending_text = ""
 M.pending_think = ""
 M.running = false
@@ -33,8 +35,14 @@ local function border()
   return require("ui.flat").border()
 end
 
-local function rail_width()
-  return chat_cfg().rail_width or 9
+--- The left half-cell edge of the partition. Three other sides are air, so the
+--- panel reads as a docked block, not as a floating box.
+---@return string|table
+local function partition_border()
+  if not require("ui.flat").enabled() then
+    return "single"
+  end
+  return { "", "", "", "", "", "", "", { "▐", "FlatEdge" } }
 end
 
 --- Current view: the toggle wins over the settings default, so :Chat full/mini
@@ -50,25 +58,31 @@ local function layout()
   return layout_mod.geometry(chat_cfg(), vim.o.columns, vim.o.lines, M.collapsed, M.current_view(), M.input_lines)
 end
 
-local function title_chips(session, width)
-  if not session then
-    return { { " ◆ Chat ", "ChatHeader" } }
-  end
-  local title = session.title or "New chat"
-  title = title:gsub("^%l", string.upper)
-  local room = math.max(8, (width or 60) - 8)
-  if vim.fn.strdisplaywidth(title) > room then
-    title = vim.fn.strcharpart(title, 0, room) .. "…"
-  end
-  local chunks = { { " ◆ " .. title .. " ", "ChatHeader" } }
-  if M.running then
-    chunks[#chunks + 1] =
-      { ("· %s "):format(FRAMES[math.floor(vim.uv.hrtime() / 1e8) % #FRAMES + 1]), "ChatHeaderWarn" }
-  end
-  return chunks
-end
-
 local relayout -- defined after open_windows (paint may ask for a height change)
+
+--- Placeholder for the input, by state and profile: it teaches the keys once
+--- and then gets out of the way.
+---@return string
+local function placeholder_text()
+  if M.home then
+    local entry = M.home_selected()
+    if entry and entry.kind == "session" then
+      local title = require("agent.chat.home").title(entry.session.title)
+      if vim.fn.strdisplaywidth(title) > 28 then
+        title = vim.fn.strcharpart(title, 0, 27) .. "…"
+      end
+      return ("⏎ open “%s” · or type a new message…"):format(title)
+    end
+    return "Type a message to start a new chat…"
+  end
+  local profile = require("agent.chat.profiles").of(M.session, chat_cfg().profile)
+  if profile.id == "ask" then
+    return "Ask about the code…"
+  elseif profile.id == "minimal" then
+    return "Ask…"
+  end
+  return "Describe the change… (Shift-⏎ new line)"
+end
 
 --- Input placeholder (virt_text overlay like the commit panel), not a fake line.
 local function paint_placeholder()
@@ -82,7 +96,7 @@ local function paint_placeholder()
   if empty then
     vim.api.nvim_buf_set_extmark(M.input_buf, ns, 0, 0, {
       id = 1,
-      virt_text = { { "Type…", "ChatInputPlaceholder" } },
+      virt_text = { { placeholder_text(), "ChatInputPlaceholder" } },
       virt_text_pos = "overlay",
       hl_mode = "combine",
     })
@@ -90,6 +104,11 @@ local function paint_placeholder()
   if M.auto_height then
     M.auto_height()
   end
+end
+
+--- Repaint the placeholder after a profile or view change.
+function M.refresh_placeholder()
+  paint_placeholder()
 end
 
 --- Clears the input box (used once a turn is accepted: not before, so the text
@@ -153,14 +172,6 @@ local function editing_window()
   return nil
 end
 
-local function cfg_float(win_buf, opts)
-  return vim.tbl_extend("force", {
-    relative = "editor",
-    style = "minimal",
-    border = border(),
-  }, opts)
-end
-
 local function open_windows()
   ensure_buffers()
   local w, col, top, transcript_h, input_h, full = layout()
@@ -176,7 +187,7 @@ local function open_windows()
       vim.tbl_extend("force", {
         relative = "editor",
         style = "minimal",
-        border = full and "none" or border(),
+        border = full and "none" or partition_border(),
       }, o)
     )
   end
@@ -187,8 +198,6 @@ local function open_windows()
       col = col,
       width = w,
       height = transcript_h,
-      title = { { " ◆ ", "ChatHeader" } },
-      title_pos = "left",
       focusable = false,
       zindex = 50,
     })
@@ -216,21 +225,20 @@ local function open_windows()
     })
     mark_kept(M.input_win)
   else
+    -- a true partition: full height, half width, flush to the right edge, one
+    -- half-cell edge on the left, a single row of air between the blocks
     M.transcript_win = float(M.transcript_buf, {
       row = top,
       col = col,
       width = w,
       height = transcript_h,
-      title = title_chips(M.session, w),
-      title_pos = "left",
       focusable = true,
       zindex = 50,
     })
     mark_kept(M.transcript_win)
 
-    local input_row = top + transcript_h + 2 + (chat_cfg().gap or 1)
     M.input_win = float(M.input_buf, {
-      row = input_row,
+      row = top + transcript_h + (chat_cfg().gap or 1),
       col = col,
       width = w,
       height = input_h,
@@ -247,6 +255,13 @@ local function open_windows()
       local wo = vim.wo[win]
       wo.wrap = true
       wo.linebreak = true
+      wo.number = false
+      wo.relativenumber = false
+      wo.signcolumn = "no"
+      wo.foldcolumn = "0"
+      wo.foldenable = false
+      wo.spell = false
+      wo.list = false
       local b = vim.api.nvim_win_get_buf(win)
       vim.b[b].completion = false -- blink must not cover the chat (it would eat <CR>)
       wo.winhighlight = win == M.transcript_win
@@ -306,7 +321,6 @@ relayout = function(keep_input)
         col = col,
         width = w,
         height = transcript_h,
-        title = { { " ◆ ", "ChatHeader" } },
         footer = nil,
       })
     end
@@ -319,10 +333,9 @@ relayout = function(keep_input)
       col = full and 0 or col,
       width = w,
       height = transcript_h,
-      title = not full and title_chips(M.session, w) or nil,
     })
   end
-  local input_row = full and transcript_h or (top + transcript_h + 2 + (chat_cfg().gap or 1))
+  local input_row = full and transcript_h or (top + transcript_h + (chat_cfg().gap or 1))
   if not M.input_win or not vim.api.nvim_win_is_valid(M.input_win) then
     if keep_input ~= false then
       open_windows()
@@ -373,6 +386,129 @@ function M.history_step(dir)
   if M.input_win and vim.api.nvim_win_is_valid(M.input_win) then
     pcall(vim.api.nvim_win_set_cursor, M.input_win, { vim.api.nvim_buf_line_count(M.input_buf), 0 })
   end
+end
+
+---@param root string
+---@param opts { sel?: integer }?
+function M.show_home(root, opts)
+  ensure_buffers()
+  local store = require "agent.chat.store"
+  local sessions = store.list_for_root(root)
+  local sel = opts and opts.sel
+  if not sel then
+    sel = #sessions > 0 and 2 or 1
+    -- coming from an open chat: keep that chat selected in the history
+    if M.session and M.session.id then
+      for i, s in ipairs(sessions) do
+        if s.id == M.session.id then
+          sel = i + 1
+          break
+        end
+      end
+    end
+  end
+  M.home = {
+    root = root,
+    display_root = vim.fn.fnamemodify(root, ":~"),
+    sessions = sessions,
+    sel = math.max(1, math.min(sel, #sessions + 1)),
+    profile = (M.session and M.session.root == root and M.session.profile) or chat_cfg().profile or "write",
+  }
+  if M.is_open() then
+    M.draw()
+    M.refresh_placeholder()
+  end
+end
+
+--- Re-reads the project's sessions (after a delete or a new chat).
+function M.refresh_home()
+  if not M.home then
+    return
+  end
+  M.show_home(M.home.root, { sel = M.home.sel })
+end
+
+---@return table? entry  { kind = "new" } | { kind = "session", session = … }
+function M.home_selected()
+  if not M.home then
+    return nil
+  end
+  local row = M.home.sel or 1
+  if row == 1 then
+    return { kind = "new" }
+  end
+  local session = M.home.sessions[row - 1]
+  if session then
+    return { kind = "session", session = session, row = row }
+  end
+  return nil
+end
+
+--- Moves the highlight in the history. `dir` = -1 older, 1 newer.
+---@param dir integer
+function M.home_move(dir)
+  if not M.home then
+    return
+  end
+  M.home.sel = math.max(1, math.min((M.home.sel or 1) + dir, #M.home.sessions + 1))
+  M.draw()
+  M.refresh_placeholder()
+  for _, r in ipairs(M.ranges or {}) do
+    if r.row == M.home.sel and M.transcript_win and vim.api.nvim_win_is_valid(M.transcript_win) then
+      pcall(vim.api.nvim_win_set_cursor, M.transcript_win, { r.first, 0 })
+      break
+    end
+  end
+end
+
+--- Opens the selected history row: the "New chat" row starts one, a session
+--- resumes it. Refuses while a turn runs (its stream belongs to the old chat).
+function M.home_open()
+  local entry = M.home_selected()
+  if not entry then
+    return
+  end
+  if M.running then
+    return require("utils.log").warn "Chat: still answering (Ctrl-X stops it)"
+  end
+  if entry.kind == "new" then
+    return require("agent.chat").new_session()
+  end
+  local store = require "agent.chat.store"
+  local session = store.get(entry.session.id)
+  if not session then
+    return M.refresh_home()
+  end
+  M.session = session
+  M.home = nil
+  M.pending_text, M.pending_think, M.injected_names = "", "", nil
+  store.remember(session.root, session.id)
+  M.draw()
+  M.refresh_placeholder()
+  M.focus()
+end
+
+--- Deletes the selected session after a confirmation.
+function M.home_delete()
+  local entry = M.home_selected()
+  if not entry or entry.kind == "new" then
+    return
+  end
+  local session = entry.session
+  if M.running and M.session and M.session.id == session.id then
+    return require("utils.log").warn "Chat: still answering (Ctrl-X stops it)"
+  end
+  local count = #(session.messages or {})
+  require("utils.modal").confirm({
+    ("Delete “%s”?"):format(require("agent.chat.home").title(session.title)),
+    ("%d message%s will be removed from this machine."):format(count, count == 1 and "" or "s"),
+  }, { title = "Chat history", confirm = "Delete", danger = true }, function()
+    require("agent.chat.store").remove(session.id)
+    if M.session and M.session.id == session.id then
+      M.session = nil
+    end
+    M.refresh_home()
+  end)
 end
 
 function hide_all()
@@ -510,24 +646,21 @@ function M.toggle_view()
   M.set_view(M.current_view() == "full" and "mini" or "full")
 end
 
---- Redraw the transcript (called on streaming throttled, and on settle).
+--- Redraw the transcript (called on streaming throttled, and on settle) or the
+--- history home when it is showing.
 function M.draw()
   if M.transcript_buf and vim.api.nvim_buf_is_valid(M.transcript_buf) then
-    M.ranges = require("agent.chat.render").apply(M.transcript_buf, M.session, {
-      win = M.transcript_win,
-      pending = M.pending_text,
-      thinking = M.pending_think,
-      injected = M.injected_names,
-      rail = M.collapsed,
-      running = M.running,
-    })
-  end
-  if M.transcript_win and vim.api.nvim_win_is_valid(M.transcript_win) and not M.collapsed then
-    local w, _, _, _, _, full = layout()
-    if not full then
-      pcall(vim.api.nvim_win_set_config, M.transcript_win, {
-        relative = "editor",
-        title = title_chips(M.session, w),
+    if M.home and not M.collapsed then
+      M.ranges = require("agent.chat.render").apply_home(M.transcript_buf, M.home, { win = M.transcript_win })
+    else
+      M.ranges = require("agent.chat.render").apply(M.transcript_buf, M.session, {
+        win = M.transcript_win,
+        pending = M.pending_text,
+        thinking = M.pending_think,
+        injected = M.injected_names,
+        rail = M.collapsed,
+        running = M.running,
+        profile = (M.session and M.session.profile) or chat_cfg().profile,
       })
     end
   end
@@ -641,9 +774,7 @@ function M.open_message(msg)
     require("agent.ui.clipboard").copy(msg.text or "", role)
   end, { buffer = buf, nowait = true, desc = "Chat copy message" })
   pcall(vim.treesitter.start, buf, "markdown")
-  pcall(function()
-    require("render-markdown.api").render { buf = buf, win = win }
-  end)
+  require("agent.chat.render").markdown(buf, win)
 end
 
 --- Buffer-local keys for the chat panel.
@@ -659,8 +790,14 @@ function M.bind_keys()
     if require("agent.chat.completion").accept() then
       return
     end
-    vim.cmd "stopinsert"
     local text = table.concat(vim.api.nvim_buf_get_lines(M.input_buf, 0, -1, false), "\n")
+    -- empty ⏎ on the history opens the highlighted chat instead of sending nothing
+    if M.home and text:match "^%s*$" then
+      vim.cmd "stopinsert"
+      M.home_open()
+      return
+    end
+    vim.cmd "stopinsert"
     -- the text is kept unless the turn is accepted (a model pick keeps it visible,
     -- then sends it by itself): chat.send clears the box when it proceeds
     local accepted = require("agent.chat").send(text)
@@ -692,16 +829,24 @@ function M.bind_keys()
   end, "Chat complete prev")
   map(M.input_buf, "i", "<Down>", function()
     local completion = require "agent.chat.completion"
+    local empty = #vim.api.nvim_buf_get_lines(M.input_buf, 0, -1, false) == 1
+      and (vim.api.nvim_buf_get_lines(M.input_buf, 0, 1, false)[1] or "") == ""
     if completion.is_visible() then
       completion.move(1)
+    elseif M.home and empty then
+      M.home_move(1)
     else
       M.history_step(1) -- newer message, then the draft
     end
   end, "Chat next message")
   map(M.input_buf, "i", "<Up>", function()
     local completion = require "agent.chat.completion"
+    local empty = #vim.api.nvim_buf_get_lines(M.input_buf, 0, -1, false) == 1
+      and (vim.api.nvim_buf_get_lines(M.input_buf, 0, 1, false)[1] or "") == ""
     if completion.is_visible() then
       completion.move(-1)
+    elseif M.home and empty then
+      M.home_move(-1)
     else
       M.history_step(-1) -- older message
     end
@@ -722,6 +867,9 @@ function M.bind_keys()
   map(M.input_buf, { "n", "i" }, "<C-e>", function()
     require("agent.chat").pick_effort()
   end, "Chat effort")
+  map(M.input_buf, { "n", "i" }, "<C-p>", function()
+    require("agent.chat").pick_profile()
+  end, "Chat profile")
   map(M.input_buf, { "n", "i" }, "<C-a>", function()
     require("agent.chat").draft_adr()
   end, "Chat ADR")
@@ -786,9 +934,45 @@ function M.bind_keys()
     end, "Chat copy transcript")
     for _, key in ipairs { "o", "<CR>" } do
       map(M.transcript_buf, "n", key, function()
+        if M.home then
+          return M.home_open()
+        end
         M.open_message()
       end, "Chat view message")
     end
+    for key, delta in pairs { j = 1, k = -1 } do
+      map(M.transcript_buf, "n", key, function()
+        if M.home then
+          M.home_move(delta)
+        else
+          vim.cmd("normal! " .. key)
+        end
+      end, "Chat history move")
+    end
+    map(M.transcript_buf, "n", "n", function()
+      if M.home then
+        require("agent.chat").new_session()
+      else
+        vim.cmd "normal! n"
+      end
+    end, "Chat new session")
+    map(M.transcript_buf, "n", "D", function()
+      if M.home then
+        M.home_delete()
+      end
+    end, "Chat delete session")
+    map(M.transcript_buf, "n", "<2-LeftMouse>", function()
+      if not M.home then
+        return
+      end
+      local mouse = vim.fn.getmousepos()
+      local row = require("agent.chat.home").row_at(M.ranges, mouse.line)
+      if row then
+        M.home.sel = row
+        M.draw()
+        M.home_open()
+      end
+    end, "Chat open session")
     map(M.transcript_buf, "n", "h", function()
       require("agent.chat").pick_session()
     end, "Chat sessions")
@@ -817,23 +1001,15 @@ function M.statusline()
   if vim.fn.strdisplaywidth(model) > 20 then
     model = vim.fn.strcharpart(model, 0, 19) .. "…"
   end
+  local profile = require("agent.chat.profiles").of(M.session, chat_cfg().profile)
   local frame = FRAMES[math.floor(vim.uv.hrtime() / 1e8) % #FRAMES + 1]
-  return (" %s %s "):format(frame, model ~= "" and model or "chat")
+  return (" %s %s · %s "):format(frame, profile.label, model ~= "" and model or "chat")
 end
 
---- Called by chat/init when a turn starts/stops: the title shows the spinner and
---- the statusline chip is the single progress indicator.
+--- Called by chat/init when a turn starts/stops. The statusline chip is the
+--- single progress indicator; the transcript header carries the profile.
 function M.set_running(on)
   M.running = on
-  if M.transcript_win and vim.api.nvim_win_is_valid(M.transcript_win) and not M.collapsed then
-    local w, _, _, _, _, full = layout()
-    if not full then
-      pcall(vim.api.nvim_win_set_config, M.transcript_win, {
-        relative = "editor",
-        title = title_chips(M.session, w),
-      })
-    end
-  end
 end
 
 return M

@@ -19,6 +19,12 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicate
   `main.go` variant — root, `cmd/api`, `cmd/worker`… — runs its own binary) and fall back to the module's main
   otherwise (the only one, or the preferred `cmd/*`); without a `go.mod` they run the single file.
   They always run from the module root (`go run ./cmd/api`), so relative files resolve the same way. The rest run from the module root.
+  The terminal keeps the focus (in terminal mode) when the command starts, and `Esc` closes it without stopping the
+  program.
+- `test the package of this file` (`l`) runs `go test ./folder` from the module root: a folder with `main.go` and
+  its `*_test.go` files is tested on its own (a `main` package with tests works like any other), not the whole
+  module. Without a `go.mod` it runs in the folder. `m`/`R`/`c` still test everything, with plain, `-race` and
+  `-cover`.
 
 ## Project setup (`<leader>gS`, `lua/gosetup/`)
 

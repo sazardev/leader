@@ -1,38 +1,65 @@
 -- Chat facade (<leader>aC): a persistent, backend-agnostic chat under Leader.
--- Claude Code + Opencode shape (right panel, streaming, thinking, /commands,
--- @files, #skills, $mcp, model + effort pickers), but Leader orchestrates:
--- every turn is shown transparently (what was injected, tokens, cost, time) and
--- persisted per project. Hiding the panel keeps the session; statusline shows it.
+-- Claude Code + Opencode shape (right half partition, streaming, thinking,
+-- /commands, @files, #skills, $mcp, model + effort + profile pickers), but
+-- Leader orchestrates: every turn is shown transparently (what was injected,
+-- tokens, cost, time) and persisted per project. The history home scopes
+-- sessions to the repository. Hiding the panel keeps the session; statusline shows it.
 local M = {}
 
----@return table session (create or load the last one for this project)
+--- Root of the project the chat belongs to.
+---@return string
+local function project_root()
+  return vim.fs.root(0, ".git") or (vim.uv.cwd() or "")
+end
+
+--- Fills a new session's backend/model/effort/profile from the current choice.
+---@param session table
+local function defaults(session)
+  local sel = require("agent.selection").current()
+  if sel then
+    session.backend, session.model, session.effort = sel.backend, sel.model, sel.effort
+  end
+  session.profile = session.profile or require("core.settings").agent.chat.profile or "write"
+end
+
+--- The session the caller means. A draft (never written to disk until the
+--- first message) instead of auto-resuming another project's chat.
+---@return table
 local function current()
   local window = require "agent.chat.window"
   if window.session then
+    if window.session.profile == nil then
+      window.session.profile = require("core.settings").agent.chat.profile or "write"
+    end
     return window.session
   end
-  local root = vim.fs.root(0, ".git") or (vim.uv.cwd() or "")
-  local session = require("agent.chat.store").last_for_root(root)
-  if not session then
-    session = require("agent.chat.session").new { root = root }
-    local sel = require("agent.selection").current()
-    if sel then
-      session.backend, session.model, session.effort = sel.backend, sel.model, sel.effort
-    end
-    require("agent.chat.store").put(session)
-  end
+  local session = require("agent.chat.session").new { root = project_root() }
+  defaults(session)
   window.session = session
   return session
 end
 
 --- Toggle the panel (open / hide). <leader>aC.
+--- The first open in a project with history lands on that history: select a
+--- conversation or type straight into the input to start a new one.
 --- Already open but not focused: it comes forward instead of disappearing.
 function M.open()
-  if not require("core.settings").agent.chat.enabled then
+  local cfg = require("core.settings").agent.chat
+  if not cfg.enabled then
     return require("utils.log").warn "Chat: disabled (settings.agent.chat.enabled = false)"
   end
   local window = require "agent.chat.window"
-  current()
+  local root = project_root()
+
+  -- a chat belongs to its repository: opening the panel in another project
+  -- shows that project's history, never the previous repo's conversation.
+  -- Never detach a running turn from the session its stream belongs to.
+  if not window.is_open() and not window.running then
+    if (window.session and window.session.root ~= root) or (window.home and window.home.root ~= root) then
+      window.session, window.home = nil, nil
+    end
+  end
+
   if window.is_open() then
     local cur = vim.api.nvim_get_current_win()
     if cur == window.input_win or cur == window.transcript_win then
@@ -41,6 +68,16 @@ function M.open()
       window.focus() -- open behind the code: bring it forward
     end
   else
+    if not window.session and not window.home then
+      local store = require "agent.chat.store"
+      local sessions = store.list_for_root(root)
+      if cfg.history_on_open ~= false and #sessions > 0 then
+        window.show_home(root)
+      else
+        -- opt-out: resume the last chat of this repo (a repo with no history starts fresh)
+        window.session = store.last_for_root(root) or current()
+      end
+    end
     window.toggle()
   end
   if not window.is_open() then
@@ -50,16 +87,13 @@ end
 
 --- Collapse to the right-edge rail (or expand again). <C-t> inside the panel.
 function M.toggle_collapse()
-  local window = require "agent.chat.window"
-  current()
-  window.toggle_collapse()
+  require("agent.chat.window").toggle_collapse()
 end
 
---- Mini (right panel) or fullscreen. <C-f> inside the panel, :Chat full/mini.
+--- Mini (right partition) or fullscreen. <C-f> inside the panel, :Chat full/mini.
 ---@param view "mini"|"full"
 function M.set_view(view)
   local window = require "agent.chat.window"
-  current()
   if not window.is_open() then
     window.view = view
     return
@@ -70,7 +104,6 @@ end
 --- Toggle mini <-> full.
 function M.toggle_view()
   local window = require "agent.chat.window"
-  current()
   if not window.is_open() then
     window.view = window.current_view() == "full" and "mini" or "full"
     return
@@ -81,18 +114,26 @@ end
 --- Start a fresh session in this project.
 function M.new_session()
   local window = require "agent.chat.window"
-  local root = vim.fs.root(0, ".git") or (vim.uv.cwd() or "")
-  local session = require("agent.chat.session").new { root = root }
-  local sel = require("agent.selection").current()
-  if sel then
-    session.backend, session.model, session.effort = sel.backend, sel.model, sel.effort
+  if window.running then
+    return require("utils.log").warn "Chat: still answering (Ctrl-X stops it)"
   end
-  require("agent.chat.store").put(session)
+  local previous = window.session
+  local session = require("agent.chat.session").new { root = project_root() }
+  defaults(session)
+  -- a new chat keeps the profile and model you were using
+  if previous then
+    session.profile = previous.profile or session.profile
+    session.backend = previous.backend or session.backend
+    session.model = previous.model or session.model
+    session.effort = previous.effort or session.effort
+  end
+  -- an empty chat is not history: it is written on its first message
   window.session = session
+  window.home = nil
   window.pending_text, window.pending_think, window.injected_names = "", "", nil
-  window.toggle_hide = nil
   if window.is_open() then
     window.draw()
+    window.refresh_placeholder()
   else
     window.toggle()
   end
@@ -103,34 +144,44 @@ function M.new_session()
   end
 end
 
---- Pick a session (history): restores model/effort with it.
+--- The project's chat history: the panel home, not a floating picker. A fresh
+--- open lands here by itself when the repo already has conversations.
 function M.pick_session()
-  local items = require("agent.chat.store").list()
-  if #items == 0 then
-    return require("utils.log").info "Chat: no sessions yet"
+  local window = require "agent.chat.window"
+  local root = project_root()
+  window.show_home(root)
+  if not window.is_open() then
+    window.toggle()
+  else
+    window.focus()
   end
-  local rows = vim.tbl_map(function(s)
-    return {
-      label = ("%s · %s · %d msg"):format(
-        s.title ~= "" and s.title or "chat",
-        require("agent.text").tokens((s.tokens_in or 0) + (s.tokens_out or 0)) .. " tok",
-        #(s.messages or {})
-      ),
-      id = s.id,
-      current = require("agent.chat.window").session and require("agent.chat.window").session.id == s.id,
+  window.refresh_placeholder()
+end
+
+--- Pick the profile of this chat: ask (read-only), write (code) or minimal.
+function M.pick_profile()
+  local session = current()
+  local window = require "agent.chat.window"
+  local profiles = require "agent.chat.profiles"
+  local items = {}
+  for _, profile in ipairs(profiles.list()) do
+    items[#items + 1] = {
+      label = ("%-8s %s · %s"):format(profile.label, profile.description, profile.hint),
+      id = profile.id,
+      current = session.profile == profile.id,
     }
-  end, items)
-  require("agent.ui.select").pick(rows, { title = "Chat · sessions" }, function(choice)
-    local session = require("agent.chat.store").get(choice.id)
-    if session then
-      local window = require "agent.chat.window"
-      window.session = session
-      if not window.is_open() then
-        window.toggle()
-      else
-        window.draw()
-      end
+  end
+  require("agent.ui.select").pick(items, { title = "Chat · profile" }, function(choice)
+    session.profile = choice.id
+    if #(session.messages or {}) > 0 then
+      require("agent.chat.store").put(session)
     end
+    if window.home then
+      window.home.profile = choice.id
+    end
+    window.draw()
+    window.refresh_placeholder()
+    require("utils.log").info(("Chat: %s profile"):format(choice.id))
   end)
 end
 
@@ -200,7 +251,9 @@ function M.pick_model()
     require("agent.ui.select").pick(items, { title = "Chat · model" }, function(choice)
       session.backend, session.model = choice.backend, choice.model
       session.effort = nil
-      require("agent.chat.store").put(session)
+      if #(session.messages or {}) > 0 then
+        require("agent.chat.store").put(session)
+      end
       require("agent.chat.window").draw()
       require("utils.log").info(("Chat: %s/%s"):format(choice.backend, choice.model))
     end)
@@ -221,7 +274,9 @@ function M.pick_effort()
   end
   require("agent.ui.select").pick(items, { title = "Chat · effort" }, function(choice)
     session.effort = choice.value
-    require("agent.chat.store").put(session)
+    if #(session.messages or {}) > 0 then
+      require("agent.chat.store").put(session)
+    end
     require("agent.chat.window").draw()
     require("utils.log").info("Chat: effort " .. tostring(choice.value or "default"))
   end)
@@ -253,10 +308,16 @@ end
 
 --- Clear the current session's messages (keeps the model/effort).
 function M.clear()
+  if require("agent.chat.window").running then
+    return require("utils.log").warn "Chat: still answering (Ctrl-X stops it)"
+  end
   local session = current()
+  local had = #(session.messages or {}) > 0
   session.messages = {}
   session.tokens_in, session.tokens_out, session.cost, session.turns = 0, 0, 0, 0
-  require("agent.chat.store").put(session)
+  if had then
+    require("agent.chat.store").put(session)
+  end
   require("agent.chat.window").draw()
 end
 
@@ -274,12 +335,14 @@ function M.help()
   local lines = {
     "Leader Chat — help",
     "",
+    "Profiles: Ask (read-only) · Write (code and plans) · Minimal (fast, no auto context). Ctrl-P or /profile.",
+    "History: Ctrl-H or /history. On the home: ↑↓ select · ⏎ open · n new · D delete. Typing starts a new chat.",
     "Send: ⏎ · New line: Shift-⏎ · Hide: q / Ctrl-Q (session keeps running).",
     "Triggers, filtered as you type (⏎/Tab accepts): / commands · @ project files (@buf, @sel, @diag) · # skills · $ MCP.",
-    "Commands: /new · /model · /effort · /clear · /adr · /export · /full · /mini · /collapse · /help.",
+    "Commands: /new · /history · /model · /effort · /profile · /clear · /adr · /export · /full · /mini · /collapse · /help.",
     "Input: ↑/↓ previous messages · Shift-⏎ new line · it grows with the text.",
-    "View: Ctrl-F (mini/full) · Ctrl-T (collapse to rail).",
-    "Keys: Ctrl-N · Ctrl-H · Ctrl-M · Ctrl-E · Ctrl-A · Ctrl-X.",
+    "View: Ctrl-F (half/full) · Ctrl-T (collapse to rail).",
+    "Keys: Ctrl-N new · Ctrl-H history · Ctrl-M model · Ctrl-E effort · Ctrl-P profile · Ctrl-A ADR · Ctrl-X stop.",
     "Transcript: y copy message · c copy its code block · Y copy all · o view message · h history · i input · q hide.",
   }
   require("agent.ui.panel").open(lines, "Leader Chat · help")
@@ -298,11 +361,67 @@ function M.send(raw)
     return false
   end
   local window = require "agent.chat.window"
-  if window.running and not raw:match "^/" then
+
+  -- Slash commands first: they do not need a backend, a session or context.
+  local command = raw:match "^%s*/(%w+)"
+  if command and require("agent.chat.commands").has(command) then
+    if command == "new" then
+      M.new_session()
+    elseif command == "history" then
+      M.pick_session()
+    elseif command == "clear" then
+      M.clear()
+    elseif command == "model" then
+      M.pick_model()
+    elseif command == "effort" then
+      M.pick_effort()
+    elseif command == "profile" then
+      M.pick_profile()
+    elseif command == "adr" then
+      M.draft_adr()
+    elseif command == "export" then
+      M.export()
+    elseif command == "collapse" then
+      M.toggle_collapse()
+    elseif command == "full" then
+      M.set_view "full"
+    elseif command == "mini" then
+      M.set_view "mini"
+    elseif command == "help" then
+      M.help()
+    end
+    return true
+  end
+
+  if window.running then
     require("utils.log").warn "Chat: still answering (Ctrl-X stops it)"
     return false
   end
-  local session = current()
+
+  -- From the history home, a message starts a new chat. It inherits the profile
+  -- and model of the draft that was there (or of the global selection).
+  local session = window.session
+  if window.home then
+    local previous = session
+    session = require("agent.chat.session").new { root = window.home.root }
+    defaults(session)
+    if previous then
+      session.profile = previous.profile or session.profile
+      if #(previous.messages or {}) == 0 then
+        session.backend = previous.backend or session.backend
+        session.model = previous.model or session.model
+        session.effort = previous.effort or session.effort
+      end
+    else
+      session.profile = window.home.profile or session.profile
+    end
+    window.home, window.session = nil, session
+    window.draw()
+    window.refresh_placeholder()
+  elseif not session then
+    session = current()
+  end
+
   local sel = require("agent.selection").current()
   -- session model wins over the global selection when the user picked one in chat;
   -- a session on ANOTHER backend never borrows that backend's model/effort
@@ -318,41 +437,19 @@ function M.send(raw)
     require("utils.log").warn "Chat: no backend (run <leader>am → Setup)"
     return false
   end
+  local profile = require("agent.chat.profiles").of(session, require("core.settings").agent.chat.profile)
 
   local function turn(choice)
-    local clean, mentions, slash = require("agent.chat.mention").parse(raw)
-    if slash then
-      if slash == "new" then
-        M.new_session()
-      elseif slash == "clear" then
-        M.clear()
-      elseif slash == "model" then
-        M.pick_model()
-      elseif slash == "effort" then
-        M.pick_effort()
-      elseif slash == "adr" then
-        M.draft_adr()
-      elseif slash == "export" then
-        M.export()
-      elseif slash == "collapse" then
-        M.toggle_collapse()
-      elseif slash == "full" then
-        M.set_view "full"
-      elseif slash == "mini" then
-        M.set_view "mini"
-      elseif slash == "help" then
-        M.help()
-      end
-      return
-    end
+    local clean, mentions = require("agent.chat.mention").parse(raw)
     if clean == "" and #mentions == 0 then
       return
     end
 
     -- auto context (what Leader injects besides the messages); a broken provider
-    -- must not kill the turn (agent/context lets providers fail the same way)
+    -- must not kill the turn (agent/context lets providers fail the same way).
+    -- The profile decides what is injected: minimal gets only the mentions.
     local auto = {}
-    local ok_auto, got = pcall(require("agent.chat.context").collect)
+    local ok_auto, got = pcall(require("agent.chat.context").collect, profile)
     if ok_auto and got then
       auto = got
     elseif not ok_auto then
@@ -360,11 +457,11 @@ function M.send(raw)
     end
     local sections = vim.list_extend({}, mentions)
     vim.list_extend(sections, type(auto) == "table" and auto or {})
-    require("agent.chat.window").injected_names = vim.tbl_map(function(s)
+    window.injected_names = vim.tbl_map(function(s)
       return s.name
     end, sections)
 
-    local system, prompt, injected = require("agent.chat.prompt").build(session, clean, sections)
+    local system, prompt, injected = require("agent.chat.prompt").build(session, clean, sections, profile)
 
     -- budget guard: same estimate as one-shot actions (chars/3.5), ask above the limits
     local guard_req = {
@@ -377,8 +474,10 @@ function M.send(raw)
       end, sections),
     }
     local function proceed()
-      require("agent.chat.window").clear_input()
-      M._launch(session, choice, clean, system, prompt, injected)
+      window.clear_input()
+      -- the first real message is what puts a chat in the history
+      require("agent.chat.store").put(session)
+      M._launch(session, choice, clean, system, prompt, injected, profile.id)
     end
     local function deny(why)
       require("utils.log").warn("Chat: " .. tostring(why or "cancelled"))
@@ -396,7 +495,6 @@ function M.send(raw)
   local function use(model)
     eff_sel.model = model
     session.backend, session.model = eff_sel.backend, model
-    require("agent.chat.store").put(session)
     require("utils.log").info(("Chat: using %s"):format(model))
     turn(eff_sel)
   end
@@ -423,7 +521,11 @@ end
 ---@param system string
 ---@param prompt string
 ---@param injected string[]
-function M._launch(session, sel, clean, system, prompt, injected)
+---@param profile string? profile id used for the turn
+function M._launch(session, sel, clean, system, prompt, injected, profile)
+  if profile then
+    session.profile = profile
+  end
   local window = require "agent.chat.window"
   window.set_running(true)
   window.pending_text, window.pending_think = "", ""
@@ -449,10 +551,10 @@ function M._launch(session, sel, clean, system, prompt, injected)
     if ok then
       require("agent.chat.session").charge(session, usage)
       session.turns = (session.turns or 0) + 1
-      require("agent.chat.store").put(session)
     else
       require("utils.log").error(("Chat: %s"):format(err or "request failed"))
     end
+    require("agent.chat.store").put(session)
     window.draw()
   end
 
@@ -472,23 +574,23 @@ function M._launch(session, sel, clean, system, prompt, injected)
       draw_soon()
     end,
   }, function(ok, body, usage, err)
-    -- cleanup owns the spinner + store; clear the flags here so draw never shows a stale stream
+    -- capture the reasoning before clearing the live stream; it belongs to the transcript
+    local thinking = window.pending_think
     window.pending_text, window.pending_think = "", ""
     -- keep the turn in the transcript even on failure (the error is visible)
+    require("agent.chat.session").add(session, { role = "user", text = clean })
     if ok then
-      require("agent.chat.session").add(session, { role = "user", text = clean })
       require("agent.chat.session").add(
         session,
         { role = "assistant", text = body, usage = usage, meta = { injected = injected } }
       )
-      if window.pending_think ~= "" then
-        require("agent.chat.session").add(session, { role = "thinking", text = window.pending_think })
+      if thinking and thinking ~= "" then
+        require("agent.chat.session").add(session, { role = "thinking", text = thinking })
       end
     else
-      require("agent.chat.session").add(session, { role = "user", text = clean })
       require("agent.chat.session").add(session, { role = "tool", text = ("⚠ %s"):format(err or "error") })
     end
-    window.pending_text, window.pending_think = "", ""
+    window.injected_names = nil
     cleanup(ok, usage, err)
   end)
 end
