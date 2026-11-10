@@ -4,7 +4,14 @@ return {
   "MagicDuck/grug-far.nvim",
   cmd = "GrugFar",
   keys = {
-    { "<leader>fr", "<cmd>GrugFar<cr>", desc = "Find replace in project" },
+    {
+      "<leader>fr",
+      function()
+        require("grug-far").open()
+      end,
+      mode = { "n", "x" },
+      desc = "Find replace in project",
+    },
   },
   opts = {
     icons = { enabled = false }, -- plain labels (Search:, Replace:), like the rest of the flat UI

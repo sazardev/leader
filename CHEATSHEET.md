@@ -1262,7 +1262,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>H` | n | File history (session) |
 | `<leader>fc` | n | In current file |
 | `<leader>fo` | n | Recent files of this project |
-| `<leader>fr` | n | Replace in project |
+| `<leader>fr` | n,x | Replace in project |
 | `<leader>fs` | n | Project symbols |
 
 ### Flash
