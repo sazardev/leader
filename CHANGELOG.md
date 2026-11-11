@@ -2,6 +2,32 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.17.0] - 2026-11-10
+
+### Highlights
+
+- **Panes, like an IDE**: `Alt+V` / `Alt+H` open a real Neovim split with the **start screen** in it; `ff`/`fo` load the
+  chosen file in that pane, and every pane keeps its own dashboard (selection, layout and window options). `Ctrl+h/j/k/l`
+  moves, `Alt+arrows` resizes, `Alt+Z` zooms, `Alt+Q` closes, and `<leader>V` lists the panes plus equal sizes, rotate and
+  swap. The old terminal splits moved to `<leader>Tv` / `<leader>Th` (the float stays on `Alt+I`), and the settings panel
+  gained a **Panes** group.
+- **The chat is a real editor pane**: the panel is a right split that reflows the code beside it, Write answers apply
+  their complete files, turns are animated and code blocks keep treesitter colors. The model can ask a decision with an
+  `ask` block (a picker puts the answer in the composer), request missing files with `@need:` (injected once on the next
+  turn), and typing while an answer streams queues the message instead of refusing it; dropped history is disclosed.
+
+### Features
+
+- **panes:** dashboard splits and pane management (bd06e48)
+- **chat:** ask picker, @need context, queue (180e7b0)
+- **chat:** split panel, apply files, animate turns (f51e6df)
+
+### Other changes
+
+- chore(deps): sync nvim-tree and schemastore in the lockfile (e881281)
+- chore(deps): bump neoconf and schemastore (4223338)
+- chore(packaging): point the source Arch package at v1.16.0 (ebaf9c5)
+
 ## [1.16.0] - 2026-11-10
 
 ### Highlights
