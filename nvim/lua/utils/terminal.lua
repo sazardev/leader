@@ -184,9 +184,10 @@ function M.focus()
 end
 
 --- A brand new shell terminal, opened and focused
+---@param direction "vertical"|"horizontal"|"float"? nil = the configured one (right or bottom by width)
 ---@return table
-function M.new_shell()
-  local term = require("toggleterm.terminal").Terminal:new { direction = M.direction() }
+function M.new_shell(direction)
+  local term = require("toggleterm.terminal").Terminal:new { direction = direction or M.direction() }
   M.focus_term(term)
   return term
 end

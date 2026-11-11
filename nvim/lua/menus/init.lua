@@ -34,6 +34,7 @@ function M.contexts()
   table.insert(list, require "menus.herdr")
   table.insert(list, require "menus.env")
   table.insert(list, require "menus.terminal")
+  table.insert(list, require "menus.panes")
   -- experimental features (agent/stability.lua) stay out until the user opts in
   return vim.tbl_filter(function(ctx)
     return require("agent.stability").visible(ctx.stability)

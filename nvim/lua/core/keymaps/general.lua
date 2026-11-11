@@ -111,6 +111,11 @@ function M.setup()
     require("utils.lsp").goto_definition_at_mouse,
     { desc = "LSP go to DEFINITION (Ctrl+click)" }
   )
+
+  -- Alt+V / Alt+H open a real pane on the start screen; Alt+arrows resize it, Alt+Z zooms and Alt+Q closes it.
+  -- This overrides NvChad's terminal toggles in normal AND terminal mode (consistency): the terminal keeps Alt+I
+  -- (float) and <leader>T (vertical / horizontal splits).
+  require("panes").setup()
 end
 
 return M

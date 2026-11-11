@@ -29,6 +29,20 @@ return {
       end,
     },
     {
+      "v",
+      "Terminal vertical split",
+      function()
+        require("utils.terminal").new_shell "vertical"
+      end,
+    },
+    {
+      "h",
+      "Terminal horizontal split",
+      function()
+        require("utils.terminal").new_shell "horizontal"
+      end,
+    },
+    {
       "s",
       "Terminal stop",
       function()

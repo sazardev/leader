@@ -16,8 +16,9 @@ function M.setup()
     end,
   })
 
-  -- NvChad's terminals (<A-i> float, <A-v> vertical, <A-h> horizontal) get the same keys as toggleterm's:
-  -- Esc closes the window (the shell keeps running, the same Alt key brings it back), Shift+Esc unfocuses it
+  -- NvChad's float terminal (<A-i>) gets the same keys as toggleterm's: Esc closes the window (the shell keeps
+  -- running, the same Alt key brings it back), Shift+Esc unfocuses it. Alt+V / Alt+H are panes now (lua/panes);
+  -- the vertical / horizontal terminals live in <leader>Tv / <leader>Th.
   vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("NvTermEscClose", { clear = true }),
     pattern = { "NvTerm_float", "NvTerm_vsp", "NvTerm_sp" },

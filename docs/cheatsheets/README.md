@@ -33,11 +33,12 @@
 | [web.md](web.md) | HTML, CSS, Tailwind, Astro |
 | [data-formats.md](data-formats.md) | JSON, YAML, TOML, Docker, Prisma, YarnSpinner |
 | [terminal.md](terminal.md) | **Terminal** (`<leader>T`): command vs named vs own shells, `Esc`/`Shift+Esc`/`Ctrl+x`, reopen without re-sending |
+| [panes.md](panes.md) | **Panes** (`Alt+V` / `Alt+H`, `<leader>V`): a real split with the start screen, per-pane dashboards, resize, zoom, list |
 
 ## How the leader works
 
 Each language has **its own letter** under `<leader>` (g Go, d Dart, t TypeScript, p Python, r Rust, c C#, Q SQL, i Swift…) and **only exists in buffers of that filetype**;
-`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>E` (env files), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments), `<leader>T` (terminal) and `<leader>W` (Herdr) are global.
+`<leader>G` (Git) only inside a repo, and `<leader>a` (agent), `<leader>R` (Makefile tasks), `<leader>E` (env files), `<leader>P` (sessions), `<leader>u` (undo and yank history), `<leader>S` (settings), `<leader>F` (files), `<leader>C` (comments), `<leader>T` (terminal), `<leader>V` (panes) and `<leader>W` (Herdr) are global.
 Press `<leader>` and which-key shows only what applies to the current file (no delay).
 
 The language menus open an integrated terminal (toggleterm) and run the commands at the **project root**
@@ -53,12 +54,12 @@ The exact keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md); here, how they com
 - **Delete without clobbering the clipboard**: `<leader>d` + motion (`<leader>dd` line, `<leader>dw` word) or in visual mode.
 - **Multicursor** (`multicursor.nvim`, real cursors like VS Code/Helix; loaded on the first key): add cursors by line (`Ctrl+↑/↓`), by match of the word or selection (`Alt+n`/`Alt+p`, `Alt+Shift+n/p` skips one) or all at once (`Alt+a`); `Alt+click` adds or removes one with the mouse. With several cursors everything (motions, operators, insert, undo) is repeated on each one; `Esc` clears them, `Ctrl+q` turns the main cursor off/on, `←/→` switch cursor and `Alt+x` deletes the current one. In insert mode, the secondary cursors replicate what was typed ON LEAVING insert; if the completion menu is open, `Esc`/`jk` close it first and you have to press them again. Ideas: `Alt+a` on a word to rename it in the file; `Ctrl+↓` several times + `I`/`A` to edit columns. The **native visual block** (`Ctrl+v` + `I`/`A`/`c`) is still there for simple columns. Don't use `Ctrl+n` (it is nvim-tree).
 - **Textobjects** (treesitter): combine them with operators — `daf` deletes the function, `dif` the body, `cif` changes it, `yaf` copies it, `vaf` selects it; `dac` deletes the class. For braces of any block: `di{` (inside), `da{` (with braces), `%` jumps to the pair. **PageDown/PageUp** jump block by block (function, method, class, struct/interface in Go); they don't stop at closures inside a function, accept a count (`3<PageDown>`) and, with no blocks or no parser, do the normal scroll. **Home/End** go to the start/end of the current block; pressing them again goes up to the enclosing block (method → class → file). For start/end of line use `^`/`$` (or `0`), and in insert they remain native.
-- **Alt+hjkl** move a line or block (mini.move); in Normal mode `Alt+h` is NvChad's horizontal terminal instead (the visual block still moves left).
+- **Alt+hjkl** move a line or block (mini.move); in Normal mode `Alt+h` opens a pane instead (the visual block still moves left, and `Alt+v` is a pane).
 - **Format**: `<leader>fm` formats (conform); it also formats on save.
 - **Telescope**: the preview is always visible. `flex` layout: on the right in windows ≥ 110 columns, at the bottom in narrow ones (`lua/plugins/navigation/telescope.lua`).
 - **nvim-tree**: opening a file closes the tree; `I` shows/hides what git ignores. Deleting a folder warns how many files it contains.
-- **Terminal** (`<leader>T` menu, plus NvChad's `Alt+i` float / `Alt+v` vertical / `Alt+h` horizontal
-  toggles): `t` shows/hides the command terminal (where every language and task command runs — reopening
+- **Terminal** (`<leader>T` menu, plus `Alt+i` for the float and `<leader>Tv` / `<leader>Th` for a vertical /
+  horizontal split): `t` shows/hides the command terminal (where every language and task command runs — reopening
   after `Esc` sends nothing), `l` lists every terminal to jump to, `n` opens a new shell, `s` sends Ctrl-C.
   `Esc` (in the terminal or its Normal mode) closes the window and the shell keeps running; `Shift+Esc` only
   hands the focus back to the code and leaves the terminal open; `Ctrl+x` leaves terminal mode (`i` types

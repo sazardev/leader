@@ -643,6 +643,13 @@ local defaults = {
     float_scale = 0.85, -- fraction of the screen in float mode
   },
 
+  -- Panes (lua/panes, Alt+V / Alt+H, global <leader>V menu): every pane is a real Neovim window. A new one opens
+  -- the start screen, so `ff`/`fo` load the chosen file right there; the dashboard keeps one instance per pane.
+  panes = {
+    dashboard = true, -- false = a new pane shows the same buffer (a plain split)
+    resize_step = 2, -- cells moved by Alt+Left/Right/Up/Down
+  },
+
   -- Linters that do NOT run on InsertLeave (analyze the whole package: heavy)
   -- Long comments (menu <leader>C, lua/utils/comments.lua): folded with nvim-ufo
   comments = {

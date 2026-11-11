@@ -1,7 +1,7 @@
 -- ── Remove NvChad keymaps we do not use ──────────────────────────────────────
 -- They are deleted (not <Nop>): a mapping that is also a prefix of others forces
 -- which-key to wait for `timeoutlen` and then run it / close the popup. <leader>h
--- (horizontal terminal) clashed with Harpoon <leader>h1..4; <leader>w with wk/wK.
+-- (the old horizontal terminal) clashed with Harpoon <leader>h1..4; <leader>w with wk/wK.
 local M = {}
 
 local REMOVED = {

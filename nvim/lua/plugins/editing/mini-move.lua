@@ -1,5 +1,5 @@
--- Move lines/blocks with Alt+hjkl. <A-h> in normal mode is NvChad's horizontal terminal (the visual block
--- still moves left), so mini.move's `line_left` is off.
+-- Move lines/blocks with Alt+hjkl. <A-h> in normal mode opens a pane (lua/panes), so mini.move's `line_left`
+-- is off; the visual block still moves left.
 local DIRECTIONS = { h = "left", j = "down", k = "up", l = "right" }
 
 local keys, mappings = {}, {}

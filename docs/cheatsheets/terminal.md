@@ -22,7 +22,8 @@ There are two kinds of terminal, and both survive `Esc`:
 | List every terminal and jump to it (`Enter`) | `<leader>Tl` |
 | New shell | `<leader>Tn` |
 | Ctrl-C to the terminal under the cursor (else the command one, when it runs something) | `<leader>Ts`, or `Ctrl+C` inside it |
-| NvChad's own toggles: float / vertical / horizontal | `Alt+i` / `Alt+v` / `Alt+h` (same keys close and reopen) |
+| The floating terminal (same key closes and reopens) | `Alt+i` |
+| A vertical / horizontal terminal split | `<leader>Tv` / `<leader>Th` |
 | Close the window, keep everything running | `Esc` (in the terminal or its Normal mode) |
 | Unfocus: back to the code, terminal stays open | `Shift+Esc` |
 | Leave terminal mode (then `i` types again, `Esc` closes) | `Ctrl+x` |
@@ -51,8 +52,9 @@ Normal mode (move, copy output with `y`, search with `/`); `i` goes back to typi
 - **Re-running a command while its terminal is busy types into the running process.** That is how the
   terminal works (toggleterm sends keys); the menus that must not do that (`noodle` TUI) check first and
   just focus. When in doubt, `<leader>Tn` for the new command.
-- **Two terminal systems coexist**: NvChad's own toggles (`Alt+i` float, `Alt+v` vertical, `Alt+h` horizontal)
-  and the shared toggleterm command terminal (`<leader>Tt`, where every language and task command runs).
-  Named terminals (`http test`, `noodle`) live apart from both. `<leader>Tl` lists all of them in one place.
+- **Terminals and panes share the screen, not the keys**: `Alt+i` is the floating terminal; `Alt+v` / `Alt+h` open
+  a **pane** with the start screen (see [panes.md](panes.md)), so a vertical / horizontal terminal is
+  `<leader>Tv` / `<leader>Th`. The shared toggleterm command terminal (`<leader>Tt`, where every language and task
+  command runs) and the named terminals (`http test`, `noodle`) live apart from both. `<leader>Tl` lists all of them.
 - A terminal that finished (`[process exited]`) is closed with `Esc` like any other; a dead entry never
   comes back in `<leader>Tl`.

@@ -44,6 +44,7 @@ package.loaded["toggleterm.terminal"] = {
         id = 7,
         bufnr = 4242,
         job_id = nil,
+        direction = opts and opts.direction,
         opened_with = nil,
         sent = nil,
         is_open = function()
@@ -110,6 +111,18 @@ term.focus()
 local created = terms[#terms]
 ok("focus: a shell terminal is created when none exists", created ~= nil and _G._term_opts ~= nil)
 eq("focus: created without a command (sends nothing)", { created.sent, created.opened_with ~= nil }, { nil, true })
+
+-- ── new_shell: an explicit direction wins over the configured one (Alt+V / Alt+H are panes now) ──
+terms = {}
+term.new_shell "vertical"
+eq(
+  "new_shell: the requested vertical direction is used",
+  { _G._term_opts.direction, terms[#terms].opened_with },
+  { "vertical", { nil, "vertical" } }
+)
+terms = {}
+term.new_shell "horizontal"
+eq("new_shell: horizontal too", terms[#terms].opened_with, { nil, "horizontal" })
 
 -- ── pick: choices and focusing ───────────────────────────────────────────────
 

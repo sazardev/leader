@@ -28,6 +28,7 @@ local PAGES = {
   { "skills", "Agent skills", "docs/cheatsheets/skills.md", "Features" },
   { "herdr", "Herdr", "docs/cheatsheets/herdr.md", "Features" },
   { "editing", "Undo and clipboard", "docs/cheatsheets/editing.md", "Features" },
+  { "panes", "Panes", "docs/cheatsheets/panes.md", "Features" },
   { "tasks", "Project tasks", "docs/cheatsheets/tasks.md", "Features" },
   { "gitignore", ".gitignore", "docs/cheatsheets/gitignore.md", "Features" },
   { "release", "Release", "docs/cheatsheets/release.md", "Features" },

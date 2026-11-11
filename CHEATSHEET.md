@@ -41,6 +41,7 @@ which-key only shows what belongs to the current buffer.
 | `<leader>L` | LSP | global |
 | `<leader>l` | Lua | `lua` |
 | `<leader>m` | Markdown | `markdown` |
+| `<leader>V` | Panes | global |
 | `<leader>e` | Prisma | `prisma` |
 | `<leader>p` | Python | `python` |
 | `<leader>c` | Razor | `razor` |
@@ -654,6 +655,22 @@ _Where: `markdown`_
 | `<leader>mo` | outline |
 | `<leader>mf` | format |
 
+### Panes — `<leader>V`
+
+_Where: global_
+
+| Key | Action |
+|---|---|
+| `<leader>Vv` | split right (start screen) |
+| `<leader>Vh` | split down (start screen) |
+| `<leader>Vd` | dashboard here |
+| `<leader>Vl` | list |
+| `<leader>V=` | equal sizes |
+| `<leader>Vr` | rotate |
+| `<leader>Vs` | swap with next |
+| `<leader>Vz` | zoom (toggle) |
+| `<leader>Vx` | close |
+
 ### Prisma — `<leader>e`
 
 _Where: `prisma`_
@@ -949,6 +966,8 @@ _Where: global_
 | `<leader>Tt` | Terminal show / hide |
 | `<leader>Tl` | Terminal list |
 | `<leader>Tn` | Terminal new shell |
+| `<leader>Tv` | Terminal vertical split |
+| `<leader>Th` | Terminal horizontal split |
 | `<leader>Ts` | Terminal stop |
 
 ### TypeScript / JavaScript — `<leader>t`
@@ -1419,6 +1438,28 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<C-n>` | n | Toggle window |
 | `<leader>e` | n | Focus window |
 
+### Panes
+
+| Key | Mode | Action |
+|---|---|---|
+| `<A-Down>` | n | Taller |
+| `<A-Left>` | n | Narrower |
+| `<A-Right>` | n | Wider |
+| `<A-Up>` | n | Shorter |
+| `<A-h>` | n,t | Split down (start screen) |
+| `<A-q>` | n | Close |
+| `<A-v>` | n,t | Split right (start screen) |
+| `<A-z>` | n | Zoom (toggle) |
+| `<leader>V=` | n | Equal sizes |
+| `<leader>Vd` | n | Dashboard here |
+| `<leader>Vh` | n | Split down (start screen) |
+| `<leader>Vl` | n | List |
+| `<leader>Vr` | n | Rotate |
+| `<leader>Vs` | n | Swap with next |
+| `<leader>Vv` | n | Split right (start screen) |
+| `<leader>Vx` | n | Close |
+| `<leader>Vz` | n | Zoom (toggle) |
+
 ### Run
 
 | Key | Mode | Action |
@@ -1487,14 +1528,14 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 
 | Key | Mode | Action |
 |---|---|---|
-| `<A-h>` | n,t | Toggleable horizontal term |
 | `<A-i>` | n,t | Toggle floating term |
-| `<A-v>` | n,t | Toggleable vertical term |
 | `<C-x>` | t | Escape terminal mode |
+| `<leader>Th` | n | Terminal horizontal split |
 | `<leader>Tl` | n | Terminal list |
 | `<leader>Tn` | n | Terminal new shell |
 | `<leader>Ts` | n | Terminal stop |
 | `<leader>Tt` | n | Terminal show / hide |
+| `<leader>Tv` | n | Terminal vertical split |
 
 ### Textobject
 
