@@ -8,7 +8,7 @@ Filetype: `markdown` (`*.md` and `*.mdx` — MDX is detected as `markdown`, see 
 |---|---|
 | Format (on save and `<leader>fm`) | `markdownlint-cli2` (fixes rules) and then `prettier` |
 | Lint | `markdownlint` |
-| Render | `render-markdown.nvim` (styled headings, lists, code, checkboxes) |
+| Render | `render-markdown.nvim` OFF by default (plain source); `<leader>mr` toggles it |
 | Treesitter | `markdown` |
 
 ## `<leader>m` menu (only in `*.md` and `*.mdx`)
@@ -17,6 +17,6 @@ MDX (`*.mdx`) is tolerant: no `mdx` parser exists in `nvim-treesitter`, so it re
 
 The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicated here).
 
-- Opening `*.md`/`*.mdx` enters the **locked reading mode** (`modifiable=false`, centered 80 columns, no numbers/diagnostics): clicks and edits do nothing until `Esc` leaves it (also `<leader>mz` toggles it).
+- `*.md`/`*.mdx` open as normal editable buffers (plain source, no conceal). `<leader>mr` toggles the render, `<leader>mz` toggles the centered locked reading mode.
 - The diagnostics toggle hides the linter's diagnostics **only in this buffer** (the linter keeps running).
 - With spell checking on (es, en): `]s` / `[s` jump between errors and `z=` suggests corrections (native Vim).

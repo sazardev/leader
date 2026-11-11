@@ -110,7 +110,7 @@ app/install.sh --uninstall  # remove the app (the config stays)
 - **Panes**: `Alt+V` / `Alt+H` open a real Neovim split with the **start screen** in it, so `ff`/`fo` load the chosen file in that pane; the dashboard is per pane, `Ctrl+h/j/k/l` moves, `Alt+arrows` resizes, `Alt+Z` zooms and `Alt+Q` closes. `<leader>V` lists them and has equal sizes, rotate and swap. See [panes.md](docs/cheatsheets/panes.md).
 - **A toolbar you decide**: a right click on the bar (or View › Customize Toolbar) turns each tool and chip on or off: project, home, recent files, command palette, file tree, terminal, problems, agent (pick the agent and model right there), theme (light/dark, the terminal's theme, a dark and a light list previewed as you hover, the whole catalog), settings, setup. Every tool shows a tooltip with its key.
 - Window keys: `F10` app menu, `Ctrl+Shift+P` command palette, `Ctrl+Shift+O` open a project, `F11` fullscreen, `Ctrl+Shift+Enter` maximize, `Ctrl+Shift+M` minimize, `Ctrl+Shift+N` new window, `Ctrl+Shift+H` home, `Ctrl+Shift+R` recent files, `Ctrl+Shift+W` welcome and checks.
-- Font: `gui.font` in `core/settings.lua` (`guifont` syntax, `"Family:h12"`); `Ctrl+=` / `Ctrl+-` / `Ctrl+0` resize it.
+- Font: `gui.font` in `core/settings.lua` (`guifont` syntax, `"Family:h13"`) and `gui.font_weight` (400 regular, 500 medium…; the app applies it live); `Ctrl+=` / `Ctrl+-` / `Ctrl+0` resize it. `options.linespace` (2 px) adds air between lines in the desktop app; a terminal owns its own line height and weight (`font.normal.style` in Alacritty).
 - WSL: it opens through WSLg on the Windows GPU (Mesa's d3d12 driver), with no setup.
 - `LEADER_TIMING=1 leader` prints where the startup time goes (~170 ms to the first frame on WSLg, GPU start included).
 
@@ -128,12 +128,12 @@ app/install.sh --uninstall  # remove the app (the config stays)
 | Area | Contents |
 |---|---|
 | Languages | Go, TypeScript/JS/TSX, HTML/CSS/Tailwind/Astro, Python, Rust, SQL (PostgreSQL, SQLite), Swift (SwiftPM), Dart/Flutter, Java/Kotlin, Lua, Markdown, JSON/YAML/TOML, Docker, Make, Prisma, YarnSpinner. Each one declares its LSP, formatter, linter, parsers and its `<leader>` menu (it only exists in buffers of that filetype). Python, TypeScript, Rust and Swift share **tests in the editor** (the test under the cursor, marks per test, failures on their line), **project setup** presets and **debugging**; SQL runs the statement under the cursor against your database |
-| Editing | **undo word by word** (like VS Code), `U`/`Ctrl+Y` redo, undo tree, the file at the previous save, a clipboard that `x`/`c` don't overwrite and a **yank history** (`[y`/`]y` after a paste, `<leader>uy`), blink.cmp, mini.pairs/surround/move, multicursor, flash (jumps), treesitter textobjects, folds (ufo) with foldable long comments, custom snippets |
+| Editing | **undo word by word** (like VS Code), `U`/`Ctrl+Y` redo, undo tree, the file at the previous save, a clipboard that `x`/`c` don't overwrite and a **yank history** (`[y`/`]y` after a paste, `<leader>uy`), blink.cmp, optional **local FIM completion** (Qwen2.5-Coder 1.5B), mini.pairs/surround/move, multicursor, flash (jumps), treesitter textobjects, folds (ufo) with foldable long comments, custom snippets |
 | Navigation | Telescope (+fzf), nvim-tree, harpoon, aerial (symbols), grug-far (global replace), file history |
 | Git | gitsigns, diffview, git-conflict, git-blame (off by default) and **conventional commits** (see below) |
 | Diagnostics | inline blocks under their line, line number colored by severity, unique colors across the whole UI, line popup, copy as text (line, file or project), Trouble |
 | UI | **flat design** (floats, menus and pickers are filled blocks, no boxes; every color derived from the theme, notifications, yank/accept flash), lualine, gruvbox ↔ light theme **or live-inherited from the terminal** (Alacritty), dashboard with braille art, render-markdown, inline colors |
-| Sessions | one per folder and branch, periodic autosave |
+| Sessions | one per folder and branch, periodic autosave, restored automatically on a bare start (terminals included) |
 | **Go without an LLM** | completion helpers that read your code and your `go.mod` (see below) |
 | **Dart / Flutter** | run with an entry-point picker, debugging, tests inside the editor, build_runner watch, Riverpod/freezed completion (see below) |
 | **AI agent** (optional) | `<leader>a`: one-shot actions on the function under the cursor, with an inline diff (see below) |

@@ -664,12 +664,17 @@ _Where: global_
 | `<leader>Vv` | split right (start screen) |
 | `<leader>Vh` | split down (start screen) |
 | `<leader>Vd` | dashboard here |
+| `<leader>V2` | preset: two columns |
+| `<leader>V3` | preset: three columns |
+| `<leader>Vm` | preset: main + two stacked |
+| `<leader>V4` | preset: 2x2 grid |
 | `<leader>Vl` | list |
 | `<leader>V=` | equal sizes |
 | `<leader>Vr` | rotate |
 | `<leader>Vs` | swap with next |
 | `<leader>Vz` | zoom (toggle) |
 | `<leader>Vx` | close |
+| `<leader>VX` | close all other panes |
 
 ### Prisma — `<leader>e`
 
@@ -888,6 +893,7 @@ _Where: global_
 | `<leader>Pl` | restore last session |
 | `<leader>Pw` | save session now |
 | `<leader>Px` | don't save on exit |
+| `<leader>Pq` | quit all (save session) |
 
 ### Settings — `<leader>S`
 
@@ -898,6 +904,7 @@ _Where: global_
 | `<leader>Sp` | panel |
 | `<leader>St` | toggle theme |
 | `<leader>Sf` | format on save |
+| `<leader>SF` | local tab completion (toggle) |
 | `<leader>Sl` | plugins |
 | `<leader>SM` | tools |
 | `<leader>Si` | info |
@@ -1251,6 +1258,13 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>Cm` | n | Public functions missing a doc comment (quickfix) |
 | `<leader>Ct` | n | Toggle comment under cursor |
 
+### Completion
+
+| Key | Mode | Action |
+|---|---|---|
+| `<C-S-Tab>` | i | Accept first line of local FIM suggestion |
+| `<C-Tab>` | i | Accept local FIM suggestion |
+
 ### Diagnostics
 
 | Key | Mode | Action |
@@ -1345,6 +1359,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<C-c>` | n | Copy whole file |
 | `<C-s>` | n | Save file |
 | `<Esc>` | n | Close extra window / go back / clear highlight |
+| `<leader>Q` | n | Quit all (save session) |
 | `<leader>d` | n,x | Delete without copying |
 | `<leader>fm` | n,x | Format file |
 | `<leader>q` | n | Close buffer / quit |
@@ -1450,10 +1465,15 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<A-q>` | n | Close |
 | `<A-v>` | n,t | Split right (start screen) |
 | `<A-z>` | n | Zoom (toggle) |
+| `<leader>V2` | n | Preset: two columns |
+| `<leader>V3` | n | Preset: three columns |
+| `<leader>V4` | n | Preset: 2x2 grid |
 | `<leader>V=` | n | Equal sizes |
+| `<leader>VX` | n | Close all other panes |
 | `<leader>Vd` | n | Dashboard here |
 | `<leader>Vh` | n | Split down (start screen) |
 | `<leader>Vl` | n | List |
+| `<leader>Vm` | n | Preset: main + two stacked |
 | `<leader>Vr` | n | Rotate |
 | `<leader>Vs` | n | Swap with next |
 | `<leader>Vv` | n | Split right (start screen) |
@@ -1479,6 +1499,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | Key | Mode | Action |
 |---|---|---|
 | `<leader>Pl` | n | Restore last session |
+| `<leader>Pq` | n | Quit all (save session) |
 | `<leader>Pr` | n | Restore session (this folder) |
 | `<leader>Ps` | n | Select session (any project) |
 | `<leader>Pw` | n | Save session now |
@@ -1488,6 +1509,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 
 | Key | Mode | Action |
 |---|---|---|
+| `<leader>SF` | n | Local tab completion (toggle) |
 | `<leader>SM` | n | Tools |
 | `<leader>Sf` | n | Format on save |
 | `<leader>Si` | n | Info |
@@ -1529,6 +1551,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | Key | Mode | Action |
 |---|---|---|
 | `<A-i>` | n,t | Toggle floating term |
+| `<A-t>` | n,t | Pane open / close |
 | `<C-x>` | t | Escape terminal mode |
 | `<leader>Th` | n | Terminal horizontal split |
 | `<leader>Tl` | n | Terminal list |
