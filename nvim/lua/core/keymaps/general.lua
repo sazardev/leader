@@ -62,6 +62,10 @@ function M.setup()
   end, { desc = "General leave insert (closes the completion menu first)" })
   map("n", "<leader>w", "<cmd>w<CR>", { desc = "General save" })
   map("n", "<leader>q", close_or_quit, { desc = "General close buffer / quit" })
+  -- Everything, not just this buffer (session menu's `q` does the same; SQL buffers keep <leader>Q for their menu).
+  map("n", "<leader>Q", function()
+    require("utils.session").quit()
+  end, { desc = "General quit all (save session)" })
 
   -- <leader>d: delete WITHOUT copying ("_" register): the clipboard stays intact.
   -- Visual: <leader>d | Normal: <leader>dd (line), <leader>dw (word), etc.

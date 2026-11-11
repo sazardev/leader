@@ -129,10 +129,12 @@ end
 ---@param dir string
 function M.enter(dir)
   dir = M.normalize(dir)
-  local ok, persistence = pcall(require, "persistence")
-  if ok and has_files() then
-    require("utils.session").close_auxiliary()
-    pcall(persistence.save)
+  if has_files() then
+    local ok, persistence = pcall(require, "persistence")
+    if ok then
+      require("utils.session").close_auxiliary()
+      pcall(persistence.save)
+    end
   end
   -- the chat's real splits would be closed by :only anyway; hide it cleanly so
   -- its windows and buffers stay consistent
@@ -144,8 +146,12 @@ function M.enter(dir)
   pcall(vim.cmd, "silent! %bwipeout!")
   vim.cmd.cd(vim.fn.fnameescape(dir))
   M.remember(dir)
-  if ok and require("utils.session").exists() then
-    pcall(persistence.load)
+  local session = require "utils.session"
+  local file = session.file()
+  if file then
+    if not session.load_file(file) then
+      require("ui.start").open()
+    end
   else
     require("ui.start").open()
   end

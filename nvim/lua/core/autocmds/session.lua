@@ -6,7 +6,8 @@ local settings = require "core.settings"
 
 local M = {}
 
-local CHANGED = { "BufEnter", "BufWinEnter", "BufDelete", "WinClosed", "WinNew", "CursorHold" }
+local CHANGED =
+  { "BufEnter", "BufWinEnter", "BufDelete", "WinClosed", "WinNew", "WinResized", "VimResized", "CursorHold" }
 
 --- Is any real file open? (same as persistence: otherwise saving is pointless)
 local function has_files()
@@ -64,6 +65,32 @@ function M.setup()
 
   if settings.session.autosave_ms > 0 and #vim.api.nvim_list_uis() > 0 then
     autosave(group)
+  end
+
+  -- A bare `leader` inside a project brings its windows, files and terminals back. This runs in VimEnter BEFORE
+  -- ui.start's (session is set up earlier in core/autocmds/init.lua), so the start screen is never opened and thrown
+  -- away: with no session, ui.start opens it normally.
+  if settings.session.auto_restore and #vim.api.nvim_list_uis() > 0 then
+    vim.api.nvim_create_autocmd("VimEnter", {
+      group = group,
+      once = true,
+      callback = function()
+        require("utils.session").auto_restore()
+      end,
+    })
+    -- If nvim exits before the scheduled plugin load (a session restored and closed in the same breath), make sure
+    -- the session is still written. Normally persistence is already loaded here and its own VimLeavePre does it.
+    vim.api.nvim_create_autocmd("VimLeavePre", {
+      group = group,
+      callback = function()
+        if not package.loaded["persistence"] then
+          local ok, p = pcall(require, "persistence")
+          if ok then
+            pcall(p.save)
+          end
+        end
+      end,
+    })
   end
 end
 

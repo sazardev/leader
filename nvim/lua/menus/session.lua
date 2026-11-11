@@ -43,5 +43,12 @@ return {
         session().stop()
       end,
     },
+    {
+      "q",
+      "quit all (save session)",
+      function()
+        session().quit()
+      end,
+    },
   },
 }

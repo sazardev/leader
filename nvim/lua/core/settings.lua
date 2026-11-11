@@ -133,6 +133,9 @@ local defaults = {
   -- Sessions (persistence.nvim saves on exit; see core/autocmds/session.lua)
   session = {
     autosave_ms = 60000, -- saves in the background if something changed, to survive a power cut (0 = only on exit)
+    -- Starting nvim inside a project with no arguments brings its windows, files and terminals back. A file on the
+    -- command line (`nvim x`) wins: that session is left alone and saved under its own folder, as before.
+    auto_restore = true,
     herdr = nil, -- the OLD knob for the Herdr registration: true/false wins over herdr.register (nil = that one decides)
   },
 
@@ -774,8 +777,9 @@ local defaults = {
     jumpoptions = "view", -- <C-o>/<C-i> also restore the view (scroll), not just the cursor
     undofile = true, -- undo survives closing nvim (and a power cut)
     exrc = true, -- loads .nvim.lua per project (guarded by :trust)
-    -- What a session saves (persistence.nvim); without `terminal`/`blank`: they are not restored
-    sessionoptions = "buffers,curdir,tabpages,winsize,help,globals,skiprtp,folds",
+    -- What a session saves (persistence.nvim); without `terminal`: terminals would not come back. The ones open in a
+    -- pane are restored too (a fresh shell in the same place); the tree, quickfix and help still close before saving.
+    sessionoptions = "buffers,curdir,tabpages,winsize,help,globals,skiprtp,folds,terminal",
   },
 }
 

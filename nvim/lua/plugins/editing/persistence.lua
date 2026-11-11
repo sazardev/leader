@@ -3,6 +3,7 @@
 return {
   "folke/persistence.nvim",
   event = "BufReadPre",
+  module = "persistence", -- `utils.session` asks for it on a bare start (auto restore)
   opts = {},
   config = function(_, opts)
     require("persistence").setup(opts)
@@ -35,6 +36,16 @@ return {
         if chat then
           pcall(chat.hide)
         end
+      end,
+    })
+
+    -- A session brings terminals back as plain terminal buffers (not toggleterm objects): give them the config's
+    -- Esc / Shift+Esc, unless the buffer already has its own (toggleterm, NvChad's terminals).
+    vim.api.nvim_create_autocmd("User", {
+      group = vim.api.nvim_create_augroup("PersistenceTerminals", { clear = true }),
+      pattern = "PersistenceLoadPost",
+      callback = function()
+        require("utils.session").attach_terminals()
       end,
     })
   end,

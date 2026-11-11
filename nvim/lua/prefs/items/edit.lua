@@ -24,4 +24,20 @@ return {
     },
     restart = true,
   },
+  {
+    group = "Editing",
+    label = "Restore session on start",
+    kind = "toggle",
+    id = "session.auto_restore",
+    restart = true,
+  },
+  {
+    group = "Editing",
+    label = "Local tab completion (Qwen 1.5B)",
+    kind = "toggle",
+    id = "fim.enabled",
+    apply = function(on)
+      require("fim").apply(on)
+    end,
+  },
 }
