@@ -2,6 +2,43 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.18.0] - 2026-11-11
+
+### Highlights
+
+- **Completion from a local model**: FIM ghost text from **Qwen2.5-Coder 1.5B Q8** served by **llama.cpp** on
+  `127.0.0.1:8012`, off by default. `Ctrl+Tab` accepts a suggestion and `Ctrl+Shift+Tab` its first line in any insert
+  buffer (chat and modals included); `Tab` stays blink.cmp's. The server starts on demand and sleeps when idle;
+  `<leader>SF`, `:Fim` and the settings panel toggle it, and the statusline shows `FIM…`/`FIM`.
+- **Sessions come back on their own**: a bare `leader` inside a project (or `leader <folder>`) restores its windows,
+  files and terminals **before** the start screen would open, sourcing the file directly (no plugin load, no `git`
+  subprocess). A file argument leaves that session alone, filetypes are matched again for treesitter and LSP, and open
+  terminals return as fresh shells in the same place. `terminal` is in `sessionoptions`; `<leader>Pq`/`<leader>Q` quit
+  everything asking first.
+- **Panes you can lay out**: `<leader>V2`/`V3`/`Vm`/`V4` build two columns, three columns, a wide main pane with two
+  stacked on the right and a 2x2 grid, keeping the file you edit in the first pane. `<leader>VX` closes every other
+  pane, and `Alt+T` opens a quiet terminal pane below the current one whose shell survives `Esc`.
+- **A quieter Markdown**: `*.md`/`*.mdx` open as normal editable buffers (no locked reading mode, no conceal) and
+  render-markdown is off by default; `<leader>mr` renders one buffer, and the agent transcript and history preview keep
+  rendering on demand.
+- **The app's type**: `gui.font_weight` (400/500/600) and `linespace` give the desktop app the weight and the air
+  between lines it was missing, both applied live; the default editor font is now `h13`.
+
+### Features
+
+- **markdown:** open plain and render on demand (6f8c316)
+- **app:** font weight and line spacing (aa50f45)
+- **fim:** local completion through llama.cpp (9305805)
+- **panes:** layout presets and a quick terminal pane (887da2b)
+- **sessions:** restore a bare start and keep terminals (6d09c5e)
+
+### Other changes
+
+- style(test): align the prefs test with the house style (4e6d21b)
+- chore(deps): add llama.vim and bump schemastore and ui (81f8843)
+- docs: FIM completion, session restore, panes and fonts (7e8b6fb)
+- chore(packaging): point the source Arch package at v1.17.0 (d375f5d)
+
 ## [1.17.0] - 2026-11-10
 
 ### Highlights
