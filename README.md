@@ -14,20 +14,46 @@
 
 # Leader
 
-**Leader** is a **Neovim** config on top of NvChad v2.5, designed as a small **framework**: you clone it, run a script and get an
-editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
-performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
+**Neovim, for working.** Leader is a fast, opinionated Neovim config with its own GPU window (Rust + wgpu). It starts in
+about 20 ms, gives you Zed-like menus, projects with their sessions and an inline AI agent that runs on the backend you
+choose. **MIT, no telemetry, no account.**
 
-It also ships **its own GPU window** (Rust + wgpu): the same editor, with Zed-like menus, a command palette, projects
-and their sessions, a toolbar and a live theme inherited from your terminal. **MIT, no telemetry, no account.**
+**Linux** · **WSL** · **macOS** · **Windows** — the app on Linux/WSL, the config everywhere.
 
-Neovim ≥ 0.11 · Linux, WSL, macOS and Windows (the app on Linux and WSL) · [documentation](https://leader.sazardev.stream/docs/) · [wallpapers](https://leader.sazardev.stream/wallpapers/) · [offline guide](docs/offline.html)
+**Contents** · [Install](#install) · [Why Leader](#why-leader) · [What's included](#whats-included) · [Keys](#keys-and-documentation) · [Community](#community)
+
+## Install
+
+```sh
+curl -fsSL https://leader.sazardev.stream/install | bash
+```
+
+Windows (PowerShell): `irm https://leader.sazardev.stream/install.ps1 | iex`
+
+That is the whole install: on Linux x86_64 it installs the desktop app, Neovim and the config; on macOS and Windows it
+installs the config. It asks one thing — which language packs to set up — and can be re-run at any time. Prefer a
+package? The [.deb](https://leader.sazardev.stream/deb) is one click; the [installer details](#what-the-installer-does)
+are below.
+
+## Why Leader
+
+- **Fast by default.** ~20 ms to a usable editor. Every plugin waits for an event, a filetype or a key; nothing is
+  resident until it has a reason to be.
+- **One file, one responsibility.** A language is one file, a plugin is one file, an action is one file. You can read
+  the whole thing and change one piece without a framework.
+- **Everything is a key.** `<Space>` opens the menu for where you are, `<Space>Sp` changes the settings without editing a
+  file, and every key is in [`CHEATSHEET.md`](CHEATSHEET.md), generated from the real keymaps.
+- **Local first, no telemetry.** Static analysis and the completion helpers cost zero tokens. The agent runs on your CLI
+  or a local model, only when you ask; no account, no analytics.
+- **A real desktop, not a wrapper.** The same Neovim in its own GPU window: menus, a command palette, projects with
+  sessions, a toolbar and a theme inherited from your terminal.
+- **Open and yours.** MIT, Lua for the config and Rust for the app. Fork it, vendor it, change the opinions.
 
 ## Start here
 
 | I want to… | Start with |
 |---|---|
-| **install Leader** | [one command](#installation) · [Windows](#installation) · [.deb](https://leader.sazardev.stream/deb) |
+| **install Leader** | [one command](#install) · [Windows](#install) · [.deb](https://leader.sazardev.stream/deb) |
 | learn the keys | [`CHEATSHEET.md`](CHEATSHEET.md) · press `<Space>` in the editor |
 | read the guide offline | [`docs/offline.html`](docs/offline.html) (one file, fonts embedded) |
 | ask a question or show something | [Discussions](https://github.com/sazardev/leader/discussions) |
@@ -36,6 +62,7 @@ Neovim ≥ 0.11 · Linux, WSL, macOS and Windows (the app on Linux and WSL) · [
 | understand the code | [AGENTS.md](AGENTS.md) · [architecture](https://leader.sazardev.stream/docs/#internals) |
 
 <!-- docs:skip -->
+
 ## Screenshots
 
 <p align="center">
@@ -48,15 +75,7 @@ Neovim ≥ 0.11 · Linux, WSL, macOS and Windows (the app on Linux and WSL) · [
 </p>
 <!-- /docs:skip -->
 
-## Installation
-
-**One command, everything done** (Linux, WSL, macOS; on Linux x86_64 it also installs the desktop app):
-
-```sh
-curl -fsSL https://leader.sazardev.stream/install | bash
-```
-
-Windows (PowerShell): `irm https://leader.sazardev.stream/install.ps1 | iex`
+## What the installer does
 
 The short link is a tiny script served by Cloudflare Pages: it picks the desktop package on Linux x86_64 and the config
 installer everywhere else, so the same command is copy-paste on every machine. `LEADER_CONFIG_URL` and
