@@ -1,0 +1,82 @@
+name: Bug report
+description: "Something broke: a crash, a wrong key, a layout, the installer, a language pack…"
+title: "[bug]: "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report. **Never paste secrets, tokens or private code.** For a vulnerability,
+        use the private channel in [SECURITY.md](https://github.com/sazardev/leader/blob/master/SECURITY.md), not this form.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the problem and what you expected instead.
+      placeholder: "Pressing <leader>… opens …, expected …"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence that shows the problem. Include the file type/language when it matters.
+      placeholder: |
+        1. Open a Go file
+        2. Press <leader>…
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - WSL
+        - macOS
+        - Windows (PowerShell / terminal)
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - The one-liner (https://leader.sazardev.stream/install)
+        - The .deb / package
+        - Cloned the repository
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "`leader --version` (app), `nvim --version | head -1`, and the config's `git rev-parse --short HEAD`."
+      placeholder: "leader 1.18.0 · NVIM v0.11.4 · 77a3568"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, errors, screenshots
+      description: "`:messages`, the relevant log line, a screenshot or a short recording. Remove private data first."
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Disabled packs, a custom `lua/local.lua`, the AI backend, the terminal or GPU, and whether `nvim --clean` reproduces it.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and discussions.
+          required: true
+        - label: This is not a security vulnerability (those go through SECURITY.md).
+          required: true
+        - label: I removed private data from the report.
+          required: true

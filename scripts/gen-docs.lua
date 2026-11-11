@@ -22,6 +22,7 @@ local worktree = vim.tbl_contains(arg, "--worktree")
 local PAGES = {
   { "overview", "Overview", "README.md", "Start" },
   { "guides", "Workflows", "docs/cheatsheets/README.md", "Start" },
+  { "faq", "FAQ", "docs/FAQ.md", "Start" },
   { "keys", "Every key", "CHEATSHEET.md", "Start" },
   { "changelog", "Changelog", "CHANGELOG.md", "Start" },
   { "agent", "AI agent", "docs/cheatsheets/agent.md", "Features" },
@@ -349,11 +350,19 @@ end
 
 -- ── the page ─────────────────────────────────────────────────────────────────
 
+--- GitHub-only blocks (`<!-- docs:skip -->` … `<!-- /docs:skip -->`) are not part of the web page: the README's banner
+--- and badges are HTML images that the Markdown renderer would show as escaped text.
+---@param text string
+---@return string
+local function without_skipped(text)
+  return (text:gsub("<!%-%-%s*docs:skip%s*%-%->.-<!%-%-%s*/docs:skip%s*%-%->%s*\n?", ""))
+end
+
 local sections, nav, group_open = {}, {}, nil
 for _, p in ipairs(PAGES) do
   local id, title, src, group = p[1], p[2], p[3], p[4]
   current_page, current_dir = id, vim.fs.dirname(src)
-  local lines = vim.split(read(src), "\n", { plain = true })
+  local lines = vim.split(without_skipped(read(src)), "\n", { plain = true })
   -- the file's own `# Title` becomes the page header
   local first = 1
   while lines[first] and lines[first]:match "^%s*$" do
@@ -598,7 +607,7 @@ footer a{color:var(--dim)}
 </aside>
 <main id="main">
 @SECTIONS@
-<footer>Generated from the repository's Markdown (README.md, CHEATSHEET.md, docs/cheatsheets/, AGENTS.md) by <code>scripts/gen-docs.lua</code>: edit those, never this page. Keys come from the config's real keymaps.</footer>
+<footer>Generated from the repository's Markdown (README.md, CHEATSHEET.md, docs/FAQ.md, docs/cheatsheets/, AGENTS.md) by <code>scripts/gen-docs.lua</code>: edit those, never this page. Keys come from the config's real keymaps. <a href="../offline.html">Offline copy</a>.</footer>
 </main>
 </div>
 <script>

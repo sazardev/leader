@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions, setup help and ideas
+    url: https://github.com/sazardev/leader/discussions
+    about: Ask in Discussions. Issues are for reproducible bugs and scoped feature requests.
+  - name: Documentation
+    url: https://leader.sazardev.stream/docs/
+    about: Install, every key, the agent, one page per language, and the offline copy.
+  - name: Report a security vulnerability
+    url: https://github.com/sazardev/leader/security/advisories/new
+    about: Never open a public issue for a vulnerability. See SECURITY.md.
+  - name: Contributing
+    url: https://github.com/sazardev/leader/blob/master/CONTRIBUTING.md
+    about: Development setup, tests, commit style and the pull request checklist.

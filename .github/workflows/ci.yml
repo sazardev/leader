@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Generated docs and offline guide
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - name: Web documentation is up to date
+        run: ./scripts/gen-docs.sh --check
+      - name: Offline guide is up to date
+        run: ./scripts/gen-offline.sh --check
+
+  tests:
+    name: Hermetic config suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - name: Run the suites
+        run: |
+          set -e
+          for suite in session prefs release panes terminal escape chat-pure flat bigfile history; do
+            echo "::group::$suite"
+            "./scripts/test-$suite.sh"
+            echo "::endgroup::"
+          done
+
+  rust:
+    name: Rust and Neovim embed protocol
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "app -> target"
+      - name: cargo test
+        working-directory: app
+        run: cargo test --locked --workspace

@@ -1,0 +1,63 @@
+name: Feature request
+description: Suggest a change, a language pack, a key, an agent action or a piece of the desktop app.
+title: "[feat]: "
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Leader is opinionated on purpose: a feature has to earn its place. Describe the problem first, then the
+        smallest thing that would solve it. If you want to implement it, say so.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The situation, the friction and who it affects.
+      placeholder: "When I …, I have to …, which costs …"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What should happen? Keys, settings, files, defaults. A mockup or a sketch is welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Config (keys, menus, workflows)
+        - Desktop app (Rust, GPU, window)
+        - Language pack
+        - AI agent
+        - Documentation / website
+        - Installer / packaging
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What did you try? Why is the existing way not enough? Could a plugin or a setting do it?
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to implement it?
+      options:
+        - Yes, with guidance
+        - Yes, I can send a pull request
+        - No, I am only suggesting it
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and discussions.
+          required: true
+        - label: I read ROADMAP.md and CONTRIBUTING.md.
+          required: true

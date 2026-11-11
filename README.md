@@ -1,10 +1,52 @@
+<!-- docs:skip -->
+<p align="center">
+  <a href="https://leader.sazardev.stream"><img src="docs/assets/banner.png" alt="Leader — Neovim, for working." width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/sazardev/leader/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/sazardev/leader?style=flat-square&color=b8bb26&label=release"></a>
+  <a href="https://github.com/sazardev/leader/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/sazardev/leader/ci.yml?branch=master&style=flat-square&label=CI"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-83a598?style=flat-square"></a>
+  <a href="https://leader.sazardev.stream/docs/"><img alt="Documentation" src="https://img.shields.io/badge/docs-online-fabd2f?style=flat-square"></a>
+  <a href="https://github.com/sazardev/leader/discussions"><img alt="Discussions" src="https://img.shields.io/badge/community-discussions-d3869b?style=flat-square"></a>
+</p>
+<!-- /docs:skip -->
+
 # Leader
 
 **Leader** is a **Neovim** config on top of NvChad v2.5, designed as a small **framework**: you clone it, run a script and get an
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-[latest release](https://github.com/sazardev/leader/releases/latest) · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://leader.sazardev.stream/docs/) · [wallpapers](https://leader.sazardev.stream/wallpapers/)
+It also ships **its own GPU window** (Rust + wgpu): the same editor, with Zed-like menus, a command palette, projects
+and their sessions, a toolbar and a live theme inherited from your terminal. **MIT, no telemetry, no account.**
+
+Neovim ≥ 0.11 · Linux, WSL, macOS and Windows (the app on Linux and WSL) · [documentation](https://leader.sazardev.stream/docs/) · [wallpapers](https://leader.sazardev.stream/wallpapers/) · [offline guide](docs/offline.html)
+
+## Start here
+
+| I want to… | Start with |
+|---|---|
+| **install Leader** | [one command](#installation) · [Windows](#installation) · [.deb](https://leader.sazardev.stream/deb) |
+| learn the keys | [`CHEATSHEET.md`](CHEATSHEET.md) · press `<Space>` in the editor |
+| read the guide offline | [`docs/offline.html`](docs/offline.html) (one file, fonts embedded) |
+| ask a question or show something | [Discussions](https://github.com/sazardev/leader/discussions) |
+| report a bug | [bug template](https://github.com/sazardev/leader/issues/new?template=bug_report.yml) |
+| contribute | [CONTRIBUTING.md](CONTRIBUTING.md) · [ROADMAP.md](ROADMAP.md) |
+| understand the code | [AGENTS.md](AGENTS.md) · [architecture](https://leader.sazardev.stream/docs/#internals) |
+
+<!-- docs:skip -->
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/editor.png" alt="Leader editing a Lua file, with the app bar, the statusline and diagnostics" width="49%">
+  <img src="docs/screenshots/projects.png" alt="The project picker with sessions, branches and stacks" width="49%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/menu.png" alt="The app menu: File, Edit, View, Go, Run, Git, Agent, Window, Help" width="49%">
+  <img src="docs/screenshots/setup.png" alt="The guided setup on first launch" width="49%">
+</p>
+<!-- /docs:skip -->
 
 ## Installation
 
@@ -280,6 +322,7 @@ The principles (the same across the whole repo) and where they show:
 ## Keys and documentation
 
 - **[The documentation site](https://leader.sazardev.stream/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
+- **[The offline guide](docs/offline.html)**: the same documentation in **one HTML file** with the fonts embedded, no network needed (`scripts/gen-offline.sh` keeps it up to date). The site also serves it at <https://leader.sazardev.stream/offline>.
 - [`CHEATSHEET.md`](CHEATSHEET.md): **all** the keys. It is generated from the real keymaps (`scripts/gen-cheatsheet.sh`; the pre-commit hook regenerates it). Inside nvim, the dashboard's *Mappings* button shows the same.
 - [`docs/cheatsheets/`](docs/cheatsheets/README.md): what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.
 - [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md): architecture and pitfalls for whoever touches the config (people or agents).
@@ -314,3 +357,32 @@ docs/cheatsheets/             per-language and agent documentation
 - Check: `scripts/test.sh` runs everything (agent and commits, Go helpers, installer and up-to-date cheatsheet; no network or tokens); each
   suite can also be run on its own: `scripts/test-agent.sh`, `scripts/test-go.sh`, `scripts/test-install.sh`, `scripts/gen-cheatsheet.sh --check`.
 - Commits: Conventional Commits format (`feat(scope): subject`); the `commit-msg` hook validates it and `<leader>Gc` / `Gm` / `GM` assist with it.
+
+## Community
+
+Leader is open source and maintained in public. There is no company behind it, no telemetry and no paid tier.
+
+- **[Discussions](https://github.com/sazardev/leader/discussions)**: questions, setup help, ideas, what you built.
+- **[Issues](https://github.com/sazardev/leader/issues)**: reproducible bugs and scoped feature requests (with templates).
+- **[Contributing](CONTRIBUTING.md)**: development setup, tests, commit style and the pull request checklist.
+- **[Code of Conduct](CODE_OF_CONDUCT.md)**: the rules of the community.
+- **[Support](SUPPORT.md)**: where to ask and what to include; **[Governance](GOVERNANCE.md)**: how decisions are made.
+- **[Roadmap](ROADMAP.md)**: now, next, later and what is explicitly not planned.
+- **[Authors](AUTHORS.md)**: who builds it and what it stands on.
+
+Good first issues are labelled [`good first issue`](https://github.com/sazardev/leader/labels/good%20first%20issue); anything where a second pair of hands helps is [`help wanted`](https://github.com/sazardev/leader/labels/help%20wanted).
+
+## Security
+
+Do **not** open a public issue for a vulnerability. Use GitHub's **private vulnerability reporting** (Security → *Report a
+vulnerability*) or the contact in [SECURITY.md](SECURITY.md). The policy covers the installers, the desktop app, the config
+and the release artifacts, and explains the security model: no telemetry, the agent only calls the backend you choose,
+plugins are pinned, and every release is checksummed (signed when the release key is available).
+
+## License
+
+[MIT](LICENSE) © [sazardev](https://github.com/sazardev). Leader is an independent project, not affiliated with the Neovim
+project or NvChad. The plugin versions are pinned in [`nvim/lazy-lock.json`](nvim/lazy-lock.json); each plugin keeps its
+own license.
+
+If Leader saves you time, a ⭐ helps other people find it.

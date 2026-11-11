@@ -55,4 +55,5 @@ run "desktop app" "$ROOT/scripts/test-app.sh"
 run "config loads cleanly" "$ROOT/scripts/test-startup.sh"
 run "cheatsheet up to date" "$ROOT/scripts/gen-cheatsheet.sh" --check
 run "web docs up to date" "$ROOT/scripts/gen-docs.sh" --check
+run "offline guide up to date" "$ROOT/scripts/gen-offline.sh" --check
 exit "$status"

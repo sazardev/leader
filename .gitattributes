@@ -1,0 +1,18 @@
+# Normalize line endings; assets are binary. Generated files are marked so GitHub folds them in diffs and statistics.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff2 binary
+*.rgba binary
+*.deb binary
+*.tar.gz binary
+
+CHEATSHEET.md linguist-generated=true
+docs/docs/index.html linguist-generated=true
+docs/offline.html linguist-generated=true
+nvim/snippets/*.json linguist-language=JSON
