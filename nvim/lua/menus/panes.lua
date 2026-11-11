@@ -29,6 +29,34 @@ return {
       end,
     },
     {
+      "2",
+      "preset: two columns",
+      function()
+        require("panes").preset "double"
+      end,
+    },
+    {
+      "3",
+      "preset: three columns",
+      function()
+        require("panes").preset "triple"
+      end,
+    },
+    {
+      "m",
+      "preset: main + two stacked",
+      function()
+        require("panes").preset "main"
+      end,
+    },
+    {
+      "4",
+      "preset: 2x2 grid",
+      function()
+        require("panes").preset "quad"
+      end,
+    },
+    {
       "l",
       "list",
       function()
@@ -68,6 +96,13 @@ return {
       "close",
       function()
         require("panes").close()
+      end,
+    },
+    {
+      "X",
+      "close all other panes",
+      function()
+        require("panes").only()
       end,
     },
   },

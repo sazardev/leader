@@ -192,6 +192,99 @@ function M.new_shell(direction)
   return term
 end
 
+-- ── Quick terminal pane (Alt+T) ──────────────────────────────────────────────
+-- One shell per tab, in a split below the pane you are in. Esc closes the window and leaves the shell alive in its
+-- hidden buffer; Alt+T brings it back with its scrollback. Unlisted, so a closed one is not saved in the session.
+local panes = {}
+
+---@param tab integer
+---@return integer?
+local function pane_buffer(tab)
+  local buf = panes[tab]
+  if not buf or not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].buftype ~= "terminal" then
+    panes[tab] = nil
+    return nil
+  end
+  local job = vim.b[buf].terminal_job_id
+  if not job then
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
+    panes[tab] = nil
+    return nil
+  end
+  local ok, pid = pcall(vim.fn.jobpid, job)
+  if not ok or pid <= 0 then -- the shell exited: its "Process exited" buffer is not worth reopening
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
+    panes[tab] = nil
+    return nil
+  end
+  return buf
+end
+
+--- The window to split when the cursor is in a float: the largest normal one.
+---@return integer
+local function base_window()
+  local win = vim.api.nvim_get_current_win()
+  if vim.api.nvim_win_get_config(win).relative == "" then
+    return win
+  end
+  local best, area
+  for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.api.nvim_win_get_config(w).relative == "" then
+      local a = vim.api.nvim_win_get_width(w) * vim.api.nvim_win_get_height(w)
+      if not area or a > area then
+        best, area = w, a
+      end
+    end
+  end
+  return best or win
+end
+
+--- Closes the quick terminal window; the shell stays alive in its hidden buffer (Esc).
+local function close_pane()
+  local win = vim.api.nvim_get_current_win()
+  pcall(vim.cmd, "stopinsert")
+  if #vim.api.nvim_tabpage_list_wins(0) > 1 then
+    pcall(vim.api.nvim_win_close, win, true)
+  end
+  pcall(vim.cmd, "stopinsert")
+end
+
+--- Opens the quick terminal below the current pane, focuses it, or closes it when it already has the focus. Alt+T.
+function M.pane()
+  local tab = vim.api.nvim_get_current_tabpage()
+  local buf = pane_buffer(tab)
+  if buf and vim.api.nvim_get_current_buf() == buf then
+    return close_pane()
+  end
+  if buf then
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+      if vim.api.nvim_win_get_buf(win) == buf then
+        vim.api.nvim_set_current_win(win)
+        pcall(vim.cmd, "startinsert")
+        return
+      end
+    end
+  end
+  vim.api.nvim_set_current_win(base_window())
+  local cfg = settings.terminal
+  local height = math.max(cfg.min_height, math.floor(vim.api.nvim_win_get_height(0) * cfg.height))
+  pcall(vim.cmd, "belowright split")
+  local win = vim.api.nvim_get_current_win()
+  if buf then
+    vim.api.nvim_win_set_buf(win, buf)
+  else
+    vim.cmd "terminal"
+    buf = vim.api.nvim_get_current_buf()
+    panes[tab] = buf
+    vim.bo[buf].buflisted = false
+    vim.bo[buf].bufhidden = "hide"
+    M.attach_keys(buf, close_pane)
+  end
+  pcall(vim.api.nvim_win_set_height, win, height)
+  vim.api.nvim_set_current_win(win)
+  pcall(vim.cmd, "startinsert")
+end
+
 --- One picker row for the terminal info (pure, tested): name + id, where it is and what runs
 ---@param info { id: integer, name: string, dir: string?, cmd: string?, busy: boolean, open: boolean }
 ---@return { label: string, desc: string, value: table }

@@ -68,7 +68,7 @@ package.loaded["tasks.picker"] = {
     _G._on_select = on_select
   end,
 }
-local term = require("utils.terminal")
+local term = require "utils.terminal"
 
 -- ── picker rows (pure) ───────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ eq("item: idle and closed states", {
 
 eq(
   "busy: nothing, no job, dead job",
-  { term.busy(nil), term.busy({}), term.busy({ job_id = 999999 }) },
+  { term.busy(nil), term.busy {}, term.busy { job_id = 999999 } },
   { false, false, false }
 )
 
@@ -202,11 +202,43 @@ term.tui("gh-dash", "gh dash", "/p")
 eq("tui: a stopped one is started", tui_calls, { "run_in" })
 term.named, term.busy, term.run_in, term.focus_term = real_named, real_busy, real_run_in, real_focus
 
+-- ── quick terminal pane (Alt+T) ─────────────────────────────────────────────
+
+local file_buf = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_buf_set_name(file_buf, "term-pane-file")
+vim.api.nvim_set_current_buf(file_buf)
+local base = vim.api.nvim_get_current_win()
+term.pane()
+local pane_win = vim.api.nvim_get_current_win()
+local pane_buf = vim.api.nvim_get_current_buf()
+eq("pane: opens below the current pane", { pane_win ~= base, #vim.api.nvim_tabpage_list_wins(0) }, { true, 2 })
+eq("pane: it is a terminal", vim.bo[pane_buf].buftype, "terminal")
+eq("pane: it is unlisted (a closed one is not saved)", vim.bo[pane_buf].buflisted, false)
+local esc = vim.tbl_filter(function(m)
+  return m.lhs == "<Esc>"
+end, vim.api.nvim_buf_get_keymap(pane_buf, "n"))[1]
+ok("pane: Esc is mapped in the terminal buffer", esc ~= nil and esc.callback ~= nil)
+esc.callback()
+vim.wait(200, function()
+  return #vim.api.nvim_tabpage_list_wins(0) == 1
+end)
+eq(
+  "pane: Esc leaves the file window",
+  { #vim.api.nvim_tabpage_list_wins(0), vim.api.nvim_get_current_win() },
+  { 1, base }
+)
+term.pane()
+eq("pane: Alt+T brings the same hidden shell back", vim.api.nvim_get_current_buf(), pane_buf)
+term.pane()
+eq("pane: Alt+T toggles it closed again", #vim.api.nvim_tabpage_list_wins(0), 1)
+vim.api.nvim_buf_delete(pane_buf, { force = true })
+vim.api.nvim_buf_delete(file_buf, { force = true })
+
 -- ── stop: current terminal buffer first ──────────────────────────────────────
 
 local buf = vim.api.nvim_create_buf(false, true)
 vim.api.nvim_set_current_buf(buf)
-local job = vim.fn.termopen("sleep 60")
+local job = vim.fn.termopen "sleep 60"
 ok("stop: sends Ctrl-C to the terminal under the cursor", term.stop() == true)
 local waits = vim.fn.jobwait({ job }, 2000)
 eq("stop: the process is gone afterwards", waits[1] ~= -1, true)
@@ -219,8 +251,8 @@ vim.api.nvim_buf_delete(scratch, { force = true })
 
 print(("%d/%d passed"):format(total - fails, total))
 if fails == 0 then
-  print("ALL OK")
+  print "ALL OK"
 else
   print(("FAILURES: %d"):format(fails))
 end
-vim.cmd("qa!")
+vim.cmd "qa!"

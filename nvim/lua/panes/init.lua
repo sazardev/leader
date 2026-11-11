@@ -163,6 +163,116 @@ function M.swap()
   pcall(vim.cmd, "wincmd x")
 end
 
+--- Closes every other pane of this tab and keeps the current one (buffers stay open, so unsaved work is not lost).
+---@return boolean closed
+function M.only()
+  local win = editing_window()
+  if not normal(win) then
+    return false
+  end
+  if normal_windows() <= 1 then
+    log.info "Pane: there is only one"
+    return false
+  end
+  vim.api.nvim_set_current_win(win)
+  local hidden = vim.o.hidden
+  vim.o.hidden = true
+  local ok = pcall(vim.cmd, "silent! only")
+  vim.o.hidden = hidden
+  return ok
+end
+
+--- The layouts a preset can build: id → what it looks like. A preset keeps the buffer you are editing in the first
+--- pane and fills the rest with start screens (or with the same buffer when `panes.dashboard = false`).
+M.PRESETS = {
+  double = "two columns",
+  triple = "three columns",
+  main = "main + two stacked",
+  quad = "2x2 grid",
+}
+
+---@param name string
+---@return fun(): boolean?
+local function builder(name)
+  return ({
+    double = function()
+      M.open "right"
+      pcall(vim.cmd, "wincmd =")
+    end,
+    triple = function()
+      M.open "right"
+      M.open "right"
+      pcall(vim.cmd, "wincmd =")
+    end,
+    main = function()
+      local main = vim.api.nvim_get_current_win()
+      local top_right = M.open "right"
+      local bottom_right = M.open "below"
+      pcall(vim.cmd, "wincmd =")
+      -- perfect halves in the right column (wincmd = leaves the odd row on one of them)
+      local rows = vim.api.nvim_win_get_height(top_right) + vim.api.nvim_win_get_height(bottom_right)
+      pcall(vim.api.nvim_win_set_height, top_right, math.floor(rows / 2))
+      -- the code keeps most of the width; the right column stacks the other two
+      pcall(vim.api.nvim_win_set_width, main, math.max(1, math.floor(vim.o.columns * 0.6)))
+    end,
+    quad = function()
+      local top_left = vim.api.nvim_get_current_win()
+      local top_right = M.open "right"
+      vim.api.nvim_set_current_win(top_right)
+      M.open "below"
+      vim.api.nvim_set_current_win(top_left)
+      local bottom_left = M.open "below"
+      pcall(vim.cmd, "wincmd =")
+      -- both rows the same height in both columns
+      local rows = vim.api.nvim_win_get_height(top_left) + vim.api.nvim_win_get_height(bottom_left)
+      pcall(vim.api.nvim_win_set_height, top_left, math.floor(rows / 2))
+      pcall(vim.api.nvim_win_set_height, top_right, math.floor(rows / 2))
+    end,
+  })[name]
+end
+
+--- Builds a typical layout in this tab (`double`, `triple`, `main` or `quad`). The current file stays in the first pane
+--- and the other panes open on the start screen. Replacing a layout never closes buffers: unsaved work stays in them.
+---@param name string
+---@return boolean started
+function M.preset(name)
+  local label = M.PRESETS[name]
+  local build = builder(name)
+  if not label or not build then
+    log.warn(("Pane: unknown preset '%s'"):format(tostring(name)))
+    return false
+  end
+  leave_input()
+  local base = editing_window()
+  if not normal(base) then
+    log.warn "Pane: there is no window for the preset"
+    return false
+  end
+  local function apply()
+    if not normal(base) then
+      log.warn "Pane: the window of the preset is gone"
+      return false
+    end
+    vim.api.nvim_set_current_win(base)
+    -- a modified buffer in another window would refuse `:only` (E37): hide it, never drop it
+    local hidden = vim.o.hidden
+    vim.o.hidden = true
+    pcall(vim.cmd, "silent! only")
+    vim.o.hidden = hidden
+    build()
+    return true
+  end
+  if normal_windows() <= 1 then
+    return apply()
+  end
+  require("utils.modal").confirm({
+    ("This tab has %d panes."):format(normal_windows()),
+    ("Replace the layout with %s?"):format(label),
+    "Buffers stay open: unsaved work is not lost.",
+  }, { title = "Pane preset", confirm = "Replace" }, apply)
+  return true
+end
+
 --- Puts this pane alone on its own tab (the original layout is kept in the other tab). Press again to come back.
 function M.zoom()
   local tab = vim.api.nvim_get_current_tabpage()
@@ -242,6 +352,9 @@ function M.setup()
   map({ "n", "t" }, "<A-h>", function()
     M.open "below"
   end, { desc = "Panes split down (start screen)" })
+  map({ "n", "t" }, "<A-t>", function()
+    require("utils.terminal").pane()
+  end, { desc = "Terminal pane open / close" })
   map("n", "<A-Left>", function()
     M.resize "left"
   end, { desc = "Panes narrower" })

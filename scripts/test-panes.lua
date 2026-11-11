@@ -139,6 +139,103 @@ panes.close()
 eq("close: the last pane stays", #normal_wins(), 1)
 eq("close: and says no", panes.close(), false)
 
+-- ── layout presets ───────────────────────────────────────────────────────────
+---@return integer
+local function one_pane()
+  vim.o.hidden = true
+  pcall(vim.cmd, "silent! only")
+  vim.o.hidden = false
+  vim.cmd("edit " .. vim.fn.fnameescape(a))
+  return vim.api.nvim_get_current_win()
+end
+
+---@param wins integer[]
+---@return number, number, number, number
+local function box(wins)
+  local top, left, bottom, right = math.huge, math.huge, 0, 0
+  for _, win in ipairs(wins) do
+    local pos = vim.api.nvim_win_get_position(win)
+    local w, h = vim.api.nvim_win_get_width(win), vim.api.nvim_win_get_height(win)
+    top, left = math.min(top, pos[1]), math.min(left, pos[2])
+    bottom, right = math.max(bottom, pos[1] + h), math.max(right, pos[2] + w)
+  end
+  return top, left, bottom, right
+end
+
+---@return integer[]
+local function sorted_wins()
+  local ws = normal_wins()
+  table.sort(ws, function(x, y)
+    local xr, xc = unpack(vim.api.nvim_win_get_position(x))
+    local yr, yc = unpack(vim.api.nvim_win_get_position(y))
+    if xr ~= yr then
+      return xr < yr
+    end
+    return xc < yc
+  end)
+  return ws
+end
+
+local first = one_pane()
+ok("preset: double starts", panes.preset "double")
+eq("preset: double has two panes", #normal_wins(), 2)
+local left, right = sorted_wins()[1], sorted_wins()[2]
+eq("preset: double side by side", vim.api.nvim_win_get_position(left)[1], vim.api.nvim_win_get_position(right)[1])
+ok("preset: double equal widths", math.abs(vim.api.nvim_win_get_width(left) - vim.api.nvim_win_get_width(right)) <= 1)
+eq("preset: the file stays in the first pane", vim.api.nvim_win_get_buf(first), vim.fn.bufnr(a))
+
+first = one_pane()
+ok("preset: triple starts", panes.preset "triple")
+eq("preset: triple has three panes", #normal_wins(), 3)
+local wins = sorted_wins()
+eq("preset: triple in one row", vim.api.nvim_win_get_position(wins[1])[1], vim.api.nvim_win_get_position(wins[3])[1])
+ok("preset: triple equal heights", vim.api.nvim_win_get_height(wins[1]) == vim.api.nvim_win_get_height(wins[2]))
+ok(
+  "preset: triple equal widths",
+  math.abs(vim.api.nvim_win_get_width(wins[1]) - vim.api.nvim_win_get_width(wins[3])) <= 1
+)
+
+first = one_pane()
+ok("preset: main starts", panes.preset "main")
+eq("preset: main has three panes", #normal_wins(), 3)
+local main_width = vim.api.nvim_win_get_width(first)
+local others = vim.tbl_filter(function(win)
+  return win ~= first
+end, normal_wins())
+ok("preset: main is wider", main_width > vim.api.nvim_win_get_width(others[1]))
+eq(
+  "preset: the right column shares a width",
+  vim.api.nvim_win_get_width(others[1]),
+  vim.api.nvim_win_get_width(others[2])
+)
+ok(
+  "preset: the right column is stacked",
+  vim.api.nvim_win_get_position(others[1])[1] ~= vim.api.nvim_win_get_position(others[2])[1]
+)
+
+first = one_pane()
+ok("preset: quad starts", panes.preset "quad")
+eq("preset: quad has four panes", #normal_wins(), 4)
+local rows, cols = {}, {}
+for _, win in ipairs(normal_wins()) do
+  local pos = vim.api.nvim_win_get_position(win)
+  rows[pos[1]] = (rows[pos[1]] or 0) + 1
+  cols[pos[2]] = (cols[pos[2]] or 0) + 1
+end
+eq("preset: quad has two rows", vim.tbl_count(rows), 2)
+eq("preset: quad has two columns", vim.tbl_count(cols), 2)
+eq("preset: quad has two panes in each row", { rows[vim.tbl_keys(rows)[1]], rows[vim.tbl_keys(rows)[2]] }, { 2, 2 })
+eq("preset: quad has two panes in each column", { cols[vim.tbl_keys(cols)[1]], cols[vim.tbl_keys(cols)[2]] }, { 2, 2 })
+
+local top, left, bottom, right = box(normal_wins())
+ok("preset: quad fills its box", bottom > top and right > left)
+
+-- ── close every other pane ──────────────────────────────────────────────────
+vim.api.nvim_set_current_win(normal_wins()[1])
+ok("only: closes the other panes", panes.only())
+eq("only: one pane left", #normal_wins(), 1)
+eq("only: it says no with one", panes.only(), false)
+
 print(("%d/%d passed"):format(total - fails, total))
 if fails == 0 then
   print "ALL OK"
