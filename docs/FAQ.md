@@ -1,7 +1,8 @@
 # FAQ
 
 Short answers to the questions that come up most often. The long version is in the [documentation](https://leader.sazardev.stream/docs/)
-or in [`CHEATSHEET.md`](../CHEATSHEET.md); the offline copy of the whole guide is [`docs/offline.html`](offline.html).
+or in [`CHEATSHEET.md`](../CHEATSHEET.md); the offline copy of the whole guide is [the single-file guide](https://leader.sazardev.stream/offline)
+(also `docs/offline.html` in the repository).
 
 ### Is Leader a fork of Neovim?
 
@@ -98,9 +99,10 @@ per feature, and the [offline copy](offline.html) works without network.
 
 ### Can I use it offline?
 
-Yes. [`docs/offline.html`](offline.html) is a single file with the whole guide, the CSS and the fonts embedded: download
-it and open it in any browser. The editor itself is local; only plugin/tool installation, agent requests and update
-checks need the network.
+Yes. [The offline guide](https://leader.sazardev.stream/offline) is a single file with the whole guide, the CSS and the
+fonts embedded; the repository also has it as `docs/offline.html`, so it travels with a clone. Download it and open it
+in any browser. The editor itself is local; only plugin/tool installation, agent requests and update checks need the
+network.
 
 ### A plugin update broke something. How do I roll back?
 
