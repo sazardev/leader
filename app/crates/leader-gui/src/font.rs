@@ -35,6 +35,10 @@ pub struct Fonts {
     /// Points, as in `guifont`.
     pub size: f32,
     pub scale: f32,
+    /// `linespace` (logical pixels): extra air between lines, from Neovim's option.
+    pub linespace: f32,
+    /// Base font weight (400 regular, 500 medium, 700 bold), from `gui.font_weight`.
+    pub weight: u16,
     pub metrics: CellMetrics,
     /// The smaller text of the app bar (`SMALL` of the editor's size), measured the same way.
     pub small: CellMetrics,
@@ -42,6 +46,18 @@ pub struct Fonts {
 
 /// The app bar's text against the editor's: quieter, so the bar never competes with the code.
 pub const SMALL: f32 = 0.86;
+
+/// Adds `linespace` (physical pixels) between lines: half above, half below, so the text stays centered in the cell.
+fn spaced(mut m: CellMetrics, extra: f32) -> CellMetrics {
+    if extra <= 0.0 {
+        return m;
+    }
+    let top = (extra / 2.0).round();
+    m.height += extra;
+    m.baseline += top;
+    m.underline = (m.underline + top).min(m.height - m.stroke);
+    m
+}
 
 pub fn load_system() -> FontSystem {
     FontSystem::new()
@@ -52,17 +68,19 @@ fn has_family(system: &FontSystem, name: &str) -> bool {
 }
 
 impl Fonts {
-    pub fn new(system: FontSystem, families: &[String], size: f32, scale: f32) -> Fonts {
+    pub fn new(system: FontSystem, families: &[String], size: f32, weight: u16, scale: f32) -> Fonts {
         let mut fonts = Fonts {
             system,
             cache: SwashCache::new(),
             family: String::new(),
             size,
             scale,
+            linespace: 0.0,
+            weight: weight.clamp(100, 900),
             metrics: CellMetrics { width: 8.0, height: 16.0, baseline: 12.0, underline: 14.0, stroke: 1.0 },
             small: CellMetrics { width: 7.0, height: 14.0, baseline: 10.0, underline: 12.0, stroke: 1.0 },
         };
-        fonts.set(families, size, scale);
+        fonts.set(families, size, weight, scale);
         fonts
     }
 
@@ -71,14 +89,29 @@ impl Fonts {
     }
 
     /// Picks the first installed family (or the defaults, then the system monospace) and measures it.
-    pub fn set(&mut self, families: &[String], size: f32, scale: f32) {
+    pub fn set(&mut self, families: &[String], size: f32, weight: u16, scale: f32) {
         let wanted = families.iter().map(String::as_str).chain(DEFAULT_FAMILIES.iter().copied());
         self.family = wanted.into_iter().find(|f| has_family(&self.system, f)).unwrap_or("monospace").to_string();
         self.size = size.clamp(4.0, 72.0);
+        self.weight = weight.clamp(100, 900);
         self.scale = scale;
         self.cache = SwashCache::new();
-        self.metrics = self.measure(self.px(false));
+        let px = self.px(false);
+        let base = self.measure(px);
+        self.metrics = spaced(base, (self.linespace * self.scale).round().max(0.0));
         self.small = self.measure(self.px(true));
+    }
+
+    /// Applies Neovim's `linespace` (logical pixels) to the editor's cells; the app bar keeps its own compact metrics.
+    pub fn set_linespace(&mut self, space: f32) {
+        let space = space.max(0.0);
+        if (self.linespace - space).abs() < f32::EPSILON {
+            return;
+        }
+        self.linespace = space;
+        let px = self.px(false);
+        let base = self.measure(px);
+        self.metrics = spaced(base, (self.linespace * self.scale).round().max(0.0));
     }
 
     fn px(&self, small: bool) -> f32 {
@@ -88,7 +121,7 @@ impl Fonts {
 
     fn attrs(&self, bold: bool, italic: bool) -> Attrs<'_> {
         let family = if self.family == "monospace" { Family::Monospace } else { Family::Name(&self.family) };
-        Attrs::new().family(family).weight(if bold { Weight::BOLD } else { Weight::NORMAL }).style(if italic {
+        Attrs::new().family(family).weight(if bold { Weight::BOLD } else { Weight(self.weight) }).style(if italic {
             Style::Italic
         } else {
             Style::Normal
@@ -159,5 +192,27 @@ impl Fonts {
             out.push(Raster { left: g.x + image.placement.left, top: g.y - image.placement.top, width: w, height: h, color, rgba });
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cell() -> CellMetrics {
+        CellMetrics { width: 8.0, height: 16.0, baseline: 12.0, underline: 14.0, stroke: 1.0 }
+    }
+
+    #[test]
+    fn linespace_centers_the_glyph_in_a_taller_cell() {
+        let m = spaced(cell(), 4.0);
+        assert_eq!(m.height, 20.0);
+        assert_eq!(m.baseline, 14.0);
+        assert_eq!(m.underline, 16.0);
+    }
+
+    #[test]
+    fn no_linespace_keeps_the_metrics() {
+        assert_eq!(spaced(cell(), 0.0), cell());
     }
 }

@@ -593,7 +593,8 @@ local defaults = {
 
   -- Desktop app (app/, the `leader` binary): only read when Neovim runs inside it (vim.g.leader_gui)
   gui = {
-    font = "GeistMono Nerd Font Mono:h12", -- guifont: "Family[,Fallback]:hSIZE" (Ctrl+= / Ctrl+- / Ctrl+0 resize it live)
+    font = "GeistMono Nerd Font Mono:h13", -- guifont: "Family[,Fallback]:hSIZE" (Ctrl+= / Ctrl+- / Ctrl+0 resize it live)
+    font_weight = 500, -- desktop app: 400 regular, 500 medium, 600 semibold… (a terminal sets its own weight: font.normal.style)
     -- the app's own title bar, in the theme's colors: the current file's path (click a folder = Telescope in it,
     -- the file = show it in the tree) and only what the statusline does not say; drag it to move the window,
     -- double-click to maximize
@@ -783,6 +784,7 @@ local defaults = {
     sidescrolloff = 8,
     cursorline = true,
     cursorlineopt = "number",
+    linespace = 2, -- extra pixels between lines (the desktop app reads it; terminals own their line height)
     signcolumn = "no", -- signs (the git bar) are drawn by the statuscolumn in ONE cell; "yes" gives them two
     -- signs + number; the number is painted by utils/diagblocks.lua (centered severity pill)
     statuscolumn = "%s%{%v:lua.require'utils.diagblocks'.statuscolumn()%}",

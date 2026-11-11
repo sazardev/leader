@@ -36,6 +36,19 @@ return {
   {
     group = "App",
     when = in_app,
+    label = "Font weight",
+    kind = "choice",
+    id = "gui.font_weight",
+    choices = {
+      { value = 400, label = "regular" },
+      { value = 500, label = "medium" },
+      { value = 600, label = "semibold" },
+    },
+    restart = true,
+  },
+  {
+    group = "App",
+    when = in_app,
     label = "Remember size",
     kind = "toggle",
     id = "gui.window.remember_size",

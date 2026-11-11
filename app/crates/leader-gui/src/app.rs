@@ -379,12 +379,33 @@ impl App {
         let Some(fonts) = self.fonts.as_mut() else { return };
         let (families, size) = parse_guifont(spec).unwrap_or_default();
         let size = size.unwrap_or(fonts.size);
-        let scale = fonts.scale;
-        fonts.set(&families, size, scale);
+        let (weight, scale) = (fonts.weight, fonts.scale);
+        fonts.set(&families, size, weight, scale);
         if let Some(r) = self.renderer.as_mut() {
             r.clear_glyphs();
         }
         self.relayout();
+    }
+
+    /// `gui.font_weight` is not a Neovim option: the config publishes it in `vim.g` and the app reads it once, when the
+    /// first complete screen is ready.
+    fn sync_font_weight(&mut self) {
+        let Ok(v) = self.nvim.exec_lua("return vim.g.leader_gui_font_weight or 0", vec![]) else { return };
+        let Some(weight) = v.as_i64() else { return };
+        if !(100..=900).contains(&weight) {
+            return;
+        }
+        let weight = weight as u16;
+        if let Some(fonts) = self.fonts.as_mut()
+            && fonts.weight != weight
+        {
+            let (families, size, scale) = (vec![fonts.family().to_string()], fonts.size, fonts.scale);
+            fonts.set(&families, size, weight, scale);
+            if let Some(r) = self.renderer.as_mut() {
+                r.clear_glyphs();
+            }
+            self.relayout();
+        }
     }
 
     fn zoom(&mut self, delta: f32) {
@@ -436,6 +457,15 @@ impl App {
             if !spec.is_empty() && spec != self.default_guifont {
                 self.apply_font(&spec);
             }
+        }
+        // `linespace` is Neovim's air between lines (the config sets 2): the cell grows and the text stays centered.
+        let linespace = self.screen.options.get("linespace").and_then(Value::as_i64).unwrap_or(0) as f32;
+        if self.fonts.as_ref().is_some_and(|f| (f.linespace - linespace).abs() > f32::EPSILON) {
+            if let Some(fonts) = self.fonts.as_mut() {
+                fonts.set_linespace(linespace);
+                platform::save_cell(&platform::Cell { scale: fonts.scale, width: fonts.metrics.width, height: fonts.metrics.height });
+            }
+            self.relayout();
         }
         // A modal (a float over a good part of the editor: Telescope, the welcome screen, which-key's panel) makes
         // the bar step back; notifications, keycaps and completion menus are too small to count.
@@ -906,7 +936,7 @@ impl ApplicationHandler<UserEvent> for App {
             .expect("gpu thread");
         let system = self.font_job.take().and_then(|j| j.join().ok()).unwrap_or_else(font::load_system);
         let families: Vec<String> = std::env::var("LEADER_FONT").ok().and_then(|f| parse_guifont(&f)).map(|(f, _)| f).unwrap_or_default();
-        let fonts = Fonts::new(system, &families, font::DEFAULT_SIZE, window.scale_factor() as f32);
+        let fonts = Fonts::new(system, &families, font::DEFAULT_SIZE, 400, window.scale_factor() as f32);
         self.mark(&format!("fonts ready: {} {}pt, cell {}x{}", fonts.family(), fonts.size, fonts.metrics.width, fonts.metrics.height));
         let family = fonts.family().to_string();
         let (fonts_scale, cell) = (fonts.scale, (fonts.metrics.width, fonts.metrics.height));
@@ -1013,6 +1043,7 @@ impl ApplicationHandler<UserEvent> for App {
                 }
             }
             UserEvent::Ready => {
+                self.sync_font_weight();
                 self.drain_nvim(event_loop);
                 self.ready_seen = true;
                 self.hold_until = None;
@@ -1074,7 +1105,8 @@ impl ApplicationHandler<UserEvent> for App {
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 if let Some(fonts) = self.fonts.as_mut() {
                     let (families, size) = (vec![fonts.family().to_string()], fonts.size);
-                    fonts.set(&families, size, scale_factor as f32);
+                    let weight = fonts.weight;
+                    fonts.set(&families, size, weight, scale_factor as f32);
                 }
                 if let Some(r) = self.renderer.as_mut() {
                     r.clear_glyphs();

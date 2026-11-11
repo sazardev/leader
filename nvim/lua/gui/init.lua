@@ -1012,6 +1012,8 @@ function M.setup()
   if settings.gui.font and (vim.o.guifont == "" or vim.o.guifont == default) then
     vim.o.guifont = settings.gui.font
   end
+  -- the app reads it once when the first screen is ready (it is not a Neovim option)
+  vim.g.leader_gui_font_weight = settings.gui.font_weight or 400
   local group = vim.api.nvim_create_augroup("LeaderGui", { clear = true })
   vim.api.nvim_create_autocmd({
     "VimEnter",
