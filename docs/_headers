@@ -1,0 +1,19 @@
+# Cloudflare Pages headers. HTML is always revalidated (a deployment changes it); fonts, screenshots and wallpaper
+# thumbnails never change, so they are cached for a year. The usual security headers: no framing, no MIME sniffing.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/screenshots/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/wallpapers/thumbs/*
+  Cache-Control: public, max-age=31536000, immutable

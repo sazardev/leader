@@ -1,0 +1,39 @@
+# Leader
+
+> Leader is Neovim with a fast, opinionated config, in its own GPU window. It starts in about 20 ms, has Zed-like
+> menus and a command palette, remembers each project with its sessions, and brings an inline AI agent that runs on
+> your own CLI or a local model. Linux (native and WSL); the config also runs in a terminal on macOS and Windows.
+
+- Website: https://leader.sazardev.stream/
+- Install (one command, Linux x86_64 installs the app, Neovim and the config): https://leader.sazardev.stream/install
+- Documentation: https://leader.sazardev.stream/docs/
+- Wallpapers: https://leader.sazardev.stream/wallpapers/
+- Source: https://github.com/sazardev/leader
+- Releases: https://github.com/sazardev/leader/releases
+- License: MIT
+
+## What it is
+
+Leader is a Neovim distribution and a desktop front-end for it. The app runs `nvim --embed` and draws the grid with
+the GPU (wgpu) in a native window: the same keys, LSP servers, treesitter parsers, formatters and plugins as the
+terminal config, with menus, a project picker, a toolbar and sessions.
+
+## Highlights
+
+- Fast: ~20 ms to a usable editor, lazy plugins, a GPU front-end, sessions that restore on a bare start.
+- Opinionated: one file per responsibility, contextual leader menus, every color derived from the theme.
+- Local first: static analysis and completion helpers cost zero tokens; the AI agent runs on your own backend.
+- Languages: Go, TypeScript, Python, Rust, C#/.NET, Dart/Flutter, Java/Kotlin, SQL, Swift, Lua, Markdown and more.
+- Agent: one-shot actions on the code under the cursor, an inline diff, a persistent chat, DDD/repository/service
+  levels and a project kit (AGENTS.md, STACK.md, DESIGN.md, SPEC.md, builds, reviews, releases).
+- Desktop: menus, command palette, projects with their sessions, a theme inherited from the terminal, FIM completion.
+
+## Install
+
+    curl -fsSL https://leader.sazardev.stream/install | bash
+
+macOS and other platforms install the config (Neovim); Linux x86_64 installs the desktop app too. Windows PowerShell:
+
+    irm https://leader.sazardev.stream/install.ps1 | iex
+
+Debian/Ubuntu package: https://leader.sazardev.stream/deb

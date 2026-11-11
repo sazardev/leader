@@ -10,3 +10,6 @@ nul
 # Per-machine local overrides (see nvim/lua/core/settings.lua)
 nvim/lua/local.lua
 evals/results/last.json
+
+# Cloudflare local cache (wrangler pages deploy)
+.wrangler/

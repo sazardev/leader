@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://sazardev.github.io/leader/sitemap.xml
+Sitemap: https://leader.sazardev.stream/sitemap.xml

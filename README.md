@@ -4,17 +4,21 @@
 editor ready to work, with what a developer uses every day and nothing more. Minimalism, fast productivity and
 performance: everything loads lazily, one file = one responsibility, and whatever you don't use is turned off with one line.
 
-[latest release](https://github.com/sazardev/leader/releases/latest) · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://sazardev.github.io/leader/docs/) · [wallpapers](https://sazardev.github.io/leader/wallpapers/)
+[latest release](https://github.com/sazardev/leader/releases/latest) · Neovim ≥ 0.11 · Linux, WSL, macOS and Windows · [documentation](https://leader.sazardev.stream/docs/) · [wallpapers](https://leader.sazardev.stream/wallpapers/)
 
 ## Installation
 
-**One command, everything done** (Linux, WSL, macOS):
+**One command, everything done** (Linux, WSL, macOS; on Linux x86_64 it also installs the desktop app):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash
+curl -fsSL https://leader.sazardev.stream/install | bash
 ```
 
-Windows (PowerShell): `irm https://raw.githubusercontent.com/sazardev/leader/master/install.ps1 | iex`
+Windows (PowerShell): `irm https://leader.sazardev.stream/install.ps1 | iex`
+
+The short link is a tiny script served by Cloudflare Pages: it picks the desktop package on Linux x86_64 and the config
+installer everywhere else, so the same command is copy-paste on every machine. `LEADER_CONFIG_URL` and
+`LEADER_RELEASE_URL` point it elsewhere if you mirror the assets.
 
 It asks **one thing**: which languages to set up, as a checklist of packs (Go, Dart / Flutter, TypeScript / JavaScript,
 C# / .NET, Web, Python, Rust, SQL, Swift, Java / Kotlin, Docker / Make / Prisma…) with the ones this machine already uses checked;
@@ -35,7 +39,7 @@ JSON, YAML, TOML, is always on). Change them later in `<Space>Sp` → Languages.
 Options go after `bash -s --`, for example a Go laptop, fully configured:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sazardev/leader/master/install.sh | bash -s -- --lang go,sql --theme gruvbox
+curl -fsSL https://leader.sazardev.stream/install | bash -s -- --lang go,sql --theme gruvbox
 ```
 
 Prefer to clone it yourself (to hack on it)? `git clone https://github.com/sazardev/leader && cd leader && ./install.sh` does exactly
@@ -43,7 +47,7 @@ the same. Override the fetch with `NVIM_CONFIG_DIR`, `NVIM_CONFIG_REPO` and `NVI
 
 Then open `nvim` — or `leader`, which the installer also creates (`~/.local/bin/leader`): in a terminal it is `nvim` itself. Press `<Space>` and which-key shows you the menus.
 
-There is also a landing page, `docs/index.html` (flat and square like the config, no build, self-hosted Geist in `docs/fonts/`, dark/light with `t`), and the documentation at `docs/docs/index.html` (generated from the Markdown by `scripts/gen-docs.sh`); serve `docs/` with GitHub Pages (`cd docs && python3 -m http.server`).
+There is also a landing page, `docs/index.html` (flat and square like the config, no build, self-hosted Geist in `docs/fonts/`, dark/light with `t`), and the documentation at `docs/docs/index.html` (generated from the Markdown by `scripts/gen-docs.sh`). Both are live at **https://leader.sazardev.stream/** on Cloudflare Pages (`npx wrangler pages deploy docs --project-name leader --branch=master`; see [AGENTS.md](AGENTS.md) for the short links, headers and SEO files). To try them locally: `cd docs && python3 -m http.server`.
 
 | Option | Effect |
 |---|---|
@@ -275,7 +279,7 @@ The principles (the same across the whole repo) and where they show:
 
 ## Keys and documentation
 
-- **[The documentation site](https://sazardev.github.io/leader/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
+- **[The documentation site](https://leader.sazardev.stream/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
 - [`CHEATSHEET.md`](CHEATSHEET.md): **all** the keys. It is generated from the real keymaps (`scripts/gen-cheatsheet.sh`; the pre-commit hook regenerates it). Inside nvim, the dashboard's *Mappings* button shows the same.
 - [`docs/cheatsheets/`](docs/cheatsheets/README.md): what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.
 - [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md): architecture and pitfalls for whoever touches the config (people or agents).

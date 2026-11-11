@@ -1,0 +1,9 @@
+# Short links for Leader. Cloudflare Pages reads this file on every deployment.
+/install /install.sh 200
+/get /install.sh 200
+/i /install.sh 200
+/install.ps1 https://raw.githubusercontent.com/sazardev/leader/master/install.ps1 302
+/deb https://github.com/sazardev/leader/releases/latest/download/leader-editor-amd64.deb 302
+/app https://github.com/sazardev/leader/releases/latest/download/leader-linux-x86_64.tar.gz 302
+/download https://github.com/sazardev/leader/releases/latest 302
+/docs /docs/ 301

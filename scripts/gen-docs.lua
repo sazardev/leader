@@ -400,14 +400,19 @@ local TEMPLATE = [==[<!doctype html>
 <meta name="description" content="Documentation of Leader: install, every key, the AI agent, Go, Dart / Flutter, project tasks and how the config is built.">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" content="#282828">
-<link rel="canonical" href="https://sazardev.github.io/leader/docs/">
+<link rel="canonical" href="https://leader.sazardev.stream/docs/">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Leader">
-<meta property="og:url" content="https://sazardev.github.io/leader/docs/">
+<meta property="og:url" content="https://leader.sazardev.stream/docs/">
 <meta property="og:title" content="Docs — Leader">
 <meta property="og:description" content="Install, every key, the AI agent, Go, Dart / Flutter, project tasks and how Leader is built.">
-<meta property="og:image" content="https://sazardev.github.io/leader/screenshots/og.png">
+<meta property="og:image" content="https://leader.sazardev.stream/screenshots/og.png">
+<meta property="og:image:alt" content="Leader: Neovim in its own window, showing a Lua file with the app bar and statusline">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Docs — Leader">
+<meta name="twitter:description" content="Install, every key, the AI agent, Go, Dart / Flutter, project tasks and how Leader is built.">
+<meta name="twitter:image" content="https://leader.sazardev.stream/screenshots/og.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="../icon-192.png">
 <link rel="preload" href="../fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
