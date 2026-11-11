@@ -36,6 +36,27 @@ function M.diagnostic_count(severity)
 end
 
 -- ── Agent ────────────────────────────────────────────────────────────────────
+--- Local FIM completion (lua/fim): `FIM…` while the local server starts, `FIM` when it is ready. Nothing when off, and
+--- it does not load the module if it was never used.
+---@return table lualine component
+function M.fim_status()
+  local function text()
+    local fim = package.loaded["fim"]
+    return fim and fim.statusline() or ""
+  end
+  return {
+    text,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = "AgentStatus",
+    padding = 0,
+    fmt = function(s)
+      return " " .. s .. " "
+    end,
+  }
+end
+
 --- Spinner while agent actions are running, and while a one-shot request is (the project documents, commit draft, review:
 --- "⠹ screens · thinking · 12s"; its outcome stays a few seconds). It does not load the agent: if it was never used
 --- (module not loaded) there is nothing to show.

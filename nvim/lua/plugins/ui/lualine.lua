@@ -23,6 +23,7 @@ return {
       lualine_b = { "filename" },
       lualine_c = { { "branch", icon = "⎇" } },
       lualine_x = {
+        components.fim_status(),
         components.agent_status(),
         components.agent_spend(),
         components.chat_status(),

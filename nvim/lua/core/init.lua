@@ -11,6 +11,7 @@ function M.setup()
   require("utils.markdown").setup()
   require("core.preload").setup()
   require("gui").setup() -- only inside the desktop app (app/)
+  require("fim").setup() -- local tab completion: warm server / :Fim (headless: command only)
   require("core.autocmds").setup()
 
   -- NvChad loads its keymaps with vim.schedule: do the same so that user

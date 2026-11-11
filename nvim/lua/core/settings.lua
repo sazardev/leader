@@ -139,6 +139,18 @@ local defaults = {
     herdr = nil, -- the OLD knob for the Herdr registration: true/false wins over herdr.register (nil = that one decides)
   },
 
+  -- Local fill-in-the-middle completion (lua/fim, plugins/editing/llama.lua): a Qwen2.5-Coder 1.5B (Q8) served by
+  -- llama.cpp on 127.0.0.1, ghost text while you type; Tab accepts. Off by default: <leader>Sp -> Editing, <leader>SF
+  -- or :Fim toggles it (and starts/stops the server).
+  fim = {
+    enabled = false,
+    port = 8012,
+    context = 8192, -- tokens the server keeps (1.5B supports 32k; 8k is plenty for the completion ring)
+    sleep_idle = 300, -- seconds idle before llama-server sleeps (frees the slots, keeps the process)
+    debounce_ms = 150, -- pause after the cursor moves before asking
+    max_predict = 64, -- longest suggestion (tokens)
+  },
+
   -- Herdr (lua/herdr/): the terminal workspace that runs the coding agents. With it, nvim sees what every agent in the
   -- other panes is doing (<leader>W) and says what IT is doing, so Herdr shows it too.
   herdr = {

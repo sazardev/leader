@@ -31,6 +31,13 @@ return {
       end,
     },
     {
+      "F",
+      "local tab completion (toggle)",
+      function()
+        require("fim").toggle()
+      end,
+    },
+    {
       "l",
       "plugins",
       function()
