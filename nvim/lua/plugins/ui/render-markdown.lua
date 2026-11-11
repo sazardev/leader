@@ -3,6 +3,10 @@ return {
   "MeanderingProgrammer/render-markdown.nvim",
   ft = "markdown",
   opts = {
+    -- Plain source by default: no conceal, files open editable. Toggle per
+    -- buffer with <leader>mr (`RenderMarkdown toggle`). The agent chat and
+    -- history preview still render on demand via the API (`force = true`).
+    enabled = false,
     -- Floating windows (LSP hover, signature help) are markdown too: there the plain block of the flat design (ui/flat),
     -- no language heading, no rule line, no sign column — just the signature and its text
     overrides = {

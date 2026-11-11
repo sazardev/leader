@@ -20,6 +20,9 @@ end
 -- bands with the flat accents. It overrides the global nofile override (which
 -- is tuned for small hover/answer floats) because it is passed last.
 local MD_CONFIG = {
+  -- the plugin is OFF by default for normal *.md files (plain source);
+  -- the transcript opts back in per buffer (passed last, wins over everything)
+  enabled = true,
   heading = { width = "full", left_pad = 1, right_pad = 1, border = false, icons = { "", "", "", "", "", "" } },
   code = {
     style = "full",

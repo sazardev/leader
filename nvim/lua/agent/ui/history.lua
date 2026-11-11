@@ -271,7 +271,8 @@ function M.render_markdown(buf, win)
       return
     end
     pcall(function()
-      require("render-markdown.api").render { buf = buf, win = win }
+      -- the plugin is OFF by default for normal files; opt back in per preview
+      require("render-markdown.api").render { buf = buf, win = win, force = true, config = { enabled = true } }
     end)
   end
   vim.schedule(render)

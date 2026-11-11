@@ -94,52 +94,11 @@ function M.is_reading(buf)
   return vim.w[win].reading_saved ~= nil
 end
 
---- Auto reading mode for *.md and *.mdx (both filetype `markdown` after ftdetect/mdx.lua):
---- opening one enters the locked reading mode above; <Esc> (utils/escape.lua) leaves it.
+--- Auto reading mode: DISABLED. Opening *.md/*.mdx used to enter the locked
+--- reading mode (uneditable until Esc); annoying, so files now open as normal
+--- editable buffers. Kept as a no-op so `core/init.lua` keeps working; use
+--- <leader>mz (`reading_mode()`) for the manual centered/locked view.
 function M.setup()
-  local group = vim.api.nvim_create_augroup("MarkdownReading", { clear = true })
-  local function enter(buf)
-    if not vim.api.nvim_buf_is_valid(buf) then
-      return
-    end
-    if vim.bo[buf].filetype ~= "markdown" or vim.bo[buf].buftype ~= "" then
-      return
-    end
-    -- first open: style the current window (reading_mode locks the buffer)
-    if not has_reading_window(buf) and vim.api.nvim_win_get_buf(vim.api.nvim_get_current_win()) == buf then
-      M.reading_mode()
-      return
-    end
-    -- split of a reading buffer: style the fresh window too
-    if vim.b[buf].reading_locked then
-      for _, win in ipairs(vim.fn.win_findbuf(buf)) do
-        if not vim.w[win].reading_saved then
-          local cur = vim.api.nvim_get_current_win()
-          vim.api.nvim_set_current_win(win)
-          M.reading_mode()
-          vim.api.nvim_set_current_win(cur)
-        end
-      end
-    end
-  end
-  -- FileType fires on open; WinEnter/BufEnter style a split of a reading buffer
-  vim.api.nvim_create_autocmd("FileType", {
-    group = group,
-    pattern = "markdown",
-    callback = function(ev)
-      vim.schedule(function()
-        enter(ev.buf)
-      end)
-    end,
-  })
-  vim.api.nvim_create_autocmd({ "WinEnter", "BufEnter" }, {
-    group = group,
-    callback = function(ev)
-      vim.schedule(function()
-        enter(ev.buf)
-      end)
-    end,
-  })
 end
 
 --- Spell checker (es + en) in this buffer/window
