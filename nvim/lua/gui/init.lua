@@ -572,6 +572,25 @@ function M.app_menu()
         { label = "Settings", keys = "<leader>Sp" },
         { label = "Check Health", hint = ":checkhealth", run = ex "checkhealth" },
         { sep = true },
+        {
+          label = "Documentation",
+          hint = "leader.sazardev.stream/docs",
+          run = function()
+            vim.ui.open "https://leader.sazardev.stream/docs/"
+          end,
+        },
+        {
+          label = "Offline Guide",
+          hint = "docs/offline.html",
+          run = function()
+            -- The installer clones the repo; the config is a symlink into its nvim/ folder. If this is a lone config
+            -- without the repo's docs, the live copy is the fallback.
+            local root = vim.fs.dirname(vim.fn.resolve(vim.fn.stdpath "config"))
+            local file = root .. "/docs/offline.html"
+            vim.ui.open(vim.uv.fs_stat(file) and file or "https://leader.sazardev.stream/offline")
+          end,
+        },
+        { sep = true },
         { label = "What's New…", run = M.actions.update },
         {
           label = "Check for Updates",
