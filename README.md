@@ -20,7 +20,7 @@ choose. **MIT, no telemetry, no account.**
 
 **Linux** · **WSL** · **macOS** · **Windows** — the app on Linux/WSL, the config everywhere.
 
-**Contents** · [Install](#install) · [Why Leader](#why-leader) · [What's included](#whats-included) · [Keys](#keys-and-documentation) · [Community](#community)
+**Contents** · [Install](#install) · [Why Leader](#why-leader) · [FAQ](docs/FAQ.md) · [What's included](#whats-included) · [Keys](#keys-and-documentation) · [Community](#community)
 
 ## Install
 
@@ -342,6 +342,7 @@ The principles (the same across the whole repo) and where they show:
 
 - **[The documentation site](https://leader.sazardev.stream/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
 - **[The offline guide](docs/offline.html)**: the same documentation in **one HTML file** with the fonts embedded, no network needed (`scripts/gen-offline.sh` keeps it up to date). The site also serves it at <https://leader.sazardev.stream/offline>.
+- **[The FAQ](docs/FAQ.md)**: short answers about installation, platforms, the agent, privacy, updates, sessions and offline use.
 - [`CHEATSHEET.md`](CHEATSHEET.md): **all** the keys. It is generated from the real keymaps (`scripts/gen-cheatsheet.sh`; the pre-commit hook regenerates it). Inside nvim, the dashboard's *Mappings* button shows the same.
 - [`docs/cheatsheets/`](docs/cheatsheets/README.md): what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.
 - [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md): architecture and pitfalls for whoever touches the config (people or agents).

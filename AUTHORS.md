@@ -1,7 +1,7 @@
 # Authors
 
-Leader is created and maintained by **Omar Flores** ([@sazardev](https://github.com/sazardev)).
-The repository history has also been written under the names `Omar` and `Omar Flores` with the same account.
+Leader is created and maintained by **Omar Flores** ([@sazardev](https://github.com/sazardev)), with contributions from
+the community.
 
 ## Contributors
 
