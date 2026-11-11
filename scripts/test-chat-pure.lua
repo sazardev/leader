@@ -200,6 +200,64 @@ eq("mention: two skills", #ssecs, 2)
 eq("mention: skill body", ssecs[1].text, "SKILL caveman")
 package.loaded["skills.store"] = nil
 
+-- ── ask blocks: a question with options the picker answers ───────────────────
+group("ask")
+local ask = require "agent.chat.ask"
+local a1 = ask.parse "hola\n\n```ask\nWhich database?\n- PostgreSQL\n- SQLite\n```\n"
+eq("ask: question", a1 and a1.question, "Which database?")
+eq("ask: options", a1 and a1.options, { "PostgreSQL", "SQLite" })
+eq("ask: no block", ask.parse "hola", nil)
+eq("ask: no options is not a question", ask.parse "```ask\nonly a question\n```", nil)
+eq("ask: unclosed block", ask.parse "```ask\nQ\n- one", nil)
+local a2 = ask.parse "```ask\nOld?\n- a\n- b\n```\n\n```ask\nNew?\n1. one\n2) two\n```"
+eq("ask: the last block wins", { a2.question, a2.options }, { "New?", { "one", "two" } })
+local ask_s = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(ask_s, { role = "assistant", text = "```ask\nQ?\n- a\n- b\n```" })
+eq("ask: of reads the last answer", ask.of(ask_s).question, "Q?")
+eq("ask: of a plain answer", ask.of(require("agent.chat.session").new { root = root }), nil)
+
+-- ── @need: context the model requests ────────────────────────────────────────
+group("needs")
+local needs = require "agent.chat.needs"
+eq(
+  "needs: parse comma/space lists without repeats",
+  needs.parse "x\n@need: nvim/init.lua, README.md\n@need: nvim/init.lua",
+  { "nvim/init.lua", "README.md" }
+)
+eq("needs: no line", needs.parse "hola", {})
+local need_s = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(need_s, { role = "assistant", text = "I need it.\n@need: nvim/init.lua" })
+local need_secs = needs.collect(need_s)
+eq("needs: injects the requested file", #need_secs, 1)
+ok("needs: names it like a mention", need_secs[1].name:find("file:", 1, true) == 1, need_secs[1].name)
+ok("needs: carries content", #need_secs[1].text > 0)
+needs.mark(need_s)
+eq("needs: a request is used once", #needs.collect(need_s), 0)
+local outside_s = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(outside_s, { role = "assistant", text = "@need: /etc/passwd" })
+eq("needs: outside the project is ignored", #needs.collect(outside_s), 0)
+require("core.settings").agent.chat.auto_need = false
+local off_s = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(off_s, { role = "assistant", text = "@need: nvim/init.lua" })
+eq("needs: setting turns it off", #needs.collect(off_s), 0)
+require("core.settings").agent.chat.auto_need = true
+
+-- ── history budget: what was left out is known ──────────────────────────────
+group("history")
+local hist = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(hist, { role = "user", text = string.rep("a", 40) })
+require("agent.chat.session").add(hist, { role = "assistant", text = string.rep("b", 40) })
+require("agent.chat.session").add(hist, { role = "user", text = "nuevo" })
+local kept, dropped = require("agent.chat.session").history(hist, 10)
+eq("history: newest turn kept", { #kept, kept[1].text }, { 1, "nuevo" })
+eq("history: dropped chars", dropped, 80)
+local big = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(big, { role = "assistant", text = string.rep("x", 13000) })
+require("agent.chat.session").add(big, { role = "user", text = "new" })
+local big_system, _, _, big_dropped = require("agent.chat.prompt").build(big, "hi", {}, profiles.get "minimal")
+eq("history: prompt reports what it dropped", big_dropped, 13000)
+ok("history: minimal budget is the tight one", big_system:find("Minimal mode", 1, true) ~= nil)
+
 -- ── rendering: every shape a model can produce ──────────────────────────────
 group("render")
 local render = require("agent.chat.render")
@@ -278,6 +336,20 @@ eq("copy: markdown message byte for byte", copy, md)
 local code = render.code_block_at(session.messages[#session.messages], 8)
 eq("copy: code block without fences", code, "print('hola')")
 eq("copy: outside a fence is nil", render.code_block_at(session.messages[#session.messages], 1), nil)
+
+-- an ask block is a quote, not code, and points at the picker
+local asks = require("agent.chat.session").new { root = root }
+require("agent.chat.session").add(asks, { role = "assistant", text = "```ask\nWhich?\n- one\n- two\n```" })
+local atext = table.concat(render.lines(asks, {}), "\n")
+ok("render: ask content is a quote", atext:find("> Which?", 1, true) ~= nil)
+ok("render: ask fence hidden", atext:find("```ask", 1, true) == nil)
+ok("render: ask hint", atext:find("Alt-Q", 1, true) ~= nil)
+-- history trim is disclosed in the turn footer
+require("agent.chat.session").add(asks, { role = "assistant", text = "ok", meta = { history_dropped = 1234 } })
+ok(
+  "render: history trim footer",
+  table.concat(render.lines(asks, {}), "\n"):find("history: oldest 1.2k chars not sent", 1, true) ~= nil
+)
 
 -- CRLF + ANSI + tabs
 add(session, { role = "assistant", text = "linea1\r\nlinea2\r\n\27[31mrojo\27[0m\r\n\tta\tb" })
@@ -436,6 +508,10 @@ ok("render: write profile by default", table.concat(render.lines(session, {}), "
 local ask_system, ask_prompt = require("agent.chat.prompt").build(session, "hi", {}, profiles.get("ask"))
 ok("prompt: ask role", ask_system:find("Ask mode", 1, true) ~= nil)
 ok("prompt: ask closing instruction", ask_prompt:find("Read%-only") ~= nil)
+ok(
+  "prompt: every profile teaches the ask and @need rules",
+  ask_system:find("fenced `ask`", 1, true) ~= nil and ask_system:find("@need:", 1, true) ~= nil
+)
 local min_system = require("agent.chat.prompt").build(session, "hi", {}, profiles.get("minimal"))
 ok("prompt: minimal role", min_system:find("Minimal mode", 1, true) ~= nil)
 

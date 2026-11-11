@@ -93,21 +93,28 @@ end
 --- History sent to the model: last turns within max_chars, oldest first.
 ---@param s ChatSession
 ---@param max_chars integer
----@return ChatMessage[]
+---@return ChatMessage[] messages, integer dropped_chars  characters left out (oldest turns)
 function M.history(s, max_chars)
-  local out, budget = {}, max_chars or 60000
+  local out, budget, dropped = {}, max_chars or 60000, 0
   for i = #s.messages, 1, -1 do
     local m = s.messages[i]
     if m.role == "user" or m.role == "assistant" then
       local len = #(m.text or "")
       if budget - len < 0 and #out > 0 then
+        -- everything older is left out: count it so the footer can say so
+        for j = i, 1, -1 do
+          local old = s.messages[j]
+          if old.role == "user" or old.role == "assistant" then
+            dropped = dropped + #(old.text or "")
+          end
+        end
         break
       end
       table.insert(out, 1, m)
       budget = budget - len
     end
   end
-  return out
+  return out, dropped
 end
 
 return M

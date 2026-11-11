@@ -255,7 +255,18 @@ local function display_lines(parts)
   while i <= #parts do
     local line = parts[i]
     local prefix, info = line:match "^(%s*```%s*)(.-)%s*$"
-    if prefix and info == "" then
+    if prefix and info == "ask" then
+      -- the question is answered with a picker (chat/ask): show its content as a
+      -- quote, never as code, and keep the source (copy) untouched
+      out[#out + 1] = ""
+      local j = i + 1
+      while j <= #parts and not parts[j]:match "^%s*```%s*$" do
+        out[#out + 1] = "> " .. parts[j]
+        j = j + 1
+      end
+      out[#out + 1] = ""
+      i = j
+    elseif prefix and info == "" then
       local first
       local j = i + 1
       while j <= #parts do
@@ -316,6 +327,9 @@ local function welcome(add_line)
   hint(add_line, "Enter", "send · Shift-Enter newline")
   hint(add_line, "Ctrl-Q", "hide")
   hint(add_line, "Up / Down", "previous messages")
+  hint(add_line, "Ctrl-Y", "copy the last answer")
+  hint(add_line, "Alt-Y", "copy your last message")
+  hint(add_line, "Alt-Q", "answer its question")
   hint(add_line, "A", "apply the files of a message")
   add_line ""
 end
@@ -412,6 +426,15 @@ function M.blocks(session, opts)
     return lines, marks, ranges
   end
 
+  -- Alt-Q answers the LAST answer's question: only that message carries the hint
+  local last_assistant
+  for i = #(session.messages or {}), 1, -1 do
+    if session.messages[i].role == "assistant" then
+      last_assistant = session.messages[i]
+      break
+    end
+  end
+
   for _, msg in ipairs(session.messages) do
     local first_line = #lines + 1
     local text = chat_text.clean(msg.text)
@@ -428,6 +451,12 @@ function M.blocks(session, opts)
     elseif msg.role == "assistant" then
       for _, l in ipairs(display_lines(parts)) do
         add_line(l, "ChatAssistant")
+      end
+      -- the question itself stays in the transcript: a hint, not a modal, so
+      -- reading is never interrupted (the picker is Alt-Q, auto-opened only
+      -- when the composer has the focus and is empty)
+      if msg == last_assistant and require("agent.chat.ask").parse(text) then
+        add_line("    Alt-Q answers with a picker · or type your own", "ChatMeta")
       end
     elseif msg.role == "thinking" then
       if v.thinking then
@@ -463,6 +492,12 @@ function M.blocks(session, opts)
       end
       if #bits > 0 and v.tokens then
         add_line("    " .. table.concat(bits, " · "), "ChatMeta")
+      end
+      if v.tokens and msg.meta.history_dropped and msg.meta.history_dropped > 0 then
+        add_line(
+          ("    history: oldest %s chars not sent"):format(chat_text.tokens(msg.meta.history_dropped)),
+          "ChatMeta"
+        )
       end
       if msg.meta.applied and #msg.meta.applied > 0 then
         add_line("    applied " .. table.concat(msg.meta.applied, ", "), "ChatApplied")

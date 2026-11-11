@@ -550,6 +550,9 @@ local defaults = {
       max_context_chars = 12000, -- cap of auto context (profiles tighten it; minimal injects none)
       autosave = true, -- persist sessions in stdpath("state")/agent-chat.json
       confirm_send = false, -- ask before each turn (budget-style estimate)
+      notify = true, -- one note when the answer settles while the panel is not in front of you
+      ask_picker = true, -- the model's ```ask blocks open the option picker (Alt-Q reopens it)
+      auto_need = true, -- inject the files the last answer requested with `@need: path` (once)
       timeout_ms = 180000, -- a chat turn may answer longer than a one-shot action
       title_from_first = true, -- name the session from the first user message
     },

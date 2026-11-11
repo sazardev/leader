@@ -44,7 +44,8 @@ the agent history, so the spend/budget guards apply unchanged.
   (`:Chat full`/`:Chat mini`, `/full`, `/mini`); full is borderless and edge to edge, with the single statusline still
   free. `settings.agent.chat.dock = false` (also in `<leader>Sp`) goes back to the old floating partition.
   `Ctrl-T` collapses to the right rail. **Keys**: `Ctrl-N` new, `Ctrl-H` history, `Ctrl-M` model, `Ctrl-E` effort,
-  `Ctrl-P` profile, `Ctrl-A` ADR, `Ctrl-X` stop, `Ctrl-Q` hide. `Esc`/`q` never close the panel.
+  `Ctrl-P` profile, `Ctrl-A` ADR, `Ctrl-X` stop, `Ctrl-Q` hide, `Ctrl-Y` copy last answer, `Alt-Y` copy your last
+  message, `Alt-Q` answer the last question. `Esc`/`q` never close the panel.
 - **Markdown**: answers are rendered with treesitter and render-markdown as soon as the turn settles (streaming stays raw
   and cheap): accent heading bands, real code blocks with their language name on a deeper surface, inline code, quotes,
   links, tables, checkboxes and bullets. **No icons**: headings, list bullets and task boxes keep their source text
@@ -55,7 +56,21 @@ the agent history, so the spend/budget guards apply unchanged.
   cleaned for display AND copy, tabs and wide characters are preserved.
 - **Transcript**: `y` copies the message under the cursor, `c` the fenced code block under it (the clipboard gets the
   code, not the fences), `Y` the whole transcript, `o`/`⏎` opens that message full size (markdown; `y` copies it there too),
-  `h` history, `i` back to the input.
+  `h` history, `i` back to the input. **Copy without aiming**: `Ctrl-Y` copies the **last answer** and `Alt-Y` the **last
+  message you sent**, from the transcript or straight from the composer in insert mode (where the focus stays after
+  sending), so no walking to the message is needed.
+- **Questions with options**: when the model needs a decision it ends with a fenced ```` ```ask ```` block (the question,
+  then `- option` lines); the transcript shows it as a quote with an `Alt-Q` hint. `Alt-Q` opens a selector (it opens by
+  itself only when the composer has the focus and is empty), the chosen option lands in the composer **without being sent**
+  so it can be edited, and "Write my own answer…" just focuses the input. If the panel is not in front of you when the turn
+  settles, one note says the answer (or the question) is ready (`settings.agent.chat.notify`).
+- **Context the model asks for**: an answer can request files with `@need: path/one, path/two` (project-relative). Leader
+  reads those files (inside the project, capped, at most 5) and injects them in the **next** turn, shown in that turn's
+  `injected` footer like any `@file`; the request is used once. `settings.agent.chat.auto_need = false` disables it.
+- **Queue**: typing while an answer streams no longer gets refused: `Enter` queues the message (the placeholder counts what
+  waits) and it is sent as soon as the turn settles, in order. `Ctrl-X` stops the turn and the queue still goes.
+- **Long chats say what was left out**: only the last `max_history_chars` (60 000; Minimal 12 000) reach the model. When
+  older turns are dropped the turn footer says `history: oldest N chars not sent` and the first time a note names it.
 - **Write mode writes files**: a Write answer returns every changed file as a **complete fenced block with its path**
   (the info string is `go: main.go`); when the turn settles Leader applies those blocks to the project (existing files only, loaded
   buffers must be saved, a closed file is backed up to the trash first) and the turn footer says `applied main.go`.
@@ -66,7 +81,8 @@ the agent history, so the spend/budget guards apply unchanged.
   old floating partition), `apply` (`true` = Write answers write their full-file blocks), `width` (fraction of columns, 0.5),
   `profile` (default `write`), `history_on_open`, `rail_width`,
   `input_height` (max rows of the composer, which starts at 3), `gap`, `show_context`, `show_thinking`,
-  `show_tokens`, `max_history_chars`, `max_context_chars`, `max_mention_chars`, `timeout_ms`, `autosave`.
+  `show_tokens`, `max_history_chars`, `max_context_chars`, `max_mention_chars`, `notify`, `ask_picker`, `auto_need`,
+  `timeout_ms`, `autosave`.
 
 **Clear file** moved from `<leader>aC` to `<leader>aW` (`:AgentClear file` still works).
 

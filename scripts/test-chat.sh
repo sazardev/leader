@@ -313,6 +313,46 @@ assert(waited, 'fake turn finished')
 assert(#fake_session.messages == 2, 'fake turn appended user+assistant')
 assert(fake_session.turns == 1, 'fake turn counted')
 assert(fake_session.messages[2].role == 'assistant', 'assistant answered')
+-- typing while the answer streams queues it; the queue runs when the turn settles
+local slow = vim.deepcopy(backends.get('chatfake'))
+slow.name, slow.label, slow.default_model = 'chatslow', 'ChatSlow', 'slow-1'
+slow.build = function() return { cmd = { 'sh', '-c', 'sleep 0.4; echo slow answer' } } end
+backends.register('chatslow', slow)
+local qsession = require('agent.chat.session').new({ root = vim.uv.cwd(), backend = 'chatslow', model = 'slow-1' })
+window.session = qsession
+assert(chat.send('first') == true, 'first message accepted')
+assert(chat.send('second') == true, 'second message queued while the first runs')
+assert(#window.queue == 1, 'one message queued')
+local queued_ok = vim.wait(6000, function() return qsession.turns == 2 and not window.running end, 50)
+assert(queued_ok, 'the queued turn ran after the first settled')
+assert(#qsession.messages == 4, 'two user+assistant turns')
+assert(qsession.messages[3].text == 'second', 'the queued text is the next user turn')
+-- a settled answer with an ask block opens the picker (empty composer, focused)
+local fence = string.rep(string.char(96), 3)
+local ask_cmd = { 'printf', '%s\n', fence .. 'ask', 'Which one?', '- first', '- second', fence }
+local askb = vim.deepcopy(backends.get('chatfake'))
+askb.name, askb.label, askb.default_model = 'chatask', 'ChatAsk', 'ask-1'
+askb.build = function() return { cmd = ask_cmd } end
+backends.register('chatask', askb)
+local asession = require('agent.chat.session').new({ root = vim.uv.cwd(), backend = 'chatask', model = 'ask-1' })
+window.session = asession
+if not window.is_open() then window.toggle() end
+window.clear_input()
+vim.api.nvim_set_current_win(window.input_win)
+local askselect = require('agent.ui.select')
+local askpick = askselect.pick
+local seen
+askselect.pick = function(items, _, cb)
+  seen = items
+  cb(items[1])
+end
+assert(chat.send('pregunta') == true, 'ask turn accepted')
+assert(vim.wait(5000, function() return not window.running end, 50), 'ask turn settled')
+vim.wait(300, function() return vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1] == 'first' end, 20)
+assert(seen and #seen == 3, 'the picker offered both options plus free text')
+assert(vim.api.nvim_buf_get_lines(window.input_buf, 0, 1, false)[1] == 'first', 'the auto-opened picker fills the composer')
+askselect.pick = askpick
+window.clear_input()
 -- typing from the history home starts a NEW chat with the draft's profile/model
 local draft = session.new({ root = vim.uv.cwd(), backend = 'chatfake', model = 'fake-1', profile = 'minimal' })
 window.session = draft
@@ -337,6 +377,42 @@ vim.api.nvim_set_current_win(ui.transcript_win)
 vim.api.nvim_win_set_cursor(ui.transcript_win, { ui.ranges[1].first, 0 })
 assert(ui.copy_message(), 'copy message under cursor')
 assert(vim.fn.getreg(string.char(34)) == 'hola', 'copied the exact user text')
+-- copy the last answer / your last message without moving the cursor
+assert(ui.copy_last('assistant'), 'copy last answer')
+assert(vim.fn.getreg(string.char(34)) == render.message_text(fake_session.messages[2]), 'last answer copied exactly')
+assert(ui.copy_last('user'), 'copy last prompt')
+assert(vim.fn.getreg(string.char(34)) == 'hola', 'last user message copied exactly')
+-- Alt-Q: the options of the last ask block land in the composer (not sent)
+local select = require('agent.ui.select')
+local orig_pick = select.pick
+select.pick = function(items, _, cb) cb(items[1]) end
+local qs = session.new({ root = vim.uv.cwd(), backend = 'chatfake', model = 'fake-1' })
+local bt = string.rep(string.char(96), 3)
+session.add(qs, { role = 'assistant', text = bt .. 'ask\nWhich one?\n- first\n- second\n' .. bt })
+ui.session = qs
+ui.draw()
+ui.answer_question()
+assert(vim.api.nvim_buf_get_lines(ui.input_buf, 0, 1, false)[1] == 'first', 'the chosen option fills the composer')
+select.pick = orig_pick
+ui.clear_input()
+-- the picker opens by itself only for an empty composer that has the focus
+vim.api.nvim_set_current_win(ui.input_win)
+assert(ui.can_auto_ask(), 'auto-ask waits for the empty composer')
+ui.set_input('typing something')
+assert(not ui.can_auto_ask(), 'auto-ask never interrupts typing')
+ui.clear_input()
+ui.session = fake_session
+ui.draw()
+-- the composer maps both in insert mode too (the focus stays there after sending)
+vim.api.nvim_set_current_win(ui.input_win)
+assert(type(vim.fn.maparg('<C-y>', 'i', false, true).callback) == 'function', 'Ctrl-Y mapped in the composer')
+assert(type(vim.fn.maparg('<M-y>', 'i', false, true).callback) == 'function', 'Alt-Y mapped in the composer')
+vim.api.nvim_set_current_win(ui.transcript_win)
+-- while a turn runs, your last message is the prompt that started it (still not in the session)
+ui.running, ui.sent_text = true, 'recién enviado'
+assert(ui.copy_last('user'), 'copy the prompt of the running turn')
+assert(vim.fn.getreg(string.char(34)) == 'recién enviado', 'the in-flight prompt wins while it runs')
+ui.running, ui.sent_text = false, nil
 -- view more (o): the message opens full size and y copies it
 vim.api.nvim_set_current_win(ui.transcript_win)
 vim.api.nvim_win_set_cursor(ui.transcript_win, { ui.ranges[2].first, 0 })

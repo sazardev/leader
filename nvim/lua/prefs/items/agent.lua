@@ -25,6 +25,9 @@ return {
   { group = "Agent", label = "Chat docked (split)", kind = "toggle", id = "agent.chat.dock" },
   { group = "Agent", label = "Chat applies Write files", kind = "toggle", id = "agent.chat.apply" },
   { group = "Agent", label = "Chat opens on history", kind = "toggle", id = "agent.chat.history_on_open" },
+  { group = "Agent", label = "Chat notifies when the answer is ready", kind = "toggle", id = "agent.chat.notify" },
+  { group = "Agent", label = "Chat question picker", kind = "toggle", id = "agent.chat.ask_picker" },
+  { group = "Agent", label = "Chat injects @need files", kind = "toggle", id = "agent.chat.auto_need" },
   {
     group = "Agent",
     label = "Answer language",

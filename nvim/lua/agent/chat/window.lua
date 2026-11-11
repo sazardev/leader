@@ -26,6 +26,8 @@ M._prev_win = nil
 M.input_lines = 3 -- desired input height (starts at 3, grows to settings.agent.chat.input_height)
 M.hist_idx = 0 -- 0 = the draft being written, 1.. = older user messages
 M.hist_draft = ""
+M.sent_text = nil -- prompt of the turn in flight (the session stores it when it settles)
+M.queue = {} -- messages typed while a turn runs; sent when it settles, in order
 M.run_started = nil -- hrtime of the running turn (the activity strip shows its age)
 
 local ACTIVITY_NS = vim.api.nvim_create_namespace "chat.activity"
@@ -88,6 +90,9 @@ local function placeholder_text()
       return ("Enter open “%s” · or type a new message…"):format(title)
     end
     return "Type a message to start a new chat…"
+  end
+  if #M.queue > 0 then
+    return ("%d queued · sends when the answer settles"):format(#M.queue)
   end
   local profile = require("agent.chat.profiles").of(M.session, chat_cfg().profile)
   if profile.id == "ask" then
@@ -950,6 +955,145 @@ function M.apply_message()
   return false
 end
 
+--- Last message with `role` in the open chat (nil on the history home).
+---@param role string "assistant"|"user"
+---@return table?
+function M.last_message(role)
+  if not M.session or M.home then
+    return nil
+  end
+  local messages = M.session.messages or {}
+  for i = #messages, 1, -1 do
+    local msg = messages[i]
+    if msg.role == role and (msg.text or "") ~= "" then
+      return msg
+    end
+  end
+end
+
+--- Copies the last answer (assistant) or the last prompt you sent (user) from
+--- anywhere in the panel: no need to walk to the message first. Works from the
+--- composer in insert mode, which is where the focus stays after sending.
+---@param role string? "assistant" (default) | "user"
+---@return boolean copied
+function M.copy_last(role)
+  role = role or "assistant"
+  if M.home then
+    return require("utils.log").info "Chat: open a chat first (Enter)"
+  end
+  -- while a turn runs its user message is not in the session yet: the last one
+  -- you put is the prompt that started it
+  if role == "user" and M.running and (M.sent_text or "") ~= "" then
+    require("agent.ui.clipboard").copy(M.sent_text, "your last message")
+    return true
+  end
+  local msg = M.last_message(role)
+  if not msg then
+    return require("utils.log").info(role == "assistant" and "Chat: no answer yet" or "Chat: nothing sent yet")
+  end
+  local what = role == "assistant" and "last answer" or "your last message"
+  require("agent.ui.clipboard").copy(require("agent.chat.render").message_text(msg), what)
+  return true
+end
+
+--- True when the composer is empty (one empty line; a placeholder is an extmark).
+---@return boolean
+function M.input_empty()
+  if not (M.input_buf and vim.api.nvim_buf_is_valid(M.input_buf)) then
+    return false
+  end
+  local lines = vim.api.nvim_buf_get_lines(M.input_buf, 0, -1, false)
+  return #lines == 1 and lines[1] == ""
+end
+
+--- Puts `text` in the composer and focuses it (an answer chosen from a picker):
+--- it is not sent, so the user can still add detail or edit it.
+---@param text string
+function M.set_input(text)
+  if not (M.input_buf and vim.api.nvim_buf_is_valid(M.input_buf)) then
+    return
+  end
+  vim.api.nvim_buf_set_lines(M.input_buf, 0, -1, false, vim.split(text, "\n", { plain = true }))
+  M.hist_idx, M.hist_draft = 0, ""
+  M.refresh_placeholder()
+  M.focus()
+  if M.input_win and vim.api.nvim_win_is_valid(M.input_win) then
+    pcall(vim.api.nvim_win_set_cursor, M.input_win, { vim.api.nvim_buf_line_count(M.input_buf), 0 })
+  end
+end
+
+--- True when the panel has the keyboard focus (input, transcript or message view).
+---@return boolean
+function M.focused()
+  local win = vim.api.nvim_get_current_win()
+  return win == M.input_win or win == M.transcript_win or (M.zoom and win == M.zoom.win) or false
+end
+
+--- The picker may open by itself only when the user is ready to answer: the
+--- composer has the focus and is empty, and nothing is queued.
+---@return boolean
+function M.can_auto_ask()
+  return chat_cfg().ask_picker ~= false
+    and M.is_open()
+    and not M.collapsed
+    and vim.api.nvim_get_current_win() == M.input_win
+    and M.input_empty()
+    and #M.queue == 0
+end
+
+--- One note when a turn settles while the panel is not in front of the user.
+---@param session table?
+function M.notify_ready(session)
+  if chat_cfg().notify == false then
+    return
+  end
+  if M.is_open() and not M.collapsed and M.focused() then
+    return
+  end
+  local question = require("agent.chat.ask").of(session)
+  require("utils.log").info(question and "Chat: question ready" or "Chat: answer ready")
+end
+
+--- Picker over the options of the last ```ask block. A choice lands in the
+--- composer (not sent), so it can be edited; "Write my own answer…" just focuses it.
+function M.answer_question()
+  local ask = require("agent.chat.ask").of(M.session)
+  if not ask then
+    return require("utils.log").info "Chat: no question to answer"
+  end
+  local items = {}
+  for _, option in ipairs(ask.options) do
+    items[#items + 1] = { label = option, value = option }
+  end
+  items[#items + 1] = { label = "Write my own answer…", own = true }
+  local title = ask.question
+  if vim.fn.strdisplaywidth(title) > 72 then
+    title = vim.fn.strcharpart(title, 0, 71) .. "…"
+  end
+  require("agent.ui.select").pick(items, { title = "Chat · " .. title }, function(choice)
+    if choice.own then
+      M.focus()
+    else
+      M.set_input(choice.value)
+    end
+  end)
+end
+
+--- Queues a message typed while a turn runs; the caller clears the composer.
+---@param text string
+function M.enqueue(text)
+  M.queue[#M.queue + 1] = text
+  M.refresh_placeholder()
+  require("utils.log").info(("Chat: queued (%d waiting)"):format(#M.queue))
+end
+
+---@return string? text of the oldest queued message
+function M.dequeue()
+  local text = table.remove(M.queue, 1)
+  M.refresh_placeholder()
+  return text
+end
+
 --- Copies the fenced code block under the cursor (fallback: the whole message).
 ---@return boolean copied
 function M.copy_code_block()
@@ -1131,6 +1275,16 @@ function M.bind_keys()
   map(M.input_buf, { "n", "i" }, "<C-x>", function()
     require("agent.chat").stop()
   end, "Chat stop")
+  -- copy the last answer / the last prompt without leaving the composer
+  map(M.input_buf, { "n", "i" }, "<C-y>", function()
+    M.copy_last "assistant"
+  end, "Chat copy last answer")
+  map(M.input_buf, { "n", "i" }, "<M-y>", function()
+    M.copy_last "user"
+  end, "Chat copy last message")
+  map(M.input_buf, { "n", "i" }, "<M-q>", function()
+    M.answer_question()
+  end, "Chat answer question")
   map(M.input_buf, { "n", "i" }, "<C-t>", function()
     M.toggle_collapse()
   end, "Chat collapse")
@@ -1174,6 +1328,15 @@ function M.bind_keys()
         require("utils.log").info "Chat: no message on this line"
       end
     end, "Chat copy message")
+    map(M.transcript_buf, { "n", "i" }, "<C-y>", function()
+      M.copy_last "assistant"
+    end, "Chat copy last answer")
+    map(M.transcript_buf, { "n", "i" }, "<M-y>", function()
+      M.copy_last "user"
+    end, "Chat copy last message")
+    map(M.transcript_buf, { "n", "i" }, "<M-q>", function()
+      M.answer_question()
+    end, "Chat answer question")
     map(M.transcript_buf, "n", "c", function()
       if not M.copy_code_block() then
         require("utils.log").info "Chat: no message on this line"

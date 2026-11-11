@@ -14,11 +14,11 @@ local M = {}
 ---@param clean string user text without mentions
 ---@param sections { name: string, text: string }[] injected (mentions + auto context)
 ---@param profile table? chat profile (defaults to the session's)
----@return string system, string prompt, string[] injected_names
+---@return string system, string prompt, string[] injected_names, integer dropped_chars
 function M.build(session, clean, sections, profile)
   profile = profile or profiles.of(session, settings.chat.profile)
   local budget = profile.max_history_chars or settings.chat.max_history_chars or 60000
-  local history = require("agent.chat.session").history(session, budget)
+  local history, dropped = require("agent.chat.session").history(session, budget)
   local parts = {}
   for _, m in ipairs(history) do
     local tag = m.role == "user" and "user" or "assistant"
@@ -37,9 +37,13 @@ function M.build(session, clean, sections, profile)
     .. "\nLanguage: "
     .. (settings.language or "English")
     .. "\nFormat: every fenced code block carries its language (go, bash, json…), so the editor can highlight it."
+    .. "\n"
+    .. require("agent.chat.ask").RULE
+    .. "\n"
+    .. require("agent.chat.needs").RULE
   return system, table.concat(parts, "\n"), vim.tbl_map(function(s)
     return s.name
-  end, sections or {})
+  end, sections or {}), dropped
 end
 
 return M

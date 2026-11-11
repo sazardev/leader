@@ -344,6 +344,10 @@ function M.help()
     "View: Ctrl-F (half/full) · Ctrl-T (collapse to rail).",
     "Keys: Ctrl-N new · Ctrl-H history · Ctrl-M model · Ctrl-E effort · Ctrl-P profile · Ctrl-A ADR · Ctrl-X stop.",
     "Transcript: y copy message · c copy its code block · Y copy all · o view message · h history · i input · A apply its files · Ctrl-Q hide.",
+    "Copy from anywhere (composer included): Ctrl-Y the last answer · Alt-Y your last message.",
+    "Questions: a fenced ask block lists options; Alt-Q picks one into the composer (it is never sent for you).",
+    "Typing while it answers queues the message: it is sent when the turn settles.",
+    "Context: an answer's `@need: path` is injected on the next turn; a long chat says how much history was left out.",
     "Write mode applies full files returned as ```lang: path blocks to existing project files (toggle: settings.agent.chat.apply).",
   }
   require("agent.ui.panel").open(lines, "Leader Chat · help")
@@ -394,9 +398,11 @@ function M.send(raw)
     return true
   end
 
+  -- Typing while the answer streams queues the message instead of losing it:
+  -- it is sent as soon as the turn settles. A slash command above still runs.
   if window.running then
-    require("utils.log").warn "Chat: still answering (Ctrl-X stops it)"
-    return false
+    window.enqueue(raw)
+    return true
   end
 
   -- From the history home, a message starts a new chat. It inherits the profile
@@ -456,13 +462,31 @@ function M.send(raw)
     elseif not ok_auto then
       require("utils.log").warn(("Chat: context skipped: %s"):format(tostring(got):sub(1, 160)))
     end
+    local need_sections = require("agent.chat.needs").collect(session)
     local sections = vim.list_extend({}, mentions)
+    -- files the previous answer requested with @need: (injected exactly once)
+    vim.list_extend(sections, need_sections)
     vim.list_extend(sections, type(auto) == "table" and auto or {})
+    -- one section per name: the same file mentioned and requested is one file
+    local seen, unique = {}, {}
+    for _, section in ipairs(sections) do
+      if not seen[section.name] then
+        seen[section.name] = true
+        unique[#unique + 1] = section
+      end
+    end
+    sections = unique
     window.injected_names = vim.tbl_map(function(s)
       return s.name
     end, sections)
 
-    local system, prompt, injected = require("agent.chat.prompt").build(session, clean, sections, profile)
+    local system, prompt, injected, dropped = require("agent.chat.prompt").build(session, clean, sections, profile)
+    if dropped > 0 and not session.history_warned then
+      session.history_warned = true
+      require("utils.log").warn(
+        ("Chat: long chat — the oldest %s chars are not sent"):format(require("agent.chat.text").tokens(dropped))
+      )
+    end
 
     -- budget guard: same estimate as one-shot actions (chars/3.5), ask above the limits
     local guard_req = {
@@ -475,10 +499,14 @@ function M.send(raw)
       end, sections),
     }
     local function proceed()
+      if #need_sections > 0 then
+        require("agent.chat.needs").mark(session)
+      end
       window.clear_input()
+      window.sent_text = clean
       -- the first real message is what puts a chat in the history
       require("agent.chat.store").put(session)
-      M._launch(session, choice, clean, system, prompt, injected, profile.id)
+      M._launch(session, choice, clean, system, prompt, injected, profile.id, dropped)
     end
     local function deny(why)
       require("utils.log").warn("Chat: " .. tostring(why or "cancelled"))
@@ -523,7 +551,8 @@ end
 ---@param prompt string
 ---@param injected string[]
 ---@param profile string? profile id used for the turn
-function M._launch(session, sel, clean, system, prompt, injected, profile)
+---@param dropped integer? chars of history left out (the footer says so)
+function M._launch(session, sel, clean, system, prompt, injected, profile, dropped)
   if profile then
     session.profile = profile
   end
@@ -557,6 +586,25 @@ function M._launch(session, sel, clean, system, prompt, injected, profile)
     end
     require("agent.chat.store").put(session)
     window.draw()
+    -- the answer landed while the user was elsewhere: one note, never a modal
+    if ok then
+      window.notify_ready(session)
+      if require("agent.chat.ask").of(session) and window.can_auto_ask() then
+        vim.schedule(function()
+          window.answer_question()
+        end)
+      end
+    end
+    -- a message typed while this turn ran goes now, in order
+    local next_text = window.dequeue()
+    if next_text then
+      vim.schedule(function()
+        local accepted = require("agent.chat").send(next_text)
+        if not accepted then
+          window.set_input(next_text) -- never lose it: back in the composer
+        end
+      end)
+    end
   end
 
   require("agent.chat.runner").run(sel, { system = system, prompt = prompt }, {
@@ -601,6 +649,7 @@ function M._launch(session, sel, clean, system, prompt, injected, profile)
           apply_unchanged = applied.unchanged,
           apply_skipped = applied.skipped,
           apply_errors = applied.errors,
+          history_dropped = dropped,
         },
       })
       if thinking and thinking ~= "" then
