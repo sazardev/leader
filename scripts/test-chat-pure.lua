@@ -656,6 +656,55 @@ eq(
 )
 window.hide()
 
+-- ── sent-message jumps (PageUp/PageDown) ────────────────────────────────────
+group("user jumps")
+local render = require "agent.chat.render"
+local ranges = {
+  { first = 1, last = 4, msg = { role = "user" } },
+  { first = 5, last = 10, msg = { role = "assistant" } },
+  { first = 11, last = 14, msg = { role = "user" } },
+  { first = 15, last = 20, msg = { role = "assistant" } },
+}
+eq("jump: previous from below", render.user_range(ranges, 21, -1), ranges[3])
+eq("jump: previous from an answer", render.user_range(ranges, 16, -1), ranges[3])
+eq("jump: previous from another sent message", render.user_range(ranges, 12, -1), ranges[1])
+eq("jump: no previous above the first", render.user_range(ranges, 1, -1), nil)
+eq("jump: next from the header", render.user_range(ranges, 0, 1), ranges[1])
+eq("jump: next from the last sent message", render.user_range(ranges, 12, 1), nil)
+eq("jump: next from the first sent message", render.user_range(ranges, 2, 1), ranges[3])
+
+local session = require "agent.chat.session"
+local s2 = session.new { root = root, backend = "chatfake", model = "m" }
+session.add(s2, { role = "user", text = "first" })
+session.add(s2, { role = "assistant", text = "answer one" })
+session.add(s2, { role = "user", text = "second" })
+session.add(s2, { role = "assistant", text = "answer two" })
+window.session = s2
+window.toggle()
+window.draw()
+local sent = {}
+for _, entry in ipairs(window.ranges or {}) do
+  if entry.msg and entry.msg.role == "user" then
+    sent[#sent + 1] = entry
+  end
+end
+eq("jump: two sent messages in the transcript", #sent, 2)
+vim.api.nvim_win_set_cursor(window.transcript_win, { vim.api.nvim_buf_line_count(window.transcript_buf), 0 })
+ok(
+  "jump: PageUp goes to the last sent message",
+  window.jump_user(-1) and vim.api.nvim_win_get_cursor(window.transcript_win)[1] == sent[2].first
+)
+ok(
+  "jump: PageUp again goes to the previous one",
+  window.jump_user(-1) and vim.api.nvim_win_get_cursor(window.transcript_win)[1] == sent[1].first
+)
+ok(
+  "jump: PageDown goes forward",
+  window.jump_user(1) and vim.api.nvim_win_get_cursor(window.transcript_win)[1] == sent[2].first
+)
+ok("jump: no next sent message", window.jump_user(1) == false)
+window.hide()
+
 print(("\n%d checks, %d failed"):format(total, fails))
 if fails > 0 then
   vim.cmd("cq 1")

@@ -56,9 +56,10 @@ the agent history, so the spend/budget guards apply unchanged.
   cleaned for display AND copy, tabs and wide characters are preserved.
 - **Transcript**: `y` copies the message under the cursor, `c` the fenced code block under it (the clipboard gets the
   code, not the fences), `Y` the whole transcript, `o`/`⏎` opens that message full size (markdown; `y` copies it there too),
-  `h` history, `i` back to the input. **Copy without aiming**: `Ctrl-Y` copies the **last answer** and `Alt-Y` the **last
-  message you sent**, from the transcript or straight from the composer in insert mode (where the focus stays after
-  sending), so no walking to the message is needed.
+  `h` history, `i` back to the input. **PageUp/PageDown** move to the previous/next **message you sent** (centered), not a
+  screen; your turns are a stronger blue bubble so they stand out while scrolling. **Copy without aiming**: `Ctrl-Y` copies
+  the **last answer** and `Alt-Y` the **last message you sent**, from the transcript or straight from the composer in insert
+  mode (where the focus stays after sending), so no walking to the message is needed.
 - **Questions with options**: when the model needs a decision it ends with a fenced ```` ```ask ```` block (the question,
   then `- option` lines); the transcript shows it as a quote with an `Alt-Q` hint. `Alt-Q` opens a selector (it opens by
   itself only when the composer has the focus and is empty), the chosen option lands in the composer **without being sent**

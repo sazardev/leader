@@ -907,6 +907,28 @@ function M.message_at(line)
   end
 end
 
+--- Moves the transcript to the previous (-1) or next (1) message you sent and centers it (PageUp/PageDown).
+---@param dir integer
+---@return boolean moved
+function M.jump_user(dir)
+  if M.home or not (M.transcript_buf and vim.api.nvim_buf_is_valid(M.transcript_buf)) then
+    return false
+  end
+  if not (M.transcript_win and vim.api.nvim_win_is_valid(M.transcript_win)) then
+    return false
+  end
+  local line = vim.api.nvim_win_get_cursor(M.transcript_win)[1]
+  local target = require("agent.chat.render").user_range(M.ranges or {}, line, dir)
+  if not target then
+    return false
+  end
+  pcall(vim.api.nvim_win_set_cursor, M.transcript_win, { target.first, 0 })
+  pcall(vim.api.nvim_win_call, M.transcript_win, function()
+    vim.cmd "normal! zz"
+  end)
+  return true
+end
+
 --- Copies the message under the cursor (transcript or fullscreen message view).
 ---@return boolean copied
 function M.copy_message()
@@ -1257,6 +1279,11 @@ function M.bind_keys()
       M.history_step(-1) -- older message
     end
   end, "Chat previous message")
+  for key, dir in pairs { ["<PageUp>"] = -1, ["<PageDown>"] = 1 } do
+    map(M.input_buf, { "n", "i" }, key, function()
+      M.jump_user(dir)
+    end, dir < 0 and "Chat previous sent message" or "Chat next sent message")
+  end
   map(M.input_buf, "i", "<C-c>", function()
     require("agent.chat.completion").hide()
   end, "Chat complete close")
@@ -1368,6 +1395,11 @@ function M.bind_keys()
           vim.cmd("normal! " .. key)
         end
       end, "Chat history move")
+    end
+    for key, dir in pairs { ["<PageUp>"] = -1, ["<PageDown>"] = 1 } do
+      map(M.transcript_buf, { "n", "i" }, key, function()
+        M.jump_user(dir)
+      end, dir < 0 and "Chat previous sent message" or "Chat next sent message")
     end
     map(M.transcript_buf, "n", "n", function()
       if M.home then

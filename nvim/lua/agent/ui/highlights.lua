@@ -116,6 +116,7 @@ local function derive()
   local add_bg = tinted(bg, green, fg, 1.16)
   local del_bg = tinted(bg, red, fg, 1.16)
   local input_bg = color.blend(bg, blue, 0.10)
+  local chat_user_bg = color.blend(bg, blue, 0.22)
   local status_bg = color.blend(bg, blue, 0.12)
   local done_bg = color.blend(bg, green, 0.12)
   local comment = accent({ "Comment" }, color.blend(fg, bg, 0.5))
@@ -153,8 +154,8 @@ local function derive()
     ChatTitle = { fg = color.ensure_contrast(blue, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatProfile = { fg = color.ensure_contrast(yellow, float_bg, fg, 4.5), bg = float_bg, bold = true },
     ChatMeta = { fg = color.ensure_contrast(color.blend(fg, float_bg, 0.45), float_bg, fg, 3.0), bg = float_bg },
-    ChatUser = { fg = fg, bg = input_bg },
-    ChatUserIcon = { fg = color.ensure_contrast("#b8860b", input_bg, fg, 4.5), bg = input_bg, bold = true },
+    ChatUser = { fg = color.ensure_contrast(fg, chat_user_bg, fg, 4.5), bg = chat_user_bg },
+    ChatUserIcon = { fg = color.ensure_contrast("#b8860b", chat_user_bg, fg, 4.5), bg = chat_user_bg, bold = true },
     ChatAssistant = { fg = fg, bg = float_bg },
     ChatThinking = {
       fg = color.ensure_contrast(color.blend(fg, float_bg, 0.55), float_bg, fg, 3.0),

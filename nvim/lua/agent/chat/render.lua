@@ -541,6 +541,28 @@ end
 -- Backwards-compatible name (tests and callers use render.lines).
 M.lines = M.blocks
 
+--- The message you sent above (-1) or below (1) `line`, for PageUp/PageDown.
+---@param ranges { first: integer, last: integer, msg: table }[]
+---@param line integer
+---@param dir integer
+---@return table?
+function M.user_range(ranges, line, dir)
+  if dir < 0 then
+    for i = #ranges, 1, -1 do
+      local r = ranges[i]
+      if r.msg and r.msg.role == "user" and r.last < line then
+        return r
+      end
+    end
+  else
+    for _, r in ipairs(ranges) do
+      if r.msg and r.msg.role == "user" and r.first > line then
+        return r
+      end
+    end
+  end
+end
+
 --- Writes lines + marks into a buffer. No treesitter, no markdown: shared by
 --- the transcript (which adds markdown afterwards) and the history home.
 ---@param buf integer
