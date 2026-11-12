@@ -78,6 +78,37 @@ local maps = {
       in_root(vim.fn.executable "golangci-lint" == 1 and "golangci-lint run ./..." or "go vet ./...")()
     end,
   },
+  {
+    "H",
+    "lint: gohawk (module audit, quickfix)",
+    function()
+      local dir, mod_root = paths()
+      if vim.fn.executable "gohawk" == 0 then
+        return log.warn "gohawk is not installed: go install github.com/kojah/gohawk@latest"
+      end
+      local root = mod_root or dir
+      local cfg = require("core.settings").go.gohawk or {}
+      local args = { "gohawk", "-json" }
+      vim.list_extend(args, cfg.args or {})
+      args[#args + 1] = "./..."
+      log.info "gohawk: analyzing the module…"
+      vim.system(args, { cwd = root, text = true }, function(out)
+        vim.schedule(function()
+          if out.code ~= 0 and out.code ~= 3 then
+            local err = vim.trim(out.stderr or "")
+            return log.warn("gohawk: analysis failed" .. (err ~= "" and (": " .. err) or ""))
+          end
+          local findings = require("utils.gohawk").parse(out.stdout or "")
+          if #findings == 0 then
+            return log.info "gohawk: no findings"
+          end
+          require("utils.gohawk").quickfix(findings)
+          log.info(("gohawk: %d finding%s in the quickfix"):format(#findings, #findings == 1 and "" or "s"))
+          vim.cmd "copen"
+        end)
+      end)
+    end,
+  },
   { "f", "format", actions.format },
   {
     "t",

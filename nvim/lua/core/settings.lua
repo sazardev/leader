@@ -696,6 +696,13 @@ local defaults = {
 
   -- Go helpers (lua/utils/go*.lua)
   go = {
+    -- GoHawk (https://gohawk.dev, utils/gohawk.lua): ownership, lifecycle and concurrency checks that complement
+    -- golangci-lint. The linter runs on save for the current package when `gohawk` is on PATH; install it with
+    -- `go install github.com/kojah/gohawk@latest` (Go 1.26+). <leader>gH audits the whole module into the quickfix.
+    gohawk = {
+      lint = true, -- nvim-lint on save (false leaves only <leader>gH)
+      args = {}, -- extra flags for both (e.g. { "-tier=experimental" } or { "-enable=processownership" })
+    },
     getters = {
       -- a getter of a slice or map returns a COPY (slices.Clone / maps.Clone), so the caller cannot change the aggregate's
       -- state through it; false returns the field as it is

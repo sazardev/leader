@@ -527,6 +527,7 @@ _Where: `go`, `gomod`, `gowork`_
 | `<leader>gr` | run |
 | `<leader>gb` | build |
 | `<leader>gv` | lint (golangci-lint, or go vet if missing) |
+| `<leader>gH` | lint: gohawk (module audit, quickfix) |
 | `<leader>gf` | format |
 | `<leader>gt` | go mod tidy |
 | `<leader>gx` | golangci-lint --fix |

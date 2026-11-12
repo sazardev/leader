@@ -7,6 +7,7 @@
 | LSP | gopls (gofumpt, staticcheck, placeholders, analyses: unusedparams, shadow, unusedwrite, useany; inlay hints) |
 | Format (on save and `<leader>fm`) | `goimports` then `gofumpt` |
 | Lint | `golangci-lint` (in light mode: `go vet`); does not run when leaving insert |
+| Extra lint | **GoHawk** (`gohawk`, when installed): ownership, lifecycle and concurrency checks on save, `<leader>gH` for the module (see below) |
 | Extra | go.nvim (`GoAddTag`, `GoFillStruct`, `GoIfErr`, `GoAddTest`...), treesitter, gomodifytags |
 
 ## `<leader>g` menu (only in `*.go`)
@@ -25,6 +26,31 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicate
   its `*_test.go` files is tested on its own (a `main` package with tests works like any other), not the whole
   module. Without a `go.mod` it runs in the folder. `m`/`R`/`c` still test everything, with plain, `-race` and
   `-cover`.
+
+## GoHawk (`gohawk`)
+
+[GoHawk](https://gohawk.dev) is a static analyzer for **ownership, lifecycle and concurrency** bugs: files, SQL handles
+and HTTP bodies that leak on some return path, `defer` inside a loop, goroutines nobody waits for, contradictory lock
+order. It is not a style linter and does not replace `go vet`, Staticcheck or golangci-lint: it goes deeper on who owns
+a value and who cleans it up.
+
+- **Install**: `go install github.com/kojah/gohawk@latest` (Go 1.26+). It lands in `GOBIN`/`GOPATH/bin`; keep that on
+  `PATH`. The binary is optional: when it is missing, everything else in this file keeps working.
+- **On save**: nvim-lint runs `gohawk -json` on the **current package** (from the module root) and publishes only the
+  findings of the buffer, with the check id as the diagnostic code and GoHawk's `related` evidence in the float.
+  Defect checks show as errors, hazards as warnings. `_test.go` files are skipped by GoHawk's default; the linter runs
+  only on read/save, never while leaving insert (same as golangci-lint).
+- **`<leader>gH`**: audits the **whole module** (`gohawk ./...`) and fills the quickfix with every finding; `Enter`
+  jumps to it.
+- **Settings** (`settings.go.gohawk`): `lint = false` disables the save-time linter (the key still works); `args` adds
+  flags to both paths, e.g. `{ "-tier=experimental" }` for the heuristic audits or `{ "-enable=processownership" }`
+  (experimental checks are off by default: they are hazards, not proven defects).
+- **Ignore an intentional finding** on its line or the line above:
+  `//gohawk:ignore goroutineownership worker belongs to the process lifecycle`.
+- **CI / golangci-lint**: the editor uses the standalone binary so it needs no custom build. GoHawk can also be
+  compiled into a custom golangci-lint binary as a module plugin (see gohawk.dev/golangci-lint) if the pipeline
+  already runs golangci-lint; the `.golangci.yml` presets from `<leader>gS` do **not** include it because the standard
+  golangci-lint binary would reject the unknown linter.
 
 ## Project setup (`<leader>gS`, `lua/gosetup/`)
 
@@ -446,8 +472,9 @@ The friendly declaration ones (`func`, `meth`, `tys`, `tyi`, `tyf`, `finit`, `fm
 
 | File | Role |
 |---|---|
-| `lua/languages/go.lua` | declaration: gopls, goimports, gofumpt, golangci-lint, govet |
+| `lua/languages/go.lua` | declaration: gopls, goimports, gofumpt, golangci-lint, gohawk, govet |
 | `lua/languages/actions/go.lua` | `<leader>g` menu actions |
+| `lua/utils/gohawk.lua` | GoHawk JSON parser, per-buffer diagnostics and `<leader>gH` quickfix |
 | `lua/gosetup/` | `<leader>gS`: presets (`presets/<topic>/<variant>`), `vars.lua` (module, Go version, main), `init.lua` (topics, flows) |
 | `lua/plugins/languages/go.lua` | go.nvim (`tag_transform = "snakecase"`, `tag_options = false`) |
 | `lua/servers/gopls.lua` | gopls settings |
