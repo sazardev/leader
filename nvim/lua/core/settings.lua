@@ -703,6 +703,15 @@ local defaults = {
       lint = true, -- nvim-lint on save (false leaves only <leader>gH)
       args = {}, -- extra flags for both (e.g. { "-tier=experimental" } or { "-enable=processownership" })
     },
+    -- Test actions of <leader>g (l = the file's package, m/R/c = ./...), built by utils/gotest.lua
+    test = {
+      -- `-v`: every test's name and `t.Log`/`fmt.Println` output, not only the package result. false prints the
+      -- short form (`ok package 0.12s`), handy when ./... has many packages.
+      verbose = true,
+      -- Extra flags appended to every test command: { "-count=1" } skips the test cache (a cached package prints
+      -- nothing even with -v), { "-tags=integration" }, { "-short" }, { "-timeout=5m" }…
+      args = {},
+    },
     getters = {
       -- a getter of a slice or map returns a COPY (slices.Clone / maps.Clone), so the caller cannot change the aggregate's
       -- state through it; false returns the field as it is

@@ -6,4 +6,10 @@ return {
     kind = "toggle",
     id = "go.gohawk.lint",
   },
+  {
+    group = "Go",
+    label = "go test -v (each test's output)",
+    kind = "toggle",
+    id = "go.test.verbose",
+  },
 }

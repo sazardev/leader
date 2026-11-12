@@ -24,8 +24,11 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicate
   program.
 - `test the package of this file` (`l`) runs `go test ./folder` from the module root: a folder with `main.go` and
   its `*_test.go` files is tested on its own (a `main` package with tests works like any other), not the whole
-  module. Without a `go.mod` it runs in the folder. `m`/`R`/`c` still test everything, with plain, `-race` and
-  `-cover`.
+  module. Without a `go.mod` it runs in the folder. `m`/`R`/`c` still test everything, with `-race` and `-cover`.
+  Every one of them is **verbose** (`go test -v`): each test's name and `t.Log`/`fmt.Println` output are printed,
+  not only the package result. Turn it off in the settings panel (`<leader>Sp` → Go) or with
+  `settings.go.test.verbose = false`; `settings.go.test.args` adds flags to all four (`{ "-count=1" }` also skips
+  the test cache, which prints nothing for a cached package; `{ "-tags=integration" }`, `{ "-short" }`…).
 
 ## GoHawk (`gohawk`)
 

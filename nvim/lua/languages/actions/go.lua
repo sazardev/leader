@@ -5,8 +5,10 @@
 -- a go.mod they run the single file. `test the package of this file` runs
 -- `go test ./folder` from the module root (a folder with main.go and its
 -- `_test.go` files is tested on its own); vet/fix/test ./... run from the
--- module root.
+-- module root. Every test action goes through utils/gotest.lua: verbose (`-v`)
+-- by default, plus settings.go.test.args.
 local actions = require "utils.actions"
+local gotest = require "utils.gotest"
 local log = require "utils.log"
 local project = require "utils.project"
 local terminal = require "utils.terminal"
@@ -49,7 +51,17 @@ end
 local function test_package()
   local dir, mod_root = paths()
   local pkg = mod_root and require("utils.gorun").rel_pkg(mod_root, dir) or "."
-  terminal.run("go test " .. vim.fn.shellescape(pkg), mod_root or dir)
+  terminal.run(gotest.command(nil, pkg), mod_root or dir)
+end
+
+--- `go test` of every package of the module with the action's own flags (`-race`, `-cover`); `-v` and
+--- settings.go.test.args come from utils/gotest.lua.
+---@param flags string[]?
+local function test_all(flags)
+  return function()
+    local dir, mod_root = paths()
+    terminal.run(gotest.command(flags, "./..."), mod_root or dir)
+  end
 end
 
 -- go.nvim commands (not loaded in light mode)
@@ -123,9 +135,9 @@ local maps = {
   },
   { "x", "golangci-lint --fix", in_root "golangci-lint run --fix ./..." },
   { "l", "test the package of this file", test_package },
-  { "m", "go test ./...", in_root "go test ./..." },
-  { "R", "go test -race ./...", in_root "go test -race ./..." },
-  { "c", "go test -cover ./...", in_root "go test -cover ./..." },
+  { "m", "go test ./...", test_all() },
+  { "R", "go test -race ./...", test_all { "-race" } },
+  { "c", "go test -cover ./...", test_all { "-cover" } },
   -- go fix (toolchain modernizers: any, rangeint, minmax, slices*, etc.)
   { "p", "go fix -diff (modernizers preview)", in_root "go fix -diff ./..." },
   { "i", "go fix (apply modernizers)", in_root "go fix ./..." },
