@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.19.1] - 2026-11-11
+
+### Highlights
+
+- **Installer fix**: 1.19.0 was tagged but not published because its package rejected modern glibc when `ldd | head` hit SIGPIPE under `pipefail`; 1.19.1 parses the version with `sed`. It is the first public build of the 1.19 workspace.
+
+### Fixes
+
+- **packaging:** parse modern glibc without a pipefail false positive (6d08eca)
+
 ## [1.19.0] - 2026-11-11
 
 ### Highlights
