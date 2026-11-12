@@ -82,7 +82,8 @@ fi
 step "Checking this machine"
 [ "$(uname -s)" = Linux ] || die "this package is for Linux (on macOS or Windows use Leader in a terminal: $REPO)"
 [ "$(uname -m)" = x86_64 ] || [ -n "${LEADER_LOCAL_BUILD:-}" ] || die "this package is for x86_64; build it for $(uname -m) with app/install.sh from $REPO"
-glibc="$(ldd --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+$' || echo 0)"
+glibc="$(ldd --version 2>/dev/null | sed -n '1s/.*[^0-9]\([0-9][0-9]*\.[0-9][0-9]*\)$/\1/p')"
+glibc="${glibc:-0}"
 if [ -n "${LEADER_LOCAL_BUILD:-}" ]; then ok "built on this machine"; elif version_ge "$glibc" 2.31; then ok "Linux x86_64, glibc $glibc"; else die "glibc $glibc is too old (2.31 or newer: Ubuntu 20.04, Debian 11, Fedora 32…)"; fi
 WSL=0
 [ -r /proc/version ] && grep -qi microsoft /proc/version && WSL=1

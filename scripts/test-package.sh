@@ -69,6 +69,7 @@ for s in app/package.sh app/install.sh app/package/install.sh app/package/stage-
   check "$s parses" "bash -n '$ROOT/$s'"
 done
 check "leader-setup parses" "sh -n '$APP/package/leader-setup'"
+check "the installer accepts this machine (glibc and desktop checks)" "bash '$APP/package/install.sh' --dry-run --no-config --prefix \"\$(mktemp -d)\""
 check "the installer's --help works" "bash '$APP/package/install.sh' --help"
 
 # ── the signing key is the same everywhere ───────────────────────────────────
