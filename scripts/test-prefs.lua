@@ -294,7 +294,7 @@ eq(
   { menu.prefix, vim.tbl_map(function(m)
     return m[1]
   end, menu.maps) },
-  { "S", { "p", "t", "f", "F", "l", "M", "i", "u" } }
+  { "S", { "p", "t", "f", "F", "m", "l", "M", "i", "u" } }
 )
 local fmt = vim.tbl_filter(function(m)
   return m[1] == "f"

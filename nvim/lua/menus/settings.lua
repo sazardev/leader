@@ -38,6 +38,13 @@ return {
       end,
     },
     {
+      "m",
+      "completion model",
+      function()
+        require("fim").pick_model()
+      end,
+    },
+    {
       "l",
       "plugins",
       function()

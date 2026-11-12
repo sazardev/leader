@@ -40,4 +40,12 @@ return {
       require("fim").apply(on)
     end,
   },
+  {
+    group = "Editing",
+    label = "Local completion model…",
+    kind = "action",
+    run = function()
+      require("fim").pick_model()
+    end,
+  },
 }

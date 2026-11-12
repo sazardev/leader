@@ -905,6 +905,7 @@ _Where: global_
 | `<leader>St` | toggle theme |
 | `<leader>Sf` | format on save |
 | `<leader>SF` | local tab completion (toggle) |
+| `<leader>Sm` | completion model |
 | `<leader>Sl` | plugins |
 | `<leader>SM` | tools |
 | `<leader>Si` | info |
@@ -1514,6 +1515,7 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>Sf` | n | Format on save |
 | `<leader>Si` | n | Info |
 | `<leader>Sl` | n | Plugins |
+| `<leader>Sm` | n | Completion model |
 | `<leader>Sp` | n | Panel |
 | `<leader>St` | n | Toggle theme |
 | `<leader>Su` | n | Updates |

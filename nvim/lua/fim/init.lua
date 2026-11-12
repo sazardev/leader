@@ -1,7 +1,7 @@
 -- ── Local FIM completion (Qwen2.5-Coder, llama.cpp) ──────────────────────────
 -- llama.vim draws the ghost text; this module owns the local server and the on/off switch. The model is the
--- llama.cpp preset `--fim-qwen-1.5b-default` (Q8, ~1.6 GB, downloaded on first start) or the GGUF in
--- `settings.fim.model` (with the preset's batch/cache values), served on 127.0.0.1.
+-- llama.cpp preset `--fim-qwen-1.5b-default` (Q8, ~1.6 GB, downloaded on first start), a GGUF path, or `{ repo, file }`
+-- from Hugging Face; the picker (`fim/picker.lua`, <leader>Sm / :Fim model) detects the machine and recommends one.
 local settings = require "core.settings"
 local log = require "utils.log"
 
@@ -36,19 +36,21 @@ end
 --- carry the same batch and cache values, or it runs with llama.cpp's defaults.
 local function model_args()
   local model = cfg().model
-  if not model or model == "" then
+  if not model or model == "" or model == "preset" then
     return { "--fim-qwen-1.5b-default" }
   end
-  return {
-    "-m",
-    vim.fn.expand(model),
-    "--batch-size",
-    "1024",
-    "--ubatch-size",
-    "1024",
-    "--cache-reuse",
-    "256",
-  }
+  local args
+  if type(model) == "table" and model.repo then
+    args = { "-hf", model.repo }
+    if model.file and model.file ~= "" then
+      vim.list_extend(args, { "--hf-file", model.file })
+    end
+  elseif type(model) == "string" then
+    args = { "-m", vim.fn.expand(model) }
+  else
+    return { "--fim-qwen-1.5b-default" }
+  end
+  return vim.list_extend(args, { "--batch-size", "1024", "--ubatch-size", "1024", "--cache-reuse", "256" })
 end
 
 local function enabled()
@@ -146,7 +148,8 @@ local function health(cb)
   end)
 end
 
---- Starts the server if needed and calls cb(true) once it answers /health. cb(false) after 5 minutes.
+--- Starts the server if needed and calls cb(true) once it answers /health. cb(false) after 5 minutes (30 when the
+--- model comes from Hugging Face: the first start also downloads the file).
 ---@param cb fun(ok: boolean)
 ---@param tries integer?
 function M.ensure(cb, tries)
@@ -158,13 +161,17 @@ function M.ensure(cb, tries)
     if ok then
       return cb(true)
     end
+    if tries > 0 and not pid_alive(read_pid()) then
+      return cb(false) -- llama-server exited (bad model path, port in use, ...)
+    end
     if tries == 0 then
       if not start() then
         return cb(false)
       end
       log.info "FIM: starting llama-server (the first start downloads the model)…"
     end
-    if tries >= 600 then
+    local limit = type(cfg().model) == "table" and 3600 or 600
+    if tries >= limit then
       return cb(false)
     end
     vim.defer_fn(function()
@@ -209,7 +216,7 @@ function M.apply(on)
         end
         ready = true
         refresh_statusline()
-        log.info "FIM: ready (Tab accepts, Shift+Tab accepts one line)"
+        log.info "FIM: ready (Ctrl+Tab accepts, Ctrl+Shift+Tab accepts one line)"
       else
         log.warn("FIM: llama-server did not become ready; see " .. LOG)
       end
@@ -225,11 +232,60 @@ function M.apply(on)
   end
 end
 
---- Toggles and REMEMBERS the choice (same place as <leader>Sp).
+--- Toggles and REMEMBERS the choice (same place as <leader>Sp). With no model chosen yet, enabling opens the picker
+--- instead of downloading the 1.5B preset silently.
 ---@param on boolean
 function M.set_enabled(on)
-  require("prefs.store").save("fim.enabled", on)
+  local store = require "prefs.store"
+  if on and not cfg().model and store.read()["fim.model"] == nil then
+    return M.pick_model {
+      on_cancel = function()
+        log.info "FIM: no model chosen, still off"
+      end,
+    }
+  end
+  store.save("fim.enabled", on)
   M.apply(on)
+end
+
+---@param pid integer?
+---@param cb fun()
+---@param tries integer?
+local function wait_dead(pid, cb, tries)
+  tries = tries or 0
+  if pid_alive(pid) and tries < 50 then
+    return vim.defer_fn(function()
+      wait_dead(pid, cb, tries + 1)
+    end, 100)
+  end
+  cb()
+end
+
+--- Switches to `model` (a GGUF path, `{ repo, file }`, or "preset") and `gpu_layers`, saves the choice, stops the old
+--- server and starts the new one. It also turns FIM on.
+---@param model string|table
+---@param gpu_layers integer
+function M.use(model, gpu_layers)
+  local store = require "prefs.store"
+  settings.fim.model = model
+  settings.fim.gpu_layers = gpu_layers or 99
+  settings.fim.enabled = true
+  store.save("fim.model", model)
+  store.save("fim.gpu_layers", settings.fim.gpu_layers)
+  store.save("fim.enabled", true)
+  ready = false
+  refresh_statusline()
+  local pid = read_pid()
+  stop_server()
+  wait_dead(pid, function()
+    M.apply(true)
+  end)
+end
+
+--- Opens the model picker (`<leader>Sm`, `:Fim model`, the settings panel).
+---@param opts { on_cancel?: fun() }?
+function M.pick_model(opts)
+  require("fim.picker").open(opts)
 end
 
 function M.toggle()
@@ -270,19 +326,24 @@ function M.setup()
       health(function(ok)
         log.info(("FIM: %s, server %s"):format(enabled() and "on" or "off", ok and "ready" or "not running"))
       end)
+    elseif args.args == "model" then
+      M.pick_model()
     else
       M.toggle()
     end
   end, {
     nargs = "?",
     complete = function()
-      return { "on", "off", "status" }
+      return { "on", "off", "status", "model" }
     end,
-    desc = "Local FIM completion: toggle / on / off / status",
+    desc = "Local FIM completion: toggle / on / off / status / model",
   })
 
   if #vim.api.nvim_list_uis() == 0 or not enabled() or vim.g.light_mode then
     return
+  end
+  if not cfg().model and require("prefs.store").read()["fim.model"] == nil then
+    log.info "FIM: using the 1.5B preset (:Fim model picks the best for this PC)"
   end
   vim.defer_fn(function()
     M.ensure(function(ok)
