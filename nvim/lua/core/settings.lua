@@ -600,6 +600,7 @@ local defaults = {
     -- double-click to maximize
     appbar = {
       enabled = true, -- false = the system's title bar
+      visible = true, -- false = no bar at all (focus mode hides it while keeping the frameless window)
       height = 1.5, -- in text lines
       controls = "right", -- the window's minimize · maximize · close squares: "right" or "left"
       -- the left side: Leader's N (the app menu, F10), the project's name (the projects menu, Ctrl+Shift+O), ⌂ (start
@@ -612,6 +613,22 @@ local defaults = {
     },
     padding = { x = 0, bottom = 0 }, -- px around the editor (0 = edge to edge)
     onboarding = true, -- the welcome screen with the install checks on the first launch (Ctrl+Shift+W or the bar's chip any time)
+    -- Window shortcuts the app consumes before Neovim (they work in insert and in the chat too). `<C-…>`, `<S-…>`,
+    -- `<A-…>` and `<M-…>`; set one to "" to leave that key to Neovim. Every action in gui/init.lua can be bound.
+    shortcuts = {
+      quick_open = "<C-S-f>", -- open a file (Telescope)
+      tree = "<C-S-e>", -- show/hide the file tree
+      chat = "<C-S-a>", -- show/hide the agent chat panel
+      panes = "<C-S-l>", -- the panes menu (splits, layouts, focus)
+      terminal_pane = "<C-S-j>", -- the terminal pane (Alt+I stays the floating terminal)
+      focus = "<C-A-z>", -- focus mode (hides the bar and the statusline)
+    },
+    workspace = {
+      focus = {
+        bar = true, -- focus mode hides the app bar (the frameless window stays)
+        statusline = true, -- and the statusline
+      },
+    },
     -- Open a project (Ctrl+Shift+O): the git projects under your home are searched again only when the saved list
     -- is older than this (seconds; R in the picker searches now). Their facts are saved too and read again only
     -- when the project changes.

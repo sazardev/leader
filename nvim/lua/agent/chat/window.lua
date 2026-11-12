@@ -775,6 +775,13 @@ function M.toggle_view()
   M.set_view(M.current_view() == "full" and "mini" or "full")
 end
 
+--- Re-apply the settings width/view to an open panel (settings panel, chat menu).
+function M.relayout()
+  if M.is_open() then
+    relayout(true)
+  end
+end
+
 --- Redraw the transcript (called on streaming throttled, and on settle) or the
 --- history home when it is showing.
 function M.draw()

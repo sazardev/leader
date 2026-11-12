@@ -6,28 +6,43 @@
 -- The information chips on the right (recording, git changes, …) are in the same
 -- panel. Icons are Nerd Font glyphs; the app draws them.
 local state = require "gui.state"
+local workspace = require "gui.workspace"
 
 local M = {}
+
+local function shortcut(action, fallback)
+  local spec = (require("core.settings").gui.shortcuts or {})[action]
+  if type(spec) == "string" and spec ~= "" then
+    local ok, menu = pcall(require, "gui.menu")
+    if ok and menu.describe then
+      return menu.describe(spec)
+    end
+  end
+  return fallback
+end
 
 local function project_name()
   local cwd = vim.uv.cwd() or ""
   return cwd:match "([^/\\]+)[/\\]*$" or cwd
 end
 
+local agent_cache, agent_at
+
 local function agent_label()
+  local now = vim.uv.now()
+  if agent_cache and now - agent_at < 1000 then
+    return agent_cache
+  end
   local ok, selection = pcall(require, "agent.selection")
   local sel = ok and selection.current() or nil
-  return sel and selection.label(sel) or "none yet"
+  agent_cache = sel and selection.label(sel) or "none yet"
+  agent_at = now
+  return agent_cache
 end
 
 local function theme_name()
   local ok, appearance = pcall(require, "appearance")
   return ok and appearance.current() or "?"
-end
-
-local function tree_open()
-  local ok, api = pcall(require, "nvim-tree.api")
-  return ok and api.tree.is_visible() or false
 end
 
 ---@class GuiTool
@@ -82,6 +97,18 @@ M.TOOLS = {
     action = "history",
   },
   {
+    id = "quick_open",
+    side = "left",
+    on = true,
+    title = "Quick open",
+    desc = "find a file by name",
+    icon = "\u{f002}",
+    tip = function()
+      return "Quick open · " .. shortcut("quick_open", "Space f f")
+    end,
+    action = "quick_open",
+  },
+  {
     id = "search",
     side = "left",
     on = false,
@@ -96,27 +123,28 @@ M.TOOLS = {
   {
     id = "tree",
     side = "left",
-    on = false,
+    on = true,
     title = "File tree",
     desc = "shows or hides the tree; lit while it is open",
     icon = "\u{f07b}",
     tip = function()
-      return "File tree · Ctrl+N"
+      return "File tree · " .. shortcut("tree", "Ctrl+N")
     end,
     action = "tree",
-    active = tree_open,
+    active = workspace.tree_open,
   },
   {
     id = "terminal",
     side = "right",
     on = false,
     title = "Terminal",
-    desc = "a floating terminal",
+    desc = "the floating terminal (the pane is next to it)",
     icon = "\u{f120}",
     tip = function()
-      return "Terminal · Alt+I"
+      return "Terminal · " .. shortcut("terminal", "Alt+I")
     end,
     action = "terminal",
+    active = workspace.terminal_open,
   },
   {
     id = "problems",
@@ -129,6 +157,33 @@ M.TOOLS = {
       return "Problems · Space x x"
     end,
     action = "problems",
+    active = workspace.problems_open,
+  },
+  {
+    id = "panes",
+    side = "right",
+    on = true,
+    title = "Panes",
+    desc = "split, lay out and move between panes",
+    icon = "\u{f009}",
+    tip = function()
+      return "Panes · " .. shortcut("panes", "Space V")
+    end,
+    action = "panes",
+    active = workspace.panes_active,
+  },
+  {
+    id = "focus",
+    side = "right",
+    on = false,
+    title = "Focus mode",
+    desc = "hide the app bar and the statusline; the code gets the whole window",
+    icon = "\u{f06e}",
+    tip = function()
+      return "Focus mode · " .. shortcut("focus", "Ctrl+Alt+Z")
+    end,
+    action = "focus",
+    active = workspace.focus_active,
   },
   {
     id = "agent",
@@ -150,13 +205,10 @@ M.TOOLS = {
     desc = "the persistent Leader Chat (backend-agnostic, <leader>aC)",
     icon = "\u{f086}",
     tip = function()
-      return "Chat · <leader>aC"
+      return "Chat · " .. shortcut("chat", "Space a C")
     end,
     action = "chat",
-    active = function()
-      local chat = package.loaded["agent.chat.window"]
-      return chat and chat.is_open() or false
-    end,
+    active = workspace.chat_open,
   },
   {
     id = "theme",

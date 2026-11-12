@@ -32,6 +32,8 @@ pub enum UserEvent {
     Gpu(Box<Result<Renderer, String>>),
     /// The config sent the app bar's state (`leader_appbar`).
     Appbar(Value),
+    /// The config sent the window shortcuts (`leader_shortcuts`).
+    Shortcuts(Vec<Shortcut>),
     /// A window command from the config's menus (`leader_window`).
     Window(String),
     /// The config will say when its first screen is complete (`leader_hold`): draw nothing until then.
@@ -41,6 +43,90 @@ pub enum UserEvent {
     /// A later `leader --reuse …` hands this window its files (see `single`).
     #[cfg(unix)]
     Open(crate::single::Request),
+}
+
+/// A key the config bound to one of its actions (`settings.gui.shortcuts`), matched before the built-in window keys
+/// so the user can move or replace them. The app only knows the action's name; `gui.action` runs it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Shortcut {
+    /// Lowercase character or a named key (`f10`, `space`, `enter`, `escape`, `tab`, `backspace`, arrows…).
+    pub key: String,
+    pub ctrl: bool,
+    pub shift: bool,
+    pub alt: bool,
+    pub action: String,
+}
+
+impl Shortcut {
+    /// Does this key + modifier state trigger the shortcut? Characters ignore case (Shift turns `e` into `E`).
+    fn matches(&self, key: &Key, mods: ModifiersState) -> bool {
+        if (self.ctrl, self.shift, self.alt) != (mods.control_key(), mods.shift_key(), mods.alt_key()) {
+            return false;
+        }
+        match key {
+            Key::Character(c) => c.eq_ignore_ascii_case(&self.key) || (c.as_str() == " " && self.key == "space"),
+            Key::Named(n) => named_name(*n).is_some_and(|name| name == self.key),
+            _ => false,
+        }
+    }
+}
+
+fn shortcut_field<'a>(map: &'a [(Value, Value)], key: &str) -> Option<&'a Value> {
+    map.iter().find(|(k, _)| k.as_str() == Some(key)).map(|(_, v)| v)
+}
+
+/// Parses `[{ key = "e", ctrl = true, shift = true, action = "tree" }, …]`; bad entries are dropped, never fatal.
+fn parse_shortcuts(v: &Value) -> Vec<Shortcut> {
+    v.as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|item| {
+                    let map = item.as_map()?;
+                    let key = shortcut_field(map, "key")?.as_str()?.trim().to_ascii_lowercase();
+                    let action = shortcut_field(map, "action")?.as_str()?.trim().to_string();
+                    if key.is_empty() || action.is_empty() {
+                        return None;
+                    }
+                    let flag = |name| shortcut_field(map, name).and_then(Value::as_bool).unwrap_or(false);
+                    Some(Shortcut { key, ctrl: flag("ctrl"), shift: flag("shift"), alt: flag("alt"), action })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// The name of a named key as the config writes it, lowercase.
+fn named_name(key: NamedKey) -> Option<&'static str> {
+    Some(match key {
+        NamedKey::Enter => "enter",
+        NamedKey::Tab => "tab",
+        NamedKey::Backspace => "backspace",
+        NamedKey::Escape => "escape",
+        NamedKey::Delete => "delete",
+        NamedKey::Insert => "insert",
+        NamedKey::Home => "home",
+        NamedKey::End => "end",
+        NamedKey::PageUp => "pageup",
+        NamedKey::PageDown => "pagedown",
+        NamedKey::ArrowUp => "up",
+        NamedKey::ArrowDown => "down",
+        NamedKey::ArrowLeft => "left",
+        NamedKey::ArrowRight => "right",
+        NamedKey::Space => "space",
+        NamedKey::F1 => "f1",
+        NamedKey::F2 => "f2",
+        NamedKey::F3 => "f3",
+        NamedKey::F4 => "f4",
+        NamedKey::F5 => "f5",
+        NamedKey::F6 => "f6",
+        NamedKey::F7 => "f7",
+        NamedKey::F8 => "f8",
+        NamedKey::F9 => "f9",
+        NamedKey::F10 => "f10",
+        NamedKey::F11 => "f11",
+        NamedKey::F12 => "f12",
+        _ => return None,
+    })
 }
 
 #[derive(Default)]
@@ -100,6 +186,8 @@ pub struct App {
     content_marked: bool,
     /// Bench only (`LEADER_NO_HOLD`): draw as soon as Neovim flushes, as a build without the hold would.
     no_hold: bool,
+    /// The config's window shortcuts (settings.gui.shortcuts), matched before the built-in keys.
+    shortcuts: Vec<Shortcut>,
     /// Neovim was attached before the window existed (from the last run's cell, see `platform::Cell`).
     attached_early: bool,
     first_flush: bool,
@@ -209,6 +297,11 @@ impl App {
                 let _ = bar_proxy.send_event(UserEvent::Appbar(args.first().cloned().unwrap_or(Value::Nil)));
                 Ok(Value::Nil)
             }
+            "leader_shortcuts" => {
+                let list = parse_shortcuts(args.first().unwrap_or(&Value::Nil));
+                let _ = bar_proxy.send_event(UserEvent::Shortcuts(list));
+                Ok(Value::Nil)
+            }
             "leader_clipboard_set" => {
                 served.set(args);
                 Ok(Value::Nil)
@@ -283,6 +376,7 @@ impl App {
             first_flush: true,
             blink: Blink { on: true, next: None, seen: None },
             scripted,
+            shortcuts: Vec::new(),
             normal: platform::Saved::default(),
             input_at: None,
             snapshot: std::env::var_os("LEADER_SNAPSHOT").map(|p| Snapshot {
@@ -472,10 +566,14 @@ impl App {
         let root = self.screen.grids.get(&1).map(|g| (g.width * g.height) as f32).unwrap_or(1.0);
         let modal = self.screen.layers().iter().any(|l| l.floating && (l.grid.width * l.grid.height) as f32 > root * 0.12);
         self.bar.set_modal(modal);
-        if self.screen.title != self.title {
-            self.title = self.screen.title.clone();
-            if let (Some(w), Some(t)) = (&self.window, &self.title) {
-                w.set_title(t);
+        // An empty title (NvChad turns Neovim's own off) must never clear the window's: the app's initial "Leader"
+        // stays, and the config sets a real one (`titlestring`) for the compositor and the window switcher.
+        if let Some(title) = self.screen.title.as_deref().map(str::trim).filter(|t| !t.is_empty())
+            && self.title.as_deref() != Some(title)
+        {
+            self.title = Some(title.to_string());
+            if let Some(w) = &self.window {
+                w.set_title(title);
             }
         }
         self.render(event_loop);
@@ -802,6 +900,13 @@ impl App {
 
     /// Window-level shortcuts every desktop app has; true when consumed.
     fn shortcut(&mut self, key: &Key) -> bool {
+        // the config's own bindings win over the built-in ones, so a user can move any of them
+        let configured = self.shortcuts.iter().find(|s| s.matches(key, self.mods)).map(|s| s.action.clone());
+        if let Some(action) = configured {
+            let hit = self.bar.find(&action).unwrap_or(Hit::Outside);
+            self.action_at(&action, hit);
+            return true;
+        }
         let ctrl = self.mods.control_key();
         let shift = self.mods.shift_key();
         let letter = |k: &str| matches!(key, Key::Character(c) if ctrl && shift && c.eq_ignore_ascii_case(k));
@@ -1051,11 +1156,12 @@ impl ApplicationHandler<UserEvent> for App {
                 self.render(event_loop);
             }
             UserEvent::Window(name) => self.window_command(&name),
+            UserEvent::Shortcuts(list) => self.shortcuts = list,
             UserEvent::Appbar(v) => {
                 let next = appbar::State::from_value(&v);
                 let old = &self.bar.state;
-                let geometry =
-                    (next.enabled, next.height, next.pad_x, next.pad_bottom) != (old.enabled, old.height, old.pad_x, old.pad_bottom);
+                let geometry = (next.enabled, next.visible, next.height, next.pad_x, next.pad_bottom)
+                    != (old.enabled, old.visible, old.height, old.pad_x, old.pad_bottom);
                 if next.enabled != old.enabled
                     && let Some(w) = &self.window
                 {
@@ -1123,7 +1229,7 @@ impl ApplicationHandler<UserEvent> for App {
             }
             WindowEvent::ModifiersChanged(m) => self.mods = m.state(),
             WindowEvent::KeyboardInput { event, .. } => {
-                if event.state != ElementState::Pressed {
+                if event.state != ElementState::Pressed || event.repeat {
                     return;
                 }
                 if self.shortcut(&event.logical_key) {
@@ -1171,4 +1277,61 @@ fn write_png(path: &std::path::Path, w: u32, h: u32, rgba: &[u8]) -> Result<(), 
     enc.set_depth(png::BitDepth::Eight);
     let mut writer = enc.write_header().map_err(|e| e.to_string())?;
     writer.write_image_data(rgba).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn shortcut(key: &str, ctrl: bool, shift: bool, action: &str) -> Value {
+        Value::Map(vec![
+            ("key".into(), key.into()),
+            ("ctrl".into(), ctrl.into()),
+            ("shift".into(), shift.into()),
+            ("action".into(), action.into()),
+        ])
+    }
+
+    #[test]
+    fn shortcuts_parse_what_the_config_sends() {
+        let list = parse_shortcuts(&Value::Array(vec![
+            shortcut("e", true, true, "tree"),
+            shortcut("f", true, true, "quick_open"),
+            shortcut("", true, false, "ignored"),
+            Value::from("junk"),
+        ]));
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].key, "e");
+        assert!(list[0].ctrl && list[0].shift && !list[0].alt);
+        assert_eq!(list[0].action, "tree");
+        assert_eq!(list[1].action, "quick_open");
+    }
+
+    #[test]
+    fn shortcuts_take_any_shape() {
+        assert!(parse_shortcuts(&Value::Nil).is_empty());
+        assert!(parse_shortcuts(&Value::Map(vec![])).is_empty());
+        assert!(parse_shortcuts(&Value::Array(vec![Value::Map(vec![("key".into(), "x".into())])])).is_empty());
+    }
+
+    #[test]
+    fn shortcuts_match_the_key_and_the_modifiers() {
+        let s = Shortcut { key: "e".into(), ctrl: true, shift: true, alt: false, action: "tree".into() };
+        let both = ModifiersState::CONTROL | ModifiersState::SHIFT;
+        assert!(s.matches(&Key::Character("e".into()), both));
+        assert!(s.matches(&Key::Character("E".into()), both));
+        assert!(!s.matches(&Key::Character("e".into()), ModifiersState::CONTROL));
+        assert!(!s.matches(&Key::Character("r".into()), both));
+
+        let f10 = Shortcut { key: "f10".into(), ctrl: false, shift: false, alt: false, action: "menu".into() };
+        assert!(f10.matches(&Key::Named(NamedKey::F10), ModifiersState::empty()));
+        assert!(!f10.matches(&Key::Named(NamedKey::F11), ModifiersState::empty()));
+
+        let space = Shortcut { key: "space".into(), ctrl: true, shift: false, alt: false, action: "x".into() };
+        assert!(space.matches(&Key::Named(NamedKey::Space), ModifiersState::CONTROL));
+
+        let focus = Shortcut { key: "z".into(), ctrl: true, shift: false, alt: true, action: "focus".into() };
+        assert!(focus.matches(&Key::Character("z".into()), ModifiersState::CONTROL | ModifiersState::ALT));
+        assert!(!focus.matches(&Key::Character("z".into()), ModifiersState::CONTROL | ModifiersState::SHIFT));
+    }
 }

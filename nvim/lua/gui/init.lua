@@ -10,8 +10,24 @@
 -- show (recording, the file's git changes, LSP, indent, unusual encodings).
 -- Sent only when something changed, with the flat design's colors.
 local settings = require "core.settings"
+local workspace = require "gui.workspace"
 
 local M = {}
+
+--- The key a window action is bound to (settings.gui.shortcuts), written for people; the fallback otherwise.
+---@param action string
+---@param fallback string
+---@return string
+local function shortcut_hint(action, fallback)
+  local spec = (settings.gui.shortcuts or {})[action]
+  if type(spec) == "string" and spec ~= "" then
+    local ok, menu = pcall(require, "gui.menu")
+    if ok then
+      return menu.describe(spec)
+    end
+  end
+  return fallback
+end
 
 local last ---@type string? what was sent last (JSON), to skip identical updates
 local queued = false
@@ -217,6 +233,7 @@ function M.state()
   local left, right = toolbar.tools(buttons)
   return {
     enabled = cfg.enabled ~= false,
+    visible = cfg.visible ~= false,
     controls = cfg.controls or "right",
     mark = buttons.mark ~= false,
     left = left,
@@ -359,14 +376,14 @@ function M.app_menu()
         { label = "New File", keys = "<leader>Fn" },
         { label = "New Folder", keys = "<leader>FN" },
         { sep = true },
-        { label = "Open File…", keys = "<leader>ff" },
+        { label = "Open File…", hint = shortcut_hint("quick_open", "Ctrl+Shift+F"), run = workspace.quick_open },
         { label = "Open Recent", hint = "Ctrl+Shift+R", run = M.actions.history },
         { label = "Open Project…", hint = "Ctrl+Shift+O", run = picker },
         { label = "Browse Folders…", run = browse },
         { label = "Open Path…", run = projects.ask },
         { sep = true },
         { label = "Save", keys = "<C-s>" },
-        { label = "Save All", hint = ":wa", run = ex "wall" },
+        { label = "Save All", hint = ":wa", run = workspace.save_all },
         { sep = true },
         { label = "Rename…", keys = "<leader>Fr" },
         { label = "Move…", keys = "<leader>Fm" },
@@ -425,33 +442,41 @@ function M.app_menu()
           end,
         },
         { sep = true },
-        { label = "File Tree", keys = "<C-n>" },
-        { label = "Outline", hint = ":AerialToggle", run = ex "AerialToggle" },
-        { label = "Problems", keys = "<leader>xx" },
-        { label = "Terminal", keys = "<M-i>" },
-        { label = "Terminal Pane", keys = "<M-t>" },
-        { label = "New Terminal", keys = "<leader>Tn" },
         {
-          label = "Panes",
+          label = "Workspace",
           items = {
-            { label = "Split Right", keys = "<M-v>" },
-            { label = "Split Down", keys = "<M-h>" },
-            { label = "Dashboard Here", keys = "<leader>Vd" },
+            { label = "Quick Open…", hint = shortcut_hint("quick_open", "Ctrl+Shift+F"), run = workspace.quick_open },
+            {
+              label = "File Tree",
+              hint = shortcut_hint("tree", "Ctrl+Shift+E"),
+              run = workspace.toggle_tree,
+              current = workspace.tree_open(),
+            },
+            {
+              label = "Chat / Agent",
+              hint = shortcut_hint("chat", "Ctrl+Shift+A"),
+              run = workspace.toggle_chat,
+              current = workspace.chat_open(),
+            },
+            { label = "Terminal", hint = "Alt+I", run = workspace.toggle_terminal },
+            {
+              label = "Terminal Pane",
+              hint = shortcut_hint("terminal_pane", "Ctrl+Shift+J"),
+              run = workspace.toggle_terminal_pane,
+            },
+            { label = "Problems", keys = "<leader>xx", run = workspace.toggle_problems },
+            { label = "Outline", hint = ":AerialToggle", run = workspace.toggle_outline },
             { sep = true },
-            { label = "Two Columns", keys = "<leader>V2" },
-            { label = "Three Columns", keys = "<leader>V3" },
-            { label = "Main + Two Stacked", keys = "<leader>Vm" },
-            { label = "2x2 Grid", keys = "<leader>V4" },
-            { sep = true },
-            { label = "List", keys = "<leader>Vl" },
-            { label = "Close", keys = "<M-q>" },
-            { label = "Close Other Panes", keys = "<leader>VX" },
-            { label = "Zoom", keys = "<M-z>" },
-            { label = "Equal Sizes", keys = "<leader>V=" },
-            { label = "Rotate", keys = "<leader>Vr" },
-            { label = "Swap With Next", keys = "<leader>Vs" },
+            {
+              label = "Focus Mode",
+              hint = shortcut_hint("focus", "Ctrl+Alt+Z"),
+              run = workspace.focus,
+              current = workspace.focus_active(),
+            },
+            { label = "New Terminal", keys = "<leader>Tn" },
           },
         },
+        { label = "Panes", items = workspace.panes_menu() },
         { sep = true },
         { label = "Fullscreen", hint = "F11", run = window "fullscreen" },
         { label = "Zoom In", hint = "Ctrl+=", run = window "zoom_in" },
@@ -537,12 +562,16 @@ function M.app_menu()
         { label = "Write Docs", keys = "<leader>ad" },
         { label = "Next Edit", keys = "<leader>an" },
         { sep = true },
-        { label = "Chat…", keys = "<leader>aC" },
-        { label = "History", keys = "<leader>ah" },
+        { label = "Chat Options", items = M.chat_menu() },
+        { label = "Agent History", keys = "<leader>ah" },
         { label = "Model…", keys = "<leader>am" },
         { label = "Stop", keys = "<leader>ax" },
         { label = "All Agent Actions…", keys = "<leader>a" },
       },
+    },
+    {
+      label = "Chat",
+      items = M.chat_menu(),
     },
     {
       label = "Window",
@@ -825,56 +854,189 @@ function M.theme_menu()
   end
 end
 
---- The agent menu (the bar's bolt): every agent this machine has, each with its models (a dot on the one in use),
---- then the model and effort panel and the setup that finds or installs one.
+--- The chat / agent panel menu (the app bar's chat tool, the Agent menu and the Chat top-level menu): every chat
+--- option that has a key inside the panel, without opening it first. No backend is queried here: the model/effort
+--- pickers load what they need only when chosen, so this menu opens in the same frame as any other.
+---@return GuiMenuItem[]
+function M.chat_menu()
+  local window = package.loaded["agent.chat.window"]
+  local session = window and window.session or nil
+  local profiles = require "agent.chat.profiles"
+  local selection = require "agent.selection"
+  local cur = selection.current()
+  local cfg = settings.agent.chat or {}
+  local profile = profiles.of(session, cfg.profile)
+  local view = window and window.current_view() or (cfg.view == "full" and "full" or "mini")
+  local open = window and window.is_open() or false
+  local focused = false
+  if window then
+    local ok, value = pcall(window.focused)
+    focused = ok and value or false
+  end
+  local running = window and window.running or false
+  local label = cur and selection.label(cur) or "not set"
+  local function set_profile(id)
+    pcall(function()
+      require("agent.chat").set_profile(id)
+    end)
+    M.update()
+  end
+  local function toggle(key)
+    local value = not (cfg[key] ~= false)
+    cfg[key] = value
+    pcall(function()
+      require("prefs.store").save("agent.chat." .. key, value)
+    end)
+    pcall(function()
+      window.draw()
+    end)
+    M.update()
+  end
+  local profiles_sub = {}
+  for _, p in ipairs(profiles.list()) do
+    profiles_sub[#profiles_sub + 1] = {
+      label = p.label,
+      detail = p.description,
+      current = p.id == profile.id,
+      run = function()
+        set_profile(p.id)
+      end,
+    }
+  end
+  local items = {
+    {
+      label = open and (focused and "Hide Chat" or "Focus Chat") or "Open Chat",
+      keys = "<leader>aC",
+      run = workspace.toggle_chat,
+    },
+    { label = "New Chat", run = workspace.chat_new },
+    { label = "History…", run = workspace.chat_history },
+    { sep = true },
+    { label = "Model", detail = session and session.model or label, run = workspace.chat_model },
+    { label = "Profile", detail = profile.label, items = profiles_sub },
+    { label = "Effort", detail = session and (session.effort or "default") or "default", run = workspace.chat_effort },
+    { sep = true },
+    {
+      label = "View",
+      detail = view == "full" and "full screen" or "half panel",
+      items = {
+        {
+          label = "Mini",
+          current = view == "mini",
+          run = function()
+            workspace.chat_view "mini"
+          end,
+        },
+        {
+          label = "Full Screen",
+          current = view == "full",
+          run = function()
+            workspace.chat_view "full"
+          end,
+        },
+      },
+    },
+    {
+      label = "Collapse to Rail",
+      run = workspace.chat_collapse,
+      when = function()
+        return open
+      end,
+    },
+    { label = "Apply Write files", current = cfg.apply ~= false, run = workspace.chat_toggle_apply },
+    {
+      label = "Show injected context",
+      current = cfg.show_context ~= false,
+      run = function()
+        toggle "show_context"
+      end,
+    },
+    {
+      label = "Show thinking",
+      current = cfg.show_thinking ~= false,
+      run = function()
+        toggle "show_thinking"
+      end,
+    },
+    {
+      label = "Show tokens and cost",
+      current = cfg.show_tokens ~= false,
+      run = function()
+        toggle "show_tokens"
+      end,
+    },
+    { sep = true },
+    {
+      label = "Stop Answer",
+      run = workspace.chat_stop,
+      when = function()
+        return running
+      end,
+    },
+    { label = "Clear Conversation", run = workspace.chat_clear },
+    { label = "Chat Help", run = workspace.chat_help },
+    {
+      label = "Chat Settings…",
+      run = function()
+        require("prefs").open()
+      end,
+    },
+  }
+  return items
+end
+
+--- The agent menu (the bar's bolt): the model and effort quickly, the chat options, the setup and the history.
+--- Models are NOT listed here: listing them asks every backend and used to block this menu for up to a second. The
+--- picker (Zed's style) loads them only when chosen, so opening this menu is free.
 ---@return GuiMenuItem[]
 function M.agent_menu()
-  local ok, backends = pcall(require, "agent.backends")
-  local items = {}
-  if ok then
-    local selection = require "agent.selection"
-    local cur = selection.current()
-    for _, name in ipairs(backends.names()) do
-      local b = backends.get(name)
-      if b and backends.is_available(name) then
-        local models, done = {}, false
-        pcall(b.models, function(list)
-          models, done = list or {}, true
-        end)
-        vim.wait(800, function()
-          return done
-        end, 20)
-        local sub = {}
-        for _, mdl in ipairs(models) do
-          local id = mdl.id or mdl.name or tostring(mdl)
-          sub[#sub + 1] = {
-            label = id,
-            current = cur ~= nil and cur.backend == name and cur.model == id,
-            run = function()
-              selection.set(name, id)
-              require("utils.log").info(("Agent: %s/%s"):format(name, id))
-              M.update()
-            end,
-          }
-        end
-        if #sub == 0 then
-          sub[1] = { label = "no models listed", hint = "Space a m" }
-        end
-        items[#items + 1] = {
-          label = name,
-          detail = cur and cur.backend == name and (cur.model or "") or "",
-          current = cur ~= nil and cur.backend == name,
-          items = sub,
-        }
-      end
-    end
+  local selection = require "agent.selection"
+  local cur = selection.current()
+  local can_effort = false
+  if cur then
+    local backend = require("agent.backends").get(cur.backend)
+    can_effort = backend ~= nil and backend.efforts ~= nil
   end
-  if #items == 0 then
-    items[1] = { label = "No agent on this machine yet", hint = "" }
-  end
-  vim.list_extend(items, {
+  local items = {
+    {
+      label = "Model & Effort…",
+      keys = "<leader>am",
+      detail = cur and selection.label(cur) or "none",
+      run = function()
+        require("agent").settings()
+      end,
+    },
+    {
+      label = "Main model…",
+      run = function()
+        require("agent.chooser").model "main"
+      end,
+    },
+    {
+      label = "Light model…",
+      run = function()
+        require("agent.chooser").model "light"
+      end,
+    },
+    {
+      label = "Reasoning effort…",
+      run = function()
+        require("agent.chooser").effort()
+      end,
+      when = function()
+        return can_effort
+      end,
+    },
     { sep = true },
-    { label = "Model & Effort…", keys = "<leader>am" },
+    {
+      label = "Chat Options…",
+      run = function()
+        M.actions.chat_menu(0)
+      end,
+    },
+    { label = "Chat History…", run = workspace.chat_history },
+    { label = "Agent History", keys = "<leader>ah" },
+    { sep = true },
     {
       label = "Find or Install an Agent…",
       run = function()
@@ -882,7 +1044,7 @@ function M.agent_menu()
       end,
     },
     { label = "Set Up Leader…", run = M.actions.welcome },
-  })
+  }
   return items
 end
 
@@ -925,14 +1087,51 @@ M.actions = {
     require("gui.menu").open(M.agent_menu(), { col = col })
   end,
   chat = function()
-    require("agent.chat").open()
+    workspace.toggle_chat()
   end,
-  tree = function()
-    pcall(vim.cmd, "NvimTreeToggle")
+  chat_menu = function(col)
+    require("gui.menu").open(M.chat_menu(), { col = col })
+  end,
+  chat_new = workspace.chat_new,
+  chat_history = workspace.chat_history,
+  chat_model = workspace.chat_model,
+  chat_effort = workspace.chat_effort,
+  chat_profile = workspace.chat_profile,
+  chat_apply = function()
+    workspace.chat_toggle_apply()
     M.update()
   end,
-  terminal = feed "<M-i>",
-  problems = feed "<leader>xx",
+  chat_view = function()
+    workspace.chat_toggle_view()
+    M.update()
+  end,
+  chat_stop = workspace.chat_stop,
+  chat_clear = workspace.chat_clear,
+  chat_help = workspace.chat_help,
+  quick_open = workspace.quick_open,
+  tree = function()
+    workspace.toggle_tree()
+  end,
+  panes = function(col)
+    require("gui.menu").open(workspace.panes_menu(), { col = col })
+  end,
+  focus = function()
+    workspace.focus()
+    M.update()
+  end,
+  terminal = function()
+    workspace.toggle_terminal()
+  end,
+  terminal_pane = function()
+    workspace.toggle_terminal_pane()
+  end,
+  outline = function()
+    workspace.toggle_outline()
+  end,
+  problems = function()
+    workspace.toggle_problems()
+  end,
+  save_all = workspace.save_all,
   settings = feed "<leader>Sp",
   customize = function()
     require("gui.toolbar").customize(M.update)
@@ -941,6 +1140,90 @@ M.actions = {
     require("gui.menu").open(M.projects_menu(), { col = col })
   end,
 }
+
+--- A `<C-S-e>`-style key from settings.gui.shortcuts: the app matches it before Neovim, so it works in insert too.
+---@param spec string
+---@return { key: string, ctrl: boolean, shift: boolean, alt: boolean }?
+local SHORTCUT_NAMES = {
+  cr = "enter",
+  ["return"] = "enter",
+  esc = "escape",
+  bs = "backspace",
+  del = "delete",
+  ins = "insert",
+  pgup = "pageup",
+  pgdn = "pagedown",
+  up = "up",
+  down = "down",
+  left = "left",
+  right = "right",
+  space = "space",
+  tab = "tab",
+  home = "home",
+  ["end"] = "end",
+}
+
+local function parse_shortcut(spec)
+  local inner = spec:match "^<(.+)>$"
+  if not inner then
+    return nil
+  end
+  local ctrl, shift, alt = false, false, false
+  local rest = inner
+  while true do
+    local mod, tail = rest:match "^([CSAM])%-(.+)$"
+    if not mod then
+      break
+    end
+    if mod == "C" then
+      ctrl = true
+    elseif mod == "S" then
+      shift = true
+    else
+      alt = true
+    end
+    rest = tail
+  end
+  local key = rest:lower()
+  if key == "" then
+    return nil
+  end
+  return { key = SHORTCUT_NAMES[key] or key, ctrl = ctrl, shift = shift, alt = alt }
+end
+
+---@return table[]
+function M.shortcuts()
+  local list = {}
+  for action, spec in pairs(settings.gui.shortcuts or {}) do
+    if type(spec) == "string" and spec ~= "" then
+      local s = parse_shortcut(spec)
+      if s then
+        s.action = action
+        list[#list + 1] = s
+      end
+    end
+  end
+  table.sort(list, function(a, b)
+    return a.action < b.action
+  end)
+  return list
+end
+
+local last_shortcuts
+
+--- Sends the window shortcuts to the app when they differ from the last ones (cheap: six small tables).
+function M.push_shortcuts()
+  if not vim.g.leader_gui_channel then
+    return
+  end
+  local list = M.shortcuts()
+  local json = vim.json.encode(list)
+  if json == last_shortcuts then
+    return
+  end
+  last_shortcuts = json
+  pcall(vim.rpcnotify, vim.g.leader_gui_channel, "leader_shortcuts", list)
+end
 
 --- A button of the app bar or a window shortcut (the app calls it by name, with the column under the button).
 ---@param name string
@@ -973,6 +1256,7 @@ function M.update()
   queued = true
   vim.schedule(function()
     queued = false
+    M.push_shortcuts()
     local ok, state = pcall(M.state)
     if not ok then
       return
@@ -1034,6 +1318,25 @@ function M.setup()
   -- the app reads it once when the first screen is ready (it is not a Neovim option)
   vim.g.leader_gui_font_weight = settings.gui.font_weight or 400
   local group = vim.api.nvim_create_augroup("LeaderGui", { clear = true })
+  -- The window's title for the compositor, the taskbar and the window switcher (the app's own bar is not the system's):
+  -- "startup.lua — leader", or "leader" on the start screen. NvChad turns Neovim's titles off.
+  vim.o.title = true
+  local function titled()
+    local name = vim.api.nvim_buf_get_name(0)
+    local file = name ~= "" and vim.fn.fnamemodify(name, ":t") or ""
+    local project = vim.fn.fnamemodify(vim.uv.cwd() or "", ":t")
+    local text
+    if file ~= "" and project ~= "" and file ~= project then
+      text = file .. " — " .. project
+    elseif file ~= "" then
+      text = file .. " — Leader"
+    else
+      text = project ~= "" and (project .. " — Leader") or "Leader"
+    end
+    vim.o.titlestring = text
+  end
+  titled()
+  vim.api.nvim_create_autocmd({ "BufEnter", "BufFilePost", "DirChanged" }, { group = group, callback = titled })
   vim.api.nvim_create_autocmd({
     "VimEnter",
     "BufEnter",
@@ -1124,6 +1427,7 @@ function M.setup()
   M.update()
   require("gui.onboarding").setup()
   require("gui.startup").setup()
+  M.push_shortcuts()
 end
 
 return M

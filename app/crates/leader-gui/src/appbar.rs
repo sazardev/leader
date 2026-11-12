@@ -68,6 +68,8 @@ pub struct Activity {
 #[derive(Debug, Clone, PartialEq)]
 pub struct State {
     pub enabled: bool,
+    /// Drawn at all (focus mode hides it without asking the system for decorations).
+    pub visible: bool,
     /// In text lines.
     pub height: f32,
     /// Logical px around the editor (0 = edge to edge).
@@ -107,6 +109,7 @@ impl Default for State {
     fn default() -> Self {
         State {
             enabled: true,
+            visible: true,
             height: 1.5,
             pad_x: 0.0,
             pad_bottom: 0.0,
@@ -212,6 +215,7 @@ impl State {
         let pad = |k: &str, def: f32| padding.and_then(|p| float(get(p, k))).unwrap_or(def).clamp(0.0, 200.0);
         State {
             enabled: flag(v, "enabled", true),
+            visible: flag(v, "visible", true),
             height: float(get(v, "height")).unwrap_or(d.height).clamp(1.2, 4.0),
             pad_x: pad("x", d.pad_x),
             pad_bottom: pad("bottom", d.pad_bottom),
@@ -425,7 +429,7 @@ struct Layout {
 
 impl Bar {
     pub fn height(&self, m: &CellMetrics) -> f32 {
-        if self.state.enabled { (m.height * self.state.height).round() } else { 0.0 }
+        if self.state.enabled && self.state.visible { (m.height * self.state.height).round() } else { 0.0 }
     }
 
     pub fn colors(&self, fg: u32, bg: u32) -> Colors {
@@ -653,7 +657,7 @@ impl Bar {
 
     pub fn hit(&self, x: f32, y: f32, width: f32, line: &CellMetrics, m: &CellMetrics) -> Hit {
         let l = self.layout(line, m, width);
-        if !self.state.enabled || y < 0.0 || y >= l.h {
+        if !self.state.enabled || !self.state.visible || y < 0.0 || y >= l.h {
             return Hit::Outside;
         }
         for (b, cx, _, r) in l.controls {
@@ -725,7 +729,7 @@ impl Bar {
         bg: u32,
         scale: f32,
     ) -> Result<(), AtlasFull> {
-        if !self.state.enabled {
+        if !self.state.enabled || !self.state.visible {
             return Ok(());
         }
         let (line, m) = (fonts.metrics, fonts.small);
@@ -1073,6 +1077,15 @@ mod tests {
         b.state.enabled = false;
         assert_eq!(b.height(&metrics()), 0.0);
         assert_eq!(b.hit(10.0, 5.0, 1000.0, &metrics(), &metrics()), Hit::Outside);
+    }
+
+    #[test]
+    fn a_hidden_bar_takes_no_room_but_keeps_its_frame() {
+        let mut b = Bar::default();
+        b.state.visible = false;
+        assert_eq!(b.height(&metrics()), 0.0);
+        assert_eq!(b.hit(10.0, 5.0, 1000.0, &metrics(), &metrics()), Hit::Outside);
+        assert!(b.state.enabled, "hiding it for focus mode must not ask the window for system decorations");
     }
 
     #[test]

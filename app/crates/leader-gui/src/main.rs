@@ -43,6 +43,9 @@ environment:
 
 window keys:
   F10               app menu              Ctrl+Shift+P      command palette
+  Ctrl+Shift+F      quick open            Ctrl+Shift+E      file tree
+  Ctrl+Shift+A      chat / agent panel    Ctrl+Shift+L      panes menu
+  Ctrl+Shift+J      terminal pane         Ctrl+Alt+Z        focus mode
   Ctrl+Shift+O      open a project
   F11               fullscreen            Ctrl+Shift+Enter  maximize
   Ctrl+Shift+M      minimize              Ctrl+Shift+N      new window

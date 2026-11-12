@@ -36,6 +36,72 @@ return {
   {
     group = "App",
     when = in_app,
+    label = "Bar height",
+    kind = "choice",
+    id = "gui.appbar.height",
+    choices = {
+      { value = 1.2, label = "compact" },
+      { value = 1.5, label = "normal" },
+      { value = 1.8, label = "airy" },
+    },
+    apply = push,
+  },
+  {
+    group = "App",
+    when = in_app,
+    label = "Window controls",
+    kind = "choice",
+    id = "gui.appbar.controls",
+    choices = { { value = "right", label = "right" }, { value = "left", label = "left" } },
+    apply = push,
+  },
+  {
+    group = "App",
+    when = in_app,
+    label = "Editor padding",
+    kind = "choice",
+    id = "gui.padding.x",
+    choices = {
+      { value = 0, label = "edge to edge" },
+      { value = 4, label = "4 px" },
+      { value = 8, label = "8 px" },
+      { value = 12, label = "12 px" },
+    },
+    apply = push,
+  },
+  {
+    group = "App",
+    when = in_app,
+    label = "Activity in the bar",
+    kind = "toggle",
+    id = "gui.appbar.activity",
+    apply = push,
+  },
+  {
+    group = "App",
+    when = in_app,
+    label = "Focus mode",
+    kind = "action",
+    show = function()
+      return require("gui.workspace").focus_active() and "on" or "off"
+    end,
+    run = function()
+      require("gui.workspace").focus()
+      push()
+    end,
+  },
+  {
+    group = "App",
+    when = in_app,
+    label = "Toolbar…",
+    kind = "action",
+    run = function()
+      require("gui.toolbar").customize(push)
+    end,
+  },
+  {
+    group = "App",
+    when = in_app,
     label = "Font weight",
     kind = "choice",
     id = "gui.font_weight",

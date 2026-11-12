@@ -158,10 +158,26 @@ function M.pick_session()
   window.refresh_placeholder()
 end
 
+--- Set the profile of this chat (used by the settings panel and the app's Chat menu).
+---@param id string
+function M.set_profile(id)
+  local session = current()
+  session.profile = id
+  local window = require "agent.chat.window"
+  if #(session.messages or {}) > 0 then
+    require("agent.chat.store").put(session)
+  end
+  if window.home then
+    window.home.profile = id
+  end
+  window.draw()
+  window.refresh_placeholder()
+  require("utils.log").info(("Chat: %s profile"):format(id))
+end
+
 --- Pick the profile of this chat: ask (read-only), write (code) or minimal.
 function M.pick_profile()
   local session = current()
-  local window = require "agent.chat.window"
   local profiles = require "agent.chat.profiles"
   local items = {}
   for _, profile in ipairs(profiles.list()) do
@@ -172,16 +188,7 @@ function M.pick_profile()
     }
   end
   require("agent.ui.select").pick(items, { title = "Chat · profile" }, function(choice)
-    session.profile = choice.id
-    if #(session.messages or {}) > 0 then
-      require("agent.chat.store").put(session)
-    end
-    if window.home then
-      window.home.profile = choice.id
-    end
-    window.draw()
-    window.refresh_placeholder()
-    require("utils.log").info(("Chat: %s profile"):format(choice.id))
+    M.set_profile(choice.id)
   end)
 end
 
