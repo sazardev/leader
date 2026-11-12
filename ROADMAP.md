@@ -6,10 +6,10 @@ opinions. Comment on an issue or open a discussion to push something up the list
 
 ## Now
 
-- **1.18 stability**: sessions, panes, local FIM completion and the installer. Reproduce, report, fix.
+- **1.19 stability**: the Zed-like workspace, configurable window shortcuts, chat/agent menus and signed releases. Reproduce, report, fix.
 - **Community base**: issue/PR templates, contributing and security docs, CI, the repo polish (this document included).
-- **Signed releases again**: restore the `Leader Releases` key and sign every asset from 1.19 on; the 1.15–1.18 assets
-  are checksummed but unsigned. The installer already verifies signatures when they exist.
+- **Signed releases**: 1.19 signs again with the new `Leader Releases` key; keep an encrypted backup of the key and its
+  revocation certificate. The 1.15–1.18 assets stay checksummed but unsigned.
 - **Docs**: keep the generated cheatsheet, the single-page documentation and the offline guide in sync; one page per
   language, one contract per folder.
 

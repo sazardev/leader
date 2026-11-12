@@ -2,6 +2,43 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.19.0] - 2026-11-11
+
+### Highlights
+
+- **A Zed-like workspace**: quick open (`Ctrl+Shift+F`), the file tree (`Ctrl+Shift+E`), the chat/agent dock (`Ctrl+Shift+A`), the panes menu (`Ctrl+Shift+L`), the terminal pane (`Ctrl+Shift+J`) and focus mode (`Ctrl+Alt+Z`). The window shortcuts are configurable in `gui.shortcuts` and work while typing; View > Workspace, the toolbar and the command palette carry the same actions.
+- **The GUI catches up with Leader**: a Chat menu with model, profile, effort, view, apply, context, thinking, tokens, stop and clear; an instant agent menu (models load only when picked); tree/chat/panes/focus tools with live active states; settings for bar height, controls, padding, activity, chat width and view.
+- **Faster and cleaner**: the agent menu no longer waits for every backend (~0.4 ms instead of up to 800 ms each), the chat opens in ~24 ms, focus mode hides the app bar and statusline without system decorations, and the setup stays usable in short windows.
+- **Signed releases again**: 1.19 is the first signed release after the 1.15-1.18 gap, with a new Leader Releases key (fingerprint `1982245F766BD77FBA36A8E73DAE20054C308EB6`). The previous key is retired; the 1.15-1.18 assets stay unsigned.
+- **Site and community**: the documentation and offline guide in Help, the new website with short install links, and the project health files.
+
+### Features
+
+- **gui:** add the workspace, configurable shortcuts and chat options (39c536b)
+- **gui:** documentation and offline guide in Help (370ebd4)
+- **community:** health files, CI, banner and an offline guide (ec74422)
+- **site:** deploy leader.sazardev.stream with SEO and short links (77a3568)
+
+### Fixes
+
+- **gui:** keep the setup usable in short windows and sessions clean (588dff1)
+- **site:** serve the offline guide at /offline (bcb5e67)
+
+### Other changes
+
+- chore(packaging): rotate the Leader Releases signing key for 1.19.0 (c6d818d)
+- docs(gui): document the workspace, shortcuts, panes and chat options (cbbe3ca)
+- test(gui): cover workspace shortcuts, focus mode and short setups (3abf9ed)
+- chore(deps): bump tokio from 1.54.0 to 1.54.1 in /app (#3) (eb8b2f8)
+- chore(deps): bump smol_str from 0.3.6 to 0.3.7 in /app in the cargo group (#2) (c79609e)
+- chore(ci): bump actions/checkout from 5 to 7 (#1) (cfe04fc)
+- docs: link the live offline guide, not the raw file (4118f8f)
+- docs(readme): mention Help > Offline Guide (26f74c6)
+- docs(readme): link the FAQ and tidy the authors (4b35143)
+- chore(ci): checkout v5 for the Node 24 runner (b463d0e)
+- docs(readme): a clearer first screen with install and why (76a802a)
+- chore(packaging): point the source Arch package at v1.18.0 (bd95fc7)
+
 ## [1.18.0] - 2026-11-11
 
 ### Highlights
@@ -685,3 +722,4 @@ All notable changes, newest first. Generated from the Conventional Commits since
 - update config files and README (7c45f1e)
 - update config files (b4dba20)
 - Initial commit (68e950e)
+
