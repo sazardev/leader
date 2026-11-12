@@ -30,6 +30,7 @@ return {
         components.build_status(),
         components.flutter_status(),
         components.dartgen_status(),
+        components.langtest_status(),
         components.darttest_status(),
         components.diagnostic_count(vim.diagnostic.severity.ERROR),
         components.diagnostic_count(vim.diagnostic.severity.WARN),

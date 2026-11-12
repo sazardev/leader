@@ -11,7 +11,7 @@ local ts = require "langtest.ts"
 
 local M = {}
 
-M.ADAPTERS = { "pytest", "jsunit", "cargo", "dotnet", "swift" }
+M.ADAPTERS = { "pytest", "jsunit", "cargo", "dotnet", "swift", "go" }
 
 local NS = vim.api.nvim_create_namespace "langtest"
 local MARKS = vim.api.nvim_create_namespace "langtest.marks"
@@ -25,6 +25,7 @@ local HL = { pass = "LangTestPass", fail = "LangTestFail", skip = "LangTestSkip"
 ---@field rel string       relative to the root
 ---@field test LangTestDef?
 ---@field tests LangTestDef[]
+---@field flags string[]?  extra runner flags (Go's -race/-cover)
 ---@field report string    where the runner writes its report
 
 ---@class LangTestOutput
@@ -47,9 +48,11 @@ local HL = { pass = "LangTestPass", fail = "LangTestFail", skip = "LangTestSkip"
 local results = {}
 ---@type table<string, string> per test file: ids running now ("…")
 local running = {}
-local last ---@type { scope: string, file: string }?
+local last ---@type { scope: string, file: string, flags: string[]? }?
+local last_run ---@type { root: string, list: LangTestResult[], secs: number }?
 local output ---@type string[]?
 local current ---@type vim.SystemObj?
+local current_root ---@type string?
 local watching = false
 
 --- The adapter of a buffer's filetype, and the project root it runs in
@@ -161,15 +164,23 @@ local function quickfix(list, ctx)
   end
 end
 
+--- The totals of a run (pure)
+---@param list LangTestResult[]
+---@return { pass: integer, fail: integer, skip: integer }
+function M.counts(list)
+  local n = { pass = 0, fail = 0, skip = 0 }
+  for _, r in ipairs(list) do
+    n[r.status] = (n[r.status] or 0) + 1
+  end
+  return n
+end
+
 --- One line with the totals (pure)
 ---@param list LangTestResult[]
 ---@param secs number
 ---@return string, boolean failed
 function M.summary(list, secs)
-  local n = { pass = 0, fail = 0, skip = 0 }
-  for _, r in ipairs(list) do
-    n[r.status] = n[r.status] + 1
-  end
+  local n = M.counts(list)
   local parts = { ("%d passed"):format(n.pass) }
   if n.fail > 0 then
     parts[#parts + 1] = ("%d failed"):format(n.fail)
@@ -178,6 +189,59 @@ function M.summary(list, secs)
     parts[#parts + 1] = ("%d skipped"):format(n.skip)
   end
   return ("Tests: %s · %.1fs"):format(table.concat(parts, ", "), secs), n.fail > 0
+end
+
+--- Is the current buffer (or the working folder, for a scratch buffer) inside a project root?
+---@param root string
+---@return boolean
+local function same_project(root)
+  local adapter, current_root = M.adapter(0)
+  if adapter and current_root then
+    return current_root == root
+  end
+  local file = vim.api.nvim_buf_get_name(0)
+  if file ~= "" and file:sub(1, 1) == "/" then
+    return file == root or file:sub(1, #root + 1) == root .. "/"
+  end
+  local cwd = vim.uv.cwd() or ""
+  return cwd == root or cwd:sub(1, #root + 1) == root .. "/"
+end
+
+--- The statusline chip: "test ✓12 ✗1" for the last run of THIS project; "" when there is nothing to say.
+--- It survives the run (the terminal used to scroll away): a failing test stays red until the next run passes.
+---@return string
+function M.statusline()
+  if current then
+    return current_root and same_project(current_root) and "test …" or ""
+  end
+  local run = last_run
+  if not run or not same_project(run.root) then
+    return ""
+  end
+  local n = M.counts(run.list)
+  if n.pass + n.fail + n.skip == 0 then
+    return ""
+  end
+  local parts = { "test" }
+  if n.pass > 0 then
+    parts[#parts + 1] = "✓" .. n.pass
+  end
+  if n.fail > 0 then
+    parts[#parts + 1] = "✗" .. n.fail
+  end
+  if n.skip > 0 then
+    parts[#parts + 1] = "○" .. n.skip
+  end
+  return table.concat(parts, " ")
+end
+
+--- Did the last run of the current project see failures? (the chip turns red)
+---@return boolean
+function M.failing()
+  if current or not last_run then
+    return false
+  end
+  return same_project(last_run.root) and M.counts(last_run.list).fail > 0
 end
 
 local function watch()
@@ -201,7 +265,8 @@ end
 --- Runs a scope from the current buffer: "nearest" | "file" | "all"
 ---@param scope "nearest"|"file"|"all"
 ---@param file string? the test file (default: the current buffer's, or its test when it is not one)
-function M.run(scope, file)
+---@param opts { flags?: string[] }? extra runner flags (Go's -race/-cover)
+function M.run(scope, file, opts)
   local buf = vim.api.nvim_get_current_buf()
   local adapter, root = M.adapter(buf)
   if not adapter then
@@ -211,7 +276,7 @@ function M.run(scope, file)
     return log.warn("Tests: no project around this file (" .. adapter.name .. ")")
   end
   if not adapter.detect(root) then
-    return log.warn "Tests: no test runner in package.json (vitest, jest, or a bun project)"
+    return log.warn("Tests: " .. (adapter.missing or "no test runner in package.json (vitest, jest, or a bun project)"))
   end
   if current then
     return log.info "Tests: a run is still going (it ends on its own; the output is in O)"
@@ -239,10 +304,11 @@ function M.run(scope, file)
     rel = file:sub(1, #root + 1) == root .. "/" and file:sub(#root + 2) or file,
     test = test,
     tests = defs,
+    flags = opts and opts.flags,
     report = vim.fn.tempname() .. ".report",
   }
   local cmd = adapter.command(ctx)
-  last = { scope = scope, file = file }
+  last = { scope = scope, file = file, flags = opts and opts.flags }
   running[file] = {}
   for _, d in ipairs(defs) do
     if scope ~= "nearest" or d.id == test.id or vim.startswith(d.id, test.id) then
@@ -256,13 +322,16 @@ function M.run(scope, file)
   local timeout = (require("core.settings").tests or {}).timeout_ms or 600000
   local ok, proc = pcall(vim.system, cmd, { cwd = root, text = true, timeout = timeout }, function(res)
     vim.schedule(function()
-      current = nil
+      current, current_root = nil, nil
       running[file] = nil
       local report = require("utils.project").read(ctx.report)
       os.remove(ctx.report)
-      output = vim.split(((res.stdout or "") .. "\n" .. (res.stderr or "")), "\n", { plain = true })
-      local list =
-        adapter.parse({ stdout = res.stdout or "", stderr = res.stderr or "", report = report, code = res.code }, ctx)
+      local result = { stdout = res.stdout or "", stderr = res.stderr or "", report = report, code = res.code }
+      output = adapter.display and adapter.display(result)
+        or vim.split(((res.stdout or "") .. "\n" .. (res.stderr or "")), "\n", { plain = true })
+      local list = adapter.parse(result, ctx)
+      local secs = (vim.uv.hrtime() - t0) / 1e9
+      last_run = { root = root, list = list, secs = secs }
       store(list, ctx)
       for f in pairs(results) do
         M.render(f)
@@ -273,7 +342,7 @@ function M.run(scope, file)
         local first = vim.trim(res.stderr or ""):match "[^\n]+" or vim.trim(res.stdout or ""):match "[^\n]+" or ""
         return log.warn(("Tests: no results (exit %d) %s · O shows the output"):format(res.code, first))
       end
-      local text, failed = M.summary(list, (vim.uv.hrtime() - t0) / 1e9)
+      local text, failed = M.summary(list, secs)
       if failed then
         log.warn(text .. " · failures in the quickfix list")
       else
@@ -283,10 +352,12 @@ function M.run(scope, file)
   end)
   if not ok then
     running[file] = nil
+    current_root = nil
+    last_run = nil
     M.render(file)
     return log.warn("Tests: " .. cmd[1] .. " is not installed")
   end
-  current = proc
+  current, current_root = proc, root
 end
 
 --- `.`: the last run again (from its file, wherever the cursor is)
@@ -297,7 +368,7 @@ function M.again()
   if vim.api.nvim_buf_get_name(0) ~= last.file then
     vim.cmd.edit(vim.fn.fnameescape(last.file))
   end
-  M.run(last.scope == "nearest" and "nearest" or last.scope, last.file)
+  M.run(last.scope == "nearest" and "nearest" or last.scope, last.file, { flags = last.flags })
 end
 
 --- `O`: what the runner printed last time

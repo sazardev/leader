@@ -8,7 +8,7 @@ return {
   },
   {
     group = "Go",
-    label = "go test -v (each test's output)",
+    label = "go test output (each test)",
     kind = "toggle",
     id = "go.test.verbose",
   },

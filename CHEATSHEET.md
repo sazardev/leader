@@ -531,10 +531,13 @@ _Where: `go`, `gomod`, `gowork`_
 | `<leader>gf` | format |
 | `<leader>gt` | go mod tidy |
 | `<leader>gx` | golangci-lint --fix |
+| `<leader>gM` | test under cursor |
 | `<leader>gl` | test the package of this file |
 | `<leader>gm` | go test ./... |
 | `<leader>gR` | go test -race ./... |
 | `<leader>gc` | go test -cover ./... |
+| `<leader>g.` | test again |
+| `<leader>gO` | test output |
 | `<leader>gp` | go fix -diff (modernizers preview) |
 | `<leader>gi` | go fix (apply modernizers) |
 | `<leader>gg` | go generate ./... |

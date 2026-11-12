@@ -1,8 +1,8 @@
 #!/bin/sh
-# Tests for the custom Go completion (utils/go*.lua), the shared `go test` line (utils/gotest.lua) and GoHawk
-# diagnostics (utils/gohawk.lua): missing interface methods, if err, mappers, wiring, enums, port, HTTP, verbose
-# test commands and the gohawk JSON parser. Hermetic: temporary Go modules, no gopls, gohawk or network. Exits with
-# a code != 0 if anything fails.
+# Tests for the custom Go completion (utils/go*.lua), the shared `go test` line (utils/gotest.lua), the langtest Go
+# adapter (JSON events, marks, build failures) and GoHawk diagnostics (utils/gohawk.lua): missing interface methods,
+# if err, mappers, wiring, enums, port, HTTP, test commands and the gohawk JSON parser. Hermetic: temporary Go
+# modules, no gopls, gohawk or network. Exits with a code != 0 if anything fails.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 . "$ROOT/scripts/hermetic.sh"
 

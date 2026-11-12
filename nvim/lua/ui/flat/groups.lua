@@ -378,11 +378,13 @@ function M.build(t)
   g.DartTestSkip = { fg = t.faint }
   g.DartTestRunning = { fg = t.yellow }
   g.DartTestTime = { fg = t.faint, italic = true }
-  -- tests of the other languages (langtest/): the same marks as Dart's
+  -- tests of the other languages (langtest/): the same marks as Dart's, plus the statusline chip of the last run
   g.LangTestPass = { fg = t.green }
   g.LangTestFail = { fg = t.red, bold = true }
   g.LangTestSkip = { fg = t.faint }
   g.LangTestRunning = { fg = t.yellow }
+  g.LangTestStatus = { fg = t.green, bg = veil(t.green, 0.14), bold = true }
+  g.LangTestFailed = { fg = t.red, bg = veil(t.red, 0.16), bold = true }
 
   g.MultiCursorCursor = { fg = t.on, bg = t.purple }
   g.MultiCursorVisual = g.Visual

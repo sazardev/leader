@@ -22,13 +22,16 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md) (generated; not duplicate
   They always run from the module root (`go run ./cmd/api`), so relative files resolve the same way. The rest run from the module root.
   The terminal keeps the focus (in terminal mode) when the command starts, and `Esc` closes it without stopping the
   program.
-- `test the package of this file` (`l`) runs `go test ./folder` from the module root: a folder with `main.go` and
-  its `*_test.go` files is tested on its own (a `main` package with tests works like any other), not the whole
-  module. Without a `go.mod` it runs in the folder. `m`/`R`/`c` still test everything, with `-race` and `-cover`.
-  Every one of them is **verbose** (`go test -v`): each test's name and `t.Log`/`fmt.Println` output are printed,
-  not only the package result. Turn it off in the settings panel (`<leader>Sp` → Go) or with
-  `settings.go.test.verbose = false`; `settings.go.test.args` adds flags to all four (`{ "-count=1" }` also skips
-  the test cache, which prints nothing for a cached package; `{ "-tags=integration" }`, `{ "-short" }`…).
+- Tests run **in the editor** through `langtest` (`go test -json`), like Python, TypeScript, Rust, C# and Swift:
+  `M` the test under the cursor, `l` the package of this file, `m`/`R`/`c` the whole module (with `-race` and
+  `-cover`), `.` the last run and `O` the runner's output. Each test line gets a mark (✓ ✗ ○), a failure becomes a
+  diagnostic on its line, the failures go to the quickfix, and the statusline shows the last run of the project
+  (`test ✓12 ✗1`): it stays **red until the next run passes**. This is deliberately separate from `go build`:
+  **`go build` never compiles `_test.go`**, so a broken test file or a failing assertion leaves the build green.
+- `l` tests the file's folder from the module root (a `main` package with tests works like any other), not the
+  whole module; without a `go.mod` it runs in the folder. `settings.go.test.args` adds flags to all four
+  (`{ "-count=1" }` skips the test cache, `{ "-tags=integration" }`, `{ "-short" }`…). `go.test.verbose` controls
+  how much of each test's output `O` shows; the marks, diagnostics and counts always work.
 
 ## GoHawk (`gohawk`)
 

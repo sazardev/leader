@@ -5,10 +5,12 @@
 -- a go.mod they run the single file. `test the package of this file` runs
 -- `go test ./folder` from the module root (a folder with main.go and its
 -- `_test.go` files is tested on its own); vet/fix/test ./... run from the
--- module root. Every test action goes through utils/gotest.lua: verbose (`-v`)
--- by default, plus settings.go.test.args.
+-- module root. Every test action goes through langtest (`go test -json`):
+-- marks on each test line, a failure as a diagnostic, the failures in the
+-- quickfix and a statusline chip that stays red until the next run passes.
+-- utils/gotest.lua builds the argv and adds settings.go.test.args.
 local actions = require "utils.actions"
-local gotest = require "utils.gotest"
+local langtest = require "langtest"
 local log = require "utils.log"
 local project = require "utils.project"
 local terminal = require "utils.terminal"
@@ -49,18 +51,15 @@ end
 --- `go test` of the CURRENT folder's package (the `main.go` + `*_test.go` folder included): `./cmd/api` from
 --- the module root, like `run`, so relative files resolve the same way, and in the folder itself without a go.mod.
 local function test_package()
-  local dir, mod_root = paths()
-  local pkg = mod_root and require("utils.gorun").rel_pkg(mod_root, dir) or "."
-  terminal.run(gotest.command(nil, pkg), mod_root or dir)
+  langtest.run "file"
 end
 
---- `go test` of every package of the module with the action's own flags (`-race`, `-cover`); `-v` and
---- settings.go.test.args come from utils/gotest.lua.
+--- `go test` of every package of the module with the action's own flags (`-race`, `-cover`); settings.go.test.args
+--- come from utils/gotest.lua.
 ---@param flags string[]?
 local function test_all(flags)
   return function()
-    local dir, mod_root = paths()
-    terminal.run(gotest.command(flags, "./..."), mod_root or dir)
+    langtest.run("all", nil, { flags = flags })
   end
 end
 
@@ -134,10 +133,19 @@ local maps = {
     end,
   },
   { "x", "golangci-lint --fix", in_root "golangci-lint run --fix ./..." },
+  {
+    "M",
+    "test under cursor",
+    function()
+      langtest.run "nearest"
+    end,
+  },
   { "l", "test the package of this file", test_package },
   { "m", "go test ./...", test_all() },
   { "R", "go test -race ./...", test_all { "-race" } },
   { "c", "go test -cover ./...", test_all { "-cover" } },
+  { ".", "test again", langtest.again },
+  { "O", "test output", langtest.output },
   -- go fix (toolchain modernizers: any, rangeint, minmax, slices*, etc.)
   { "p", "go fix -diff (modernizers preview)", in_root "go fix -diff ./..." },
   { "i", "go fix (apply modernizers)", in_root "go fix ./..." },

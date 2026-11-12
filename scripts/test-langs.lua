@@ -496,6 +496,11 @@ eq(
   (langtest.summary({ { status = "pass" }, { status = "fail" }, { status = "skip" }, { status = "pass" } }, 1.25)),
   "Tests: 2 passed, 1 failed, 1 skipped · 1.2s"
 )
+eq(
+  "counts: what the statusline chip shows",
+  langtest.counts { { status = "pass" }, { status = "fail" }, { status = "skip" }, { status = "pass" } },
+  { pass = 2, fail = 1, skip = 1 }
+)
 eq("match: a result by id, else by a unique name", {
   langtest.match({ ["a::b"] = { name = "b" } }, { id = "a::b", name = "b" }) ~= nil,
   langtest.match({ ["x::adds"] = { name = "adds" } }, { id = "y::adds", name = "adds" }) ~= nil,
@@ -732,38 +737,31 @@ eq("write: never overwrites", select(2, ls.write(made, v, { python = "3.12" })),
 
 package.loaded["utils.terminal"] = { run = function() end }
 
--- Go: `test the package of this file` runs `go test ./folder` from the module root, so a folder with main.go and
--- its `_test.go` files (a main package) is tested on its own instead of the whole module
-local go_root = vim.fn.tempname()
-vim.fn.mkdir(go_root .. "/cmd/api", "p")
-vim.fn.writefile({ "module example.com/t", "", "go 1.21" }, go_root .. "/go.mod")
-vim.fn.writefile({ "package main", "", "func main() {}", "" }, go_root .. "/cmd/api/main.go")
-local go_test = go_root .. "/cmd/api/main_test.go"
-vim.fn.writefile({ "package main", "" }, go_test)
-local go_ran = {}
-package.loaded["utils.terminal"].run = function(cmd, dir)
-  go_ran = { cmd, dir }
+-- Go: every test action goes through langtest (marks, diagnostics, quickfix, statusline), not a terminal. The
+-- command itself (package folder from the module root, -race/-cover, settings args) is tested in test-go-tests.lua.
+local calls = {}
+local old_run = langtest.run
+langtest.run = function(scope, file, opts)
+  calls[#calls + 1] = { scope, file, opts }
 end
 local goa = require "languages.actions.go"
 local gmap = {}
 for _, m in ipairs(goa) do
   gmap[m[1]] = m
 end
-ok("go menu: test the package of this file", gmap.l ~= nil)
-vim.cmd.edit(go_test)
 gmap.l[3]()
-eq(
-  "go menu: go test runs the file's folder from the module root",
-  go_ran,
-  { "go test " .. vim.fn.shellescape "./cmd/api", go_root }
-)
-local go_main = go_root .. "/main.go"
-vim.fn.writefile({ "package main", "", "func main() {}", "" }, go_main)
-vim.cmd.edit(go_main)
-gmap.l[3]()
-eq("go menu: go test at the module root runs the root package", go_ran, { "go test " .. vim.fn.shellescape ".", go_root })
-vim.cmd "bwipeout!"
-vim.fn.delete(go_root, "rf")
+gmap.M[3]()
+gmap.m[3]()
+gmap.R[3]()
+gmap.c[3]()
+eq("go menu: the test keys run through langtest", {
+  calls[1] and calls[1][1],
+  calls[2] and calls[2][1],
+  calls[3] and calls[3][1],
+  calls[4] and calls[4][3] and calls[4][3].flags[1],
+  calls[5] and calls[5][3] and calls[5][3].flags[1],
+}, { "file", "nearest", "all", "-race", "-cover" })
+langtest.run = old_run
 
 local tsa = require "languages.actions.typescript"
 eq(
