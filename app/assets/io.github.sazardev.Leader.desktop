@@ -13,7 +13,7 @@ Terminal=false
 Categories=Development;TextEditor;IDE;
 Keywords=neovim;nvim;vim;editor;ide;code;programming;go;rust;lua;python;
 MimeType=text/plain;text/x-csrc;text/x-c++src;text/x-go;text/x-python;text/x-rust;text/x-lua;text/markdown;application/json;application/x-shellscript;
-StartupNotify=true
+StartupNotify=false
 StartupWMClass=io.github.sazardev.Leader
 Actions=NewWindow;
 

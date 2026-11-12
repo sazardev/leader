@@ -120,7 +120,10 @@ end
 
 local function has_files()
   return vim.iter(vim.api.nvim_list_bufs()):any(function(b)
-    return vim.bo[b].buflisted and vim.bo[b].buftype == "" and vim.api.nvim_buf_get_name(b) ~= ""
+    local name = vim.api.nvim_buf_get_name(b)
+    -- a folder argument opens a directory buffer first (the app starting with `leader <folder>`): it is not a file
+    -- session worth saving, and saving it would leave that session with a directory instead of the project
+    return vim.bo[b].buflisted and vim.bo[b].buftype == "" and name ~= "" and vim.fn.isdirectory(name) == 0
   end)
 end
 

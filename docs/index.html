@@ -549,7 +549,9 @@ footer a:hover{color:var(--fg)}
     ["solarized-dark", "Solarized Dark", "#002b36", "#839496", ["#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#eee8d5", "#002b36", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"]],
     ["solarized-light", "Solarized Light", "#fdf6e3", "#657b83", ["#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#eee8d5", "#002b36", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"]]
   ].map(function (t) { return { id: "t:" + t[0], name: t[1], bg: t[2], fg: t[3], ansi: t[4] }; });
-  /* palette -> the CSS variables of the page (same rules as terminal_theme.lua; min contrast 3.0 like settings.theme.terminal) */
+  /* palette -> the CSS variables of the page (same rules as terminal_theme.lua; min contrast 3.0 like settings.theme.terminal).
+     The demo's editor always sits on `deep`; the Neovim terminal theme keeps it on `bg` and steps `soft` further there
+     (palette.lua). */
   function derive(t) {
     var bg = t.bg, fg = t.fg, dark = Col.lum(bg) < 0.179, bl = Col.blend;
     function tint(x) { return bl(bg, fg, x); }
@@ -557,7 +559,7 @@ footer a:hover{color:var(--fg)}
     var red = accent(t.ansi[1]), green = accent(t.ansi[2]), yellow = accent(t.ansi[3]), blue = accent(t.ansi[4]), magenta = accent(t.ansi[5]), cyan = accent(t.ansi[6]);
     return { dark: dark, vars: {
       "--bg": bg, "--deep": bl(bg, "#000000", dark ? 0.25 : 0.05), "--soft": tint(0.07), "--fg": fg,
-      "--dim": Col.ensure(tint(0.62), tint(0.07), fg, 4.0), "--faint": Col.ensure(tint(0.34), tint(0.07), fg, 2.0),
+      "--dim": Col.ensure(tint(0.62), tint(0.07), fg, 4.0), "--faint": Col.ensure(tint(0.34), tint(0.07), fg, 2.4),
       "--green": green, "--yellow": yellow, "--aqua": cyan, "--blue": blue, "--red": red, "--purple": magenta, "--orange": bl(red, yellow, 0.5),
       "--on": dark ? bl(bg, "#000000", 0.45) : bl(bg, "#ffffff", 0.65)
     } };

@@ -49,7 +49,9 @@ timing: build ## Run Leader printing startup and input latency
 	@LEADER_TIMING=1 $(BIN) $(ARGS)
 
 snap: build ## Take a PNG of the window: make snap ARGS="file" KEYS=" ff" OUT=/tmp/leader.png MS=3000
-	@LEADER_SNAPSHOT=$(or $(OUT),/tmp/leader.png) LEADER_SNAPSHOT_MS=$(or $(MS),3000) $(if $(KEYS),LEADER_KEYS="$(KEYS)") $(BIN) -n $(ARGS) 2>&1 | grep -v MESA
+	@state=$$(mktemp -d); mkdir -p "$$state/nvim"; cp "$$HOME/.local/state/nvim"/*.json "$$state/nvim/" 2>/dev/null || true; \
+	XDG_STATE_HOME="$$state" LEADER_SNAPSHOT=$(or $(OUT),/tmp/leader.png) LEADER_SNAPSHOT_MS=$(or $(MS),3000) $(if $(KEYS),LEADER_KEYS="$(KEYS)") $(BIN) -n $(ARGS) 2>&1 | grep -v MESA; \
+	status=$$?; rm -rf "$$state"; exit $$status
 
 # ── checks ──────────────────────────────────────────────────────────────────
 test: ## Every suite (scripts/test.sh)

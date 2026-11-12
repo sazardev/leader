@@ -42,7 +42,10 @@ function M.from(b16, b30, opts)
   local function tint(t)
     return blend(bg, fg, t)
   end
-  local soft = tint(0.07)
+  -- Floats are a filled block one step above the editor. The terminal-inherited theme keeps the editor exactly on the
+  -- terminal's background (`deep = bg`), so the usual 7 % lands too close to it: on those themes the block steps a
+  -- little further (still under the 1.5:1 the design allows) or Telescope and the menus lose their edge.
+  local soft = tint(opts.faithful and (dark and 0.11 or 0.16) or 0.07)
   local function accent(hex, fallback)
     return color.ensure_contrast(hex or fallback, bg, fg, 3.0)
   end
@@ -54,7 +57,7 @@ function M.from(b16, b30, opts)
     fg = fg,
     -- text on the blocks must stay readable on light themes too: pushed toward the foreground until it has enough contrast
     dim = color.ensure_contrast(tint(0.62), soft, fg, 4.0),
-    faint = color.ensure_contrast(tint(0.34), soft, fg, 2.0),
+    faint = color.ensure_contrast(tint(0.34), soft, fg, 2.4),
     on = dark and blend(bg, "#000000", 0.45) or blend(bg, "#ffffff", 0.65),
     red = accent(b30.red, b16.base08),
     green = accent(b30.green, b16.base0B),

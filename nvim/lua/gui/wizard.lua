@@ -74,6 +74,13 @@ local function pad(s, w)
   return s .. string.rep(" ", math.max(w - width_of(s), 0))
 end
 
+--- A pack's label without its variants: "C# / .NET (+ Razor/XAML/Unity)" → "C#", "Web: HTML, CSS…" → "Web".
+---@param label string
+---@return string
+local function short_label(label)
+  return (vim.trim((label:gsub("[:/,(].*$", ""))))
+end
+
 -- ── what the steps read ────────────────────────────────────────────────────
 
 ---@param w table
@@ -210,11 +217,13 @@ end
 
 -- ── the steps ──────────────────────────────────────────────────────────────
 -- Each step: title, guide (one line: what to do), `info(w)` lines above the choices, `items(w)` the choices,
--- `ready(w)` → ok, what is missing, and optionally `buttons(w)` instead of Back · Next.
+-- `ready(w)` → ok, what is missing, optionally `done(w)` (the line that says it is ready), `warn(w)` (it is ready but
+-- something still asks for attention: the status turns yellow) and `buttons(w)` instead of Back · Next.
 
 ---@class WizardItem
 ---@field group string?  a header above it (when the group changes)
 ---@field label string
+---@field short string?  the label when the column is too narrow for the full one ("C# / .NET (+ …)" → "C#")
 ---@field desc string?
 ---@field mark "radio"|"check"|"value"|"action"|"status"
 ---@field on boolean?
@@ -318,6 +327,7 @@ STEP.languages = {
       local found = vim.tbl_filter(exe, pk.detect)
       items[#items + 1] = {
         label = pk.label,
+        short = short_label(pk.label),
         desc = #found > 0 and ("found: " .. table.concat(found, ", ")) or nil,
         mark = "check",
         on = packs[pk.id],
@@ -633,15 +643,32 @@ STEP.review = {
       end
     end
     local out = {}
+    -- one clean name per pack: the full labels ("C# / .NET (+ Razor/XAML/Unity)") do not fit and cut mid-word
+    local short = vim.tbl_map(function(label)
+      return short_label(label)
+    end, on)
+    local chosen = #short > 8 and (table.concat(vim.list_slice(short, 1, 8), ", ") .. (" (+%d)"):format(#short - 8))
+      or table.concat(short, ", ")
     for _, f in ipairs {
       { "Theme", appearance.current() },
-      { "Languages", #on > 0 and table.concat(on, ", ") or "the basics" },
+      { "Languages", #short > 0 and chosen or "the basics" },
       { "Agent", cur and selection.label(cur) or "none" },
     } do
       out[#out + 1] = { { pad(f[1], 12), "GuiPickerLabel" }, { cut(f[2], width - 14), "GuiPickerText" } }
     end
     out[#out + 1] = { { "" } }
     return out
+  end,
+  done = function(w)
+    local missing = #vim.tbl_filter(function(c)
+      return not c.ok
+    end, w.checks or {})
+    return missing > 0 and ("Ready · %d still missing"):format(missing) or "Ready"
+  end,
+  warn = function(w)
+    return vim.iter(w.checks or {}):any(function(c)
+      return not c.ok
+    end)
   end,
   items = function(w)
     local items = {}
@@ -844,11 +871,15 @@ function M.draw(w)
   local last = w.step == #M.STEPS
   if ok then
     local text = step.done and step.done(w) or "Ready"
+    local warn = step.warn and step.warn(w)
     c.put(
       status_row,
       L,
-      "✓  " .. text .. "  ·  " .. (last and "Enter or Finish closes this" or "Enter or Next goes on"),
-      "GuiWizardOn"
+      (warn and "!  " or "✓  ")
+        .. text
+        .. "  ·  "
+        .. (last and "Enter or Finish closes this" or "Enter or Next goes on"),
+      warn and "GuiWizardKey" or "GuiWizardOn"
     )
   else
     c.put(status_row, L, "●  " .. (why or "Make a choice to continue"), "GuiWizardKey")
@@ -910,9 +941,18 @@ function M.draw(w)
   end
   c.put(keys_row, L, cut(keys, CW), "GuiPickerLabel")
 
-  -- the middle: info lines, then the choices in as many columns as they need to fit
+  -- the middle: info lines, then the choices in as many columns as they need to fit. A short window keeps at least
+  -- three rows for the choices: the setup has to stay usable in a pane half the screen tall.
   local top, bottom = 7 + #guide + 1, rule_row - 2
+  local items = step.items(w)
   local info = step.info and step.info(w, CW) or {}
+  local room = bottom - top + 1
+  if #info > 0 then
+    local keep = #items > 0 and math.max(room - 3, 0) or room
+    if keep < #info then
+      info = vim.list_slice(info, 1, keep)
+    end
+  end
   for i, line in ipairs(info) do
     local col = L
     for _, seg in ipairs(line) do
@@ -920,7 +960,6 @@ function M.draw(w)
     end
   end
   local itop = top + #info
-  local items = step.items(w)
   w.items = items
   local entries = {}
   local group
@@ -935,13 +974,50 @@ function M.draw(w)
     entries[#entries + 1] = { item = i }
   end
   local avail = math.max(bottom - itop + 1, 3)
+  -- The choices flow into columns (never more than three) and, when even those do not fit a short window, the list
+  -- scrolls to keep the choice under the keys on screen. A tiled Leader half the screen tall used to draw rows under
+  -- the status line; the whole setup has to stay usable there.
   local cols = math.min(math.max(math.ceil(#entries / avail), 1), 3)
-  local per = math.ceil(#entries / cols)
+  local per = avail
+  local capacity = per * cols
+  local focus_entry
+  for n, e in ipairs(entries) do
+    if e.item == w.focus then
+      focus_entry = n
+      break
+    end
+  end
+  local first = w.first or 1
+  if focus_entry then
+    if focus_entry < first then
+      first = focus_entry
+    elseif focus_entry >= first + capacity then
+      first = focus_entry - capacity + 1
+    end
+  end
+  first = math.max(1, math.min(first, math.max(#entries - capacity + 1, 1)))
+  -- a page that starts on an item keeps the group header above it when both fit
+  if first > 1 and (not focus_entry or focus_entry >= first) then
+    local h = first
+    while h > 1 and not entries[h].header do
+      h = h - 1
+    end
+    if entries[h] and entries[h].header and first - h < capacity then
+      first = h
+    end
+  end
+  w.first = first
+  local pages = math.ceil(#entries / capacity)
+  if pages > 1 then
+    c.put(6, L + CW - 5, ("%d/%d"):format(math.ceil(first / capacity), pages), "GuiPickerLabel")
+  end
   local colw = math.floor((CW - (cols - 1) * 3) / cols)
   w.places = {}
-  for n, e in ipairs(entries) do
-    local col_i = math.floor((n - 1) / per)
-    local row = itop + (n - 1) % per
+  for n = first, math.min(first + capacity - 1, #entries) do
+    local e = entries[n]
+    local idx = n - first
+    local col_i = math.floor(idx / per)
+    local row = itop + idx % per
     local cx = L + col_i * (colw + 3)
     if e.header then
       c.put(row, cx, e.header, "GuiPickerLabel")
@@ -979,7 +1055,8 @@ function M.draw(w)
       end
       local px = c.put(row, cx + 1, glyph, focused and "GuiWizardFocus" or ghl, hit)
       local lhl = focused and "GuiWizardFocus" or (it.on == false and "GuiPickerDim" or "GuiPickerText")
-      px = c.put(row, px + 2, cut(it.label, labelw - 1), lhl, hit)
+      local label = it.short and width_of(it.label) > labelw - 1 and it.short or it.label
+      px = c.put(row, px + 2, cut(label, labelw - 1), lhl, hit)
       local right = cx + colw
       if it.mark == "value" and it.value then
         local v = cut(it.value, 14)
@@ -991,14 +1068,14 @@ function M.draw(w)
           hit
         )
         local room = right - (cx + 3 + labelw + 17) - 1
-        if it.desc and room > 4 then
+        if it.desc and room > 18 then
           c.put(row, cx + 3 + labelw + 17, cut(it.desc, room), focused and "GuiWizardFocus" or "GuiPickerDim", hit)
         end
       elseif it.desc then
         local dx = cx + 3 + labelw + 1
         local status = it.mark == "status" and STATUS[it.status] or nil
         local room = right - dx - 1 - (status and 10 or 0)
-        if room > 4 then
+        if room > 18 then
           c.put(row, dx, cut(it.desc, room), focused and "GuiWizardFocus" or "GuiPickerDim", hit)
         end
         if status and status[1] ~= "" then
@@ -1034,6 +1111,7 @@ function M.go(w, i)
   w.checks = M.STEPS[i].id == "review" and require("gui.checks").run() or nil
   w.step = i
   w.area, w.focus, w.bfocus = "items", 1, nil
+  w.first = 1
   -- start on the choice that is already chosen, when there is one
   local items = STEP[M.STEPS[i].id].items(w)
   for n, it in ipairs(items) do
@@ -1522,9 +1600,11 @@ function M.open(opts)
       w.reached = i
     end
   end
+  -- the editor already has a theme: show it chosen, so the step says what is in use instead of asking again. Moving
+  -- over another one still previews it; Next is allowed until you pick a new one.
+  w.theme = require("appearance").current()
   if opts.step == "review" then
     -- the setup was done before: everything already counts as chosen
-    w.theme = require("appearance").current()
     w.agent = "kept"
     w.install_skipped = true
   end

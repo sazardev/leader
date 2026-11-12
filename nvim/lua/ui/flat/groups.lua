@@ -474,7 +474,7 @@ function M.build(t)
   g.FlatWarn = { fg = t.yellow, bg = t.soft }
   -- the app bar's dropdown menus (gui/menu.lua): the modal block, the chosen row one step lighter, keys dimmed
   g.GuiMenu = { fg = t.fg, bg = t.soft }
-  g.GuiMenuSel = { fg = t.fg, bg = color.blend(t.soft, t.fg, 0.10), bold = true }
+  g.GuiMenuSel = { fg = t.fg, bg = color.blend(t.soft, t.fg, 0.15), bold = true }
   g.GuiMenuHint = { fg = t.faint }
   g.GuiMenuDetail = { fg = t.dim }
   g.GuiMenuSep = { fg = color.blend(t.soft, t.fg, 0.14) }
