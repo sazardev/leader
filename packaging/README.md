@@ -33,10 +33,16 @@ Every release carries `SHA256SUMS` and a detached signature (`.asc`) for each fi
 **Leader Releases**:
 
 ```
-pub   ed25519 2026-10-20 [SC] [expires: 2029-10-19]
-      8E43 7A79 36E4 8EAE DA88  CD73 A7DC C3DB B671 476A
+pub   ed25519 2026-11-11 [SC] [expires: 2029-11-11]
+      1982 245F 766B D77F BA36  A8E7 3DAE 2005 4C30 8EB6
 uid   Leader Releases (release signing key for github.com/sazardev/leader) <sazardev@users.noreply.github.com>
+fingerprint: 1982245F766BD77FBA36A8E73DAE20054C308EB6
 ```
+
+This key was generated for **1.19**: the previous `Leader Releases` key
+(`8E437A7936E48EAEDA88CD73A7DCC3DBB671476A`) is retired because its secret was not available on the build machine.
+The 1.15–1.18 assets remain unsigned; 1.19 is the first release signed with the new key. Verify the fingerprint before
+trusting a download, or build from source during that window.
 
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/sazardev/leader/master/packaging/leader-releases.asc

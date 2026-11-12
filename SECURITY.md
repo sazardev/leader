@@ -8,7 +8,7 @@ rather hear about a problem early than read about it after it was exploited.
 | Version | Supported |
 |---|---|
 | `master` (next release) | ✅ fixes land here first |
-| latest release (`1.18.x`) | ✅ security fixes are backported when practical |
+| latest release (`1.19.x`) | ✅ security fixes are backported when practical |
 | older releases | ⚠️ best effort; upgrade when you can |
 
 The desktop app and the config share a version (`VERSION`). Run `leader --version` and `git -C ~/.local/share/leader rev-parse HEAD` (or `git rev-parse HEAD` in your clone) when reporting.
@@ -60,8 +60,11 @@ Out of scope (report upstream, but tell us if Leader makes it worse):
   deliberately with `:Lazy sync`. Mason tools and treesitter parsers are downloaded from their upstream projects.
 - **Release integrity.** Every release ships `SHA256SUMS` and the installer verifies the checksum. Detached signatures
   with the `Leader Releases` key are checked when the key is available. The 1.15–1.18 assets are **unsigned** (the
-  signing key was not on the build machine); the installer says so and `LEADER_VERIFY=0` is explicit. Build from source
-  if you need a fully verified artifact before 1.19 signs again.
+  signing key was not on the build machine); the installer says so and `LEADER_VERIFY=0` is explicit. **1.19 is signed
+  again with a new `Leader Releases` key** (fingerprint `1982245F766BD77FBA36A8E73DAE20054C308EB6`, published in
+  `packaging/leader-releases.asc`); the previous public key `8E437A7936E48EAEDA88CD73A7DCC3DBB671476A` is retired for
+  1.19 onward. Verify the fingerprint against this file or `packaging/README.md` before trusting a download, and build
+  from source if you need a fully verified artifact from the unsigned window.
 - **Secrets in the app**: the app inherits your environment and clipboard. Clipboard calls use the OS clipboard; the
   config does not write it to disk. Session and history files live under `stdpath("state")` with your user's permissions.
 

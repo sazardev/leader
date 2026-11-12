@@ -21,7 +21,7 @@ source=("leader-$pkgver-linux-x86_64.tar.gz::https://github.com/sazardev/leader/
         "leader-$pkgver-linux-x86_64.tar.gz.asc::https://github.com/sazardev/leader/releases/download/v$pkgver/leader-linux-x86_64.tar.gz.asc")
 sha256sums=('c140f7f2c00810d7e4f8bc9f8257b95a5368f2c7810d5f7ba566d9e03235d1cc' 'SKIP')
 # Leader Releases (release signing key), also in packaging/leader-releases.asc of the repository
-validpgpkeys=('8E437A7936E48EAEDA88CD73A7DCC3DBB671476A')
+validpgpkeys=('1982245F766BD77FBA36A8E73DAE20054C308EB6')
 
 package() {
   cd "leader-$pkgver-linux-x86_64"

@@ -81,7 +81,7 @@ if command -v gpg >/dev/null 2>&1; then
   done
   expiry="$(gpg --show-keys --with-colons "$ROOT/packaging/leader-releases.asc" 2>/dev/null | awk -F: '/^pub/ { print $7; exit }')"
   check "the key has not expired (and expires in more than 90 days)" "[ -n '$expiry' ] && [ '$expiry' -gt \$(( \$(date +%s) + 90*86400 )) ]"
-  check "packaging/README.md names that key" "grep -q '8E43 7A79 36E4 8EAE DA88  CD73 A7DC C3DB B671 476A' '$ROOT/packaging/README.md'"
+  check "packaging/README.md names that key" "grep -q '$fpr' '$ROOT/packaging/README.md'"
 fi
 
 # ── Arch ────────────────────────────────────────────────────────────────────

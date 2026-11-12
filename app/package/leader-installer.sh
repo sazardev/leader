@@ -12,7 +12,7 @@ set -euo pipefail
 
 BASE="${LEADER_RELEASE_URL:-https://github.com/sazardev/leader/releases/latest/download}"
 PKG="leader-linux-x86_64.tar.gz"
-FPR="8E437A7936E48EAEDA88CD73A7DCC3DBB671476A"
+FPR="1982245F766BD77FBA36A8E73DAE20054C308EB6"
 command -v curl >/dev/null 2>&1 || { echo "leader: curl is required" >&2; exit 1; }
 [ "$(uname -s)-$(uname -m)" = Linux-x86_64 ] || { echo "leader: the package is for Linux x86_64 (this is $(uname -s) $(uname -m))" >&2; exit 1; }
 
