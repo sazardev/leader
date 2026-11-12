@@ -149,7 +149,12 @@ function M.local_path(entry, exists)
     return nil
   end
   local path = vim.fs.joinpath(vim.fn.stdpath "data", "fim", entry.file)
-  local found = exists and exists(path) or vim.uv.fs_stat(path) ~= nil
+  local found
+  if exists then
+    found = exists(path)
+  else
+    found = vim.uv.fs_stat(path) ~= nil
+  end
   return found and path or nil
 end
 
