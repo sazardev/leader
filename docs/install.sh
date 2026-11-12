@@ -11,8 +11,9 @@
 #   curl -fsSL https://leader.sazardev.stream/install | bash -s -- --no-config
 #   curl -fsSL https://leader.sazardev.stream/install | bash -s -- --uninstall
 #
-# The release is checksummed and the desktop installer verifies it. LEADER_VERIFY=0 skips the signature (the 1.15-1.18
-# assets are unsigned until the Leader Releases key is back); LEADER_RELEASE_URL / LEADER_CONFIG_URL point elsewhere.
+# The release is checksummed and the desktop installer verifies its signature. The 1.15-1.18 assets are unsigned; 1.19+
+# is signed with the Leader Releases key. LEADER_VERIFY=0 skips the check for a mirror; LEADER_RELEASE_URL /
+# LEADER_CONFIG_URL point elsewhere.
 set -euo pipefail
 
 BASE="${LEADER_RELEASE_URL:-https://github.com/sazardev/leader/releases/latest/download}"
@@ -45,11 +46,11 @@ case "$(uname -s)-$(uname -m)" in
     echo "leader: downloading the desktop app…"
     curl -fsSL "$BASE/leader-installer.sh" -o "$dir/leader-installer.sh"
     if [ "$UNINSTALL" = 1 ]; then
-      LEADER_VERIFY=0 bash "$dir/leader-installer.sh" --uninstall ${APP_ARGS[@]+"${APP_ARGS[@]}"}
+      bash "$dir/leader-installer.sh" --uninstall ${APP_ARGS[@]+"${APP_ARGS[@]}"}
       exit 0
     fi
     echo "leader: installing the desktop app…"
-    LEADER_VERIFY=0 bash "$dir/leader-installer.sh" --no-config ${APP_ARGS[@]+"${APP_ARGS[@]}"}
+    bash "$dir/leader-installer.sh" --no-config ${APP_ARGS[@]+"${APP_ARGS[@]}"}
     if [ "$NO_CONFIG" = 0 ]; then
       echo "leader: installing Neovim and Leader's config…"
       curl -fsSL "$CONFIG" | bash -s -- ${CONFIG_ARGS[@]+"${CONFIG_ARGS[@]}"}
