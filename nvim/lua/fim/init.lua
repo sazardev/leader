@@ -1,6 +1,7 @@
--- ── Local FIM completion (Qwen2.5-Coder 1.5B, llama.cpp) ──────────────────────
+-- ── Local FIM completion (Qwen2.5-Coder, llama.cpp) ──────────────────────────
 -- llama.vim draws the ghost text; this module owns the local server and the on/off switch. The model is the
--- llama.cpp preset `--fim-qwen-1.5b-default` (Q8, ~1.6 GB, downloaded on first start) served on 127.0.0.1.
+-- llama.cpp preset `--fim-qwen-1.5b-default` (Q8, ~1.6 GB, downloaded on first start) or the GGUF in
+-- `settings.fim.model` (with the preset's batch/cache values), served on 127.0.0.1.
 local settings = require "core.settings"
 local log = require "utils.log"
 
@@ -29,6 +30,25 @@ end
 
 local function base()
   return ("http://127.0.0.1:%d"):format(port())
+end
+
+--- The built-in preset selects the model and tunes the server for FIM. A custom GGUF (`settings.fim.model`) has to
+--- carry the same batch and cache values, or it runs with llama.cpp's defaults.
+local function model_args()
+  local model = cfg().model
+  if not model or model == "" then
+    return { "--fim-qwen-1.5b-default" }
+  end
+  return {
+    "-m",
+    vim.fn.expand(model),
+    "--batch-size",
+    "1024",
+    "--ubatch-size",
+    "1024",
+    "--cache-reuse",
+    "256",
+  }
 end
 
 local function enabled()
@@ -67,9 +87,9 @@ local function start()
     return false
   end
   vim.fn.mkdir(STATE, "p")
-  local args = {
-    "llama-server",
-    "--fim-qwen-1.5b-default",
+  local args = { "llama-server" }
+  vim.list_extend(args, model_args())
+  vim.list_extend(args, {
     "--host",
     "127.0.0.1",
     "--port",
@@ -77,7 +97,7 @@ local function start()
     "--ctx-size",
     tostring(cfg().context or 8192),
     "--n-gpu-layers",
-    "99",
+    tostring(cfg().gpu_layers or 99),
     "--parallel",
     "1",
     "--no-webui",
@@ -85,7 +105,7 @@ local function start()
     tostring(cfg().sleep_idle or 300),
     "--log-verbosity",
     "1",
-  }
+  })
   local line = table.concat(vim.tbl_map(vim.fn.shellescape, args), " ") .. " >> " .. vim.fn.shellescape(LOG) .. " 2>&1"
   local handle, spawned = vim.uv.spawn("sh", {
     args = { "-c", "exec " .. line },
@@ -142,7 +162,7 @@ function M.ensure(cb, tries)
       if not start() then
         return cb(false)
       end
-      log.info "FIM: starting llama-server (the first start downloads the 1.5B model)…"
+      log.info "FIM: starting llama-server (the first start downloads the model)…"
     end
     if tries >= 600 then
       return cb(false)

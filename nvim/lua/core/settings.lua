@@ -139,11 +139,13 @@ local defaults = {
     herdr = nil, -- the OLD knob for the Herdr registration: true/false wins over herdr.register (nil = that one decides)
   },
 
-  -- Local fill-in-the-middle completion (lua/fim, plugins/editing/llama.lua): a Qwen2.5-Coder 1.5B (Q8) served by
-  -- llama.cpp on 127.0.0.1, ghost text while you type; Tab accepts. Off by default: <leader>Sp -> Editing, <leader>SF
-  -- or :Fim toggles it (and starts/stops the server).
+  -- Local fill-in-the-middle completion (lua/fim, plugins/editing/llama.lua): a Qwen2.5-Coder 1.5B (Q8), or the
+  -- GGUF in `model` (e.g. the 0.5B), served by llama.cpp on 127.0.0.1; ghost text while you type. Off by default:
+  -- <leader>Sp -> Editing, <leader>SF or :Fim toggles it (and starts/stops the server).
   fim = {
     enabled = false,
+    model = nil, -- path to a GGUF (nil = the built-in Qwen2.5-Coder 1.5B preset, downloaded on first start)
+    gpu_layers = 99, -- layers offloaded to the GPU (99 = all; 0 keeps it on the CPU, faster on some iGPUs)
     port = 8012,
     context = 8192, -- tokens the server keeps (1.5B supports 32k; 8k is plenty for the completion ring)
     sleep_idle = 300, -- seconds idle before llama-server sleeps (frees the slots, keeps the process)

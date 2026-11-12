@@ -33,7 +33,7 @@ return {
   },
   {
     group = "Editing",
-    label = "Local tab completion (Qwen 1.5B)",
+    label = "Local tab completion (Qwen)",
     kind = "toggle",
     id = "fim.enabled",
     apply = function(on)
