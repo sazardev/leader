@@ -40,7 +40,14 @@ local REQUIRED = {
 for name, p in pairs(PALETTES) do
   local tb = terminal_theme.build({ background = p[1], foreground = p[2], ansi = p[3] }, 3.0)
   local t = palette.from(tb.base_16, tb.base_30)
+  local faithful = palette.from(tb.base_16, tb.base_30, { faithful = true })
   local g = groups.build(t)
+
+  -- the terminal-inherited theme keeps the editor on the terminal's background, so its blocks must still read as one
+  -- step above it (the flat design's whole surface language depends on it)
+  check(faithful.deep == faithful.bg, name .. ": the terminal theme keeps the editor on the terminal background")
+  check(color.contrast(faithful.soft, faithful.bg) >= 1.2, name .. ": the block over the terminal background is invisible")
+  check(color.contrast(faithful.faint, faithful.soft) >= 2.3, name .. ": faint hints vanish over the block")
 
   for _, group in ipairs(REQUIRED) do
     check(g[group] ~= nil, name .. ": missing group " .. group)

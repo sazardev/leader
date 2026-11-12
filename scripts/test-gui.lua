@@ -89,8 +89,8 @@ local actions = function(list)
     return t.action
   end, list)
 end
-check("default left tools", vim.deep_equal(actions(left), { "projects", "home", "history" }), actions(left))
-check("default right tools", vim.deep_equal(actions(right), { "agent", "chat", "theme" }), actions(right))
+check("default left tools", vim.deep_equal(actions(left), { "projects", "home", "history", "quick_open", "tree" }), actions(left))
+check("default right tools", vim.deep_equal(actions(right), { "panes", "agent", "chat", "theme" }), actions(right))
 check(
   "tools carry a tooltip",
   vim.iter(right):all(function(t)
@@ -133,6 +133,11 @@ check(
   end)
 )
 wizard.go(wm, 2)
+check(
+  "the theme step starts on the theme in use",
+  wm.items[wm.focus] and wm.items[wm.focus].on == true,
+  wm.items[wm.focus]
+)
 wm.theme = nil
 wizard.next(wm)
 check("no theme, no next", wm.step == 2, wm.step)
@@ -160,6 +165,19 @@ end
 check("Back goes back", wm.step == 3, wm.step)
 wizard.close(wm)
 check("closing brings the statusline back", vim.o.laststatus == status_before, vim.o.laststatus)
+
+-- a short window (Leader tiled beside another one) keeps the choices above the status line and pages them, with a
+-- counter by the title, instead of drawing rows under it
+do
+  local lines, columns = vim.o.lines, vim.o.columns
+  vim.o.lines, vim.o.columns = 18, 118
+  local w = wizard.open { step = "theme" }
+  local buf_lines = vim.api.nvim_buf_get_lines(w.buf, 0, -1, false)
+  check("the setup fits a short window", #buf_lines == 18, #buf_lines)
+  check("the setup pages the choices", table.concat(buf_lines, "\n"):find("%d+/%d+") ~= nil)
+  wizard.close(w)
+  vim.o.lines, vim.o.columns = lines, columns
+end
 
 -- the lists (utils/market.lua, here the project picker): the chosen row is lit whole with a bar, no cursor block,
 -- l / → only move to the details and h / ← come back
@@ -194,10 +212,53 @@ end).items[2]
 other.preview()
 trevert()
 check("closing without a choice puts the theme back", appearance.current() == theme_before, appearance.current())
-check("agent menu builds", #require("gui").agent_menu() >= 3)
+
+-- the GUI workspace layer: menus, shortcuts and focus mode (the app bar's tools and the window's keys use these)
+local gui = require "gui"
+local workspace = require "gui.workspace"
+local started = vim.uv.hrtime()
+local am = gui.agent_menu()
+check("agent menu builds", #am >= 3, am)
+check("the agent menu opens without asking the backends", (vim.uv.hrtime() - started) / 1e6 < 150, (vim.uv.hrtime() - started) / 1e6)
+check(
+  "the agent menu has the fast model and chat entries",
+  vim.iter(am):any(function(it)
+    return it.label == "Model & Effort…"
+  end) and vim.iter(am):any(function(it)
+    return it.label == "Chat Options…"
+  end),
+  am
+)
+local cm = gui.chat_menu()
+check(
+  "the chat menu carries the profiles and the view",
+  vim.iter(cm):any(function(it)
+    return it.label == "Profile" and it.items and #it.items >= 3
+  end) and vim.iter(cm):any(function(it)
+    return it.label == "View"
+  end),
+  cm
+)
+local chat_visible = require("gui.menu").visible(cm)
+check(
+  "the chat menu hides what is not running",
+  not vim.iter(chat_visible):any(function(it)
+    return it.label == "Stop Answer"
+  end),
+  chat_visible
+)
+check("the panes menu is complete", #workspace.panes_menu() >= 15)
+local shortcuts = gui.shortcuts()
+check(
+  "window shortcuts are configurable",
+  #shortcuts >= 6
+    and vim.iter(shortcuts):any(function(s)
+      return s.action == "tree" and s.key == "e" and s.ctrl and s.shift
+    end),
+  shortcuts
+)
 
 -- app bar: the path of a real file, folders then the file, and the indent chip
-local gui = require "gui"
 vim.g.leader_gui = true -- what the app sets before the config loads; setup() only wires its autocmds inside the app
 gui.setup()
 local dir = vim.fn.tempname()
@@ -224,6 +285,20 @@ check(
   state
 )
 check("project name on its tool", type(state.left[1].label) == "string" and state.left[1].label ~= "", state.left[1])
+-- focus mode hides the bar and the statusline without asking the window for system decorations, and restores both
+local bar_visible, statusline = require("core.settings").gui.appbar.visible, vim.o.laststatus
+workspace.focus(true)
+check(
+  "focus mode hides the bar and the statusline",
+  require("core.settings").gui.appbar.visible == false and vim.o.laststatus == 0 and gui.state().visible == false,
+  { require("core.settings").gui.appbar.visible, vim.o.laststatus }
+)
+workspace.focus(false)
+check(
+  "focus mode restores both",
+  require("core.settings").gui.appbar.visible == bar_visible and vim.o.laststatus == statusline,
+  { require("core.settings").gui.appbar.visible, vim.o.laststatus }
+)
 -- a special buffer keeps the file you were on
 vim.cmd "enew"
 vim.bo.buftype = "nofile"
