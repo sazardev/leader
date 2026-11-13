@@ -2,7 +2,7 @@
 # The prebuilt release (glibc 2.31+, built with cargo-zigbuild). Verified against the release signature: import the
 # key once first (gpg --import packaging/leader-releases.asc), makepkg checks it against validpgpkeys below.
 pkgname=leader-editor-bin
-pkgver=1.19.1
+pkgver=1.20.0
 pkgrel=1
 pkgdesc='Neovim with a fast, opinionated config in its own GPU window (prebuilt)'
 arch=('x86_64')
@@ -19,7 +19,7 @@ conflicts=('leader-editor')
 options=('!strip')
 source=("leader-$pkgver-linux-x86_64.tar.gz::https://github.com/sazardev/leader/releases/download/v$pkgver/leader-linux-x86_64.tar.gz"
         "leader-$pkgver-linux-x86_64.tar.gz.asc::https://github.com/sazardev/leader/releases/download/v$pkgver/leader-linux-x86_64.tar.gz.asc")
-sha256sums=('b0a0dce75519d50766aed7a13136df77cdcea53303c580eec7eb51604a31361f' 'SKIP')
+sha256sums=('6ef86556dea7e52e34c6d65d3e086d0b6861aa36e4cd9fe7c16e2665d7f41dcc' 'SKIP')
 # Leader Releases (release signing key), also in packaging/leader-releases.asc of the repository
 validpgpkeys=('1982245F766BD77FBA36A8E73DAE20054C308EB6')
 
