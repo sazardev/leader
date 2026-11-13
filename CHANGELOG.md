@@ -2,6 +2,36 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.20.0] - 2026-11-12
+
+### Highlights
+
+- **Go tests inside the editor**: `<leader>g` runs the test under the cursor (`M`), the file's package (`l`) or the whole module (`m`/`R`/`c`) through `go test -json`; marks on each test, failures as diagnostics and in the quickfix, and a statusline chip (`test ✓12 ✗1`) that stays red until the next run passes. `O` shows the runner's output. This is separate from `go build`, which never compiles `_test.go` files.
+- **GoHawk**: ownership, lifecycle and concurrency checks from [GoHawk](https://gohawk.dev) through nvim-lint (only when the binary is installed), defects as errors and hazards as warnings, with the evidence in the float; `<leader>gH` audits the whole module. `settings.go.gohawk`.
+- **A local completion model for this PC**: `<leader>Sm` / `:Fim model` detects the devices llama.cpp can use and recommends 0.5B CPU on an iGPU and 1.5B/3B/7B Q8 by dedicated-GPU VRAM, saves the choice and restarts the server. `settings.fim.model` takes a GGUF path or a `{ repo, file }` pair, and `gpu_layers = 0` keeps it on the CPU.
+- **Chat navigation**: `PageUp`/`PageDown` jump between the messages you sent (centered), from the transcript or the composer, and your turns get a stronger blue bubble.
+- **Installer**: the web installer verifies the desktop package by default.
+
+### Features
+
+- **go:** run tests in the editor with live status (3c29496)
+- **go:** run every test action verbose by default (a7a911b)
+- **go:** add GoHawk ownership and concurrency analysis (bfd152e)
+- **fim:** pick the best local model for this PC (8c9dc61)
+- **fim:** support a custom GGUF and CPU-only inference (8bc7b09)
+- **chat:** jump between your messages with PageUp/PageDown (72a2839)
+
+### Fixes
+
+- **fim:** honor the injected local-model check (fda1889)
+- **install:** verify the desktop package by default in the web installer (f44fa3c)
+
+### Other changes
+
+- docs: regenerate for the local model picker (f48b969)
+- chore(deps): update schemastore.nvim (67a9d57)
+- chore(packaging): point the Arch packages at v1.19.1 (86d9447)
+
 ## [1.19.1] - 2026-11-11
 
 ### Highlights
