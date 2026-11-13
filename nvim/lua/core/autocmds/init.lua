@@ -10,6 +10,7 @@ local MODULES = {
   "navigation",
   "last-position",
   "autoread",
+  "swap",
   "gitcommit",
   "agent",
   "diagnostics",
