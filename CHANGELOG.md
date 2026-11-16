@@ -2,6 +2,26 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.21.0] - 2026-11-15
+
+### Highlights
+
+- **SQL for six engines, one dialect at a time**: the connection decides everything. PostgreSQL, SQLite, MySQL, MariaDB, SQL Server and DuckDB are detected from `DATABASE_URL`/`.env`, `settings.sql.connections`, a project connection added with `<leader>Qn`, or a `.db`/`.sqlite`/`.duckdb` file; each one runs through its own client (`psql`, `sqlite3`, `mysql`/`mariadb`, `sqlcmd`, `duckdb`) and feeds `sqls`, SQLFluff and sql-formatter with the right dialect.
+- **A guided SQL workspace**: `<leader>Qs` browses the schema (tables → columns), `<leader>Qh` keeps the query history per project, `<leader>Qi` explains the connection and the tools, `:checkhealth sqlrun` checks the machine, `<leader>QF` applies SQLFluff fixes, `<leader>Qp` pings, `<leader>Qx` stops a query, and a statusline chip shows the engine and its state. Failures now come with a hint (server down, wrong password, missing certificate, locked SQLite file), and connection URLs are masked and never stored world-readable.
+- **Safer swap handling**: opening a file removes the stale swap files left by a previous editor instance, so the "swap file already exists" prompt stops interrupting the flow.
+
+### Features
+
+- **sql:** follow the connection across six engines (29c8b3b)
+
+### Fixes
+
+- **swap:** remove stale swap files when opening a file (85ad650)
+
+### Other changes
+
+- chore(packaging): point the Arch packages at v1.20.0 (84b5c46)
+
 ## [1.20.0] - 2026-11-12
 
 ### Highlights
