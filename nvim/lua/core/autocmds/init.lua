@@ -15,6 +15,7 @@ local MODULES = {
   "agent",
   "diagnostics",
   "herdr",
+  "sql",
 }
 
 function M.setup()

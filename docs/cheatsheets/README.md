@@ -23,7 +23,7 @@
 | [typescript.md](typescript.md) | **TypeScript / JavaScript** (`<leader>t`): scripts, typecheck to quickfix, tests in the editor (vitest, jest, bun), biome or prettier, setup |
 | [python.md](python.md) | **Python** (`<leader>p`): basedpyright + ruff, uv, tests in the editor (pytest), debugpy, setup |
 | [rust.md](rust.md) | **Rust** (`<leader>r`): rust-analyzer with clippy, cargo, tests in the editor, macros, codelldb, setup |
-| [sql.md](sql.md) | **SQL** (`<leader>Q`): run the statement under the cursor against PostgreSQL or SQLite, explain, schema |
+| [sql.md](sql.md) | **SQL** (`<leader>Q`): one connection, one dialect (PostgreSQL, SQLite, MySQL/MariaDB, SQL Server, DuckDB), run, explain, schema, SQLFluff, history |
 | [swift.md](swift.md) | **Swift** (`<leader>i`): SwiftPM, sourcekit-lsp, tests in the editor (XCTest, Swift Testing), setup |
 | [env.md](env.md) | **Env files** (`<leader>E`): `.env.example` per stack, `.env.dev/qa/staging/prod`, check, `.gitignore`, AI loader |
 | [dart-flutter.md](dart-flutter.md) | **Dart / Flutter** (`<leader>d`): run and debug, tests inside the editor, build_runner, completion for Riverpod/freezed, pub |

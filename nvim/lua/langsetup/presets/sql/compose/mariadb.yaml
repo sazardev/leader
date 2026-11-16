@@ -1,0 +1,22 @@
+# Compose for the database of {{name}} (MariaDB 11)
+# target: compose.yaml
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: "{{name}}_dev"
+      MARIADB_USER: app
+      MARIADB_PASSWORD: changeme
+      MARIADB_ROOT_PASSWORD: changeme-root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

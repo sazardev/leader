@@ -1,0 +1,16 @@
+# Compose for the database of {{name}} (SQL Server 2022)
+# target: compose.yaml
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: "ChangeMe_123!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - db-data:/var/opt/mssql
+
+volumes:
+  db-data:

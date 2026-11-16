@@ -365,6 +365,10 @@ function M.build(t)
   -- build_runner chips in the statusline (dartgen): aqua while it builds or is up to date, red when it failed
   g.DartgenStatus = { fg = t.aqua, bg = veil(t.aqua, 0.14), bold = true }
   g.DartgenFailed = { fg = t.red, bg = veil(t.red, 0.16), bold = true }
+  -- SQL (sqlrun): the connection and its dialect; yellow while a query runs, red for a minute after it failed
+  g.SqlStatus = { fg = t.blue, bg = veil(t.blue, 0.14), bold = true }
+  g.SqlRunning = { fg = t.yellow, bg = veil(t.yellow, 0.14), bold = true }
+  g.SqlFailed = { fg = t.red, bg = veil(t.red, 0.16), bold = true }
   -- pub outdated notes in pubspec.yaml (dartpub): green = `pub upgrade` takes it, yellow = the constraint must change
   g.DartPubUpgrade = { fg = t.green, italic = true }
   g.DartPubMajor = { fg = t.yellow, italic = true }

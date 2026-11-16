@@ -45,10 +45,10 @@ end
 
 -- ── the registry and the packs ───────────────────────────────────────────────
 
-local packs = require "languages.packs"
+local packs = require("languages.packs")
 local names = {}
 for line in io.lines(root .. "/nvim/lua/languages/init.lua") do
-  local n = line:match '^%s+"([%w_]+)",$'
+  local n = line:match('^%s+"([%w_]+)",$')
   if n then
     names[#names + 1] = n
   end
@@ -73,12 +73,12 @@ eq(
 )
 local one_line = 0
 for line in io.lines(root .. "/nvim/lua/languages/packs.lua") do
-  if line:match '^%s+{ id = "[%w_]+", label = "[^"]+", langs = {[^}]*}, detect = {[^}]*} },$' then
+  if line:match('^%s+{ id = "[%w_]+", label = "[^"]+", langs = {[^}]*}, detect = {[^}]*} },$') then
     one_line = one_line + 1
   end
 end
 eq("packs: each on a line of its own, in the shape install.sh parses", one_line, #packs.packs)
-for _, lang in ipairs { "python", "rust", "typescript", "csharp", "sql", "swift", "make" } do
+for _, lang in ipairs({ "python", "rust", "typescript", "csharp", "sql", "swift", "make" }) do
   local spec = dofile(root .. "/nvim/lua/languages/" .. lang .. ".lua")
   ok(lang .. ": declares its parsers", type(spec.treesitter) == "table" and #spec.treesitter > 0)
 end
@@ -98,7 +98,7 @@ eq("python: ruff in light mode too (always), the servers otherwise", {
 
 -- ── langtest: JUnit ──────────────────────────────────────────────────────────
 
-local junit = require "langtest.junit"
+local junit = require("langtest.junit")
 local xml =
   [[<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="1" tests="3">
 <testcase classname="tests.test_calc.TestCalc" name="test_add" file="tests/test_calc.py" line="4" time="0.001" />
@@ -124,7 +124,7 @@ ok(
 
 -- ── pytest ───────────────────────────────────────────────────────────────────
 
-local pytest = require "langtest.adapters.pytest"
+local pytest = require("langtest.adapters.pytest")
 local proot = base .. "/py"
 write(proot .. "/pyproject.toml", '[project]\nname = "calc"\nrequires-python = ">=3.13"\n')
 local pybuf = buffer(
@@ -149,7 +149,7 @@ local pybuf = buffer(
   }, "\n"),
   "python"
 )
-if has_parser "python" then
+if has_parser("python") then
   local defs = pytest.tests(pybuf)
   eq(
     "pytest tests: Test classes, test functions (decorated too), not helpers nor other classes",
@@ -161,12 +161,12 @@ if has_parser "python" then
   eq("nearest: the method under the cursor", require("langtest.ts").nearest(defs, 5).id, "TestCalc::test_add")
   eq("nearest: on the decorator line, its function", require("langtest.ts").nearest(defs, 10).id, "test_div")
 else
-  print "skip: no python parser"
+  print("skip: no python parser")
 end
 eq("pytest root: the project", pytest.root(proot .. "/tests/test_calc.py"), proot)
 eq(
   "pytest is_test",
-  { pytest.is_test "tests/test_calc.py", pytest.is_test "calc_test.py", pytest.is_test "calc.py" },
+  { pytest.is_test("tests/test_calc.py"), pytest.is_test("calc_test.py"), pytest.is_test("calc.py") },
   { true, true, false }
 )
 local ctx = {
@@ -202,7 +202,7 @@ eq(
 
 -- ── vitest / jest / bun ──────────────────────────────────────────────────────
 
-local js = require "langtest.adapters.jsunit"
+local js = require("langtest.adapters.jsunit")
 local jroot = base .. "/js"
 write(jroot .. "/package.json", '{"name":"web","devDependencies":{"vitest":"^3"}}')
 eq("js runner: vitest from the dependencies", js.runner(jroot), "vitest")
@@ -229,7 +229,7 @@ local jsbuf = buffer(
   }, "\n"),
   "typescript"
 )
-if has_parser "typescript" then
+if has_parser("typescript") then
   eq(
     "js tests: describe/it/test, .skip and .each, nested ids",
     vim.tbl_map(function(d)
@@ -244,7 +244,7 @@ if has_parser "typescript" then
     }
   )
 else
-  print "skip: no typescript parser"
+  print("skip: no typescript parser")
 end
 local jctx = {
   scope = "nearest",
@@ -264,7 +264,7 @@ ok(
     and vim.tbl_contains(jcmd, "^sum adds$")
 )
 ok("vitest command: never a download (npx --no-install)", jcmd[1] == "npx" and jcmd[2] == "--no-install")
-local report = vim.json.encode {
+local report = vim.json.encode({
   testResults = {
     {
       name = jroot .. "/src/sum.test.ts",
@@ -287,7 +287,7 @@ local report = vim.json.encode {
       },
     },
   },
-}
+})
 local jres = js.parse({ report = report }, jctx)
 eq(
   "vitest parse: ids, statuses",
@@ -303,13 +303,13 @@ eq(
 )
 eq(
   "js alternate: next to it, and back",
-  { js.alternate "/p/src/sum.ts", js.alternate "/p/src/sum.test.ts" },
+  { js.alternate("/p/src/sum.ts"), js.alternate("/p/src/sum.test.ts") },
   { "/p/src/sum.test.ts", "/p/src/sum.ts" }
 )
 
 -- ── cargo ────────────────────────────────────────────────────────────────────
 
-local cargo = require "langtest.adapters.cargo"
+local cargo = require("langtest.adapters.cargo")
 eq(
   "cargo module of a file",
   vim.tbl_map(cargo.module_of, { "src/lib.rs", "src/calc.rs", "src/net/mod.rs", "src/net/http.rs", "tests/api.rs" }),
@@ -339,7 +339,7 @@ local rbuf = buffer(
   }, "\n"),
   "rust"
 )
-if has_parser "rust" then
+if has_parser("rust") then
   eq(
     "cargo tests: the mod, #[test] and #[tokio::test], not helpers, with the file's module",
     vim.tbl_map(function(d)
@@ -348,7 +348,7 @@ if has_parser "rust" then
     { { "calc::tests", "group", 4 }, { "calc::tests::adds", "test", 7 }, { "calc::tests::async_adds", "test", 12 } }
   )
 else
-  print "skip: no rust parser"
+  print("skip: no rust parser")
 end
 local rctx = {
   scope = "nearest",
@@ -369,7 +369,7 @@ eq(
 )
 eq(
   "cargo command integration file: its target",
-  cargo.command { scope = "file", rel = "tests/api.rs" },
+  cargo.command({ scope = "file", rel = "tests/api.rs" }),
   { "cargo", "test", "--test", "api" }
 )
 local cargo_out = table.concat({
@@ -408,7 +408,7 @@ eq(
 
 -- ── swift ────────────────────────────────────────────────────────────────────
 
-local swift = require "langtest.adapters.swift"
+local swift = require("langtest.adapters.swift")
 local sroot = base .. "/sw"
 write(
   sroot .. "/Package.swift",
@@ -434,7 +434,7 @@ local sbuf = buffer(
   }, "\n"),
   "swift"
 )
-if has_parser "swift" then
+if has_parser("swift") then
   eq(
     "swift tests: an XCTestCase and its test methods, a @Test function",
     vim.tbl_map(function(d)
@@ -447,11 +447,11 @@ if has_parser "swift" then
     }
   )
 else
-  print "skip: no swift parser"
+  print("skip: no swift parser")
 end
 eq(
   "swift command nearest: its filter",
-  swift.command { scope = "nearest", test = { id = "CalcTests.testAdd", filter = "CalcTests/testAdd" } },
+  swift.command({ scope = "nearest", test = { id = "CalcTests.testAdd", filter = "CalcTests/testAdd" } }),
   { "swift", "test", "--filter", "CalcTests/testAdd" }
 )
 local swift_out = table.concat({
@@ -490,7 +490,7 @@ eq(
 
 -- ── langtest core ────────────────────────────────────────────────────────────
 
-local langtest = require "langtest"
+local langtest = require("langtest")
 eq(
   "summary: the totals",
   (langtest.summary({ { status = "pass" }, { status = "fail" }, { status = "skip" }, { status = "pass" } }, 1.25)),
@@ -498,7 +498,7 @@ eq(
 )
 eq(
   "counts: what the statusline chip shows",
-  langtest.counts { { status = "pass" }, { status = "fail" }, { status = "skip" }, { status = "pass" } },
+  langtest.counts({ { status = "pass" }, { status = "fail" }, { status = "skip" }, { status = "pass" } }),
   { pass = 2, fail = 1, skip = 1 }
 )
 eq("match: a result by id, else by a unique name", {
@@ -519,7 +519,7 @@ eq(
 
 -- ── SQL ──────────────────────────────────────────────────────────────────────
 
-local st = require "sqlrun.statement"
+local st = require("sqlrun.statement")
 local sql_lines = {
   "-- users first",
   "select * from users where name = 'a;b';",
@@ -542,14 +542,14 @@ eq(
 eq("at: the statement under the cursor", st.at(sql_lines, 5).first, 4)
 eq("at: on a blank line, the one before", st.at(sql_lines, 3).first, 2)
 eq("risky: what changes or drops with no limit", {
-  st.risky "delete from users",
-  st.risky "delete from users where id = 1",
-  st.risky "update users set a = 1",
-  st.risky "UPDATE users SET a = 1 WHERE id = 2",
-  st.risky "drop table users",
-  st.risky "truncate users",
-  st.risky "select * from users",
-  st.risky "-- where\ndelete from users",
+  st.risky("delete from users"),
+  st.risky("delete from users where id = 1"),
+  st.risky("update users set a = 1"),
+  st.risky("UPDATE users SET a = 1 WHERE id = 2"),
+  st.risky("drop table users"),
+  st.risky("truncate users"),
+  st.risky("select * from users"),
+  st.risky("-- where\ndelete from users"),
 }, {
   "a DELETE with no WHERE removes every row",
   nil,
@@ -561,69 +561,261 @@ eq("risky: what changes or drops with no limit", {
   "a DELETE with no WHERE removes every row",
 })
 eq("reads: only reads run under EXPLAIN ANALYZE without a question", {
-  st.reads "select 1",
-  st.reads "with a as (select 1) select * from a",
-  st.reads "with a as (delete from t returning *) select * from a",
-  st.reads "insert into t values (1)",
+  st.reads("select 1"),
+  st.reads("with a as (select 1) select * from a"),
+  st.reads("with a as (delete from t returning *) select * from a"),
+  st.reads("insert into t values (1)"),
 }, { true, true, false, false })
-local conn = require "sqlrun.connections"
+local conn = require("sqlrun.connections")
 eq(
   "env: export, quotes, comments",
-  conn.parse_env "export DATABASE_URL=\"postgres://u:p@h/db\"\n# x\nOTHER=1 # note\nQUOTED='a b'\n",
+  conn.parse_env("export DATABASE_URL=\"postgres://u:p@h/db\"\n# x\nOTHER=1 # note\nQUOTED='a b'\n"),
   { DATABASE_URL = "postgres://u:p@h/db", OTHER = "1", QUOTED = "a b" }
 )
-eq("kind: postgres URLs, sqlite URLs and files", {
-  { conn.kind "postgresql://h/db" },
-  { conn.kind "sqlite:///data/app.db" },
-  { conn.kind "data/app.sqlite3" },
-  { conn.kind "mysql://h/db" },
-}, { { "postgres", "postgresql://h/db" }, { "sqlite", "data/app.db" }, { "sqlite", "data/app.sqlite3" }, {} })
-local list = conn.list {
-  settings = { { name = "prod", url = "postgres://ro@prod/app" } },
+eq("kind: every engine the runner speaks", {
+  { conn.kind("postgresql://h/db") },
+  { conn.kind("sqlite:///data/app.db") },
+  { conn.kind("data/app.sqlite3") },
+  { conn.kind("mysql://h/db") },
+  { conn.kind("mariadb://h/db") },
+  { conn.kind("sqlserver://h/db") },
+  { conn.kind("mssql://h/db") },
+  { conn.kind("data/warehouse.duckdb") },
+  { conn.kind("file:///data/warehouse.duckdb") },
+  { conn.kind("postgresql+asyncpg://h/db") },
+  { conn.kind("sqlite+aiosqlite:///data/app.db") },
+  { conn.kind("redis://h") },
+}, {
+  { "postgres", "postgresql://h/db" },
+  { "sqlite", "/data/app.db" },
+  { "sqlite", "data/app.sqlite3" },
+  { "mysql", "mysql://h/db" },
+  { "mariadb", "mariadb://h/db" },
+  { "sqlserver", "sqlserver://h/db" },
+  { "sqlserver", "mssql://h/db" },
+  { "duckdb", "data/warehouse.duckdb" },
+  { "duckdb", "/data/warehouse.duckdb" },
+  { "postgres", "postgresql://h/db" },
+  { "sqlite", "/data/app.db" },
+  {},
+})
+local sqlurl = require("sqlrun.url")
+local parsed = sqlurl.parse("mysql://app:s3cret%40x@db.example:3307/app?ssl-mode=REQUIRED")
+eq(
+  "url: user, password, host, port, database and query are decoded",
+  { parsed.scheme, parsed.user, parsed.password, parsed.host, parsed.port, parsed.database, parsed.query["ssl-mode"] },
+  { "mysql", "app", "s3cret@x", "db.example", 3307, "app", "REQUIRED" }
+)
+local v6 = sqlurl.parse("postgres://u@[::1]:5432/app")
+eq("url: IPv6 hosts keep their brackets off", { v6.host, v6.port, v6.database }, { "::1", 5432, "app" })
+local list = conn.list({
+  extra = { { name = "mine", url = "sqlite:///tmp/mine.db" } },
+  settings = {
+    { name = "prod", url = "postgres://ro@prod/app" },
+    { name = "ms", driver = "sqlserver", url = "Server=db;Database=app" },
+  },
   env_files = {
-    [".env"] = "DATABASE_URL=postgres://app@localhost/app\nTEST_DATABASE_URL=postgres://app@localhost/test\n",
+    [".env"] = "DATABASE_URL=postgres://app@localhost/app\nMYSQL_URL=mysql://app@localhost/app\nTEST_DATABASE_URL=postgres://app@localhost/test\n",
   },
   env_url = "postgres://app@localhost/app",
-  sqlite = { base .. "/app/data/app.db" },
+  sqlite = { base .. "/app/data/app.db", base .. "/app/data/warehouse.duckdb" },
   root = base .. "/app",
-}
+})
 eq(
-  "list: settings first, the .env URLs (DATABASE_URL first), the environment (not twice), the SQLite files",
+  "list: project extras, settings, the .env URLs (DATABASE_URL first), the environment (not twice), the files",
   vim.tbl_map(function(c)
     return { c.name, c.kind }
   end, list),
   {
+    { "mine", "sqlite" },
     { "prod", "postgres" },
+    { "ms", "sqlserver" },
     { "DATABASE_URL (.env)", "postgres" },
+    { "MYSQL_URL (.env)", "mysql" },
     { "TEST_DATABASE_URL (.env)", "postgres" },
     { "data/app.db", "sqlite" },
+    { "data/warehouse.duckdb", "duckdb" },
   }
 )
 eq(
-  "shown: no password on screen",
-  conn.shown "postgres://app:s3cret@localhost/app",
-  "postgres://app:•••@localhost/app"
+  "shown: no password on screen (URL and DSN)",
+  { conn.shown("postgres://app:s3cret@localhost/app"), conn.shown("app:s3cret@tcp(db:3306)/app") },
+  { "postgres://app:•••@localhost/app", "app:•••@tcp(db:3306)/app" }
 )
-local sqlrun = require "sqlrun"
+eq("rank: the project's own database wins over a nested one", {
+  conn.rank("/p/app.db", "/p") > conn.rank("/p/tools/x/y.db", "/p"),
+  conn.rank("/p/p.db", "/p") > conn.rank("/p/app.db", "/p"),
+}, { true, true })
+local sqlrun = require("sqlrun")
+local dialects = require("sqlrun.dialects")
+local pg = sqlrun.command({ kind = "postgres", target = "postgres://h/db" })
 eq(
-  "command: psql never prompts and stops at the first error",
-  sqlrun.command { kind = "postgres", target = "postgres://h/db" },
-  { "psql", "postgres://h/db", "-X", "-v", "ON_ERROR_STOP=1", "-P", "pager=off", "-P", "null=∅" }
+  "command: psql never prompts (-w) and stops at the first error",
+  pg.cmd,
+  { "psql", "postgres://h/db", "-X", "-w", "-v", "ON_ERROR_STOP=1", "-P", "pager=off", "-P", "null=∅" }
 )
 eq(
-  "command: sqlite3 with headers in boxes",
-  sqlrun.command { kind = "sqlite", target = "a.db" },
-  { "sqlite3", "-bail", "-header", "-box", "a.db" }
+  "command: sqlite3 with headers in boxes and a lock timeout",
+  sqlrun.command({ kind = "sqlite", target = "a.db" }).cmd,
+  { "sqlite3", "-bail", "-header", "-box", "-cmd", ".timeout 5000", "a.db" }
+)
+local mysql_spec = dialects
+  .get("mysql")
+  .command({ kind = "mysql", target = "mysql://app:s3cret@db:3306/app?ssl-mode=REQUIRED" }, "mysql")
+eq("mysql: the URL becomes flags, the password travels in MYSQL_PWD", { mysql_spec.cmd, mysql_spec.env }, {
+  {
+    "mysql",
+    "--default-character-set=utf8mb4",
+    "--host=db",
+    "--port=3306",
+    "--user=app",
+    "--database=app",
+    "--ssl-mode=REQUIRED",
+    "--table",
+  },
+  { MYSQL_PWD = "s3cret" },
+})
+local maria_spec =
+  dialects.get("mariadb").command({ kind = "mariadb", target = "mariadb://app:pw@db/app?ssl-mode=REQUIRED" }, "mariadb")
+eq("mariadb: --ssl instead of MySQL's --ssl-mode", {
+  vim.tbl_contains(maria_spec.cmd, "--ssl"),
+  vim.tbl_contains(maria_spec.cmd, "--ssl-mode=REQUIRED"),
+}, { true, false })
+eq(
+  "mysql on a machine with only the mariadb client: the flags follow the binary",
+  vim.tbl_contains(
+    dialects.get("mysql").command({ kind = "mysql", target = "mysql://app@db/app?ssl-mode=REQUIRED" }, "mariadb").cmd,
+    "--ssl"
+  ),
+  true
+)
+local mssql_spec = dialects
+  .get("sqlserver")
+  .command({ kind = "sqlserver", target = "sqlserver://sa:Pass%40123@localhost:1433/app" }, "sqlcmd")
+eq("sqlserver: host, port, database and the local certificate", mssql_spec.cmd, {
+  "sqlcmd",
+  "-b",
+  "-r",
+  "1",
+  "-W",
+  "-f",
+  "65001",
+  "-l",
+  "30",
+  "-S",
+  "localhost,1433",
+  "-U",
+  "sa",
+  "-d",
+  "app",
+  "-C",
+})
+eq("sqlserver: the password travels in SQLCMDPASSWORD", mssql_spec.env, { SQLCMDPASSWORD = "Pass@123" })
+eq(
+  "sqlserver: sqls gets the database as a parameter",
+  dialects.get("sqlserver").sqls_dsn({ target = "mssql://sa:Pass%40123@localhost:1433/app" }),
+  "sqlserver://sa:Pass%40123@localhost:1433?database=app"
+)
+eq(
+  "duckdb: a file, boxed results",
+  dialects.get("duckdb").command({ kind = "duckdb", target = "data/x.duckdb" }, "duckdb").cmd,
+  { "duckdb", "-box", "-header", "data/x.duckdb" }
+)
+local sqlroot = base .. "/app"
+write(
+  sqlroot .. "/.env",
+  "DATABASE_URL=postgres://app@localhost/app\nMYSQL_URL=mysql://app@localhost/app\nTEST_DATABASE_URL=postgres://app@localhost/test\n"
+)
+write(sqlroot .. "/data/app.db", "")
+write(sqlroot .. "/data/warehouse.duckdb", "")
+conn.invalidate(sqlroot)
+conn.add(sqlroot, "sqlite:///tmp/mine.db", "mine")
+conn.invalidate(sqlroot)
+eq(
+  "sqls: the current connection first, MySQL structured, the rest as a DSN",
+  vim.tbl_map(function(c)
+    return { c.alias, c.driver, c.dataSourceName or c.dbName }
+  end, conn.sqls(sqlroot)),
+  {
+    { "mine", "sqlite3", "/tmp/mine.db" },
+    { "DATABASE_URL (.env)", "postgresql", "postgres://app@localhost/app" },
+    { "MYSQL_URL (.env)", "mysql", "app" },
+    { "TEST_DATABASE_URL (.env)", "postgresql", "postgres://app@localhost/test" },
+    { "data/app.db", "sqlite3", sqlroot .. "/data/app.db" },
+  }
+)
+local added, problem = conn.add(sqlroot, "sqlite:///tmp/added.db", "added")
+eq("connections: a project connection is remembered", { added and added.name, added and added.kind, problem }, {
+  "added",
+  "sqlite",
+  nil,
+})
+eq("connections: it is read back", #conn.extras(sqlroot), 2)
+eq(
+  "connections: an unknown target is refused",
+  { conn.add(sqlroot, "redis://h") },
+  { nil, "not a database URL or a SQLite/DuckDB file" }
+)
+eq(
+  "connections: it can be removed by the name the picker speaks",
+  { conn.remove(sqlroot, "/tmp/added.db"), #conn.extras(sqlroot) },
+  { true, 1 }
+)
+local hist = require("sqlrun.history")
+local entries = hist.add({}, { text = "select 1", at = 1 }, 3)
+entries = hist.add(entries, { text = "select 2", at = 2 }, 3)
+entries = hist.add(entries, { text = "select 1", at = 3 }, 3)
+eq(
+  "history: newest first, the same text replaces the old one",
+  vim.tbl_map(function(e)
+    return e.text
+  end, entries),
+  { "select 1", "select 2" }
+)
+local sch = require("sqlrun.schema")
+local tables = sch.tables("public\tusers\tBASE TABLE\t3\nmain\tv\tVIEW\t1\n")
+eq("schema: tables keep their schema, name, kind and column count", {
+  { tables[1].schema, tables[1].name, tables[1].kind, tables[1].columns },
+  { tables[2].name, tables[2].columns },
+}, { { "public", "users", "BASE TABLE", 3 }, { "v", 1 } })
+local columns = sch.columns("id\tbigint\tNO\tnextval('x')\nname\ttext\tYES\t\n")
+eq("schema: columns keep the type, nullability and default", {
+  { columns[1].name, columns[1].type, columns[1].nullable, columns[1].default },
+  { columns[2].name, columns[2].default },
+}, { { "id", "bigint", "NO", "nextval('x')" }, { "name", "" } })
+eq(
+  "schema: the header names the table and its kind",
+  sch.format(tables[1], columns)[1],
+  "-- public.users · BASE TABLE · 2 columns"
+)
+eq(
+  "diagnose: a connection refused says what to do",
+  require("sqlrun.diagnose").tip('psql: error: connection to server at "localhost" failed: Connection refused'),
+  "the server is not listening (start it: docker compose up -d db)"
+)
+eq(
+  "dialects: every engine has a name for every tool",
+  vim.tbl_map(function(d)
+    return { d.id, d.sqlfluff, d.formatter, d.sqls ~= nil }
+  end, dialects.all()),
+  {
+    { "postgres", "postgres", "postgresql", true },
+    { "sqlite", "sqlite", "sqlite", true },
+    { "mysql", "mysql", "mysql", true },
+    { "mariadb", "mariadb", "mariadb", true },
+    { "sqlserver", "tsql", "transactsql", true },
+    { "duckdb", "duckdb", "duckdb", false },
+  }
 )
 
 -- ── project setup presets ────────────────────────────────────────────────────
 
-local ls = require "langsetup"
+local ls = require("langsetup")
 eq("parse: a // header for JS-like files", ls.parse("x", "// what\n// target: a.js\nbody\n").target, "a.js")
 eq("parse: JSON gets no comment", ls.parse("x", "// what\n// target: a.json\n{}\n").body, "{}\n")
 ok(
   "parse: .nvmrc and .python-version get no comment either",
-  ls.bare ".nvmrc" and ls.bare ".python-version" and ls.bare ".swift-format" and not ls.bare "ruff.toml"
+  ls.bare(".nvmrc") and ls.bare(".python-version") and ls.bare(".swift-format") and not ls.bare("ruff.toml")
 )
 eq(
   "render: placeholders filled, unknown ones listed",
@@ -646,7 +838,10 @@ local fake_roots = {
   docker = { ["Dockerfile"] = "FROM alpine\n" },
   lua = { ["init.lua"] = "local M = {}\nreturn M\n" },
   sql = { [".env"] = "DATABASE_URL=postgres://app:changeme@localhost:5432/app_dev\n" },
-  prisma = { ["prisma/schema.prisma"] = "datasource db {\n  provider = \"postgresql\"\n}\n", ["package.json"] = '{"name":"web"}' },
+  prisma = {
+    ["prisma/schema.prisma"] = 'datasource db {\n  provider = "postgresql"\n}\n',
+    ["package.json"] = '{"name":"web"}',
+  },
 }
 for _, lang in ipairs(ls.LANGS) do
   local l = ls.lang(lang)
@@ -672,11 +867,11 @@ for _, lang in ipairs(ls.LANGS) do
     for _, v in ipairs(variants) do
       local text, unknown = ls.render(v.body, vars)
       eq(lang .. " " .. topic.id .. "/" .. v.name .. ": every placeholder filled", unknown, {})
-      if ls.bare(v.target) and (v.target:match "%.json$" or v.target == ".swift-format") then
+      if ls.bare(v.target) and (v.target:match("%.json$") or v.target == ".swift-format") then
         ok(lang .. " " .. topic.id .. "/" .. v.name .. ": valid JSON", pcall(vim.json.decode, text))
       end
       if ls.bare(v.target) then
-        ok(lang .. " " .. topic.id .. "/" .. v.name .. ": no comment written into it", not text:find "^%s*[#/]")
+        ok(lang .. " " .. topic.id .. "/" .. v.name .. ": no comment written into it", not text:find("^%s*[#/]"))
       end
     end
   end
@@ -700,7 +895,7 @@ eq(
   { csv.name, csv.tfm, csv.channel },
   { "Api", "net10.0", "10.0" }
 )
-local csharp = require "servers.csharp"
+local csharp = require("servers.csharp")
 eq(
   "csharp server: auto prefers Roslyn",
   csharp.choose("auto", { roslyn = "/r", csharp_ls = "/c" }),
@@ -713,7 +908,7 @@ eq(
 )
 eq("csharp server: forced csharp-ls", csharp.choose("csharp_ls", { roslyn = "/r", csharp_ls = "/c" }).name, "csharp_ls")
 eq("csharp server: nothing installed", csharp.choose("auto", {}), nil)
-local roslyn = require "servers.roslyn_ls"
+local roslyn = require("servers.roslyn_ls")
 ok(
   "csharp server: one command for Roslyn or csharp-ls",
   type(roslyn.cmd) == "function" and type(roslyn.before_init) == "function"
@@ -744,7 +939,7 @@ local old_run = langtest.run
 langtest.run = function(scope, file, opts)
   calls[#calls + 1] = { scope, file, opts }
 end
-local goa = require "languages.actions.go"
+local goa = require("languages.actions.go")
 local gmap = {}
 for _, m in ipairs(goa) do
   gmap[m[1]] = m
@@ -763,7 +958,7 @@ eq("go menu: the test keys run through langtest", {
 }, { "file", "nearest", "all", "-race", "-cover" })
 langtest.run = old_run
 
-local tsa = require "languages.actions.typescript"
+local tsa = require("languages.actions.typescript")
 eq(
   "tsc errors as quickfix entries",
   tsa.tsc_items({ "src/a.ts(12,5): error TS2322: Type 'string' is not assignable to type 'number'.", "noise" }, "/p"),
@@ -777,7 +972,7 @@ eq(
     },
   }
 )
-local dbg = require "langdebug"
+local dbg = require("langdebug")
 eq("cargo executables: the test binaries or the bins of a build", {
   dbg.cargo_executables({
     '{"reason":"compiler-artifact","target":{"kind":["lib"]},"profile":{"test":true},"executable":"/t/calc-123"}',
@@ -791,12 +986,12 @@ eq("cargo executables: the test binaries or the bins of a build", {
 }, { { "/t/calc-123" }, { "/t/calc" } })
 ok(
   "debug maps: under D, the same in every language",
-  vim.iter(dbg.maps "python"):all(function(m)
+  vim.iter(dbg.maps("python")):all(function(m)
     return m[1]:sub(1, 1) == "D"
   end)
 )
-ok("csharp: Directory.Build.props takes no description line", ls.bare "Directory.Build.props")
-local csa = require "languages.actions.csharp"
+ok("csharp: Directory.Build.props takes no description line", ls.bare("Directory.Build.props"))
+local csa = require("languages.actions.csharp")
 local cmap = {}
 for _, m in ipairs(csa) do
   cmap[m[1]] = true
@@ -815,8 +1010,8 @@ ok(
 vim.fn.delete(base, "rf")
 print(("%d/%d passed"):format(total - fails, total))
 if fails == 0 then
-  print "ALL OK"
+  print("ALL OK")
 else
   print(("FAILURES: %d"):format(fails))
 end
-vim.cmd "qa!"
+vim.cmd("qa!")

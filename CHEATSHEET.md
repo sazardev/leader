@@ -875,9 +875,16 @@ _Where: `sql`_
 | `<leader>QE` | explain analyze |
 | `<leader>Qt` | tables |
 | `<leader>Qd` | describe table under cursor |
+| `<leader>Qs` | schema browser |
 | `<leader>Qc` | connection |
+| `<leader>Qn` | new connection |
+| `<leader>Qi` | connection info |
+| `<leader>Qh` | query history |
+| `<leader>Qp` | ping connection |
+| `<leader>Qx` | stop query |
 | `<leader>Ql` | last run again |
 | `<leader>Qf` | format |
+| `<leader>QF` | fix with sqlfluff |
 | `<leader>QSf` | setup .sql-formatter.json |
 | `<leader>QSc` | setup compose.yaml (database) |
 | `<leader>QSe` | setup .editorconfig |

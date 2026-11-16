@@ -106,14 +106,18 @@ local defaults = {
     packs = {}, -- { python = true, sql = false }: a pack on/off from the settings panel wins over `disabled`
   },
 
-  -- SQL (<leader>Q, lua/sqlrun/): the connections are found in the project (DATABASE_URL in .env or the environment,
-  -- the SQLite files under the root); the ones here come first
+  -- SQL (<leader>Q, lua/sqlrun/): the connections are found in the project (the ones added with <leader>Qn come
+  -- first, then these, then DATABASE_URL in .env or the environment and the SQLite/DuckDB files under the root)
   sql = {
-    connections = {}, -- { { name = "local", url = "postgres://app@localhost/app" }, { name = "data", sqlite = "data/app.db" } }
-    dialect = "postgres", -- what the formatter speaks when the project has no connection: "postgres" | "sqlite"
+    -- { { name = "local", url = "postgres://app@localhost/app" }, { name = "data", sqlite = "data/app.db" },
+    --   { name = "sqlserver", driver = "sqlserver", url = "sqlserver://sa@localhost:1433/app" } }
+    connections = {},
+    -- what every tool speaks when the project has no connection: postgres | sqlite | mysql | mariadb | sqlserver | duckdb
+    dialect = "postgres",
     timeout_ms = 30000, -- a query that takes longer is stopped
     results_height = 15, -- lines of the results split
     confirm_risky = true, -- DELETE/UPDATE with no WHERE, DROP, TRUNCATE ask before they run
+    history = 100, -- runs remembered per project for <leader>Qh (0 = off)
   },
 
   -- Env files (<leader>E, lua/env/): the .env.example a language wants and the check that every real file matches it.

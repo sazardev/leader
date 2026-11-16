@@ -249,6 +249,29 @@ function M.langtest_status()
   }
 end
 
+--- SQL (sqlrun): "PG app", "MySQL app …" while a query runs, "SQL Server app ✗" for a minute after one failed.
+--- Nothing outside a .sql buffer or before sqlrun was loaded (it does not load it).
+---@return table lualine component
+function M.sql_status()
+  local function text()
+    local sql = package.loaded["sqlrun"]
+    return sql and sql.statusline() or ""
+  end
+  return {
+    function()
+      return " " .. text() .. " "
+    end,
+    cond = function()
+      return text() ~= ""
+    end,
+    color = function()
+      local sql = package.loaded["sqlrun"]
+      return sql and sql.statusline_group() or "SqlStatus"
+    end,
+    padding = 0,
+  }
+end
+
 --- Dart tests (darttest): "test ✓12 ✗1 …" while a run is going; red as soon as one fails
 function M.darttest_status()
   local function text()
