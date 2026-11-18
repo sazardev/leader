@@ -71,6 +71,18 @@ function M.setup()
   -- Visual: <leader>d | Normal: <leader>dd (line), <leader>dw (word), etc.
   map({ "n", "v" }, "<leader>d", '"_d', { desc = "General delete without copying" })
 
+  -- Rename (all variants together, utils/rename.lua): file only, project-wide,
+  -- or the real LSP symbol. For the symbol you can also use grn / <leader>ra.
+  map("n", "<leader>rn", function()
+    require("utils.rename").file()
+  end, { desc = "Rename in file (this buffer)" })
+  map({ "n", "x" }, "<leader>rN", function()
+    require("utils.rename").project()
+  end, { desc = "Rename in project (all files)" })
+  map("n", "<leader>rs", function()
+    require("utils.rename").symbol()
+  end, { desc = "Rename symbol (LSP)" })
+
   -- Diagnostics (<leader>x): line popup, inline blocks for the whole buffer and walking
   -- through them one by one (utils/diagblocks.lua); the bottom panel is Trouble (<leader>xx)
   local diag = require "utils.diagblocks"

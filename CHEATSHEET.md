@@ -1492,6 +1492,14 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>Vx` | n | Close |
 | `<leader>Vz` | n | Zoom (toggle) |
 
+### Rename
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>rN` | n,x | In project (all files) |
+| `<leader>rn` | n | In file (this buffer) |
+| `<leader>rs` | n | Symbol (LSP) |
+
 ### Run
 
 | Key | Mode | Action |
