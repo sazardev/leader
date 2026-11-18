@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.22.0] - 2026-11-18
+
+### Features
+
+- **rename:** file, project and symbol variants together (9349fb6)
+
+### Other changes
+
+- chore(packaging): point the Arch packages at v1.21.0 (8a88a25)
+
 ## [1.21.0] - 2026-11-15
 
 ### Highlights
