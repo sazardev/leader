@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.22.1] - 2026-11-19
+
+### Fixes
+
+- **go:** lint from the buffer's module root (90a54b2)
+
+### Other changes
+
+- chore(packaging): point the Arch packages at v1.22.0 (c6c0f90)
+
 ## [1.22.0] - 2026-11-18
 
 ### Features
