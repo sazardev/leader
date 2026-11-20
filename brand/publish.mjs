@@ -26,7 +26,7 @@ const COPY = new Function(fs.readFileSync(path.join(HERE, "copy.js"), "utf8") + 
 const DEVICES = { phone: { label: "Phone", dir: "phone" }, desktop: { label: "Desktop", dir: "desktop" }, ultrawide: { label: "Ultrawide", dir: "ultrawide" }, uhd: { label: "4K", dir: "4k" } };
 const PALNAME = { gruvbox: "Gruvbox", "gruvbox-light": "Gruvbox light", yellow: "Yellow", green: "Green", aqua: "Aqua", "tokyo-night": "Tokyo Night", "catppuccin-mocha": "Catppuccin Mocha", "catppuccin-latte": "Catppuccin Latte",
   "rose-pine": "Rosé Pine", nord: "Nord", kanagawa: "Kanagawa", everforest: "Everforest", dracula: "Dracula", "one-dark": "One Dark", "solarized-light": "Solarized light", "solarized-dark": "Solarized dark" };
-const DESIGN = { ghost: "The N", grid: "Dot grid", braille: "Braille", keys: "Keyboard", dots: "Dot-matrix words", minimal: "Minimal", editor: "Editor", phrase: "Phrases", lang: "Languages", term: "Terms", cheat: "Key cheat sheets" };
+const DESIGN = { ghost: "The N", grid: "Dot grid", braille: "Braille", keys: "Keyboard", dots: "Dot-matrix words", minimal: "Minimal", editor: "Editor", phrase: "Phrases", lang: "Languages", term: "Terms", cheat: "Key cheat sheets", cheatsheet: "Language cheat sheets" };
 const LIGHT = new Set(["gruvbox-light", "catppuccin-latte", "solarized-light"]), COLOR = new Set(["yellow", "green", "aqua"]);
 const FORMAT_DEVICE = { d: "desktop", p: "phone", u: "ultrawide", k: "uhd" };
 const palette = (e) => e.pal || (e.theme === "light" ? "gruvbox-light" : e.bg && e.bg !== "deep" && e.bg !== "bg" ? e.bg : "gruvbox");
@@ -38,6 +38,7 @@ for (const w of COPY.wpPhrases) entries.push({ file: "phrase-" + w.id, design: "
 for (const w of COPY.wpLangs) entries.push({ file: "lang-" + w.id, design: "lang", e: w, title: w.name });
 for (const w of COPY.wpTerms) entries.push({ file: "term-" + w.id, design: "term", e: w, title: w.term });
 for (const w of COPY.wpCheats) entries.push({ file: "cheat-" + w.id, design: "cheat", e: w, title: w.title + " keys" });
+for (const w of COPY.wpCheatSheets) entries.push({ file: "cheatsheet-" + w.id, design: "cheatsheet", e: w, title: w.name + " cheat sheet" });
 
 const KB = (f) => Math.round(fs.statSync(f).size / 1024);
 fs.mkdirSync(WEB, { recursive: true }); fs.rmSync(REL, { recursive: true, force: true }); fs.mkdirSync(REL, { recursive: true });

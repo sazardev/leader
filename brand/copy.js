@@ -263,6 +263,1128 @@ var COPY = {
     { id: "settings", title: "Settings", path: "S", keys: ["p", "t", "f", "l", "M", "u", "i"], labels: { p: "Panel", t: "Toggle theme", f: "Format on save", l: "Plugins", M: "Tools", u: "Update config", i: "Info" }, pal: "rose-pine", f: "dp" }
   ],
 
+  /* language cheat sheets: one wallpaper per theme, each with 12 entries (signature + description + one example). */
+  wpCheatSheets: [
+    {
+      id: "go",
+      name: "Go",
+      ac: "var(--green)",
+      f: "dpuk",
+      intro: "Twelve corners of the standard library, one line of code each — the whole sheet at a glance.",
+      primary: {
+        sig: "fmt.Println(\"Hello, Leader\")",
+        desc: "Start here: the smallest Go program prints something and moves on.",
+        ex: "fmt.Println(\"Hello, Leader\")"
+      },
+      items: [
+        {
+          name: "Time",
+          sig: "time.Unix(sec, nsec)",
+          desc: "Create a time.Time from Unix epoch seconds plus nanoseconds.",
+          ex: "time.Unix(1700000000, 0).UTC()"
+        },
+        {
+          name: "Strings",
+          sig: "strings.Split(s, sep)",
+          desc: "Split a string into a []string at every separator.",
+          ex: "strings.Split(\"a,b,c\", \",\")"
+        },
+        {
+          name: "Slices",
+          sig: "slices.Sort(xs)",
+          desc: "Sort any ordered slice in place. Go 1.21+, no comparator needed.",
+          ex: "slices.Sort([]int{3, 1, 2})"
+        },
+        {
+          name: "Errors",
+          sig: "fmt.Errorf(\"...: %w\", err)",
+          desc: "Wrap an error and keep errors.Is / errors.As working.",
+          ex: "fmt.Errorf(\"open config: %w\", err)"
+        },
+        {
+          name: "Concurrency",
+          sig: "go func() { ... }()",
+          desc: "Run work in a goroutine; pair with sync.WaitGroup to wait for it.",
+          ex: "wg.Add(1); go work(&wg)"
+        },
+        {
+          name: "Maps",
+          sig: "v, ok := m[k]",
+          desc: "Read a value and check it exists — the comma-ok idiom.",
+          ex: "if v, ok := counts[\"go\"]; ok { }"
+        },
+        {
+          name: "Context",
+          sig: "context.WithTimeout(ctx, d)",
+          desc: "Bound work by time; always call the returned cancel.",
+          ex: "context.WithTimeout(ctx, 2*time.Second)"
+        },
+        {
+          name: "JSON",
+          sig: "json.Marshal(v)",
+          desc: "Encode any value into JSON bytes. Returns ([]byte, error).",
+          ex: "b, err := json.Marshal(user)"
+        },
+        {
+          name: "Formatting",
+          sig: "fmt.Printf(\"%+v\", x)",
+          desc: "Print a value with its field names — ideal for inspecting structs.",
+          ex: "fmt.Printf(\"%+v\\n\", user)"
+        },
+        {
+          name: "Channels",
+          sig: "make(chan T, n)",
+          desc: "Create a buffered channel; unbuffered when the capacity is zero.",
+          ex: "ch := make(chan int, 10)"
+        },
+        {
+          name: "Files",
+          sig: "os.ReadFile(name)",
+          desc: "Read a whole file into []byte; it closes the file for you.",
+          ex: "b, err := os.ReadFile(\"go.mod\")"
+        },
+        {
+          name: "Defer",
+          sig: "defer f.Close()",
+          desc: "Run a call when the surrounding function returns — LIFO order.",
+          ex: "defer f.Close()"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "time",
+      name: "Time",
+      ac: "var(--green)",
+      intro: "Instants, durations, layouts and clocks — the whole time package on one sheet.",
+      primary: {
+        sig: "time.Now()",
+        desc: "The current instant, carrying a monotonic reading so Sub and Since stay safe.",
+        ex: "now := time.Now()"
+      },
+      items: [
+        {
+          name: "Now",
+          sig: "time.Now()",
+          desc: "Current instant; includes a monotonic reading for safe subtraction.",
+          ex: "now := time.Now()"
+        },
+        {
+          name: "Unix",
+          sig: "time.Unix(sec, nsec)",
+          desc: "Build a Time from Unix epoch seconds plus nanoseconds.",
+          ex: "time.Unix(1700000000, 0)"
+        },
+        {
+          name: "Date",
+          sig: "time.Date(y, mo, d, h, mi, s, ns, loc)",
+          desc: "Construct a Time in a given location.",
+          ex: "time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC)"
+        },
+        {
+          name: "Format",
+          sig: "t.Format(layout)",
+          desc: "Render with the reference layout Mon Jan 2 15:04:05 2006.",
+          ex: "t.Format(time.RFC3339)"
+        },
+        {
+          name: "Parse",
+          sig: "time.Parse(layout, s)",
+          desc: "Parse a string into a Time (UTC unless a zone is given).",
+          ex: "time.Parse(time.RFC3339, s)"
+        },
+        {
+          name: "Add",
+          sig: "t.Add(d) / t.AddDate(y, mo, d)",
+          desc: "Shift by a duration or by calendar units.",
+          ex: "t.Add(2 * time.Hour)"
+        },
+        {
+          name: "Sub",
+          sig: "t.Sub(u)",
+          desc: "The Duration between two instants.",
+          ex: "d := t.Sub(start)"
+        },
+        {
+          name: "Since",
+          sig: "time.Since(t)",
+          desc: "Shortcut for time.Now().Sub(t) — timing made easy.",
+          ex: "fmt.Println(time.Since(start))"
+        },
+        {
+          name: "Until",
+          sig: "time.Until(t)",
+          desc: "Shortcut for t.Sub(time.Now()) — time left until a deadline.",
+          ex: "if time.Until(deadline) < 0 { }"
+        },
+        {
+          name: "Sleep",
+          sig: "time.Sleep(d)",
+          desc: "Pause the current goroutine for at least d.",
+          ex: "time.Sleep(100 * time.Millisecond)"
+        },
+        {
+          name: "Ticker",
+          sig: "time.NewTicker(d)",
+          desc: "Repeating ticks on a channel — remember to Stop() it.",
+          ex: "ticker := time.NewTicker(time.Second)"
+        },
+        {
+          name: "After",
+          sig: "<-time.After(d)",
+          desc: "A channel that receives once, after the duration elapses.",
+          ex: "select { case <-time.After(time.Second): }"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "strings",
+      name: "Strings",
+      ac: "var(--yellow)",
+      intro: "Split, join, trim, search and build — without allocating more than you need.",
+      primary: {
+        sig: "strings.Join(xs, \", \")",
+        desc: "Concatenate a slice with a separator in a single pass.",
+        ex: "s := strings.Join(xs, \", \")"
+      },
+      items: [
+        {
+          name: "Split",
+          sig: "strings.Split(s, sep)",
+          desc: "Split into a []string at every separator.",
+          ex: "strings.Split(\"a,b,c\", \",\")"
+        },
+        {
+          name: "Join",
+          sig: "strings.Join(xs, sep)",
+          desc: "Join a slice of strings into one value.",
+          ex: "strings.Join(xs, \", \")"
+        },
+        {
+          name: "Contains",
+          sig: "strings.Contains(s, sub)",
+          desc: "Is the substring anywhere in s?",
+          ex: "strings.Contains(s, \"go\")"
+        },
+        {
+          name: "HasPrefix",
+          sig: "strings.HasPrefix(s, p)",
+          desc: "Prefix check — its sibling HasSuffix checks the end.",
+          ex: "strings.HasPrefix(s, \"pkg/\")"
+        },
+        {
+          name: "TrimSpace",
+          sig: "strings.TrimSpace(s)",
+          desc: "Strip leading and trailing whitespace.",
+          ex: "strings.TrimSpace(line)"
+        },
+        {
+          name: "ReplaceAll",
+          sig: "strings.ReplaceAll(s, old, new)",
+          desc: "Replace every occurrence of a substring.",
+          ex: "strings.ReplaceAll(s, \"\\t\", \"  \")"
+        },
+        {
+          name: "Fields",
+          sig: "strings.Fields(s)",
+          desc: "Split on runs of whitespace, dropping empties.",
+          ex: "words := strings.Fields(s)"
+        },
+        {
+          name: "Builder",
+          sig: "var b strings.Builder",
+          desc: "Efficient repeated concatenation without copies.",
+          ex: "b.WriteString(\"leader\")"
+        },
+        {
+          name: "Index",
+          sig: "strings.Index(s, sub)",
+          desc: "First byte index of sub, or -1 when absent.",
+          ex: "i := strings.Index(s, \"go\")"
+        },
+        {
+          name: "Count",
+          sig: "strings.Count(s, sub)",
+          desc: "Number of non-overlapping occurrences.",
+          ex: "n := strings.Count(s, \"a\")"
+        },
+        {
+          name: "ToLower",
+          sig: "strings.ToLower(s) / ToUpper(s)",
+          desc: "Case conversion for the whole string.",
+          ex: "strings.ToLower(s)"
+        },
+        {
+          name: "TrimPrefix",
+          sig: "strings.TrimPrefix(s, p)",
+          desc: "Remove a prefix, but only if it is there.",
+          ex: "strings.TrimPrefix(s, \"./\")"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "slices",
+      name: "Slices",
+      ac: "var(--aqua)",
+      intro: "The Go 1.21+ slices package: sort, search, copy and reshape with zero ceremony.",
+      primary: {
+        sig: "append(xs, v)",
+        desc: "Grow a slice, reallocating only when capacity runs out.",
+        ex: "xs = append(xs, 4)"
+      },
+      items: [
+        {
+          name: "append",
+          sig: "append(xs, v)",
+          desc: "Add a value; may reallocate when capacity is full.",
+          ex: "xs = append(xs, 4)"
+        },
+        {
+          name: "make",
+          sig: "make([]T, 0, n)",
+          desc: "Preallocate with length 0 and capacity n.",
+          ex: "xs := make([]int, 0, 10)"
+        },
+        {
+          name: "Sort",
+          sig: "slices.Sort(xs)",
+          desc: "Sort any ordered slice in place.",
+          ex: "slices.Sort(xs)"
+        },
+        {
+          name: "SortFunc",
+          sig: "slices.SortFunc(xs, cmp)",
+          desc: "Sort with a comparison function.",
+          ex: "slices.SortFunc(xs, less)"
+        },
+        {
+          name: "Contains",
+          sig: "slices.Contains(xs, v)",
+          desc: "Membership test for any comparable element.",
+          ex: "if slices.Contains(xs, 2) { }"
+        },
+        {
+          name: "Index",
+          sig: "slices.Index(xs, v)",
+          desc: "First index of v, or -1 when absent.",
+          ex: "i := slices.Index(xs, 2)"
+        },
+        {
+          name: "Clone",
+          sig: "slices.Clone(xs)",
+          desc: "Copy the elements into a new slice.",
+          ex: "ys := slices.Clone(xs)"
+        },
+        {
+          name: "Delete",
+          sig: "slices.Delete(xs, i, j)",
+          desc: "Remove the half-open range [i:j).",
+          ex: "xs = slices.Delete(xs, 1, 2)"
+        },
+        {
+          name: "Copy",
+          sig: "copy(dst, src)",
+          desc: "Copy into an existing slice; returns how many were copied.",
+          ex: "n := copy(dst, src)"
+        },
+        {
+          name: "Reverse",
+          sig: "slices.Reverse(xs)",
+          desc: "Reverse the elements in place.",
+          ex: "slices.Reverse(xs)"
+        },
+        {
+          name: "Compact",
+          sig: "slices.Compact(xs)",
+          desc: "Drop consecutive duplicates — sort first for all.",
+          ex: "xs = slices.Compact(xs)"
+        },
+        {
+          name: "BinSearch",
+          sig: "slices.BinarySearch(xs, v)",
+          desc: "Find v in a sorted slice; returns index and found.",
+          ex: "i, ok := slices.BinarySearch(xs, 2)"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "errors",
+      name: "Errors",
+      ac: "var(--red)",
+      intro: "Sentinels, wrapping, inspection and recovery — errors are values, not exceptions.",
+      primary: {
+        sig: "fmt.Errorf(\"open config: %w\", err)",
+        desc: "Add context while keeping the cause inspectable with Is and As.",
+        ex: "return fmt.Errorf(\"open config: %w\", err)"
+      },
+      items: [
+        {
+          name: "New",
+          sig: "errors.New(\"msg\")",
+          desc: "Make a simple sentinel error to compare against.",
+          ex: "var ErrNotFound = errors.New(\"not found\")"
+        },
+        {
+          name: "Wrap",
+          sig: "fmt.Errorf(\"...: %w\", err)",
+          desc: "Add context and preserve the original cause.",
+          ex: "return fmt.Errorf(\"read: %w\", err)"
+        },
+        {
+          name: "Is",
+          sig: "errors.Is(err, target)",
+          desc: "Walk the chain looking for a sentinel.",
+          ex: "if errors.Is(err, os.ErrNotExist) { }"
+        },
+        {
+          name: "As",
+          sig: "errors.As(err, &target)",
+          desc: "Walk the chain looking for a concrete type.",
+          ex: "var pe *os.PathError; errors.As(err, &pe)"
+        },
+        {
+          name: "Unwrap",
+          sig: "errors.Unwrap(err)",
+          desc: "Return the direct cause of a wrapped error.",
+          ex: "cause := errors.Unwrap(err)"
+        },
+        {
+          name: "Join",
+          sig: "errors.Join(e1, e2)",
+          desc: "Combine several errors into one chain.",
+          ex: "err := errors.Join(e1, e2)"
+        },
+        {
+          name: "Panic",
+          sig: "panic(v)",
+          desc: "Unwind the stack — reserve for programmer errors.",
+          ex: "panic(\"unreachable\")"
+        },
+        {
+          name: "Recover",
+          sig: "defer func(){ _ = recover() }()",
+          desc: "Regain control after a panic; only works inside a defer.",
+          ex: "defer func() { _ = recover() }()"
+        },
+        {
+          name: "Errorf",
+          sig: "fmt.Errorf(\"bad id: %d\", id)",
+          desc: "Build a fresh error with formatted detail.",
+          ex: "return fmt.Errorf(\"id %d invalid\", id)"
+        },
+        {
+          name: "Sentinel",
+          sig: "var ErrX = errors.New(\"...\")",
+          desc: "A package-level value callers can compare with Is.",
+          ex: "var ErrClosed = errors.New(\"closed\")"
+        },
+        {
+          name: "Custom",
+          sig: "func (e *E) Error() string",
+          desc: "Any type with Error() satisfies the error interface.",
+          ex: "func (e *PathErr) Error() string { ... }"
+        },
+        {
+          name: "Multi %w",
+          sig: "fmt.Errorf(\"a: %w, b: %w\", e1, e2)",
+          desc: "Wrap several causes in one error (Go 1.20+).",
+          ex: "err := fmt.Errorf(\"a: %w, b: %w\", e1, e2)"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "concurrency",
+      name: "Concurrency",
+      ac: "var(--purple)",
+      intro: "Goroutines, wait groups, locks and select — the whole concurrency toolkit.",
+      primary: {
+        sig: "go f()",
+        desc: "Start f in a goroutine; it runs alongside the caller, not after it.",
+        ex: "go work()"
+      },
+      items: [
+        {
+          name: "go",
+          sig: "go f()",
+          desc: "Launch a goroutine; the caller does not wait for it.",
+          ex: "go work()"
+        },
+        {
+          name: "WaitGroup",
+          sig: "wg.Add(1); wg.Done(); wg.Wait()",
+          desc: "Wait for a set of goroutines to finish.",
+          ex: "defer wg.Done()"
+        },
+        {
+          name: "Mutex",
+          sig: "mu.Lock(); mu.Unlock()",
+          desc: "Guard shared state against concurrent access.",
+          ex: "mu.Lock(); defer mu.Unlock()"
+        },
+        {
+          name: "Once",
+          sig: "once.Do(f)",
+          desc: "Run f exactly once, even under a race.",
+          ex: "once.Do(initConfig)"
+        },
+        {
+          name: "select",
+          sig: "select { case <-ch: ... }",
+          desc: "Wait on several channel operations at once.",
+          ex: "select { case v := <-ch: use(v) }"
+        },
+        {
+          name: "chan",
+          sig: "make(chan T, n)",
+          desc: "Communicate by passing values, not by sharing memory.",
+          ex: "ch := make(chan int, 1)"
+        },
+        {
+          name: "WithCancel",
+          sig: "context.WithCancel(parent)",
+          desc: "Signal a whole tree of goroutines to stop.",
+          ex: "ctx, cancel := context.WithCancel(ctx)"
+        },
+        {
+          name: "NumCPU",
+          sig: "runtime.NumCPU()",
+          desc: "How many logical CPUs this machine offers.",
+          ex: "workers := runtime.NumCPU()"
+        },
+        {
+          name: "RWMutex",
+          sig: "mu.RLock(); mu.RUnlock()",
+          desc: "Allow many readers, but only one writer.",
+          ex: "mu.RLock(); defer mu.RUnlock()"
+        },
+        {
+          name: "Atomic",
+          sig: "atomic.AddInt64(&n, 1)",
+          desc: "Lock-free counter from the sync/atomic package.",
+          ex: "atomic.AddInt64(&n, 1)"
+        },
+        {
+          name: "sync.Map",
+          sig: "var m sync.Map; m.Store(k, v)",
+          desc: "A map built for concurrent use.",
+          ex: "val, ok := m.Load(k)"
+        },
+        {
+          name: "Semaphore",
+          sig: "sem := make(chan struct{}, n)",
+          desc: "A buffered channel used as a concurrency limiter.",
+          ex: "sem <- struct{}{}; defer func(){ <-sem }()"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "maps",
+      name: "Maps",
+      ac: "var(--blue)",
+      intro: "Lookups, presence checks, iteration and the maps helpers — all the hash-map idioms.",
+      primary: {
+        sig: "v, ok := m[k]",
+        desc: "Distinguish a zero value from a missing key — the comma-ok idiom.",
+        ex: "if v, ok := m[\"go\"]; ok { }"
+      },
+      items: [
+        {
+          name: "Literal",
+          sig: "map[string]int{\"go\": 1}",
+          desc: "Build a map from key/value pairs.",
+          ex: "m := map[string]int{\"go\": 1}"
+        },
+        {
+          name: "Insert",
+          sig: "m[k] = v",
+          desc: "Set a key, overwriting any previous value.",
+          ex: "m[\"rust\"] = 2"
+        },
+        {
+          name: "Lookup",
+          sig: "v, ok := m[k]",
+          desc: "Read a value and check the key exists.",
+          ex: "v, ok := m[\"go\"]"
+        },
+        {
+          name: "Delete",
+          sig: "delete(m, k)",
+          desc: "Remove a key — a no-op when it is absent.",
+          ex: "delete(m, \"go\")"
+        },
+        {
+          name: "Len",
+          sig: "len(m)",
+          desc: "Count the entries currently in the map.",
+          ex: "n := len(m)"
+        },
+        {
+          name: "Range",
+          sig: "for k, v := range m",
+          desc: "Iterate over pairs — order is unspecified.",
+          ex: "for k, v := range m { }"
+        },
+        {
+          name: "Clone",
+          sig: "maps.Clone(m)",
+          desc: "Shallow-copy a map into a new one.",
+          ex: "cp := maps.Clone(m)"
+        },
+        {
+          name: "Equal",
+          sig: "maps.Equal(a, b)",
+          desc: "Compare two maps by keys and values.",
+          ex: "if maps.Equal(a, b) { }"
+        },
+        {
+          name: "Keys",
+          sig: "maps.Keys(m)",
+          desc: "An iterator over the keys (Go 1.23+).",
+          ex: "for k := range maps.Keys(m) { }"
+        },
+        {
+          name: "Copy",
+          sig: "maps.Copy(dst, src)",
+          desc: "Copy all entries into another map.",
+          ex: "maps.Copy(dst, src)"
+        },
+        {
+          name: "DeleteFunc",
+          sig: "maps.DeleteFunc(m, f)",
+          desc: "Remove every entry matching a predicate.",
+          ex: "maps.DeleteFunc(m, isZero)"
+        },
+        {
+          name: "Nested",
+          sig: "if in, ok := outer[k]; ok",
+          desc: "Guard a chained lookup before indexing deeper.",
+          ex: "if v, ok := m[k1][k2]; ok { }"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "context",
+      name: "Context",
+      ac: "var(--green)",
+      intro: "Deadlines, cancellation and request-scoped values — pass it down, never store it.",
+      primary: {
+        sig: "context.WithTimeout(ctx, 2*time.Second)",
+        desc: "Bound work by time; always call the returned cancel to free resources.",
+        ex: "ctx, cancel := context.WithTimeout(ctx, 2*time.Second)"
+      },
+      items: [
+        {
+          name: "Background",
+          sig: "context.Background()",
+          desc: "The root context for main, tests and top-level calls.",
+          ex: "ctx := context.Background()"
+        },
+        {
+          name: "TODO",
+          sig: "context.TODO()",
+          desc: "A placeholder when it is not yet clear which context to use.",
+          ex: "ctx := context.TODO()"
+        },
+        {
+          name: "WithCancel",
+          sig: "context.WithCancel(parent)",
+          desc: "Manual cancellation of a context tree.",
+          ex: "ctx, cancel := context.WithCancel(ctx)"
+        },
+        {
+          name: "WithTimeout",
+          sig: "context.WithTimeout(parent, d)",
+          desc: "A deadline after a duration from now.",
+          ex: "ctx, cancel := context.WithTimeout(ctx, time.Second)"
+        },
+        {
+          name: "WithDeadline",
+          sig: "context.WithDeadline(parent, t)",
+          desc: "A deadline at a specific instant.",
+          ex: "ctx, cancel := context.WithDeadline(ctx, t)"
+        },
+        {
+          name: "WithValue",
+          sig: "context.WithValue(parent, k, v)",
+          desc: "Attach request-scoped data for downstream code.",
+          ex: "ctx = context.WithValue(ctx, key, val)"
+        },
+        {
+          name: "Done",
+          sig: "<-ctx.Done()",
+          desc: "A channel closed when the context is cancelled.",
+          ex: "select { case <-ctx.Done(): return }"
+        },
+        {
+          name: "Err",
+          sig: "ctx.Err()",
+          desc: "Why the context was cancelled, if it was.",
+          ex: "if errors.Is(ctx.Err(), context.DeadlineExceeded) { }"
+        },
+        {
+          name: "Cause",
+          sig: "context.Cause(ctx)",
+          desc: "The error behind the cancellation (Go 1.20+).",
+          ex: "err := context.Cause(ctx)"
+        },
+        {
+          name: "WithoutCancel",
+          sig: "context.WithoutCancel(ctx)",
+          desc: "Detach cancellation but keep the values.",
+          ex: "ctx = context.WithoutCancel(ctx)"
+        },
+        {
+          name: "AfterFunc",
+          sig: "context.AfterFunc(ctx, f)",
+          desc: "Run f in a goroutine when ctx is cancelled.",
+          ex: "stop := context.AfterFunc(ctx, cleanup)"
+        },
+        {
+          name: "CancelCause",
+          sig: "context.WithCancelCause(parent)",
+          desc: "Cancel with a reason retrievable via Cause.",
+          ex: "ctx, cancel := context.WithCancelCause(ctx)"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "json",
+      name: "JSON",
+      ac: "var(--yellow)",
+      intro: "Marshal, unmarshal, stream and tag — everything encoding/json does, at a glance.",
+      primary: {
+        sig: "json.Marshal(v)",
+        desc: "Encode any value into JSON bytes; returns ([]byte, error).",
+        ex: "b, err := json.Marshal(user)"
+      },
+      items: [
+        {
+          name: "Marshal",
+          sig: "json.Marshal(v)",
+          desc: "Encode a value into a []byte.",
+          ex: "b, err := json.Marshal(user)"
+        },
+        {
+          name: "Indent",
+          sig: "json.MarshalIndent(v, \"\", \"  \")",
+          desc: "Human-readable output with indentation.",
+          ex: "b, err := json.MarshalIndent(user, \"\", \"  \")"
+        },
+        {
+          name: "Unmarshal",
+          sig: "json.Unmarshal(b, &v)",
+          desc: "Decode bytes into a value — always pass a pointer.",
+          ex: "err := json.Unmarshal(b, &user)"
+        },
+        {
+          name: "Encoder",
+          sig: "json.NewEncoder(w).Encode(v)",
+          desc: "Stream an encoding to any io.Writer.",
+          ex: "json.NewEncoder(os.Stdout).Encode(user)"
+        },
+        {
+          name: "Decoder",
+          sig: "json.NewDecoder(r).Decode(&v)",
+          desc: "Stream a decoding from any io.Reader.",
+          ex: "json.NewDecoder(resp.Body).Decode(&user)"
+        },
+        {
+          name: "Tags",
+          sig: "`json:\"name,omitempty\"`",
+          desc: "Rename a field and drop it when it is empty.",
+          ex: "Name string `json:\"name,omitempty\"`"
+        },
+        {
+          name: "RawMessage",
+          sig: "json.RawMessage",
+          desc: "Hold a fragment of JSON to decode later.",
+          ex: "var raw json.RawMessage"
+        },
+        {
+          name: "Valid",
+          sig: "json.Valid(b)",
+          desc: "Check syntax without decoding the value.",
+          ex: "if !json.Valid(b) { }"
+        },
+        {
+          name: "Skip field",
+          sig: "`json:\"-\"`",
+          desc: "Leave a field out of the encoding entirely.",
+          ex: "Secret string `json:\"-\"`"
+        },
+        {
+          name: "Number",
+          sig: "json.Number",
+          desc: "Keep numbers as strings to avoid float rounding.",
+          ex: "dec.UseNumber()"
+        },
+        {
+          name: "Strict",
+          sig: "dec.DisallowUnknownFields()",
+          desc: "Reject keys that have no matching struct field.",
+          ex: "dec.DisallowUnknownFields()"
+        },
+        {
+          name: "No escape",
+          sig: "enc.SetEscapeHTML(false)",
+          desc: "Do not escape <, > and & inside strings.",
+          ex: "enc.SetEscapeHTML(false)"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "formatting",
+      name: "Formatting",
+      ac: "var(--aqua)",
+      intro: "Verbs, widths and writers — fmt covers printing and formatting in one package.",
+      primary: {
+        sig: "fmt.Printf(\"%+v\", x)",
+        desc: "Print a value with its field names — the debugging default.",
+        ex: "fmt.Printf(\"%+v\\n\", user)"
+      },
+      items: [
+        {
+          name: "Printf",
+          sig: "fmt.Printf(format, args)",
+          desc: "Formatted output to standard output.",
+          ex: "fmt.Printf(\"n=%d\\n\", n)"
+        },
+        {
+          name: "Sprintf",
+          sig: "fmt.Sprintf(format, args)",
+          desc: "The same formatting, returned as a string.",
+          ex: "s := fmt.Sprintf(\"%d\", n)"
+        },
+        {
+          name: "Fprintf",
+          sig: "fmt.Fprintf(w, format, args)",
+          desc: "Write formatted text to any io.Writer.",
+          ex: "fmt.Fprintf(os.Stderr, \"err: %v\", err)"
+        },
+        {
+          name: "Println",
+          sig: "fmt.Println(a, b)",
+          desc: "Print values separated by spaces, then a newline.",
+          ex: "fmt.Println(\"id:\", id)"
+        },
+        {
+          name: "%v family",
+          sig: "%v, %+v, %#v",
+          desc: "Value, with field names, in Go syntax.",
+          ex: "fmt.Printf(\"%+v\\n\", u)"
+        },
+        {
+          name: "Scalars",
+          sig: "%q, %d, %t",
+          desc: "Quoted string, decimal integer, boolean.",
+          ex: "fmt.Printf(\"%q %d\", s, n)"
+        },
+        {
+          name: "Floats",
+          sig: "%f, %.2f",
+          desc: "Floating point, with a fixed number of decimals.",
+          ex: "fmt.Printf(\"%.2f\", 3.14159)"
+        },
+        {
+          name: "%T",
+          sig: "%T",
+          desc: "Print the dynamic type of a value.",
+          ex: "fmt.Printf(\"%T\\n\", v)"
+        },
+        {
+          name: "Print",
+          sig: "fmt.Print(a, b)",
+          desc: "Like Println, but without the trailing newline.",
+          ex: "fmt.Print(\"id=\", id)"
+        },
+        {
+          name: "Sprint",
+          sig: "fmt.Sprint(a, b)",
+          desc: "Like Print, returned as a string.",
+          ex: "s := fmt.Sprint(\"id=\", id)"
+        },
+        {
+          name: "Width",
+          sig: "%5d, %-5s, %05d",
+          desc: "Width, left-align and zero-padding.",
+          ex: "fmt.Printf(\"%05d\", 42)"
+        },
+        {
+          name: "Scan",
+          sig: "fmt.Scan(&x)",
+          desc: "Read formatted input into a variable.",
+          ex: "fmt.Scan(&name)"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "channels",
+      name: "Channels",
+      ac: "var(--purple)",
+      intro: "Send, receive, close and select — channels are the pipes of Go concurrency.",
+      primary: {
+        sig: "ch := make(chan int, 10)",
+        desc: "A buffered channel: senders block only once the buffer is full.",
+        ex: "ch := make(chan int, 10)"
+      },
+      items: [
+        {
+          name: "Make",
+          sig: "make(chan T)",
+          desc: "Unbuffered: send and receive rendezvous.",
+          ex: "ch := make(chan int)"
+        },
+        {
+          name: "Buffered",
+          sig: "make(chan T, n)",
+          desc: "Buffer up to n values before a sender blocks.",
+          ex: "ch := make(chan int, 10)"
+        },
+        {
+          name: "Send",
+          sig: "ch <- v",
+          desc: "Send a value; blocks when the channel is full.",
+          ex: "ch <- result"
+        },
+        {
+          name: "Receive",
+          sig: "v := <-ch",
+          desc: "Receive a value; blocks when the channel is empty.",
+          ex: "v := <-ch"
+        },
+        {
+          name: "Receive ok",
+          sig: "v, ok := <-ch",
+          desc: "ok is false once the channel is closed and drained.",
+          ex: "v, ok := <-ch"
+        },
+        {
+          name: "Close",
+          sig: "close(ch)",
+          desc: "Signal that no more values will be sent.",
+          ex: "close(ch)"
+        },
+        {
+          name: "Range",
+          sig: "for v := range ch",
+          desc: "Drain values until the channel is closed.",
+          ex: "for v := range ch { use(v) }"
+        },
+        {
+          name: "Directional",
+          sig: "<-chan T / chan<- T",
+          desc: "Restrict a parameter to receive-only or send-only.",
+          ex: "func drain(ch <-chan int)"
+        },
+        {
+          name: "Default",
+          sig: "select { default: ... }",
+          desc: "Make a select non-blocking when nothing is ready.",
+          ex: "select { case ch <- v: default: }"
+        },
+        {
+          name: "Nil chan",
+          sig: "var ch chan T",
+          desc: "A nil channel blocks forever — useful to disable a case.",
+          ex: "var ch chan int // disabled"
+        },
+        {
+          name: "Done signal",
+          sig: "done := make(chan struct{})",
+          desc: "Closing it broadcasts to every receiver at once.",
+          ex: "close(done)"
+        },
+        {
+          name: "Pipeline",
+          sig: "for v := range in { out <- f(v) }",
+          desc: "Turn one channel into another in a stage.",
+          ex: "go func(){ for v := range in { out <- f(v) } }()"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "files",
+      name: "Files",
+      ac: "var(--blue)",
+      intro: "Read, write, open and join — os and filepath for everyday file work.",
+      primary: {
+        sig: "os.ReadFile(name)",
+        desc: "Read a whole file into memory; the descriptor is closed for you.",
+        ex: "b, err := os.ReadFile(\"go.mod\")"
+      },
+      items: [
+        {
+          name: "ReadFile",
+          sig: "os.ReadFile(name)",
+          desc: "Read an entire file into a []byte.",
+          ex: "b, err := os.ReadFile(\"go.mod\")"
+        },
+        {
+          name: "WriteFile",
+          sig: "os.WriteFile(name, b, 0644)",
+          desc: "Write bytes, creating or truncating the file.",
+          ex: "os.WriteFile(\"out.txt\", b, 0644)"
+        },
+        {
+          name: "Open",
+          sig: "os.Open(name)",
+          desc: "Open a read-only handle — close it yourself.",
+          ex: "f, err := os.Open(\"go.mod\"); defer f.Close()"
+        },
+        {
+          name: "Create",
+          sig: "os.Create(name)",
+          desc: "Create or truncate a file for writing.",
+          ex: "f, err := os.Create(\"out.txt\")"
+        },
+        {
+          name: "Stat",
+          sig: "os.Stat(name)",
+          desc: "Get FileInfo: size, mode and modification time.",
+          ex: "info, err := os.Stat(\"go.mod\")"
+        },
+        {
+          name: "MkdirAll",
+          sig: "os.MkdirAll(path, 0755)",
+          desc: "Create a directory tree, including parents.",
+          ex: "os.MkdirAll(\"data/tmp\", 0755)"
+        },
+        {
+          name: "Remove",
+          sig: "os.Remove(name)",
+          desc: "Delete a file or an empty directory.",
+          ex: "os.Remove(\"out.txt\")"
+        },
+        {
+          name: "Join",
+          sig: "filepath.Join(a, b)",
+          desc: "Build a path with the OS's separator.",
+          ex: "p := filepath.Join(dir, \"go.mod\")"
+        },
+        {
+          name: "ReadDir",
+          sig: "os.ReadDir(name)",
+          desc: "List the entries of a directory, sorted by name.",
+          ex: "entries, err := os.ReadDir(\".\")"
+        },
+        {
+          name: "CreateTemp",
+          sig: "os.CreateTemp(dir, pattern)",
+          desc: "Create a uniquely named temporary file.",
+          ex: "f, err := os.CreateTemp(\"\", \"leader-*\")"
+        },
+        {
+          name: "Rename",
+          sig: "os.Rename(old, new)",
+          desc: "Move or rename a path.",
+          ex: "os.Rename(\"a.txt\", \"b.txt\")"
+        },
+        {
+          name: "WalkDir",
+          sig: "filepath.WalkDir(root, fn)",
+          desc: "Visit every file and folder under a root.",
+          ex: "filepath.WalkDir(root, visit)"
+        }
+      ]
+    },
+    {
+      f: "dpuk",
+      id: "defer",
+      name: "Defer",
+      ac: "var(--green)",
+      intro: "Cleanup that runs on the way out — LIFO order, arguments now, execution later.",
+      primary: {
+        sig: "defer f.Close()",
+        desc: "Close a resource when the function returns, however it returns.",
+        ex: "defer f.Close()"
+      },
+      items: [
+        {
+          name: "Basic",
+          sig: "defer f()",
+          desc: "Run f when the surrounding function returns.",
+          ex: "defer log.Println(\"done\")"
+        },
+        {
+          name: "Close",
+          sig: "defer f.Close()",
+          desc: "The canonical resource-cleanup pattern.",
+          ex: "defer rows.Close()"
+        },
+        {
+          name: "Unlock",
+          sig: "defer mu.Unlock()",
+          desc: "Release a lock on every exit path.",
+          ex: "defer mu.Unlock()"
+        },
+        {
+          name: "Done",
+          sig: "defer wg.Done()",
+          desc: "Balance an Add(1) in a single line.",
+          ex: "defer wg.Done()"
+        },
+        {
+          name: "Recover",
+          sig: "defer func(){ _ = recover() }()",
+          desc: "Regain control after a panic, inside a defer.",
+          ex: "defer func() { _ = recover() }()"
+        },
+        {
+          name: "Args now",
+          sig: "defer f(x)",
+          desc: "Arguments are evaluated at the defer, not at the call.",
+          ex: "defer cleanup(path)"
+        },
+        {
+          name: "Closure",
+          sig: "defer func(){ ... }()",
+          desc: "A closure reads variables at execution time.",
+          ex: "defer func(){ log.Println(err) }()"
+        },
+        {
+          name: "LIFO",
+          sig: "defer a(); defer b()",
+          desc: "Last deferred runs first: b, then a.",
+          ex: "defer a(); defer b()"
+        },
+        {
+          name: "Timing",
+          sig: "defer func(){ log.Println(time.Since(t)) }()",
+          desc: "Measure a whole function in one line.",
+          ex: "defer func(){ log.Println(time.Since(t)) }()"
+        },
+        {
+          name: "Flush",
+          sig: "defer w.Flush()",
+          desc: "Flush a buffered writer on the way out.",
+          ex: "defer bufioWriter.Flush()"
+        },
+        {
+          name: "In a loop",
+          sig: "for ... { defer f.Close() }",
+          desc: "Careful: they pile up until the function returns.",
+          ex: "for _, f := range fs { defer f.Close() }"
+        },
+        {
+          name: "Named return",
+          sig: "defer func(){ err = wrap(err) }()",
+          desc: "With a named result, a defer can change it.",
+          ex: "defer func(){ err = wrap(err) }()"
+        }
+      ]
+    }
+  ],
+
   /* banners */
   banner: { lines: ["Neovim,", "for working."], sub: "~20 ms. One key per context. An agent that speaks when you ask." }
 };

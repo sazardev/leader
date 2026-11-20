@@ -370,6 +370,22 @@
     });
   }
 
+  /* Go cheatsheets: the landing's syntax colors, plus the package before a dot in aqua */
+  var GOKW = /^(func|return|if|else|for|range|type|struct|interface|var|const|package|import|switch|case|go|defer|map|chan|nil|true|false|select|break|continue|fallthrough|goto)$/;
+  var GOTY = /^(string|int|int8|int16|int32|int64|uint|uint8|uint32|uint64|bool|byte|rune|error|float32|float64|any|Time|Duration)$/;
+  function hlGo(code) {
+    var re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)(?=\s*\.)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)|([\s\S])/gm;
+    return String(code).replace(re, function (m, c, str, num, pkg, call, id, other) {
+      if (c) return '<span class="b-cs-cm">' + esc(c) + "</span>";
+      if (str) return '<span class="b-cs-str">' + esc(str) + "</span>";
+      if (num) return '<span class="b-cs-num">' + num + "</span>";
+      if (pkg) return '<span class="b-cs-pkg">' + pkg + "</span>";
+      if (call) return '<span class="b-cs-' + (GOKW.test(call) ? "kw" : "fn") + '">' + call + "</span>";
+      if (id) { var k = GOKW.test(id) ? "kw" : (GOTY.test(id) || /^[A-Z]/.test(id) ? "pkg" : ""); return k ? '<span class="b-cs-' + k + '">' + id + "</span>" : id; }
+      return esc(other);
+    });
+  }
+
   /* one programming language: its name, a snippet in the editor's colors, and what Leader brings for it */
   DS.wpLang = function (s, g) {
     var u = g.u, p = g.p, W = g.W, H = g.H, wide = W / H > 1.3, h = brandRow(g, C.handle), top = p + u * 9;
@@ -414,6 +430,47 @@
       return '<div class="b-abs" style="left:' + px(p + c * cw) + ";top:" + px(ry + r * ch) + ";width:" + px(cw - u * 2) + ";height:" + px(ch) + ';display:flex;align-items:center;gap:' + px(fs * 0.6) + ';font-size:' + px(fs) + '"><span class="b-kc">' + esc(it.k) + '</span><span class="b-kl">' + esc(it.label) + "</span></div>";
     }).join("");
     return h;
+  };
+
+  /* a language cheat sheet: one theme, its key call, and 12 entries (signature, description, example).
+     3x4 on landscape, 2x6 on phones; every size derives from u so all four wallpaper formats match. */
+  DS.wpCheatSheet = function (s, g) {
+    var u = g.u, p = g.p, W = g.W, H = g.H, wide = g.r >= 1.15;
+    var cols = wide ? 3 : 2, rows = 12 / cols;
+    var topH = u * 3, topGap = u * 1.4, heroH = u * (wide ? 12.2 : 13.5), heroGap = u * 1.4;
+    var gy = p + topH + topGap + heroH + heroGap, gh = H - p - gy, gap = u * 1.1;
+    var cw = (W - 2 * p - (cols - 1) * gap) / cols, ch = (gh - (rows - 1) * gap) / rows;
+    var heroW = W - 2 * p, primW = heroW * (wide ? 0.345 : 0.55), introW = heroW - primW - u * 4;
+    var h = field(g, { op: 0.09, dp: u * 2.1, mask: "linear-gradient(115deg,#000 0,transparent 64%)" });
+    /* top: the mark on the left, what this is on the right */
+    h += '<div class="b-cs-top" style="left:' + px(p) + ";top:" + px(p) + ";width:" + px(heroW) + ";height:" + px(topH) + '">' +
+      '<div class="b-cs-brand" style="gap:' + px(u * 1.05) + '">' + mark("currentColor", topH) + '<b style="font-size:' + px(u * 1.75) + '">Leader</b></div>' +
+      '<div class="b-cs-meta"><div class="a" style="font-size:' + px(u * 1.12) + '">' + esc(s.name) + " cheatsheet</div>" +
+      '<div class="b" style="font-size:' + px(u) + ";margin-top:" + px(u * 0.35) + '">go · ' + String(s.no).padStart(2, "0") + " / 13 · " + s.items.length + " entries</div></div></div>";
+    /* hero: the theme, then the one call to know */
+    h += '<div class="b-cs-hero" style="left:' + px(p) + ";top:" + px(p + topH + topGap) + ";width:" + px(heroW) + ";height:" + px(heroH) + '">' +
+      '<div class="b-cs-intro"><div class="b-cs-eb" style="font-size:' + px(u * 1.05) + '">Focused sheet</div>' +
+      '<div class="b-cs-title" style="font-size:' + px(u * (wide ? 7.8 : 6.2)) + ";margin:" + px(u * 0.4) + " 0 " + px(u * 0.55) + '">' + esc(s.name) + "</div>" +
+      '<p style="font-size:' + px(u * 1.4) + ";max-width:" + px(introW) + '">' + esc(s.intro) + "</p></div>" +
+      '<div class="b-cs-primary" style="width:' + px(primW) + ";padding:" + px(u * 1.3) + " " + px(u * 1.8) + '">' +
+      '<div class="b-cs-bar" style="width:' + px(u * 0.42) + ";background:" + s.ac + '"></div>' +
+      '<div class="b-cs-eb" style="font-size:' + px(u * 1.05) + ";color:" + s.ac + '">The one to know</div>' +
+      '<div class="b-cs-psig" style="font-size:' + px(u * 1.8) + ";margin-top:" + px(u * 0.55) + '">' + hlGo(s.primary.sig) + "</div>" +
+      '<div class="b-cs-pdesc" style="font-size:' + px(u * 1.18) + ";margin-top:" + px(u * 0.5) + '">' + hlGo(s.primary.desc) + "</div>" +
+      '<div class="b-cs-ex" style="font-size:' + px(u * 1.18) + ";margin-top:" + px(u * 0.7) + ";padding:" + px(u * 0.7) + " " + px(u) + '">' + hlGo(s.primary.ex) + "</div></div></div>";
+    /* the 12 entries */
+    h += '<div class="b-cs-grid" style="left:' + px(p) + ";top:" + px(gy) + ";width:" + px(heroW) + ";height:" + px(gh) +
+      ";grid-template-columns:repeat(" + cols + ",1fr);grid-template-rows:repeat(" + rows + ",1fr);gap:" + px(gap) + '">';
+    s.items.forEach(function (it, j) {
+      h += '<div class="b-cs-card" style="--ac:' + s.ac + ";--barw:" + px(u * 0.35) + ";padding:" + px(u * 1.1) + " " + px(u * 1.5) + " " + px(u * 1.25) + '">' +
+        '<div class="b-cs-hd"><span class="b-cs-idx" style="font-size:' + px(u) + '">' + String(j + 1).padStart(2, "0") + "</span>" +
+        '<span class="b-cs-name" style="font-size:' + px(u * 1.12) + '">' + esc(it.name) + "</span></div>" +
+        '<div class="b-cs-rule" style="margin:' + px(u * 0.7) + ' 0"></div>' +
+        '<div class="b-cs-sig" style="font-size:' + px(u * (wide ? 1.6 : 1.5)) + '">' + hlGo(it.sig) + "</div>" +
+        '<div class="b-cs-desc" style="font-size:' + px(u * 1.15) + ";margin-top:" + px(u * 0.55) + '">' + hlGo(it.desc) + "</div>" +
+        '<div class="b-cs-ex" style="font-size:' + px(u * 1.1) + ";margin-top:auto;padding:" + px(u * 0.75) + " " + px(u) + '">' + hlGo(it.ex) + "</div></div>";
+    });
+    return h + "</div>";
   };
 
   /* ── the mark and the logos ────────────────────────────────────────────────────────────────── */
@@ -521,18 +578,20 @@
   });
 
   /* wallpapers with words: each family has its own design and data in copy.js */
-  function wpAdd(list, design, kind) {
-    list.forEach(function (w) {
+  function wpAdd(list, design, kind, numbered) {
+    list.forEach(function (w, wi) {
       w.f.split("").forEach(function (k) {
         var F = C.wallpaperFormats[k];
+        var spec = numbered ? Object.assign({ no: wi + 1 }, w) : w;
         add({ dir: F.dir, name: kind + "-" + w.id, w: F.w, h: F.h, use: F.use, draw: function () {
-          var g = geo(F.w, F.h), inner = DS[design](w, g);
+          var g = geo(F.w, F.h), inner = DS[design](spec, g);
           return '<div class="b-cv b-s-' + (w.bg || "deep") + '"' + (w.theme ? ' data-theme="' + w.theme + '"' : "") + ' style="width:' + F.w + "px;height:" + F.h + "px;--u:" + px(g.u) + (w.pal ? ";" + palStyle(w.pal) : "") + '">' + inner + "</div>";
         } });
       });
     });
   }
   wpAdd(C.wpPhrases, "wpPhrase", "phrase"); wpAdd(C.wpLangs, "wpLang", "lang"); wpAdd(C.wpTerms, "wpTerm", "term"); wpAdd(C.wpCheats, "wpCheat", "cheat");
+  wpAdd(C.wpCheatSheets, "wpCheatSheet", "cheatsheet", true);
 
   /* logos: marks on colors, transparent marks, lockups, wordmark, avatars, favicons, the board */
   var G = "var(--green)", INK = "var(--on)", CREAM = "var(--fg)", PAPER = "#1d2021";
