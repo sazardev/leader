@@ -1077,7 +1077,7 @@ Preset `enter` plus the overrides from `plugins/editing/blink.lua`. `→` = trie
 | `<C-n>` | next item |
 | `<C-p>` | previous item |
 | `<C-space>` | open menu → show documentation → hide documentation |
-| `<CR>` | accept Go `ErrX` ghost text + new line → accept item |
+| `<CR>` | accept Go `ErrX` ghost text + new line → accept item → expand inside an empty pair |
 | `<Esc>` | close menu |
 | `<S-Tab>` | previous item → jump to previous snippet placeholder (when no menu is open) |
 | `<Tab>` | accept Go `ErrX` ghost text → next item → jump to next snippet placeholder (when no menu is open) |

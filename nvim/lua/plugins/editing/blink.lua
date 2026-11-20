@@ -5,7 +5,12 @@ return {
   "saghen/blink.cmp",
   version = "1.*", -- v2 (main) requires blink.lib compiled with Rust
   event = "InsertEnter",
-  dependencies = { "rafamadriz/friendly-snippets" },
+  dependencies = {
+    "rafamadriz/friendly-snippets",
+    -- Enter between `{}`/`()`/`[]` expands through mini.pairs (utils/blinkkeys.pair_expand):
+    -- loaded before blink so the pairs are registered when the first Enter lands.
+    "echasnovski/mini.pairs",
+  },
   opts = {
     -- Tab picks the option from the list, Enter inserts it (no arrows)
     keymap = {
@@ -23,6 +28,7 @@ return {
       ["<CR>"] = {
         keys.goerrors_accept_newline,
         "accept",
+        keys.pair_expand,
         "fallback",
       },
       ["<S-Tab>"] = {

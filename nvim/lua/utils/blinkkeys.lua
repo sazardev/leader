@@ -38,4 +38,16 @@ M.snippet_prev = named("jump to previous snippet placeholder (when no menu is op
   end
 end)
 
+-- Between an empty pair (`{|}`): open it with the closer on its own line, indented
+-- (`{<CR>` → `{` / blank / `}`). blink owns `<CR>` per buffer, so mini.pairs' own
+-- `<CR>` mapping never wins that race: the expansion lives here instead, calling
+-- mini.pairs' expander directly (outside a pair it is a plain newline, like fallback).
+M.pair_expand = named("expand inside an empty pair", function()
+  local ok, pairs = pcall(require, "mini.pairs")
+  if not ok then
+    return
+  end
+  return pairs.cr()
+end)
+
 return M
