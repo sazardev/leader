@@ -172,6 +172,41 @@ vim.notify("hello", vim.log.levels.INFO)
 check(seen == "hello", "notify without a UI must reach the original vim.notify")
 vim.notify = original
 
+-- notification modes (ui/flat/notify.lua): one knob, three shapes, old booleans still understood
+do
+  local notify = require "ui.flat.notify"
+  local settings = require "core.settings"
+  local saved = settings.ui.notify
+  settings.ui.notify = true
+  check(notify.mode() == "full", "notify: true is the full note")
+  settings.ui.notify = "minimal"
+  check(notify.mode() == "minimal", "notify: the minimal mode is read")
+  settings.ui.notify = false
+  check(notify.mode() == "off", "notify: false is off")
+  settings.ui.notify = "off"
+  check(notify.mode() == "off", "notify: the string 'off' is off too")
+  check(notify.message("echo", { { 0, "hello", 0 } }), "notify: off consumes messages so no note pops up")
+  settings.ui.notify = saved
+  check(
+    notify.word(vim.log.levels.INFO) == "info"
+      and notify.word(vim.log.levels.WARN) == "warn"
+      and notify.word(vim.log.levels.ERROR) == "error"
+      and notify.word(vim.log.levels.DEBUG) == "debug",
+    "notify: the level word is the fallback"
+  )
+  local INFO, ERROR = vim.log.levels.INFO, vim.log.levels.ERROR
+  check(notify.label('"file" written', INFO) == "save", "notify: a save says save")
+  check(notify.label("Leader: clone failed: repo", ERROR) == "error", "notify: a failure says error")
+  check(notify.label("E5108: Lua error", ERROR) == "error", "notify: a Neovim error says error")
+  check(notify.label("Leader: cloning repo…", INFO) == "clone", "notify: cloning says clone")
+  check(notify.label("Theme: gruvbox", INFO) == "theme", "notify: a theme change says theme")
+  check(notify.label("Config reloaded after git pull", INFO) == "reload", "notify: a reload says reload")
+  check(notify.label("Leader: you are up to date", INFO) == "ok", "notify: up to date says ok")
+  check(notify.label("something unusual happened", INFO) == "something", "notify: unknown text uses its first word")
+  check(notify.label("!!!", INFO) == "info", "notify: with no words it falls back to the level")
+  check(vim.fn.strdisplaywidth(notify.label("supercalifragilisticexpialidocious", INFO)) <= 10, "notify: the label stays tiny")
+end
+
 -- start screen layout (ui/start/layout.lua): pure
 local start = require "ui.start.layout"
 local ACTIONS = { { label = "Find File", key = "ff" }, { label = "Recent Files", key = "fo" }, { label = "Find Word", key = "fw" }, { label = "Themes", key = "th" }, { label = "Mappings", key = "ch" }, { label = "Change Art", key = "ca" } }

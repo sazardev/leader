@@ -1,8 +1,13 @@
 -- ── Flat notifications ───────────────────────────────────────────────────────
--- Replaces `vim.notify`: the demo's note. A small filled block at the bottom right with a row of air above and
--- below the text, a thin colored bar down its whole left side (green info, yellow warning, red error), the leading phrase bold in
--- that color (`Session restored · 3 buffers`), fading in (ui/flat/motion.lua), stacked, and fading away by itself. No plugin: floats that are never focused, so they never take a key. Without a UI (headless,
--- scripts) it keeps the original `vim.notify`.
+-- Replaces `vim.notify`. `settings.ui.notify` picks the shape (also in <leader>Sp, applied at once):
+--   true (default) = the demo's note: a small filled block at the bottom right with a row of air above and below the
+--     text, a thin colored bar down its whole left side (green info, yellow warning, red error), the leading phrase
+--     bold in that color (`Session restored · 3 buffers`), fading in (ui/flat/motion.lua), stacked, fading away by itself;
+--   "minimal" = one row, one word from the message (`save`, `clone`, `error`, `theme`, …) in the level's color:
+--     `M.label` canonicalizes known actions, else uses the first meaningful word — the signal, not the sentence;
+--   false = no toast at all: nothing pops up, messages stay in `:messages`.
+-- No plugin: floats are never focused, so they never take a key. Without a UI (headless, scripts) the original
+-- `vim.notify` is kept.
 local M = {}
 
 local MAX_WIDTH = 56
@@ -14,6 +19,109 @@ local LEVELS = {
   [vim.log.levels.WARN] = { hl = "FlatNotifyWarn", ms = 6000 },
   [vim.log.levels.ERROR] = { hl = "FlatNotifyError", ms = 8000 },
 }
+local WORDS = {
+  [vim.log.levels.TRACE] = "debug",
+  [vim.log.levels.DEBUG] = "debug",
+  [vim.log.levels.INFO] = "info",
+  [vim.log.levels.WARN] = "warn",
+  [vim.log.levels.ERROR] = "error",
+}
+local MAX_LABEL = 10 -- a minimal note is a handful of cells wide, never a panel
+-- Known actions → the single word shown in minimal mode. Order matters: an error wins over what it was doing.
+local LABELS = {
+  { "up to date", "ok" },
+  { "error", "error" },
+  { "failed", "error" },
+  { "fail", "error" },
+  { "cannot", "error" },
+  { "unable", "error" },
+  { "^e%d+", "error" }, -- Neovim's E5108 and friends
+  { "warning", "warn" },
+  { "deprecat", "warn" },
+  { "written", "save" },
+  { "wrote", "save" },
+  { "saved", "save" },
+  { "^save", "save" },
+  { "updat", "update" },
+  { "upgrad", "update" },
+  { "install", "install" },
+  { "clon", "clone" },
+  { "restor", "restore" },
+  { "reload", "reload" },
+  { "clear", "clear" },
+  { "remov", "remove" },
+  { "delet", "remove" },
+  { "creat", "add" },
+  { "theme", "theme" },
+  { "colorscheme", "theme" },
+  { "session", "session" },
+  { "diagnostic", "diag" },
+  { "lint", "diag" },
+  { "recent", "recent" },
+  { "find", "find" },
+  { "search", "find" },
+  { "yank", "yank" },
+  { "paste", "yank" },
+  { "copi", "yank" },
+  { "format", "format" },
+  { "build", "build" },
+  { "compil", "build" },
+  { "test", "test" },
+  { "agent", "agent" },
+  { "pull", "git" },
+  { "push", "git" },
+  { "fetch", "git" },
+  { "commit", "git" },
+  { "config", "config" },
+}
+local GENERIC = {
+  leader = true, note = true, info = true, warning = true, error = true,
+  the = true, a = true, an = true, no = true, ["not"] = true, this = true,
+  ["in"] = true, of = true, to = true, ["for"] = true, is = true, was = true,
+}
+
+--- One-word label for a minimal note: WHAT happened, colored by the level. Known actions are canonicalized
+--- (`"file" written` → `save`, `clone failed` → `error`), otherwise the first meaningful word, capped short.
+--- Pure.
+---@param msg any
+---@param level? integer
+---@return string
+function M.label(msg, level)
+  local text = tostring(msg):lower()
+  for _, rule in ipairs(LABELS) do
+    if text:find(rule[1]) then
+      return rule[2]
+    end
+  end
+  for word in text:gmatch "%f[%w][%w%-]+" do
+    if not GENERIC[word] and not word:match "^%d" then
+      return (word:sub(1, MAX_LABEL):gsub("%-$", ""))
+    end
+  end
+  return M.word(level) -- no words at all: the level is the only thing we know
+end
+
+--- The notification shape from `settings.ui.notify`. The old booleans are still understood: true = full, false = off;
+--- the string "off" is accepted too, so a typo in local.lua cannot bring the toasts back.
+---@return "full"|"minimal"|"off"
+function M.mode()
+  local value = require("core.settings").ui.notify
+  if value == false or value == "off" then
+    return "off"
+  end
+  if value == "minimal" then
+    return "minimal"
+  end
+  return "full"
+end
+
+--- The single word minimal mode shows, by level
+---@param level? integer
+---@return string
+function M.word(level)
+  return WORDS[level or vim.log.levels.INFO] or "info"
+end
+
 local RIGHT = 0 -- flush right, aligned with Neovim's own message block under it
 local GAP = 1 -- rows of editor between two notes, and between a note and the statusline
 
@@ -153,6 +261,10 @@ function M.notify(msg, level, opts)
       M.notify(msg, level, opts)
     end)
   end
+  local mode = M.mode()
+  if mode == "off" then
+    return original and original(msg, level, opts) -- no toast: Neovim's own messages keep working
+  end
   opts = opts or {}
   local kind = LEVELS[level or vim.log.levels.INFO] or LEVELS[vim.log.levels.INFO]
   local text = tostring(msg)
@@ -167,19 +279,27 @@ function M.notify(msg, level, opts)
       return
     end
   end
-  local rows = wrap(text, MAX_WIDTH)
-  -- the lead: up to the first " · " (or the whole first row), bold in the level's color
-  local lead = #(rows[1]:match "^(.-) · " or rows[1])
-  local width = 0
-  for i, r in ipairs(rows) do
-    rows[i] = "▎ " .. r .. "  " -- the bar, then air on both sides of the text (the demo's 14px)
-    width = math.max(width, vim.fn.strdisplaywidth(rows[i]))
+  local word = M.label(text, level)
+  local rows, lead, width
+  if mode == "minimal" then
+    -- just the bar and one descriptive word: no wrap, no air rows, no lead phrase (a few cells, never a panel)
+    rows = { "▎ " .. word .. " " }
+    width = vim.fn.strdisplaywidth(rows[1])
+  else
+    rows = wrap(text, MAX_WIDTH)
+    -- the lead: up to the first " · " (or the whole first row), bold in the level's color
+    lead = #(rows[1]:match "^(.-) · " or rows[1])
+    width = 0
+    for i, r in ipairs(rows) do
+      rows[i] = "▎ " .. r .. "  " -- the bar, then air on both sides of the text (the demo's 14px)
+      width = math.max(width, vim.fn.strdisplaywidth(rows[i]))
+    end
+    -- a row of air above and below the text, full rows so the bar runs the whole height of the block (half-cell
+    -- rows cannot carry a thin bar: it would stop halfway)
+    local air = "▎" .. (" "):rep(width - 1)
+    table.insert(rows, 1, air)
+    rows[#rows + 1] = air
   end
-  -- a row of air above and below the text, full rows so the bar runs the whole height of the block (half-cell
-  -- rows cannot carry a thin bar: it would stop halfway)
-  local air = "▎" .. (" "):rep(width - 1)
-  table.insert(rows, 1, air)
-  rows[#rows + 1] = air
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden = "wipe"
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, rows)
@@ -204,7 +324,11 @@ function M.notify(msg, level, opts)
   for i = 0, #rows - 1 do
     vim.api.nvim_buf_set_extmark(buf, ns, i, 0, { end_col = bar, hl_group = kind.hl })
   end
-  vim.api.nvim_buf_set_extmark(buf, ns, 1, bar + 1, { end_col = bar + 1 + lead, hl_group = kind.hl .. "Lead" })
+  if mode == "minimal" then
+    vim.api.nvim_buf_set_extmark(buf, ns, 0, bar + 1, { end_col = bar + 1 + #word, hl_group = kind.hl .. "Lead" })
+  else
+    vim.api.nvim_buf_set_extmark(buf, ns, 1, bar + 1, { end_col = bar + 1 + lead, hl_group = kind.hl .. "Lead" })
+  end
   local entry = { win = win, height = #rows, key = key }
   local timer = assert(vim.uv.new_timer())
   --- (re)starts the countdown; when it ends the note fades out and closes
@@ -274,6 +398,9 @@ function M.message(kind, content)
   if text == "" or select(2, text:gsub("\n", "")) >= MAX_MESSAGE_ROWS then
     return false
   end
+  if M.mode() == "off" then
+    return true -- consume it so Neovim's message window does not pop up either; it stays in `:messages`
+  end
   if kind == "progress" then
     -- progress comes in steps (`"file"`, then `"file" 8L, 111B written`): one note with the last one
     pending_progress = text
@@ -313,6 +440,7 @@ function M.dismiss()
     end
   end
   stack = {}
+  layout() -- also stops the follow timer that watched Neovim's message window
 end
 
 function M.setup()

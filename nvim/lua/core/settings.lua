@@ -25,7 +25,9 @@ local defaults = {
   -- (also the terminal one). Same look as the landing page's demo editor.
   ui = {
     flat = true, -- false = the plugins' own look (single borders, their colors)
-    notify = true, -- flat notifications (bottom right, colored bar) instead of the default vim.notify
+    -- Notifications: true = the full note (bottom right, colored bar, lead phrase), "minimal" = one colored word
+    -- (`save`, `clone`, `error`… derived from the message) in a one-row block, false = no toast (messages stay in `:messages`)
+    notify = true,
     fresh_ms = 450, -- fade of the "just changed" flash on yank and on what the agent writes (0 = off)
     blink_cursor = true, -- blinking cursor: block in normal mode, bar in insert
     keys = false, -- show every shortcut you press as a small chip at the top right (screencasts); `:FlatKeys` toggles it

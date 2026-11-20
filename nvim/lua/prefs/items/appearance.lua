@@ -78,6 +78,22 @@ return {
   },
   {
     group = "Appearance",
+    label = "Notifications",
+    kind = "choice",
+    id = "ui.notify",
+    choices = {
+      { value = true, label = "full" },
+      { value = "minimal", label = "minimal" },
+      { value = false, label = "off" },
+    },
+    apply = function(value)
+      if value == false then
+        require("ui.flat.notify").dismiss() -- no toast left on screen after turning them off
+      end
+    end,
+  },
+  {
+    group = "Appearance",
     label = "Show keys",
     kind = "toggle",
     id = "ui.keys",

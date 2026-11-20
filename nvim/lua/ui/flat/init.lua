@@ -93,7 +93,8 @@ function M.messages()
     return
   end
   local msgs = package.loaded["vim._core.ui2.messages"]
-  if msgs and not msgs._flat and require("core.settings").ui.notify then
+  -- the wrap is installed in every mode so <leader>Sp can change it live; `notify.message` declines when it is off
+  if msgs and not msgs._flat then
     msgs._flat = true
     local show = msgs.msg_show
     -- the message UI looks the handler up on every message: the notes take the ones that read like notes
@@ -171,9 +172,8 @@ function M.setup()
     end
   end
 
-  if ui.notify then
-    require("ui.flat.notify").setup()
-  end
+  -- installed even in "off": notify.lua reads the mode on every call, so the settings panel can turn it back on live
+  require("ui.flat.notify").setup()
   if ui.messages ~= false then
     M.messages()
   end

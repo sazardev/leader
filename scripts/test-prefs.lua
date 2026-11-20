@@ -116,6 +116,13 @@ eq("text: a choice shows its label", prefs.text(flash), "on")
 settings.ui.fresh_ms = 300
 eq("text: a value outside the list is shown as it is", prefs.text(flash), "300")
 settings.ui.fresh_ms = 450
+local notify = prefs.find "ui.notify"
+eq("text: notifications show the current mode", prefs.text(notify), "full")
+settings.ui.notify = "minimal"
+eq("text: the minimal mode is named", prefs.text(notify), "minimal")
+settings.ui.notify = false
+eq("text: the off mode is named", prefs.text(notify), "off")
+settings.ui.notify = true
 local light = prefs.find "light.force"
 eq("text: an unset choice reads as its nil label", prefs.text(light), "auto")
 
@@ -141,6 +148,14 @@ prefs.cycle(autoread)
 eq("apply: the live effect runs", vim.o.autoread, false)
 prefs.cycle(autoread)
 eq("apply: and back", vim.o.autoread, true)
+
+notes = {}
+prefs.cycle(notify) -- full → minimal
+eq("cycle: notifications step to minimal", { settings.ui.notify, store.read()["ui.notify"] }, { "minimal", "minimal" })
+prefs.cycle(notify) -- minimal → off
+eq("cycle: notifications step to off", { settings.ui.notify, store.read()["ui.notify"] }, { false, false })
+prefs.cycle(notify) -- off → full
+eq("cycle: notifications come back to full", { settings.ui.notify, store.read()["ui.notify"] }, { true, true })
 
 -- an item that owns its state (diagnostic blocks) is read and written through its owner
 local state = { enabled = true }
