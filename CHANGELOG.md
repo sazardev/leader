@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.22.2] - 2026-11-19
+
+### Highlights
+
+- **Notifications to fit the moment**: choose the full note, a one-word block derived from what happened (`save`, `clone`, `error`…, colored by level), or turn toasts off entirely. Change it live from `<leader>Sp` → Appearance → Notifications.
+
+### Features
+
+- **ui:** minimal and off notification modes (22fd3d4)
+
 ## [1.22.1] - 2026-11-19
 
 ### Fixes
