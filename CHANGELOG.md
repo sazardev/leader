@@ -2,6 +2,13 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.22.3] - 2026-11-20
+
+### Features
+
+- **brand:** language cheat sheet wallpapers for Go — 13 sheets (one general, twelve focused), 12 entries each, in phone / desktop / ultrawide / 4K
+- **blink:** expand empty pairs on Enter (11f4cf3)
+
 ## [1.22.2] - 2026-11-19
 
 ### Highlights
