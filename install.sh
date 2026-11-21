@@ -314,9 +314,36 @@ want() { [ -z "$LANG_NAMES" ] || case ",$LANG_NAMES," in *",$1,"*) return 0 ;; *
 want go && ! have go && warn "Go is active but there is no \`go\` in PATH: go.nvim and gopls will not be able to install their tools (https://go.dev/dl)"
 { want typescript || want html || want css || want json; } && ! have npm && warn "no node/npm: the JS/TS/web LSPs and prettier will not be installed"
 want rust && ! have cargo && warn "Rust is active but there is no cargo/rustup (https://rustup.rs)"
-want python && ! have uv && warn "Python is active and uv is not installed: the menu runs through python3 (uv: https://docs.astral.sh/uv)"
+want python && ! have python3 && ! have python && warn "Python is active but there is no python3 in PATH: install Python 3 or use \`uv python install\` (https://docs.astral.sh/uv)"
 want sql && ! have psql && ! have sqlite3 && warn "SQL is active but neither psql nor sqlite3 is installed: queries cannot run"
 want swift && ! have swift && warn "Swift is active but there is no swift toolchain (https://swift.org/install): no LSP, format or build"
+
+# Python: uv, the project/package manager the menu uses. Interactive: asked (yes by default); unattended: installed
+# like the rest of the unattended setup.
+if want python && ! have uv; then
+  step "Python: uv"
+  install_uv() {
+    if run sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'; then
+      export PATH="$HOME/.local/bin:$PATH"
+      if have uv; then
+        ok "uv $(uv --version | awk '{print $2}')"
+      else
+        warn "uv installed? open a new shell and check \`uv --version\`"
+      fi
+    else
+      warn "uv could not be installed: https://docs.astral.sh/uv"
+    fi
+  }
+  if [ "$DRY" = 1 ]; then
+    printf '  [dry-run] install uv with the official installer (https://docs.astral.sh/uv)\n'
+  elif [ "$YES" = 1 ] || [ ! -t 0 ]; then
+    install_uv
+  elif ask "Install uv (Astral) for Python projects?"; then
+    install_uv
+  else
+    warn "Python is active and uv is not installed: the menu falls back to python3 (https://docs.astral.sh/uv)"
+  fi
+fi
 
 # ── 5. Plugins, LSPs/formatters/linters and parsers ────────────────────────────
 if [ "$PLUGINS" = 1 ] && [ "$DRY" != 1 ]; then

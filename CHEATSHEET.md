@@ -704,17 +704,33 @@ _Where: `python`_
 | Key | Action |
 |---|---|
 | `<leader>pr` | run file |
+| `<leader>pp` | run project (entry point) |
+| `<leader>pl` | run as module (-m) |
 | `<leader>pi` | REPL with the file |
+| `<leader>pI` | IPython with the file |
+| `<leader>pj` | JupyterLab |
+| `<leader>pb` | build (uv build) |
+| `<leader>pa` | uv add package |
+| `<leader>pd` | uv add --dev package |
+| `<leader>pR` | uv remove package |
+| `<leader>pu` | uv sync |
+| `<leader>pU` | uv lock upgrade |
+| `<leader>pt` | dependency tree (uv tree) |
 | `<leader>pv` | ruff check |
 | `<leader>px` | ruff fix |
 | `<leader>pf` | format |
 | `<leader>po` | organize imports |
-| `<leader>pa` | uv add package |
-| `<leader>pu` | uv sync |
-| `<leader>pU` | uv lock upgrade |
-| `<leader>pR` | uv remove package |
+| `<leader>py` | typecheck (basedpyright) |
 | `<leader>pc` | coverage |
 | `<leader>pe` | interpreter in use |
+| `<leader>pPi` | init a uv project |
+| `<leader>pPv` | create virtual environment |
+| `<leader>pPp` | install and pin Python |
+| `<leader>pPr` | run a command (uv run) |
+| `<leader>pPo` | outdated dependencies |
+| `<leader>pPx` | run a tool (uvx) |
+| `<leader>pPf` | project files |
+| `<leader>pPk` | check tools (install missing) |
 | `<leader>pm` | test under cursor |
 | `<leader>pM` | test file |
 | `<leader>pA` | test all |

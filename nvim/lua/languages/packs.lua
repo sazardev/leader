@@ -13,7 +13,7 @@ return {
     { id = "typescript", label = "TypeScript / JavaScript", langs = { "typescript" }, detect = { "tsc", "bun", "deno", "pnpm", "yarn" } },
     { id = "csharp", label = "C# / .NET (+ Razor/XAML/Unity)", langs = { "csharp", "razor", "xaml", "unity" }, detect = { "dotnet" } },
     { id = "web", label = "Web: HTML, CSS, Tailwind, Astro", langs = { "html", "css", "tailwind", "astro" }, detect = { "bun", "pnpm" } },
-    { id = "python", label = "Python", langs = { "python" }, detect = { "uv", "poetry", "pipx", "pyenv" } },
+    { id = "python", label = "Python", langs = { "python" }, detect = { "uv", "poetry", "pipx", "pyenv", "python3", "python" } },
     { id = "rust", label = "Rust", langs = { "rust" }, detect = { "cargo", "rustup" } },
     { id = "sql", label = "SQL: PostgreSQL, SQLite, MySQL, SQL Server", langs = { "sql" }, detect = { "psql", "sqlite3", "mysql", "sqlcmd", "duckdb" } },
     { id = "swift", label = "Swift (Swift Package Manager)", langs = { "swift" }, detect = { "swift" } },

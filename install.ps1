@@ -148,6 +148,24 @@ if ($Lang -or $Theme -or $Light -or $NoLight) {
   if ($LASTEXITCODE -ne 0) { throw 'invalid settings (above)' }
 }
 
+# Python: uv, the project/package manager the menu uses (installed when the Python pack is active).
+$pythonPack = $Lang -eq 'all' -or $Lang -match '(^|,)python(,|$)'
+if ($pythonPack -and -not (Get-Command uv -ErrorAction SilentlyContinue)) {
+  Step 'Python: uv'
+  try {
+    & ([scriptblock]::Create((Invoke-RestMethod https://astral.sh/uv/install.ps1)))
+    $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+      $uvVersion = (uv --version) -replace '^uv\s+([^\s]+).*', '$1'
+      Write-Host "  uv $uvVersion"
+    } else {
+      Write-Warning 'uv installed? open a new terminal and check uv --version'
+    }
+  } catch {
+    Write-Warning 'could not install uv: https://docs.astral.sh/uv'
+  }
+}
+
 if (-not $NoPlugins) {
   $log = Join-Path $env:TEMP 'nvim-config-install.log'
   Remove-Item $log -ErrorAction SilentlyContinue

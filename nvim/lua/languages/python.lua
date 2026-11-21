@@ -1,6 +1,7 @@
 -- Python: basedpyright for types and navigation, ruff for lint, quick fixes, imports and format (one fast tool, also
 -- in light mode, where it runs as a linter instead of a server). The project's .venv is used when there is one
--- (servers/basedpyright.lua). Menu: run, tests in the editor, uv, project setup (languages/actions/python.lua).
+-- (servers/basedpyright.lua). Menu: run (file/project/module), REPL/IPython/JupyterLab, uv (deps, lock, tree, build,
+-- init, venv, pin, uvx), tests in the editor, debug and project setup (languages/actions/python.lua).
 return {
   filetypes = { "python" },
   treesitter = { "python", "toml", "requirements" },
@@ -15,6 +16,6 @@ return {
     name = "Python",
     prefix = "p",
     maps = require "languages.actions.python",
-    groups = { S = "setup", D = "debug" },
+    groups = { S = "setup", D = "debug", P = "project" },
   },
 }
