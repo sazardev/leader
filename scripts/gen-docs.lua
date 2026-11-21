@@ -373,9 +373,10 @@ for _, p in ipairs(PAGES) do
     table.remove(lines, first)
   end
   local body, headings = render(lines)
-  sections[#sections + 1] = ('<section class="page" id="%s" data-title="%s">\n<p class="crumb">%s · <a href="%s" target="_blank" rel="noopener">%s</a></p>\n<h1>%s</h1>\n%s\n</section>'):format(
+  sections[#sections + 1] = ('<section class="page" id="%s" data-title="%s" data-group="%s">\n<p class="crumb">%s · <a href="%s" target="_blank" rel="noopener">%s</a></p>\n<h1>%s</h1>\n%s\n</section>'):format(
     id,
     escape(title),
+    escape(group),
     escape(group),
     REPO .. src,
     escape(src),
@@ -410,14 +411,22 @@ local TEMPLATE = [==[<!doctype html>
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" content="#282828">
 <link rel="canonical" href="https://leader.sazardev.stream/docs/">
+<link rel="sitemap" type="application/xml" href="../sitemap.xml">
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<link rel="alternate" type="text/html" href="../offline.html" title="Leader offline guide">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"Leader docs","alternateName":"Leader documentation","url":"https://leader.sazardev.stream/docs/","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://leader.sazardev.stream/docs/?q={search_term_string}"},"query-input":"required name=search_term_string"}}
+</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Leader">
 <meta property="og:url" content="https://leader.sazardev.stream/docs/">
 <meta property="og:title" content="Docs — Leader">
 <meta property="og:description" content="Install, every key, the AI agent, Go, Dart / Flutter, project tasks and how Leader is built.">
 <meta property="og:image" content="https://leader.sazardev.stream/screenshots/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Leader: Neovim in its own window, showing a Lua file with the app bar and statusline">
+<meta property="og:locale" content="en">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Docs — Leader">
 <meta name="twitter:description" content="Install, every key, the AI agent, Go, Dart / Flutter, project tasks and how Leader is built.">
@@ -455,6 +464,7 @@ button,input{font:inherit;color:inherit;background:none}
 ::-webkit-scrollbar-thumb:hover{background:var(--dim)}
 ::selection{background:var(--green);color:var(--on)}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ── top bar ──────────────────────────────────────────────────────────────── */
 .bar{position:fixed;inset:0 0 auto 0;height:60px;z-index:50;background:var(--bg);display:flex;align-items:center;gap:24px;padding:0 24px}
@@ -480,11 +490,18 @@ button,input{font:inherit;color:inherit;background:none}
 .results a{display:block;padding:9px 14px;font-size:14px;overflow-wrap:anywhere}
 .results a small{display:block;color:var(--faint);font-size:12px}
 .results a.sel{background:var(--blue);color:var(--on)}
-.results a.sel small{color:var(--on);opacity:.75}
+.results a.sel small,.results a.sel .key{color:var(--on);opacity:.8;background:color-mix(in srgb,var(--on) 18%,transparent)}
 .results p{padding:12px 14px;color:var(--faint);font-size:14px}
+.results .result-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 14px;background:var(--deep);color:var(--faint);font:11px "Geist Mono",monospace;letter-spacing:.04em}
+.results .result-head b{color:var(--dim);font-weight:500}
+.results .result-group{padding:8px 14px 3px;color:var(--faint);font:10px "Geist Mono",monospace;letter-spacing:.12em;text-transform:uppercase}
+.results .key{display:inline-block;margin-right:7px;padding:0 5px;background:var(--deep);color:var(--green);font:11px "Geist Mono",monospace;white-space:nowrap}
+.results mark{background:var(--yellow);color:var(--on);padding:0 2px}
+.bar nav a.offline{color:var(--green)}
+.bar nav a.offline:hover{color:var(--yellow)}
 
 /* ── layout ───────────────────────────────────────────────────────────────── */
-.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:56px;padding:60px 24px 0;max-width:1280px;margin:0 auto}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr) 220px;gap:48px;padding:60px 24px 0;max-width:1440px;margin:0 auto}
 aside{position:sticky;top:60px;height:calc(100vh - 60px);overflow:auto;padding:28px 8px 40px 0;font-size:14px}
 aside .grp{color:var(--faint);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:22px 0 6px}
 aside .grp:first-child{margin-top:0}
@@ -496,7 +513,25 @@ aside .grp:first-child{margin-top:0}
 .nav-sub a{display:block;padding:3px 10px;color:var(--faint);font-size:13px;line-height:1.4}
 .nav-sub a:hover,.nav-sub a.on{color:var(--fg)}
 .nav-sub a.on{box-shadow:inset 2px 0 var(--green)}
+.offline-card{display:block;background:var(--deep);padding:12px 14px;margin:0 0 22px;border-left:2px solid var(--aqua)}
+.offline-card b{display:block;font-size:13px;color:var(--fg)}
+.offline-card p{font-size:12px;line-height:1.4;color:var(--faint);margin:4px 0 9px}
+.offline-card a{display:inline-block;font-size:12px;color:var(--blue);margin-right:12px}
+.offline-card a:hover{color:var(--fg)}
+.offline-card a.dl{color:var(--green)}
+#toc{position:sticky;top:60px;height:calc(100vh - 60px);overflow:auto;padding:28px 0 40px;font-size:13px}
+#toc .grp{color:var(--faint);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 8px}
+#toc a{display:block;padding:4px 8px;color:var(--faint);line-height:1.35;border-left:2px solid transparent}
+#toc a:hover{color:var(--fg)}
+#toc a.h3{padding-left:20px;font-size:12px}
+#toc a.on{color:var(--fg);background:var(--soft);border-left-color:var(--green)}
+#toc .top{margin-top:14px;color:var(--dim);border-left:0;padding-left:8px}
+#toc .top:hover{color:var(--fg)}
+.toc-empty{color:var(--faint);font-size:12px;padding:4px 8px}
 main{padding:40px 0 120px;min-width:0;max-width:860px}
+.offline-note{background:var(--deep);border-left:3px solid var(--aqua);padding:12px 16px;margin:0 0 26px;color:var(--dim);font-size:14px}
+.offline-note b{color:var(--fg)}
+.offline-note a{color:var(--aqua)}
 
 /* ── content ──────────────────────────────────────────────────────────────── */
 .page+.page{margin-top:96px}
@@ -548,6 +583,10 @@ td:first-child code{white-space:nowrap}
 footer{color:var(--faint);font-size:13px;padding:40px 0 60px}
 footer a{color:var(--dim)}
 
+@media (max-width:1200px){
+  .layout{grid-template-columns:260px minmax(0,1fr);max-width:1100px}
+  #toc{display:none}
+}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;gap:0;padding:60px 18px 0}
   aside{position:fixed;inset:60px 0 0 0;height:auto;background:var(--bg);z-index:40;padding:20px 18px 40px;display:none;overscroll-behavior:contain}
@@ -589,11 +628,13 @@ footer a{color:var(--dim)}
 <header class="bar">
   <a class="logo" href="../"><i></i>Leader <b>/ docs</b></a>
   <div class="search">
-    <input id="q" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-label="Search">
+    <input id="q" type="search" placeholder="Search docs, commands and keys…" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" aria-label="Search the documentation" aria-keyshortcuts="/ Control+K">
     <span class="k">/</span>
-    <div class="results" id="results" role="listbox"></div>
+    <p class="sr-only" id="search-status" role="status" aria-live="polite"></p>
+    <div class="results" id="results" role="listbox" aria-label="Search results"></div>
   </div>
   <nav>
+    <a class="offline" href="../offline.html" title="Offline guide: one HTML file, search included">Offline</a>
     <a class="home" href="../">Home</a>
     <a href="https://github.com/sazardev/leader" target="_blank" rel="noopener">GitHub</a>
     <button id="theme" aria-label="Light or dark">Theme</button>
@@ -603,12 +644,14 @@ footer a{color:var(--dim)}
 <div class="scrim" id="scrim"></div>
 <div class="layout">
 <aside id="nav">
+<div class="offline-card"><b>Offline guide</b><p>One HTML file with the whole guide and this search. Open it anywhere, no network needed.</p><a href="../offline.html">Open</a><a class="dl" href="../offline.html" download="leader-offline-guide.html">Download</a></div>
 @NAV@
 </aside>
 <main id="main">
 @SECTIONS@
-<footer>Generated from the repository's Markdown (README.md, CHEATSHEET.md, docs/FAQ.md, docs/cheatsheets/, AGENTS.md) by <code>scripts/gen-docs.lua</code>: edit those, never this page. Keys come from the config's real keymaps. <a href="../offline.html">Offline copy</a>.</footer>
+<footer>Generated from the repository's Markdown (README.md, CHEATSHEET.md, docs/FAQ.md, docs/cheatsheets/, AGENTS.md) by <code>scripts/gen-docs.lua</code>: edit those, never this page. Keys come from the config's real keymaps. <a href="../offline.html">Offline copy</a> · <a href="../offline.html" download="leader-offline-guide.html">Download</a>.</footer>
 </main>
+<aside id="toc" aria-label="On this page"><p class="grp">On this page</p><div id="toc-list"></div><a class="top" href="#main">↑ Top</a></aside>
 </div>
 <script>
 (function () {
@@ -630,7 +673,15 @@ footer a{color:var(--dim)}
   };
 
   /* ── pages: one guide on screen at a time; #page or #page--section ───────── */
-  var pages = $$(".page"), navs = $$(".nav-page");
+  var pages = $$(".page"), navs = $$(".nav-page"), tocList = $("#toc-list");
+  function buildToc(page) {
+    var html = "";
+    $$("h2,h3", page).forEach(function (h) {
+      if (!h.id) return;
+      html += '<a class="' + (h.tagName === "H3" ? "h3" : "") + '" href="#' + h.id + '">' + esc(h.textContent.trim()) + "</a>";
+    });
+    tocList.innerHTML = html || '<p class="toc-empty">No subsections</p>';
+  }
   function pageOf(id) {
     var el = id && document.getElementById(id);
     var page = el && (el.classList.contains("page") ? el : el.closest(".page"));
@@ -641,6 +692,7 @@ footer a{color:var(--dim)}
     pages.forEach(function (p) { p.classList.toggle("on", p === t.page); });
     navs.forEach(function (n) { n.classList.toggle("on", n.dataset.page === t.page.id); });
     document.title = t.page.dataset.title + " — Leader docs";
+    buildToc(t.page);
     pager(t.page);
     if (t.el) {
       t.el.scrollIntoView();
@@ -663,9 +715,17 @@ footer a{color:var(--dim)}
   /* the section being read, marked in the sidebar */
   function spy() {
     var page = $(".page.on"); if (!page) return;
-    var heads = $$("h2", page), cur = null;
-    heads.forEach(function (h) { if (h.getBoundingClientRect().top < 120) cur = h.id; });
-    $$(".nav-sub a").forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + cur); });
+    var cur = null, cur2 = null;
+    $$("h2,h3", page).forEach(function (h) {
+      if (h.getBoundingClientRect().top < 120) {
+        cur = h.id;
+        if (h.tagName === "H2") cur2 = h.id;
+      }
+    });
+    $$(".nav-sub a").forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + cur2); });
+    $$("#toc a[href^='#']").forEach(function (a) {
+      if (!a.classList.contains("top")) a.classList.toggle("on", a.getAttribute("href") === "#" + cur);
+    });
   }
   var ticking = false;
   window.addEventListener("scroll", function () {
@@ -677,7 +737,8 @@ footer a{color:var(--dim)}
     document.body.classList.toggle("menu-open", open);
     $("#menu").textContent = open ? "Close" : "Menu";
   }
-  $("#menu").onclick = function () { menu(!$("#nav").classList.contains("open")); };
+  $("#menu").onclick = function () { results(false); menu(!$("#nav").classList.contains("open")); };
+  $("#q").addEventListener("focus", function () { menu(false); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") menu(false); });
 
   /* a Copy button on every code block */
@@ -695,56 +756,120 @@ footer a{color:var(--dim)}
     box.appendChild(b);
   });
 
-  /* ── search: headings, table rows (every key), list items and paragraphs ───── */
+  /* ── search: headings, table rows (every key), list items, code and paragraphs ─ */
   var index = [];
   pages.forEach(function (page) {
-    var title = page.dataset.title, section = title, n = 0;
-    $$("h2,h3,h4,tr,li,p,blockquote", page).forEach(function (el) {
+    var title = page.dataset.title, group = page.dataset.group || "", section = title, n = 0;
+    $$("h2,h3,h4,tr,li,p,blockquote,pre", page).forEach(function (el) {
       if (el.matches("h2,h3,h4")) section = el.textContent;
       if (el.closest("thead") || el.classList.contains("crumb")) return;
       if (el.tagName === "LI" && el.querySelector("ul,ol")) return;
-      var text = (el.tagName === "TR" ? $$("td", el).map(function (td) { return td.textContent; }).join("  ·  ") : el.textContent)
-        .replace(/\s+/g, " ").trim();
+      var keyEl = el.tagName === "TR" ? el.querySelector("td code") : null;
+      var key = keyEl ? keyEl.textContent.replace(/\s+/g, " ").trim() : "";
+      var text = (el.tagName === "TR"
+        ? $$("td", el).map(function (td) { return td.textContent; }).join("  ·  ")
+        : el.textContent).replace(/\s+/g, " ").trim();
       if (!text) return;
       if (!el.id) el.id = page.id + "--i" + (n++);
-      index.push({ el: el, page: title, section: section, text: text, low: text.toLowerCase(), head: el.matches("h2,h3,h4") });
+      index.push({
+        el: el, page: title, group: group, section: section, text: text, low: text.toLowerCase(),
+        head: el.matches("h2,h3,h4"), key: key, keyLow: key.toLowerCase()
+      });
     });
   });
   var q = $("#q"), box = $("#results"), hits = [], sel = 0;
-  function results(on) { box.classList.toggle("on", on); $("#scrim").classList.toggle("on", on); }
+  var params0 = new URLSearchParams(location.search);
+  function results(on) {
+    box.classList.toggle("on", on); $("#scrim").classList.toggle("on", on);
+    box.setAttribute("aria-hidden", on ? "false" : "true");
+    q.setAttribute("aria-expanded", on ? "true" : "false");
+    if (!on) q.removeAttribute("aria-activedescendant");
+  }
   function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   function snippet(text, words) {
-    var low = text.toLowerCase(), at = low.indexOf(words[0]), start = Math.max(0, at - 50);
+    var low = text.toLowerCase(), at = low.indexOf(words[0]), start = Math.max(0, at - 45);
     var s = (start > 0 ? "…" : "") + text.slice(start, start + 150) + (text.length > start + 150 ? "…" : "");
-    return esc(s);
+    var sorted = words.slice().sort(function (a, b) { return b.length - a.length; });
+    var re = new RegExp("(" + sorted.map(reEsc).join("|") + ")", "ig");
+    return s.split(re).map(function (part, i) { return i % 2 ? "<mark>" + esc(part) + "</mark>" : esc(part); }).join("");
+  }
+  function updateUrl() {
+    try {
+      var u = new URL(location.href);
+      if (q.value) u.searchParams.set("q", q.value); else u.searchParams.delete("q");
+      history.replaceState(null, "", u);
+    } catch (e) {}
   }
   function search() {
     var words = q.value.toLowerCase().split(/\s+/).filter(Boolean);
-    if (!words.length) { results(false); return; }
-    hits = index.filter(function (it) { return words.every(function (w) { return it.low.indexOf(w) >= 0; }); })
+    if (!words.length) { results(false); updateUrl(); $("#search-status").textContent = ""; return; }
+    var scored = index.filter(function (it) { return words.every(function (w) { return it.low.indexOf(w) >= 0; }); })
       .map(function (it) {
         var score = (it.head ? 0 : 10) + (it.low.indexOf(words[0]) === 0 ? 0 : 2) + Math.min(it.text.length / 80, 6);
+        if (it.key) score -= 12;
+        if (it.keyLow && (it.keyLow === words[0] || it.keyLow.indexOf(words[0]) === 0)) score -= 40;
         return { it: it, score: score };
-      })
-      .sort(function (a, b) { return a.score - b.score; }).slice(0, 40).map(function (h) { return h.it; });
+      });
+    /* one group per guide, ordered by its best hit: the reader never sees a title twice */
+    var byPage = {}, groups = [];
+    scored.forEach(function (s) {
+      var g = byPage[s.it.page];
+      if (!g) {
+        g = byPage[s.it.page] = { page: s.it.page, group: s.it.group, best: s.score, items: [] };
+        groups.push(g);
+      }
+      if (s.score < g.best) g.best = s.score;
+      g.items.push(s);
+    });
+    groups.sort(function (a, b) { return a.best - b.best; });
+    hits = [];
+    var left = 60;
+    groups.forEach(function (g) {
+      g.items.sort(function (a, b) { return a.score - b.score; });
+      g.items = g.items.slice(0, Math.max(0, left));
+      left -= g.items.length;
+      g.items.forEach(function (s) { hits.push(s.it); });
+    });
     sel = 0;
-    box.innerHTML = hits.length ? hits.map(function (it, i) {
-      return '<a href="#' + it.el.id + '" class="' + (i === sel ? "sel" : "") + '">' + snippet(it.text, words) +
-        "<small>" + esc(it.page + (it.section !== it.page ? " › " + it.section : "")) + "</small></a>";
-    }).join("") : "<p>Nothing matches. Try fewer words.</p>";
+    var html = '<div class="result-head"><b>' + scored.length + (scored.length === 1 ? " result" : " results") +
+      '</b><span>' + (scored.length > hits.length ? "showing " + hits.length + " · " : "") + '↑↓ · Enter · Esc</span></div>';
+    var i = 0;
+    groups.forEach(function (g) {
+      if (!g.items.length) return;
+      html += '<div class="result-group" role="presentation">' + esc(g.group ? g.group + " › " + g.page : g.page) + "</div>";
+      g.items.forEach(function (s) {
+        var it = s.it;
+        html += '<a id="hit-' + i + '" role="option" aria-selected="' + (i === sel ? "true" : "false") +
+          '" href="#' + it.el.id + '" class="' + (i === sel ? "sel" : "") + '">' +
+          (it.key ? '<code class="key">' + esc(it.key) + "</code> " : "") + snippet(it.text, words) +
+          "<small>" + esc(it.page + (it.section !== it.page ? " › " + it.section : "")) + "</small></a>";
+        i++;
+      });
+    });
+    box.innerHTML = hits.length
+      ? html
+      : '<p>Nothing matches. Try fewer words or a key like <code>&lt;leader&gt;pF</code>.</p>';
     results(true);
+    $("#search-status").textContent = scored.length ? scored.length + (scored.length === 1 ? " result" : " results") : "No results";
+    if (hits.length) q.setAttribute("aria-activedescendant", "hit-0");
+    updateUrl();
   }
   function move(d) {
     var links = $$("a", box); if (!links.length) return;
-    links[sel].classList.remove("sel"); sel = (sel + d + links.length) % links.length;
-    links[sel].classList.add("sel"); links[sel].scrollIntoView({ block: "nearest" });
+    var old = links[sel];
+    if (old) { old.classList.remove("sel"); old.setAttribute("aria-selected", "false"); }
+    sel = (sel + d + links.length) % links.length;
+    links[sel].classList.add("sel"); links[sel].setAttribute("aria-selected", "true");
+    q.setAttribute("aria-activedescendant", links[sel].id);
+    links[sel].scrollIntoView({ block: "nearest" });
   }
   q.addEventListener("input", search);
   q.addEventListener("keydown", function (e) {
     if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) { e.preventDefault(); move(1); }
     else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) { e.preventDefault(); move(-1); }
     else if (e.key === "Enter" && hits[sel]) { e.preventDefault(); go(hits[sel].el.id); }
-    else if (e.key === "Escape") { q.value = ""; results(false); q.blur(); }
+    else if (e.key === "Escape") { q.value = ""; results(false); updateUrl(); q.blur(); }
   });
   box.addEventListener("click", function (e) {
     var a = e.target.closest("a"); if (!a) return;
@@ -756,10 +881,16 @@ footer a{color:var(--dim)}
   }
   document.addEventListener("click", function (e) { if (!e.target.closest(".search")) results(false); });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); q.select(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault(); q.focus(); q.select();
+    } else if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) {
+      e.preventDefault(); q.focus(); q.select();
+    }
   });
 
   show(location.hash.slice(1), false);
+  var initialQ = params0.get("q") || "";
+  if (initialQ) { q.value = initialQ; search(); q.focus(); }
 })();
 </script>
 </body>

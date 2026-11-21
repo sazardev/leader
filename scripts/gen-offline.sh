@@ -37,6 +37,8 @@ html = html.replace(
 html = html.replace('href="../apple-touch-icon.png"', f'href="{data("docs/apple-touch-icon.png", "image/png")}"')
 html = html.replace('href="../icon-192.png"', f'href="{data("docs/icon-192.png", "image/png")}"')
 html = html.replace('href="../"', 'href="https://leader.sazardev.stream/"')
+html = html.replace('href="../offline.html"', 'href="offline.html"')
+html = html.replace('<main id="main">', '<main id="main"><div class="offline-note"><b>Offline guide.</b> The fonts are embedded and the search works without a network. Search commands with <code>/</code> or <code>Ctrl+K</code>. <a href="https://leader.sazardev.stream/docs/">Live docs</a></div>', 1)
 
 # A downloadable copy must not compete with the live docs in search results; its canonical stays the live page.
 html = html.replace(
