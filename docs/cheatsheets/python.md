@@ -28,10 +28,25 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md). What they do:
 
 - **Run**: the current file (a PEP 723 script with a `# /// script` header runs through `uv run`, so its inline
   dependencies work); the project's entry point; or the file as a module (`python -m …`, which keeps relative
-  imports working). The project entry point is detected, best first: `[project.scripts]` (run with `uv run`), a
-  package with `__main__.py` (`src/<pkg>/` or `<pkg>/`), Django's `manage.py runserver`, and `main.py` / `app.py` /
-  `run.py` when it is a FastAPI app (`uvicorn … --reload`), a Flask app (`flask … run --debug`), a Streamlit app, or
-  a plain script. One candidate runs directly; several open a picker.
+  imports working). The file key saves the buffer first: the terminal runs what is on disk. The project entry point is
+  detected, best first: `[project.scripts]` (run with `uv run`), a package with `__main__.py` (`src/<pkg>/` or
+  `<pkg>/`), Django's `manage.py runserver`, and `main.py` / `app.py` / `run.py` when it is a FastAPI app
+  (`uvicorn … --reload`), a Flask app (`flask … run --debug`), a Streamlit app, or a plain script. One candidate runs
+  directly; several open a picker.
+
+**Package vs file**: `uv init --app` writes `src/<pkg>/__init__.py` with a `main()` and a `[project.scripts]` entry.
+`uv run <script>` (the project key) calls `main`; `python src/<pkg>/__init__.py` (the file key) only executes the file,
+so it prints nothing unless it ends with `if __name__ == "__main__": main()`. `python -m <pkg>` (the module key) needs
+a `<pkg>/__main__.py`; create it with:
+
+```python
+from . import main
+
+main()
+```
+
+The script name is exactly the key in `[project.scripts]`: for `plot-xy = "plot_xy:main"` the command is
+`uv run plot-xy`, not `uv run plot_xy`.
 - **REPL**: plain `python -i <file>`, IPython with the file loaded, or JupyterLab in the project. IPython and JupyterLab
   have to be installed in the project (`uv add --dev ipython jupyterlab`) or on the machine.
 - **Tests in the editor** (the same keys in every language with tests): the test under the cursor (a `test_…`
@@ -104,6 +119,8 @@ the project with `<leader>pd` (`ipython jupyterlab`) so they see the project's p
   submenu to create a project.
 - `Pv` recreating `.venv` deletes the packages installed in it; the modal warns first.
 - `Pp` may download a Python version; `uv python pin` only writes `.python-version`.
+- `r` is "run file", not "run project": a package `__init__.py` that only defines `main()` prints nothing; use the
+  project key (`uv run <script>`) or add the `if __name__ == "__main__": main()` guard. `l` needs `<pkg>/__main__.py`.
 - `Pr` (`uv run …`) is for commands, not for shell syntax: what you type goes after `uv run` as-is.
 - Tests from a class that does not start with `Test` are not collected by pytest, so they get no mark either.
 - No global data stack: pandas/NumPy/JupyterLab live in each project's `.venv`, so `Pi` → `Data analysis` (or

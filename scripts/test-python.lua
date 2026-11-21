@@ -106,13 +106,12 @@ eq("entrypoints: plain script is not added twice", by_cmd["python3 " .. p .. "/m
 write("demo/uv.lock", { "" })
 eq("uv_project: lockfile", py.uv_project(p), true)
 if vim.fn.executable "uv" == 1 then
-  local uv = false
+  local cmds = {}
   for _, item in ipairs(py.entrypoints(p)) do
-    if item.cmd == "uv run " .. vim.fn.shellescape "hello" then
-      uv = true
-    end
+    cmds[item.cmd] = true
   end
-  eq("entrypoints: console scripts run through uv", uv, true)
+  eq("entrypoints: console scripts run through uv", cmds["uv run " .. vim.fn.shellescape "hello"], true)
+  eq("entrypoints: hyphenated console script", cmds["uv run " .. vim.fn.shellescape "my-tool"], true)
 end
 
 -- ── project files ──────────────────────────────────────────────────────────

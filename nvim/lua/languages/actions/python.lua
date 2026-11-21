@@ -29,6 +29,20 @@ local function current_file()
   return vim.fn.shellescape(vim.fn.expand "%:p")
 end
 
+--- The terminal runs the file on disk, not the unsaved buffer: save it first
+---@return boolean
+local function ensure_saved()
+  if vim.api.nvim_buf_get_name(0) == "" or not vim.bo.modified then
+    return true
+  end
+  local ok, err = pcall(vim.cmd, "write")
+  if not ok then
+    log.warn("Python: could not save the buffer: " .. tostring(err))
+    return false
+  end
+  return true
+end
+
 --- A uv command, or a note when uv or the project is missing
 local function uv_cmd(sub, ask)
   return function()
@@ -65,6 +79,9 @@ end
 
 --- The project's entry point: one runs directly, several open a picker
 local function run_project()
+  if not ensure_saved() then
+    return
+  end
   local r = root()
   local items = py.entrypoints(r)
   local file = vim.api.nvim_buf_get_name(0)
@@ -95,6 +112,9 @@ local function run_file()
   if vim.api.nvim_buf_get_name(0) == "" then
     return log.warn "Python: save the buffer first"
   end
+  if not ensure_saved() then
+    return
+  end
   local head = table.concat(vim.api.nvim_buf_get_lines(0, 0, 20, false), "\n")
   if vim.fn.executable "uv" == 1 and py.is_script(head) then
     return terminal.run("uv run " .. current_file(), root())
@@ -104,6 +124,9 @@ end
 
 --- `python -m <package.module>`: the same file, but with the package's relative imports working
 local function run_module()
+  if not ensure_saved() then
+    return
+  end
   local r = root()
   local module = py.module_for(r, vim.api.nvim_buf_get_name(0))
   if not module then
@@ -113,6 +136,9 @@ local function run_module()
 end
 
 local function ipython()
+  if not ensure_saved() then
+    return
+  end
   local r = root()
   local cmd
   if uv() then
