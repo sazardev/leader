@@ -723,6 +723,7 @@ _Where: `python`_
 | `<leader>py` | typecheck (basedpyright) |
 | `<leader>pc` | coverage |
 | `<leader>pe` | interpreter in use |
+| `<leader>ph` | toggle inlay hints |
 | `<leader>pPi` | init a uv project |
 | `<leader>pPv` | create virtual environment |
 | `<leader>pPp` | install and pin Python |

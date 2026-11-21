@@ -11,6 +11,8 @@ Filetype: `python`. Pack `python` (installer checklist, or `<leader>Sp` → Lang
 | Format on save | `ruff` (organize imports, then format) |
 | Debug | `debugpy` (Mason; `Pk` repairs it) |
 | Notebooks / REPL | JupyterLab, IPython (project dependencies, or the system ones) |
+| Inlay hints | `basedpyright` (call-argument names and return types; on by default, `<leader>ph` toggles) |
+| Auto-import | basedpyright code action (`<leader>ca`) and completion; local modules, the stdlib, and modules already imported |
 | Treesitter | `python`, `toml`, `requirements` |
 
 **Installed for you**: Python 3 is a system tool (the setup wizard offers it); `./install.sh` installs **uv** when the

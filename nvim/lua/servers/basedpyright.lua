@@ -18,10 +18,20 @@ return {
       analysis = {
         typeCheckingMode = "standard",
         diagnosticMode = "openFilesOnly",
+        -- Auto-import: suggestions for local modules, the stdlib and modules the server already knows.
+        -- Third-party packages still have to be installed in the project's .venv (uv add).
+        autoImportCompletions = true,
+        autoSearchPaths = true,
+        useLibraryCodeForTypes = true,
         inlayHints = { callArgumentNames = true, variableTypes = false, functionReturnTypes = true },
       },
     },
   },
+  -- Inlay hints on by default for Python: call-argument names and unannotated return types.
+  -- <leader>ph toggles them (languages/actions/python.lua).
+  on_attach = function(_, bufnr)
+    vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+  end,
   before_init = function(_, config)
     local python = config.root_dir and venv_python(config.root_dir)
     if python then

@@ -429,6 +429,14 @@ local function doctor()
   end)
 end
 
+--- Inlay hints: basedpyright's call-argument names and return types, on by default
+local function inlay_hints()
+  local buf = vim.api.nvim_get_current_buf()
+  local enabled = vim.lsp.inlay_hint.is_enabled { bufnr = buf }
+  vim.lsp.inlay_hint.enable(not enabled, { bufnr = buf })
+  log.info("Python: inlay hints " .. (enabled and "off" or "on"))
+end
+
 local maps = {
   { "r", "run file", run_file },
   { "p", "run project (entry point)", run_project },
@@ -472,6 +480,7 @@ local maps = {
       terminal.run(python() .. " -c 'import sys; print(sys.executable); print(sys.version)'", root())
     end,
   },
+  { "h", "toggle inlay hints", inlay_hints },
   { "Pi", "init a uv project", init_project },
   { "Pv", "create virtual environment", create_venv },
   { "Pp", "install and pin Python", pin_python },
