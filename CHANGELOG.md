@@ -2,6 +2,13 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.25.0] - 2026-11-21
+
+### Features
+
+- **docs:** embed the docs pack and offer it as an installer extra (83d3374)
+- **docs:** add grouped search, an on-page index and offline access (bec43cf)
+
 ## [1.24.0] - 2026-11-21
 
 ### Features
