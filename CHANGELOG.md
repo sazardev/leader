@@ -2,6 +2,20 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.24.0] - 2026-11-21
+
+### Features
+
+- **python:** add floating IPython REPL and selection send (c827b06)
+- **brand:** add Python Data cheat sheet wallpapers (f77f36b)
+- **brand:** add Python Starter cheat sheet wallpapers (374e3c2)
+- **brand:** add Python language cheat sheet wallpapers (f987e00)
+- **python:** enable inlay hints and document auto-import (f50b87b)
+
+### Other changes
+
+- refactor(python): tidy floating IPython implementation (cf4a8bf)
+
 ## [1.23.1] - 2026-11-21
 
 ### Fixes
