@@ -708,6 +708,8 @@ _Where: `python`_
 | `<leader>pl` | run as module (-m) |
 | `<leader>pi` | REPL with the file |
 | `<leader>pI` | IPython with the file |
+| `<leader>pF` | floating IPython REPL |
+| `<leader>ps` | send line/selection to IPython |
 | `<leader>pj` | JupyterLab |
 | `<leader>pb` | build (uv build) |
 | `<leader>pa` | uv add package |

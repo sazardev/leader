@@ -11,6 +11,7 @@ Filetype: `python`. Pack `python` (installer checklist, or `<leader>Sp` → Lang
 | Format on save | `ruff` (organize imports, then format) |
 | Debug | `debugpy` (Mason; `Pk` repairs it) |
 | Notebooks / REPL | JupyterLab, IPython (project dependencies, or the system ones) |
+| Floating IPython | `<leader>pF` toggles a persistent float; `<leader>ps` sends the line or visual selection, keeps definitions, and returns focus to the editor |
 | Inlay hints | `basedpyright` (call-argument names and return types; on by default, `<leader>ph` toggles) |
 | Auto-import | basedpyright code action (`<leader>ca`) and completion; local modules, the stdlib, and modules already imported |
 | Treesitter | `python`, `toml`, `requirements` |
@@ -51,6 +52,10 @@ The script name is exactly the key in `[project.scripts]`: for `plot-xy = "plot_
 `uv run plot-xy`, not `uv run plot_xy`.
 - **REPL**: plain `python -i <file>`, IPython with the file loaded, or JupyterLab in the project. IPython and JupyterLab
   have to be installed in the project (`uv add --dev ipython jupyterlab`) or on the machine.
+- **Floating IPython**: `<leader>pF` opens a persistent float (no banner, no exit confirmation, history suggestions and
+  tab completion). `Esc` hides it and the process survives; `<leader>pF` brings it back. `<leader>ps` sends the current
+  line or the visual selection: one line goes directly, a block is executed with `%run -i` so indentation and
+  definitions persist. The cursor stays in the editor, which makes this the fast loop for exploring data.
 - **Tests in the editor** (the same keys in every language with tests): the test under the cursor (a `test_…`
   function, a method of a `Test…` class, a whole `Test…` class), the file, the project, the last run again. pytest runs
   with a JUnit report: each test line gets a mark (✓ passed, ✗ failed, ○ skipped, … running), a failure is a

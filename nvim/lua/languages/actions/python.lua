@@ -1,6 +1,7 @@
 -- ── Python actions ───────────────────────────────────────────────────────────
 -- Runs through uv when the project is a uv project (uv.lock), else the project's .venv, else python3. Run the file,
--- the project (detected entry point) or the file as a module; REPL / IPython / JupyterLab; uv add, add --dev, remove,
+-- the project (detected entry point) or the file as a module; REPL / floating IPython (with send line/selection) /
+-- JupyterLab; uv add, add --dev, remove,
 -- sync, lock upgrade, tree, outdated and build; ruff check / fix / format / imports; basedpyright typecheck; tests in
 -- the editor (langtest), debugging with debugpy (langdebug), setup files under `S` and the uv project under `P`.
 local actions = require "utils.actions"
@@ -135,23 +136,84 @@ local function run_module()
   terminal.run(python() .. (module == "" and " ." or (" -m " .. module)), r)
 end
 
+--- The IPython command for this project (uv first, then a global install)
+---@return string?
+local function ipython_base()
+  if uv() then
+    return "uv run ipython"
+  end
+  if vim.fn.executable "ipython" == 1 then
+    return "ipython"
+  end
+end
+
+--- The efficient REPL flags: no banner, no confirmation, history suggestions on
+---@return string?
+local function ipython_repl()
+  local base = ipython_base()
+  if not base then
+    return nil
+  end
+  return base
+    .. " --no-banner --no-confirm-exit"
+    .. " --TerminalInteractiveShell.autosuggestions_provider=NavigableAutoSuggestFromHistory"
+end
+
 local function ipython()
   if not ensure_saved() then
     return
   end
-  local r = root()
-  local cmd
-  if uv() then
-    cmd = "uv run ipython"
-  elseif vim.fn.executable "ipython" == 1 then
-    cmd = "ipython"
-  else
+  local cmd = ipython_base()
+  if not cmd then
     return log.warn "Python: IPython is not installed (uv add --dev ipython)"
   end
   if vim.api.nvim_buf_get_name(0) ~= "" then
     cmd = cmd .. " -i " .. current_file()
   end
-  terminal.run(cmd, r)
+  terminal.run(cmd, root())
+end
+
+--- Floating, persistent IPython: <leader>pF toggles it, Esc hides it and the process survives.
+local function floating_ipython()
+  local cmd = ipython_repl()
+  if not cmd then
+    return log.warn "Python: IPython is not installed (uv add --dev ipython)"
+  end
+  terminal.float_repl("Python REPL", cmd, root())
+end
+
+--- Current line, or the selected lines in visual mode.
+---@return string[]
+local function selected_lines()
+  local mode = vim.fn.mode()
+  local first, last
+  if mode:match "[vV\22]" then
+    first, last = vim.fn.getpos("v")[2], vim.fn.getpos(".")[2]
+    if first > last then
+      first, last = last, first
+    end
+    vim.cmd "normal! \27"
+  else
+    first, last = vim.fn.line ".", vim.fn.line "."
+  end
+  return vim.api.nvim_buf_get_lines(0, first - 1, last, false)
+end
+
+--- Send the line or visual selection to the floating REPL. Multi-line blocks go
+--- as one bracketed paste (keeping indentation); a single line goes directly.
+local function send_ipython()
+  local cmd = ipython_repl()
+  if not cmd then
+    return log.warn "Python: IPython is not installed (uv add --dev ipython)"
+  end
+  local lines = selected_lines()
+  if #lines == 0 or (#lines == 1 and lines[1]:match "^%s*$") then
+    return
+  end
+  local text = table.concat(lines, "\n")
+  local block = #lines > 1 or lines[1]:match "^%s+" ~= nil or text:match ":%s*$" ~= nil
+  terminal.send_text("Python REPL", cmd, root(), text, block)
+  log.info(("Python: sent %s to IPython"):format(#lines == 1 and "line" or (#lines .. " lines")))
 end
 
 local function jupyter()
@@ -449,6 +511,8 @@ local maps = {
     end,
   },
   { "I", "IPython with the file", ipython },
+  { "F", "floating IPython REPL", floating_ipython },
+  { "s", "send line/selection to IPython", send_ipython, { "n", "x" } },
   { "j", "JupyterLab", jupyter },
   { "b", "build (uv build)", build },
   { "a", "uv add package", uv_cmd("add", "Packages to add (e.g. httpx pydantic, --dev pytest)") },
