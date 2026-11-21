@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.23.0] - 2026-11-20
+
+### Highlights
+
+- **Python, complete from the first start**: the Python pack now installs uv, Mason brings ruff, basedpyright and debugpy, `Pk`/`:PythonDoctor` repair what is missing, and `Pi`/`:PythonInit` create a data-analysis project with the book's pandas 2.x stack, JupyterLab, SciPy, statsmodels, scikit-learn and the Excel/HTML/SQL/HDF5 readers.
+
+### Features
+
+- **python:** full toolchain by default, uv bootstrap, data-analysis starter and `:PythonInit`/`:PythonDoctor` (510fb17)
+
 ## [1.22.3] - 2026-11-20
 
 ### Features
