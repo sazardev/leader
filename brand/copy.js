@@ -3670,6 +3670,1163 @@ var COPY = {
           "ex": "json.dumps(lista, indent=2)"
         }
       ]
+    },
+    {
+      "id": "python-pd-series",
+      "name": "pandas I",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--aqua)",
+      "f": "dpuk",
+      "intro": "Series, DataFrame, indexación y las operaciones que sostienen todo lo demás.",
+      "primary": {
+        "sig": "df.loc[mask, [\"a\", \"b\"]]",
+        "desc": "Selección por etiqueta: filas del mask y columnas concretas.",
+        "ex": "df.loc[df.x > 0, [\"a\", \"b\"]]"
+      },
+      "items": [
+        {
+          "name": "Serie",
+          "sig": "pd.Series([1, 2], index=[\"a\", \"b\"])",
+          "desc": "Un array etiquetado; la columna de un DataFrame es una Serie.",
+          "ex": "s[\"a\"]"
+        },
+        {
+          "name": "DataFrame",
+          "sig": "pd.DataFrame({\"a\": [1, 2]})",
+          "desc": "Diccionario de columnas; cada clave es una columna.",
+          "ex": "pd.DataFrame(data, columns=cols)"
+        },
+        {
+          "name": "dtypes",
+          "sig": "df.dtypes",
+          "desc": "Cada columna tiene un dtype; revísalo antes de operar.",
+          "ex": "df.info()"
+        },
+        {
+          "name": "Index",
+          "sig": "df.index",
+          "desc": "Etiquetas de fila; RangeIndex por defecto.",
+          "ex": "df = df.set_index(\"id\")"
+        },
+        {
+          "name": "loc",
+          "sig": "df.loc[0, \"a\"]",
+          "desc": "Selección por etiqueta: fila y columna.",
+          "ex": "df.loc[df.a > 0, [\"a\"]]"
+        },
+        {
+          "name": "iloc",
+          "sig": "df.iloc[0, 1]",
+          "desc": "Selección por posición entera.",
+          "ex": "df.iloc[:5, :2]"
+        },
+        {
+          "name": "Máscara",
+          "sig": "df[df[\"x\"] > 0]",
+          "desc": "Boolean indexing: filas donde la condición es True.",
+          "ex": "df[df.x.between(0, 10)]"
+        },
+        {
+          "name": "Asignar",
+          "sig": "df[\"total\"] = df.a + df.b",
+          "desc": "Crea o reemplaza una columna alineando por índice.",
+          "ex": "df[\"total\"] = df.a * df.b"
+        },
+        {
+          "name": "Copia",
+          "sig": "df.copy()",
+          "desc": "Evita SettingWithCopyWarning; copia explícita.",
+          "ex": "sub = df[df.a > 0].copy()"
+        },
+        {
+          "name": "Nulos",
+          "sig": "df.isna().sum()",
+          "desc": "Cuenta nulos por columna; notna es lo contrario.",
+          "ex": "df.isna().sum()"
+        },
+        {
+          "name": "Ordenar",
+          "sig": "df.sort_values(\"a\", ascending=False)",
+          "desc": "Ordena por una o varias columnas.",
+          "ex": "df.sort_values([\"a\", \"b\"])"
+        },
+        {
+          "name": "Resumen",
+          "sig": "df.describe()",
+          "desc": "Estadísticos de las columnas numéricas.",
+          "ex": "df.describe(include=\"all\")"
+        }
+      ]
+    },
+    {
+      "id": "python-pd-clean",
+      "name": "pandas II",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "Limpieza: nulos, tipos, fechas, strings, duplicados y valores atípicos.",
+      "primary": {
+        "sig": "df[\"col\"] = df[\"col\"].fillna(0)",
+        "desc": "Rellena nulos con un valor, la media o el valor anterior.",
+        "ex": "df[\"x\"].fillna(df[\"x\"].median())"
+      },
+      "items": [
+        {
+          "name": "Nulos",
+          "sig": "df.isna().sum()",
+          "desc": "Diagnóstico antes de decidir qué hacer.",
+          "ex": "df.isna().mean()"
+        },
+        {
+          "name": "Dropna",
+          "sig": "df.dropna(subset=[\"id\"])",
+          "desc": "Elimina filas con nulos; subset limita las columnas.",
+          "ex": "df.dropna(thresh=2)"
+        },
+        {
+          "name": "Fillna",
+          "sig": "df[\"x\"].fillna(df[\"x\"].median())",
+          "desc": "Rellena con un valor, la media o el anterior.",
+          "ex": "df.ffill()"
+        },
+        {
+          "name": "Tipos",
+          "sig": "df[\"x\"].astype(\"int64\")",
+          "desc": "Convierte tipos; errors='coerce' crea nulos.",
+          "ex": "pd.to_numeric(s, errors=\"coerce\")"
+        },
+        {
+          "name": "Fechas",
+          "sig": "pd.to_datetime(df[\"date\"])",
+          "desc": "Convierte a datetime64; format acelera y valida.",
+          "ex": "pd.to_datetime(df.date, format=\"%Y-%m-%d\")"
+        },
+        {
+          "name": "Strings",
+          "sig": "df[\"name\"].str.strip().str.lower()",
+          "desc": "Métodos vectorizados con .str.",
+          "ex": "df.name.str.contains(\"ana\", case=False)"
+        },
+        {
+          "name": "Replace",
+          "sig": "df[\"estado\"].replace({\"A\": \"activo\"})",
+          "desc": "Sustituye valores exactos o listas.",
+          "ex": "df.replace({\"?\": None})"
+        },
+        {
+          "name": "Duplicados",
+          "sig": "df.duplicated(subset=[\"id\"])",
+          "desc": "Marca duplicados; drop_duplicates los elimina.",
+          "ex": "df.drop_duplicates(\"id\", keep=\"last\")"
+        },
+        {
+          "name": "Map",
+          "sig": "df[\"cat\"].map({1: \"a\", 2: \"b\"})",
+          "desc": "Transforma valores con un dict o una función.",
+          "ex": "df[\"x\"].map(str)"
+        },
+        {
+          "name": "Apply",
+          "sig": "df.apply(pd.to_numeric, errors=\"coerce\")",
+          "desc": "Aplica por columna; evítalo si hay vectorización.",
+          "ex": "df.apply(lambda r: r.a + r.b, axis=1)"
+        },
+        {
+          "name": "Outliers",
+          "sig": "df[df.x.between(q1, q99)]",
+          "desc": "Recorta por cuantiles o usa el rango IQR.",
+          "ex": "df.clip(lower=0)"
+        },
+        {
+          "name": "Categorías",
+          "sig": "df[\"x\"].astype(\"category\")",
+          "desc": "Ahorra memoria y ordena categorías.",
+          "ex": "df.x.cat.codes"
+        }
+      ]
+    },
+    {
+      "id": "python-pd-groupby",
+      "name": "pandas III",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "GroupBy, agregaciones, transformaciones, tablas dinámicas y series temporales.",
+      "primary": {
+        "sig": "df.groupby(\"city\").agg(total=(\"sales\", \"sum\"))",
+        "desc": "Named aggregation: un nombre y una función por cada salida.",
+        "ex": "df.groupby(\"city\").agg(mean=(\"x\", \"mean\"), n=(\"x\", \"size\"))"
+      },
+      "items": [
+        {
+          "name": "Groupby",
+          "sig": "df.groupby(\"city\")",
+          "desc": "Divide por clave; la agregación combina.",
+          "ex": "df.groupby(\"city\").size()"
+        },
+        {
+          "name": "Sum",
+          "sig": "df.groupby(\"city\")[\"sales\"].sum()",
+          "desc": "Una columna y una función.",
+          "ex": "df.groupby(\"city\").sales.sum()"
+        },
+        {
+          "name": "Agg",
+          "sig": "df.groupby(\"city\").agg(total=(\"sales\", \"sum\"))",
+          "desc": "Named aggregation: nombre y función por salida.",
+          "ex": "df.groupby(\"city\").agg(total=(\"sales\", \"sum\"))"
+        },
+        {
+          "name": "Múltiple",
+          "sig": "df.groupby([\"city\", \"month\"]).sum()",
+          "desc": "Varias claves crean un MultiIndex.",
+          "ex": "df.groupby([\"city\", \"month\"]).sum()"
+        },
+        {
+          "name": "Transform",
+          "sig": "df.groupby(\"city\")[\"x\"].transform(\"mean\")",
+          "desc": "Devuelve el mismo tamaño que df, alineado.",
+          "ex": "df[\"centered\"] = df.x - df.groupby(\"city\").x.transform(\"mean\")"
+        },
+        {
+          "name": "Filter",
+          "sig": "df.groupby(\"city\").filter(lambda g: len(g) > 2)",
+          "desc": "Conserva grupos que cumplen una condición.",
+          "ex": "df.groupby(\"city\").filter(lambda g: g.x.mean() > 0)"
+        },
+        {
+          "name": "Apply",
+          "sig": "df.groupby(\"city\").apply(f)",
+          "desc": "Función por grupo; puede cambiar la forma.",
+          "ex": "df.groupby(\"city\").apply(lambda g: g.nlargest(1, \"x\"))"
+        },
+        {
+          "name": "Pivot",
+          "sig": "df.pivot_table(index=\"city\", values=\"sales\", aggfunc=\"sum\")",
+          "desc": "Tabla dinámica: filas, columnas y agregación.",
+          "ex": "df.pivot_table(index=\"city\", columns=\"month\", values=\"sales\", aggfunc=\"sum\")"
+        },
+        {
+          "name": "Crosstab",
+          "sig": "pd.crosstab(df.city, df.sex)",
+          "desc": "Frecuencias cruzadas; normalize para proporciones.",
+          "ex": "pd.crosstab(df.city, df.sex, normalize=\"index\")"
+        },
+        {
+          "name": "Resample",
+          "sig": "df.set_index(\"date\").resample(\"M\")[\"sales\"].sum()",
+          "desc": "Agrupa por tiempo; M mes, W semana, D día.",
+          "ex": "df.resample(\"W\").sum()"
+        },
+        {
+          "name": "Rolling",
+          "sig": "df[\"sales\"].rolling(7).mean()",
+          "desc": "Media móvil; min_periods controla el inicio.",
+          "ex": "df.rolling(7, min_periods=1).mean()"
+        },
+        {
+          "name": "MultiIndex",
+          "sig": "df.groupby([\"a\", \"b\"]).sum()",
+          "desc": "Índice jerárquico; reset_index lo aplana.",
+          "ex": "df.groupby([\"a\", \"b\"]).sum().reset_index()"
+        }
+      ]
+    },
+    {
+      "id": "python-pd-join",
+      "name": "pandas IV",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "Merge, concat, pivot/melt y MultiIndex: unir y remodelar datos sin perder filas.",
+      "primary": {
+        "sig": "df.merge(other, on=\"id\", how=\"left\", validate=\"many_to_one\")",
+        "desc": "Join por clave; left conserva todas las filas de df.",
+        "ex": "df.merge(other, on=\"id\", how=\"left\")"
+      },
+      "items": [
+        {
+          "name": "Merge",
+          "sig": "df.merge(other, on=\"id\", how=\"left\")",
+          "desc": "Join por clave; left conserva todas las filas de df.",
+          "ex": "df.merge(other, on=\"id\", how=\"left\")"
+        },
+        {
+          "name": "How",
+          "sig": "how=\"inner\" / \"left\" / \"right\" / \"outer\"",
+          "desc": "Inner solo coincidencias; outer conserva todo.",
+          "ex": "df.merge(other, how=\"outer\", indicator=True)"
+        },
+        {
+          "name": "Suffixes",
+          "sig": "df.merge(other, on=\"id\", suffixes=(\"_a\", \"_b\"))",
+          "desc": "Renombra columnas repetidas.",
+          "ex": "suffixes=(\"_x\", \"_y\")"
+        },
+        {
+          "name": "Validate",
+          "sig": "validate=\"one_to_one\"",
+          "desc": "Falla si la clave no es única como esperas.",
+          "ex": "validate=\"many_to_one\""
+        },
+        {
+          "name": "Concat",
+          "sig": "pd.concat([df1, df2], ignore_index=True)",
+          "desc": "Apila filas; axis=1 pega columnas.",
+          "ex": "pd.concat([df1, df2], axis=1)"
+        },
+        {
+          "name": "Join",
+          "sig": "df.join(other, on=\"id\", how=\"left\")",
+          "desc": "Atajo por índice; útil con index alineado.",
+          "ex": "df.set_index(\"id\").join(other)"
+        },
+        {
+          "name": "Pivot",
+          "sig": "df.pivot(index=\"id\", columns=\"month\", values=\"sales\")",
+          "desc": "Largo a ancho sin agregar; falla si hay duplicados.",
+          "ex": "df.pivot_table(...)"
+        },
+        {
+          "name": "Melt",
+          "sig": "df.melt(id_vars=\"id\", var_name=\"month\", value_name=\"sales\")",
+          "desc": "Ancho a largo: una fila por variable.",
+          "ex": "df.melt(id_vars=[\"id\"])"
+        },
+        {
+          "name": "Stack",
+          "sig": "df.stack()",
+          "desc": "Columnas a filas; unstack vuelve atrás.",
+          "ex": "df.stack().unstack()"
+        },
+        {
+          "name": "MultiIndex",
+          "sig": "df.set_index([\"city\", \"month\"])",
+          "desc": "Índice jerárquico; xs para seleccionar.",
+          "ex": "df.xs(\"2026\", level=\"year\")"
+        },
+        {
+          "name": "Combine",
+          "sig": "a.combine_first(b)",
+          "desc": "Rellena huecos de a con b alineando índices.",
+          "ex": "a.combine_first(b)"
+        },
+        {
+          "name": "Merge asof",
+          "sig": "pd.merge_asof(left, right, on=\"time\")",
+          "desc": "Une por la fila más cercana hacia atrás.",
+          "ex": "pd.merge_asof(trades, quotes, on=\"time\", by=\"symbol\")"
+        }
+      ]
+    },
+    {
+      "id": "python-pd-io",
+      "name": "pandas V",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "CSV, Parquet, Excel, SQL y HDF5, más memoria, query/eval y Copy-on-Write.",
+      "primary": {
+        "sig": "pd.read_parquet(\"data.parquet\")",
+        "desc": "Columnar, tipado y comprimido; necesita pyarrow.",
+        "ex": "df.to_parquet(\"data.parquet\", compression=\"zstd\")"
+      },
+      "items": [
+        {
+          "name": "read_csv",
+          "sig": "pd.read_csv(\"data.csv\", dtype={\"id\": \"int64\"})",
+          "desc": "dtype, usecols y parse_dates ahorran memoria y tiempo.",
+          "ex": "pd.read_csv(path, usecols=[\"id\", \"x\"], parse_dates=[\"date\"])"
+        },
+        {
+          "name": "Chunks",
+          "sig": "pd.read_csv(path, chunksize=100_000)",
+          "desc": "Procesa archivos grandes por lotes.",
+          "ex": "for chunk in pd.read_csv(path, chunksize=100_000):"
+        },
+        {
+          "name": "Parquet",
+          "sig": "pd.read_parquet(\"data.parquet\")",
+          "desc": "Columnar, tipado y comprimido; necesita pyarrow.",
+          "ex": "df.to_parquet(\"data.parquet\", compression=\"zstd\")"
+        },
+        {
+          "name": "Excel",
+          "sig": "pd.read_excel(\"data.xlsx\", sheet_name=\"Datos\")",
+          "desc": "openpyxl para xlsx; xlrd para xls antiguo.",
+          "ex": "pd.ExcelFile(path).sheet_names"
+        },
+        {
+          "name": "SQL",
+          "sig": "pd.read_sql(\"SELECT * FROM t\", con=engine)",
+          "desc": "SQLAlchemy o sqlite3; lee por consulta.",
+          "ex": "df.to_sql(\"t\", con, if_exists=\"replace\")"
+        },
+        {
+          "name": "HDF5",
+          "sig": "df.to_hdf(\"data.h5\", key=\"df\")",
+          "desc": "PyTables; rápido para arrays grandes.",
+          "ex": "pd.read_hdf(\"data.h5\", \"df\")"
+        },
+        {
+          "name": "Arrow",
+          "sig": "pa.Table.from_pandas(df)",
+          "desc": "Formato columnar en memoria; cero copia cuando puede.",
+          "ex": "table.to_pandas()"
+        },
+        {
+          "name": "Categorical",
+          "sig": "df[\"x\"] = df.x.astype(\"category\")",
+          "desc": "Menos memoria si hay pocas categorías repetidas.",
+          "ex": "df.memory_usage(deep=True)"
+        },
+        {
+          "name": "Query",
+          "sig": "df.query(\"x > 0 and y < 10\")",
+          "desc": "Filtro legible; usa @variable para variables locales.",
+          "ex": "df.query(\"x > @limite\")"
+        },
+        {
+          "name": "Eval",
+          "sig": "df.eval(\"total = a + b\")",
+          "desc": "Operaciones rápidas sin arrays temporales.",
+          "ex": "df.eval(\"total = a * b\")"
+        },
+        {
+          "name": "CoW",
+          "sig": "sub = df[df.x > 0].copy()",
+          "desc": "pandas 3: CoW por defecto; asigna sobre copias.",
+          "ex": "sub[\"y\"] = 0"
+        },
+        {
+          "name": "Memoria",
+          "sig": "df.info(memory_usage=\"deep\")",
+          "desc": "Revisa tipos y memoria antes de optimizar.",
+          "ex": "df.memory_usage(deep=True).sum()"
+        }
+      ]
+    },
+    {
+      "id": "python-np-basics",
+      "name": "NumPy I",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "Arrays, formas, indexación y broadcasting: la base vectorizada de todo el stack.",
+      "primary": {
+        "sig": "arr = np.array([1, 2, 3])",
+        "desc": "El ndarray: un dtype, memoria contigua y operaciones vectorizadas.",
+        "ex": "arr = np.array([1, 2, 3])"
+      },
+      "items": [
+        {
+          "name": "dtype",
+          "sig": "arr.dtype",
+          "desc": "Un array tiene un solo tipo; astype convierte.",
+          "ex": "arr.astype(\"float64\")"
+        },
+        {
+          "name": "Shape",
+          "sig": "arr.shape",
+          "desc": "Dimensiones; reshape cambia la vista.",
+          "ex": "arr.reshape(2, 3)"
+        },
+        {
+          "name": "Zeros",
+          "sig": "np.zeros((2, 3))",
+          "desc": "Arrays inicializados; ones, empty, full.",
+          "ex": "np.ones((2, 3))"
+        },
+        {
+          "name": "Arange",
+          "sig": "np.arange(0, 10, 2)",
+          "desc": "Rango con paso; linspace fija el número.",
+          "ex": "np.linspace(0, 1, 5)"
+        },
+        {
+          "name": "Index",
+          "sig": "arr[0, 1]",
+          "desc": "Indexación por ejes; -1 es el último.",
+          "ex": "arr[:, 0]"
+        },
+        {
+          "name": "Slice",
+          "sig": "arr[1:3, :2]",
+          "desc": "Vistas: modificar la slice modifica el array.",
+          "ex": "arr[::2]"
+        },
+        {
+          "name": "Mask",
+          "sig": "arr[arr > 0]",
+          "desc": "Boolean indexing devuelve una copia.",
+          "ex": "arr[arr % 2 == 0]"
+        },
+        {
+          "name": "Fancy",
+          "sig": "arr[[0, 2]]",
+          "desc": "Indexa con una lista de posiciones.",
+          "ex": "arr[[0, 2], [1, 0]]"
+        },
+        {
+          "name": "Ufunc",
+          "sig": "arr * 2 + 1",
+          "desc": "Operaciones vectorizadas sin bucles.",
+          "ex": "np.sqrt(arr)"
+        },
+        {
+          "name": "Axis",
+          "sig": "arr.sum(axis=0)",
+          "desc": "axis=0 baja por filas; axis=1 por columnas.",
+          "ex": "arr.mean(axis=1)"
+        },
+        {
+          "name": "Broadcast",
+          "sig": "a[:, None] + b[None, :]",
+          "desc": "Añade ejes para alinear formas.",
+          "ex": "a[:, None] + b"
+        },
+        {
+          "name": "Copy/view",
+          "sig": "arr.copy()",
+          "desc": "Una slice es una vista; copy es independiente.",
+          "ex": "sub = arr[:2].copy()"
+        }
+      ]
+    },
+    {
+      "id": "python-np-perf",
+      "name": "NumPy II",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "Álgebra lineal, generadores aleatorios, memoria y rendimiento numérico.",
+      "primary": {
+        "sig": "A @ B",
+        "desc": "Producto matricial; @ es matmul, * multiplica elemento a elemento.",
+        "ex": "A @ B"
+      },
+      "items": [
+        {
+          "name": "Matmul",
+          "sig": "A @ B",
+          "desc": "Producto matricial; * multiplica elemento a elemento.",
+          "ex": "A @ B"
+        },
+        {
+          "name": "Dot",
+          "sig": "np.dot(a, b)",
+          "desc": "Producto escalar de vectores.",
+          "ex": "np.dot([1, 2], [3, 4])"
+        },
+        {
+          "name": "Linalg",
+          "sig": "np.linalg.solve(A, b)",
+          "desc": "Resuelve Ax=b sin invertir la matriz.",
+          "ex": "np.linalg.solve(A, b)"
+        },
+        {
+          "name": "Inv",
+          "sig": "np.linalg.inv(A)",
+          "desc": "Inversa explícita; casi siempre es mejor solve.",
+          "ex": "np.linalg.inv(A)"
+        },
+        {
+          "name": "Norm",
+          "sig": "np.linalg.norm(v)",
+          "desc": "Norma L2; ord=1 o np.inf para otras.",
+          "ex": "np.linalg.norm(v, ord=1)"
+        },
+        {
+          "name": "RNG",
+          "sig": "rng = np.random.default_rng(42)",
+          "desc": "Generador moderno y reproducible.",
+          "ex": "rng.normal(size=100)"
+        },
+        {
+          "name": "Save",
+          "sig": "np.savez_compressed(\"data.npz\", a=a)",
+          "desc": "Varios arrays en un archivo comprimido.",
+          "ex": "np.load(\"data.npz\")[\"a\"]"
+        },
+        {
+          "name": "Concat",
+          "sig": "np.concatenate([a, b])",
+          "desc": "Une por un eje existente; stack crea uno nuevo.",
+          "ex": "np.stack([a, b])"
+        },
+        {
+          "name": "Einsum",
+          "sig": "np.einsum(\"ij,jk->ik\", A, B)",
+          "desc": "Contracciones explícitas; potente y legible.",
+          "ex": "np.einsum(\"i,i->\", a, b)"
+        },
+        {
+          "name": "Strides",
+          "sig": "arr.strides",
+          "desc": "Cómo avanza la memoria entre elementos.",
+          "ex": "arr.flags[\"C_CONTIGUOUS\"]"
+        },
+        {
+          "name": "Numba",
+          "sig": "@numba.njit",
+          "desc": "JIT para bucles numéricos; instala numba.",
+          "ex": "@njit\ndef f(x): ..."
+        },
+        {
+          "name": "Vectorizar",
+          "sig": "np.vectorize(f)",
+          "desc": "Cómodo pero lento; úsalo solo si no hay ufunc.",
+          "ex": "np.frompyfunc(f, 1, 1)"
+        }
+      ]
+    },
+    {
+      "id": "python-mpl",
+      "name": "Matplotlib",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "La API Figure/Axes a fondo: tipos de gráfico, ejes, anotaciones y exportación.",
+      "primary": {
+        "sig": "fig, ax = plt.subplots()",
+        "desc": "Figure y Axes: la API orientada a objetos que controla todo.",
+        "ex": "fig, ax = plt.subplots(figsize=(8, 4))"
+      },
+      "items": [
+        {
+          "name": "Subplots",
+          "sig": "fig, ax = plt.subplots(figsize=(8, 4))",
+          "desc": "Figure y Axes; la API orientada a objetos.",
+          "ex": "fig, axes = plt.subplots(2, 2)"
+        },
+        {
+          "name": "Plot",
+          "sig": "ax.plot(x, y, label=\"serie\")",
+          "desc": "Línea; marker, linestyle y color.",
+          "ex": "ax.plot(x, y, \"o--\")"
+        },
+        {
+          "name": "Scatter",
+          "sig": "ax.scatter(x, y, c=z, cmap=\"viridis\")",
+          "desc": "Puntos con color por una tercera variable.",
+          "ex": "ax.scatter(x, y, s=20)"
+        },
+        {
+          "name": "Bar",
+          "sig": "ax.bar(x, height)",
+          "desc": "Barras verticales; barh horizontales.",
+          "ex": "ax.barh(labels, values)"
+        },
+        {
+          "name": "Hist",
+          "sig": "ax.hist(x, bins=30)",
+          "desc": "Distribución; density=True para densidad.",
+          "ex": "ax.hist(x, bins=\"auto\")"
+        },
+        {
+          "name": "Box",
+          "sig": "ax.boxplot([a, b])",
+          "desc": "Cuartiles y outliers; violinplot para forma.",
+          "ex": "ax.violinplot([a, b])"
+        },
+        {
+          "name": "Labels",
+          "sig": "ax.set(xlabel=\"x\", ylabel=\"y\", title=\"T\")",
+          "desc": "Etiquetas y título en una llamada.",
+          "ex": "ax.set_xlabel(\"x\")"
+        },
+        {
+          "name": "Legend",
+          "sig": "ax.legend(loc=\"best\")",
+          "desc": "Necesita label en cada serie.",
+          "ex": "ax.legend(frameon=False)"
+        },
+        {
+          "name": "Ticks",
+          "sig": "ax.tick_params(axis=\"x\", rotation=45)",
+          "desc": "Rota, formatea o limita las marcas.",
+          "ex": "ax.set_xticks(xs)"
+        },
+        {
+          "name": "Annotate",
+          "sig": "ax.annotate(\"pico\", xy=(x, y))",
+          "desc": "Texto y flecha sobre un punto.",
+          "ex": "ax.annotate(text, xy=point)"
+        },
+        {
+          "name": "Layout",
+          "sig": "fig.tight_layout()",
+          "desc": "Evita solapamientos; constrained_layout también.",
+          "ex": "fig.tight_layout()"
+        },
+        {
+          "name": "Save",
+          "sig": "fig.savefig(\"plot.png\", dpi=150, bbox_inches=\"tight\")",
+          "desc": "PNG/PDF/SVG; dpi y bbox importan.",
+          "ex": "fig.savefig(\"plot.pdf\")"
+        }
+      ]
+    },
+    {
+      "id": "python-sns",
+      "name": "Seaborn",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--aqua)",
+      "f": "dpuk",
+      "intro": "Estadística visual con DataFrames: relaciones, categorías, distribuciones y facetas.",
+      "primary": {
+        "sig": "sns.scatterplot(data=df, x=\"x\", y=\"y\", hue=\"grupo\")",
+        "desc": "Dispersión con color por grupo; acepta el DataFrame directamente.",
+        "ex": "sns.scatterplot(data=df, x=\"x\", y=\"y\", hue=\"g\")"
+      },
+      "items": [
+        {
+          "name": "Theme",
+          "sig": "sns.set_theme(style=\"whitegrid\")",
+          "desc": "Estilo global; context para tamaño.",
+          "ex": "sns.set_theme(context=\"talk\")"
+        },
+        {
+          "name": "Relational",
+          "sig": "sns.relplot(data=df, x=\"x\", y=\"y\", hue=\"g\")",
+          "desc": "Figura-level; col y row para facetas.",
+          "ex": "sns.relplot(data=df, x=\"x\", y=\"y\", col=\"g\")"
+        },
+        {
+          "name": "Scatter",
+          "sig": "sns.scatterplot(data=df, x=\"x\", y=\"y\", hue=\"g\")",
+          "desc": "Axes-level; combínalo con tu figure.",
+          "ex": "sns.scatterplot(data=df, x=\"x\", y=\"y\", size=\"n\")"
+        },
+        {
+          "name": "Line",
+          "sig": "sns.lineplot(data=df, x=\"date\", y=\"y\", hue=\"g\")",
+          "desc": "Media e intervalo de confianza por defecto.",
+          "ex": "sns.lineplot(data=df, x=\"date\", y=\"y\", errorbar=None)"
+        },
+        {
+          "name": "Categorical",
+          "sig": "sns.catplot(data=df, x=\"g\", y=\"y\", kind=\"box\")",
+          "desc": "Figure-level; kind box, violin, bar, strip.",
+          "ex": "sns.catplot(data=df, x=\"g\", y=\"y\", kind=\"violin\")"
+        },
+        {
+          "name": "Distribution",
+          "sig": "sns.histplot(data=df, x=\"x\", kde=True)",
+          "desc": "Histograma con densidad; displot para facetas.",
+          "ex": "sns.displot(data=df, x=\"x\", kde=True)"
+        },
+        {
+          "name": "Regression",
+          "sig": "sns.regplot(data=df, x=\"x\", y=\"y\")",
+          "desc": "Dispersión + recta; lmplot para facetas.",
+          "ex": "sns.lmplot(data=df, x=\"x\", y=\"y\", hue=\"g\")"
+        },
+        {
+          "name": "Heatmap",
+          "sig": "sns.heatmap(corr, annot=True, cmap=\"vlag\", center=0)",
+          "desc": "Matriz con color; ideal para correlaciones.",
+          "ex": "sns.heatmap(df.corr(), annot=True)"
+        },
+        {
+          "name": "Pairplot",
+          "sig": "sns.pairplot(df, hue=\"g\")",
+          "desc": "Todas las parejas de variables.",
+          "ex": "sns.pairplot(df, corner=True)"
+        },
+        {
+          "name": "FacetGrid",
+          "sig": "g = sns.FacetGrid(df, col=\"g\")",
+          "desc": "Control manual de una cuadrícula.",
+          "ex": "g.map_dataframe(sns.scatterplot, x=\"x\", y=\"y\")"
+        },
+        {
+          "name": "Palette",
+          "sig": "sns.color_palette(\"viridis\", as_cmap=True)",
+          "desc": "Paletas consistentes; hue_order fija el orden.",
+          "ex": "sns.color_palette(\"deep\")"
+        },
+        {
+          "name": "pandas",
+          "sig": "sns.scatterplot(data=df, x=\"a\", y=\"b\")",
+          "desc": "Acepta DataFrames directamente; no pases Series si puedes.",
+          "ex": "sns.scatterplot(data=df, x=\"a\", y=\"b\", hue=\"c\")"
+        }
+      ]
+    },
+    {
+      "id": "python-scipy",
+      "name": "SciPy",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--red)",
+      "f": "dpuk",
+      "intro": "Tests estadísticos, distribuciones, optimización, interpolación y álgebra dispersa.",
+      "primary": {
+        "sig": "stats.ttest_ind(a, b)",
+        "desc": "Compara las medias de dos muestras; revisa el p-valor y los supuestos.",
+        "ex": "stats.ttest_ind(a, b, equal_var=False)"
+      },
+      "items": [
+        {
+          "name": "Stats",
+          "sig": "from scipy import stats",
+          "desc": "Distribuciones, tests y descriptivos.",
+          "ex": "stats.describe(x)"
+        },
+        {
+          "name": "T-test",
+          "sig": "stats.ttest_ind(a, b, equal_var=False)",
+          "desc": "Welch por defecto si equal_var=False.",
+          "ex": "stats.ttest_ind(a, b)"
+        },
+        {
+          "name": "Normality",
+          "sig": "stats.shapiro(x)",
+          "desc": "H0: la muestra es normal; p < .05 la rechaza.",
+          "ex": "stats.normaltest(x)"
+        },
+        {
+          "name": "Chi2",
+          "sig": "stats.chi2_contingency(table)",
+          "desc": "Independencia en tablas de contingencia.",
+          "ex": "stats.chi2_contingency(pd.crosstab(a, b))"
+        },
+        {
+          "name": "Correlation",
+          "sig": "stats.pearsonr(x, y)",
+          "desc": "Pearson lineal; spearmanr para rangos.",
+          "ex": "stats.spearmanr(x, y)"
+        },
+        {
+          "name": "Distributions",
+          "sig": "stats.norm(loc=0, scale=1)",
+          "desc": "CDF, PDF, PPF y muestras.",
+          "ex": "stats.norm.cdf(1.96)"
+        },
+        {
+          "name": "Optimize",
+          "sig": "optimize.minimize(f, x0)",
+          "desc": "Mínimos con restricciones y bounds.",
+          "ex": "optimize.minimize(f, x0, bounds=b)"
+        },
+        {
+          "name": "Curve fit",
+          "sig": "optimize.curve_fit(model, x, y)",
+          "desc": "Ajusta parámetros de una función.",
+          "ex": "popt, pcov = curve_fit(f, x, y)"
+        },
+        {
+          "name": "Integrate",
+          "sig": "integrate.quad(f, 0, 1)",
+          "desc": "Integral definida con error estimado.",
+          "ex": "integrate.quad(f, 0, 1)"
+        },
+        {
+          "name": "Interpolate",
+          "sig": "interp1d(x, y)",
+          "desc": "Interpolación 1D; cubic para suave.",
+          "ex": "interp1d(x, y, kind=\"cubic\")"
+        },
+        {
+          "name": "Sparse",
+          "sig": "sparse.csr_matrix(A)",
+          "desc": "Matrices dispersas para datos con muchos ceros.",
+          "ex": "sparse.eye(3, format=\"csr\")"
+        },
+        {
+          "name": "Signal",
+          "sig": "signal.find_peaks(y)",
+          "desc": "Picos, filtros y convolución.",
+          "ex": "signal.find_peaks(y, distance=5)"
+        }
+      ]
+    },
+    {
+      "id": "python-statsmodels",
+      "name": "statsmodels",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "Regresión, GLM, diagnósticos y series temporales con tablas estadísticas completas.",
+      "primary": {
+        "sig": "smf.ols(\"y ~ x + g\", data=df).fit()",
+        "desc": "OLS con fórmula: coeficientes, errores, p-valores y R² en un resumen.",
+        "ex": "res = smf.ols(\"y ~ x\", data=df).fit()"
+      },
+      "items": [
+        {
+          "name": "OLS",
+          "sig": "smf.ols(\"y ~ x\", data=df).fit()",
+          "desc": "Regresión lineal con fórmula.",
+          "ex": "res = smf.ols(\"y ~ x\", data=df).fit()"
+        },
+        {
+          "name": "Summary",
+          "sig": "res.summary()",
+          "desc": "Coeficientes, errores, p-valores, R².",
+          "ex": "print(res.summary())"
+        },
+        {
+          "name": "Predict",
+          "sig": "res.predict(df_new)",
+          "desc": "Predicciones para nuevas filas.",
+          "ex": "res.predict({\"x\": [1, 2]})"
+        },
+        {
+          "name": "Categorical",
+          "sig": "smf.ols(\"y ~ C(g)\", data=df)",
+          "desc": "C() trata una columna como categórica.",
+          "ex": "smf.ols(\"y ~ C(g, Treatment('a'))\", data=df)"
+        },
+        {
+          "name": "Interactions",
+          "sig": "\"y ~ x * g\"",
+          "desc": "x*g incluye x, g y la interacción.",
+          "ex": "smf.ols(\"y ~ x * g\", data=df)"
+        },
+        {
+          "name": "Logit",
+          "sig": "smf.logit(\"y ~ x\", data=df).fit()",
+          "desc": "Regresión logística; disp() version.",
+          "ex": "smf.logit(\"y ~ x\", data=df).fit().params"
+        },
+        {
+          "name": "GLM",
+          "sig": "smf.glm(\"y ~ x\", data=df, family=sm.families.Poisson()).fit()",
+          "desc": "Familias para conteos, binaria, etc.",
+          "ex": "smf.glm(...).fit()"
+        },
+        {
+          "name": "Robust",
+          "sig": "model.fit(cov_type=\"HC3\")",
+          "desc": "Errores estándar robustos a heterocedasticidad.",
+          "ex": "fit(cov_type=\"HC3\")"
+        },
+        {
+          "name": "Diagnostics",
+          "sig": "sm.stats.durbin_watson(res.resid)",
+          "desc": "Autocorrelación; QQPlot para normalidad.",
+          "ex": "sm.qqplot(res.resid)"
+        },
+        {
+          "name": "ANOVA",
+          "sig": "sm.stats.anova_lm(res, typ=2)",
+          "desc": "Tabla de análisis de varianza.",
+          "ex": "anova_lm(res)"
+        },
+        {
+          "name": "Time series",
+          "sig": "ARIMA(y, order=(1, 1, 0)).fit()",
+          "desc": "ARIMA; summary y forecast.",
+          "ex": "res.forecast(10)"
+        },
+        {
+          "name": "Formula",
+          "sig": "smf.ols(\"np.log(y) ~ x\", data=df)",
+          "desc": "Transformaciones dentro de la fórmula.",
+          "ex": "smf.ols(\"y ~ x + I(x**2)\", data=df)"
+        }
+      ]
+    },
+    {
+      "id": "python-sklearn",
+      "name": "scikit-learn",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "Pipelines, preprocesado, modelos, validación cruzada y métricas sin fuga de datos.",
+      "primary": {
+        "sig": "Pipeline([(\"scaler\", StandardScaler()), (\"clf\", LogisticRegression())])",
+        "desc": "Encadena transformaciones y modelo; ajusta solo con train.",
+        "ex": "pipe.fit(X_train, y_train)"
+      },
+      "items": [
+        {
+          "name": "Split",
+          "sig": "train_test_split(X, y, test_size=0.2, stratify=y)",
+          "desc": "Divide antes de cualquier preprocesado.",
+          "ex": "X_train, X_test, y_train, y_test = ..."
+        },
+        {
+          "name": "Pipeline",
+          "sig": "Pipeline([(\"scaler\", StandardScaler()), (\"clf\", LogisticRegression())])",
+          "desc": "Encadena transformaciones y modelo; evita fuga.",
+          "ex": "pipe.fit(X_train, y_train)"
+        },
+        {
+          "name": "Preprocess",
+          "sig": "ColumnTransformer([...])",
+          "desc": "Distintas transformaciones por columna.",
+          "ex": "ColumnTransformer([(\"num\", StandardScaler(), num_cols)])"
+        },
+        {
+          "name": "Impute",
+          "sig": "SimpleImputer(strategy=\"median\")",
+          "desc": "Rellena nulos dentro del pipeline.",
+          "ex": "SimpleImputer(strategy=\"most_frequent\")"
+        },
+        {
+          "name": "Encode",
+          "sig": "OneHotEncoder(handle_unknown=\"ignore\")",
+          "desc": "Categóricas a columnas binarias.",
+          "ex": "OrdinalEncoder()"
+        },
+        {
+          "name": "Scale",
+          "sig": "StandardScaler()",
+          "desc": "Media 0, desviación 1; ajusta solo con train.",
+          "ex": "MinMaxScaler()"
+        },
+        {
+          "name": "Models",
+          "sig": "LogisticRegression(max_iter=1000)",
+          "desc": "Lineales, árboles, ensembles; empieza simple.",
+          "ex": "RandomForestClassifier(n_estimators=200)"
+        },
+        {
+          "name": "CV",
+          "sig": "cross_val_score(pipe, X, y, cv=5, scoring=\"roc_auc\")",
+          "desc": "Validación cruzada; no toques test.",
+          "ex": "cross_validate(...)"
+        },
+        {
+          "name": "Metrics",
+          "sig": "classification_report(y_test, y_pred)",
+          "desc": "Precision, recall, F1; roc_auc_score.",
+          "ex": "confusion_matrix(y_test, y_pred)"
+        },
+        {
+          "name": "Tune",
+          "sig": "GridSearchCV(pipe, params, cv=5)",
+          "desc": "Búsqueda de hiperparámetros con CV.",
+          "ex": "RandomizedSearchCV(...)"
+        },
+        {
+          "name": "Importance",
+          "sig": "permutation_importance(model, X_test, y_test)",
+          "desc": "Más fiable que feature_importances_.",
+          "ex": "permutation_importance(...)"
+        },
+        {
+          "name": "Save",
+          "sig": "joblib.dump(pipe, \"model.joblib\")",
+          "desc": "Guarda el pipeline completo, no solo el modelo.",
+          "ex": "joblib.load(\"model.joblib\")"
+        }
+      ]
+    },
+    {
+      "id": "python-arrow-sql",
+      "name": "Arrow y SQL",
+      "lang": "python",
+      "set": "data",
+      "label": "Data sheet",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "Parquet, Arrow, SQL y bases de datos: el almacenamiento serio para datos grandes.",
+      "primary": {
+        "sig": "pd.read_parquet(path, columns=[\"a\", \"b\"])",
+        "desc": "Lee solo las columnas necesarias; Parquet es columnar y tipado.",
+        "ex": "pd.read_parquet(\"data.parquet\")"
+      },
+      "items": [
+        {
+          "name": "Arrow",
+          "sig": "pa.Table.from_pandas(df)",
+          "desc": "Tabla columnar; comparte memoria con pandas.",
+          "ex": "table.to_pandas()"
+        },
+        {
+          "name": "Parquet",
+          "sig": "df.to_parquet(\"data.parquet\")",
+          "desc": "Columnar, tipado, comprimido; pyarrow.",
+          "ex": "pd.read_parquet(\"data.parquet\")"
+        },
+        {
+          "name": "Columns",
+          "sig": "pd.read_parquet(path, columns=[\"a\", \"b\"])",
+          "desc": "Lee solo las columnas necesarias.",
+          "ex": "columns=[\"id\", \"sales\"]"
+        },
+        {
+          "name": "Partition",
+          "sig": "df.to_parquet(\"data/\", partition_cols=[\"year\"])",
+          "desc": "Carpetas por partición; filtros baratos.",
+          "ex": "pd.read_parquet(\"data/\", filters=[(\"year\", \"=\", 2026)])"
+        },
+        {
+          "name": "Dataset",
+          "sig": "ds.dataset(\"data/\", format=\"parquet\")",
+          "desc": "Scan perezoso para datasets grandes.",
+          "ex": "ds.dataset(path).to_table(filter=...)"
+        },
+        {
+          "name": "pandas↔Arrow",
+          "sig": "pa.Table.from_pandas(df)",
+          "desc": "Intercambio sin copiar cuando el layout coincide.",
+          "ex": "table.to_pandas()"
+        },
+        {
+          "name": "Engine",
+          "sig": "create_engine(\"sqlite:///data.db\")",
+          "desc": "SQLAlchemy; Postgres, SQLite, MySQL.",
+          "ex": "pd.read_sql(\"SELECT * FROM t\", engine)"
+        },
+        {
+          "name": "To SQL",
+          "sig": "df.to_sql(\"t\", engine, if_exists=\"replace\", index=False)",
+          "desc": "Crea o reemplaza la tabla.",
+          "ex": "df.to_sql(\"t\", engine, if_exists=\"append\")"
+        },
+        {
+          "name": "Query",
+          "sig": "pd.read_sql_query(\"SELECT ... WHERE x > :x\", engine, params={\"x\": 0})",
+          "desc": "Parámetros evitan inyección.",
+          "ex": "params={\"x\": 10}"
+        },
+        {
+          "name": "SQLite",
+          "sig": "sqlite3.connect(\"data.db\")",
+          "desc": "La librería estándar; suficiente para empezar.",
+          "ex": "pd.read_sql(\"SELECT * FROM t\", con)"
+        },
+        {
+          "name": "HDF5",
+          "sig": "df.to_hdf(\"data.h5\", key=\"df\")",
+          "desc": "PyTables; rápido para arrays grandes.",
+          "ex": "pd.read_hdf(\"data.h5\", \"df\")"
+        },
+        {
+          "name": "Schema",
+          "sig": "table.schema",
+          "desc": "Tipos Arrow; revisa antes de escribir.",
+          "ex": "pa.Schema.from_pandas(df)"
+        }
+      ]
     }
   ],
 

@@ -459,7 +459,7 @@
     var cw = (W - 2 * p - (cols - 1) * gap) / cols, ch = (gh - (rows - 1) * gap) / rows;
     var heroW = W - 2 * p, primW = heroW * (wide ? 0.345 : 0.55), introW = heroW - primW - u * 4;
     var sheetKind = s.label || (s.id === (s.lang || "go") ? "General sheet" : "Focused sheet");
-    var series = s.set === "starter" ? (s.lang || "go") + " starter" : (s.lang || "go");
+    var series = s.set ? (s.lang || "go") + " " + s.set : (s.lang || "go");
     var h = field(g, { op: 0.09, dp: u * 2.1, mask: "linear-gradient(115deg,#000 0,transparent 64%)" });
     /* top: the mark on the left, what this is on the right */
     h += '<div class="b-cs-top" style="left:' + px(p) + ";top:" + px(p) + ";width:" + px(heroW) + ";height:" + px(topH) + '">' +
