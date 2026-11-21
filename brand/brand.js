@@ -386,6 +386,23 @@
     });
   }
 
+  /* Python cheat sheets: keywords, builtins, strings, numbers and the module before a dot */
+  var PYKW = /^(def|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|import|from|as|class|try|except|finally|with|lambda|yield|raise|pass|break|continue|global|nonlocal|assert|async|await|del|match|case|self|cls)$/;
+  var PYTYPE = /^(int|str|float|bool|list|dict|tuple|set|bytes|Any|DataFrame|Series|ndarray|Path|Protocol|TypedDict|Literal|TypeVar|Optional|Self)$/;
+  function hlPy(code) {
+    var re = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|"""[\s\S]*?"""|'''[\s\S]*?''')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)(?=\s*\.)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)|([\s\S])/gm;
+    return String(code).replace(re, function (m, c, str, num, pkg, call, id, other) {
+      if (c) return '<span class="b-cs-cm">' + esc(c) + "</span>";
+      if (str) return '<span class="b-cs-str">' + esc(str) + "</span>";
+      if (num) return '<span class="b-cs-num">' + num + "</span>";
+      if (pkg) return '<span class="b-cs-pkg">' + pkg + "</span>";
+      if (call) return '<span class="b-cs-' + (PYKW.test(call) ? "kw" : "fn") + '">' + call + "</span>";
+      if (id) { var k = PYKW.test(id) ? "kw" : (PYTYPE.test(id) || /^[A-Z]/.test(id) ? "pkg" : ""); return k ? '<span class="b-cs-' + k + '">' + id + "</span>" : id; }
+      return esc(other);
+    });
+  }
+  function hlSheet(s, code) { return (s.lang === "python" ? hlPy : hlGo)(code); }
+
   /* one programming language: its name, a snippet in the editor's colors, and what Leader brings for it */
   DS.wpLang = function (s, g) {
     var u = g.u, p = g.p, W = g.W, H = g.H, wide = W / H > 1.3, h = brandRow(g, C.handle), top = p + u * 9;
@@ -441,23 +458,24 @@
     var gy = p + topH + topGap + heroH + heroGap, gh = H - p - gy, gap = u * 1.1;
     var cw = (W - 2 * p - (cols - 1) * gap) / cols, ch = (gh - (rows - 1) * gap) / rows;
     var heroW = W - 2 * p, primW = heroW * (wide ? 0.345 : 0.55), introW = heroW - primW - u * 4;
+    var sheetKind = s.id === (s.lang || "go") ? "General sheet" : "Focused sheet";
     var h = field(g, { op: 0.09, dp: u * 2.1, mask: "linear-gradient(115deg,#000 0,transparent 64%)" });
     /* top: the mark on the left, what this is on the right */
     h += '<div class="b-cs-top" style="left:' + px(p) + ";top:" + px(p) + ";width:" + px(heroW) + ";height:" + px(topH) + '">' +
       '<div class="b-cs-brand" style="gap:' + px(u * 1.05) + '">' + mark("currentColor", topH) + '<b style="font-size:' + px(u * 1.75) + '">Leader</b></div>' +
       '<div class="b-cs-meta"><div class="a" style="font-size:' + px(u * 1.12) + '">' + esc(s.name) + " cheatsheet</div>" +
-      '<div class="b" style="font-size:' + px(u) + ";margin-top:" + px(u * 0.35) + '">go · ' + String(s.no).padStart(2, "0") + " / 13 · " + s.items.length + " entries</div></div></div>";
+      '<div class="b" style="font-size:' + px(u) + ";margin-top:" + px(u * 0.35) + '">' + esc(s.lang || "go") + " · " + String(s.no).padStart(2, "0") + " / " + (s.total || 13) + " · " + s.items.length + " entries</div></div></div>";
     /* hero: the theme, then the one call to know */
     h += '<div class="b-cs-hero" style="left:' + px(p) + ";top:" + px(p + topH + topGap) + ";width:" + px(heroW) + ";height:" + px(heroH) + '">' +
-      '<div class="b-cs-intro"><div class="b-cs-eb" style="font-size:' + px(u * 1.05) + '">Focused sheet</div>' +
+      '<div class="b-cs-intro"><div class="b-cs-eb" style="font-size:' + px(u * 1.05) + '">' + esc(sheetKind) + '</div>' +
       '<div class="b-cs-title" style="font-size:' + px(u * (wide ? 7.8 : 6.2)) + ";margin:" + px(u * 0.4) + " 0 " + px(u * 0.55) + '">' + esc(s.name) + "</div>" +
       '<p style="font-size:' + px(u * 1.4) + ";max-width:" + px(introW) + '">' + esc(s.intro) + "</p></div>" +
       '<div class="b-cs-primary" style="width:' + px(primW) + ";padding:" + px(u * 1.3) + " " + px(u * 1.8) + '">' +
       '<div class="b-cs-bar" style="width:' + px(u * 0.42) + ";background:" + s.ac + '"></div>' +
       '<div class="b-cs-eb" style="font-size:' + px(u * 1.05) + ";color:" + s.ac + '">The one to know</div>' +
-      '<div class="b-cs-psig" style="font-size:' + px(u * 1.8) + ";margin-top:" + px(u * 0.55) + '">' + hlGo(s.primary.sig) + "</div>" +
-      '<div class="b-cs-pdesc" style="font-size:' + px(u * 1.18) + ";margin-top:" + px(u * 0.5) + '">' + hlGo(s.primary.desc) + "</div>" +
-      '<div class="b-cs-ex" style="font-size:' + px(u * 1.18) + ";margin-top:" + px(u * 0.7) + ";padding:" + px(u * 0.7) + " " + px(u) + '">' + hlGo(s.primary.ex) + "</div></div></div>";
+      '<div class="b-cs-psig" style="font-size:' + px(u * 1.8) + ";margin-top:" + px(u * 0.55) + '">' + hlSheet(s, s.primary.sig) + "</div>" +
+      '<div class="b-cs-pdesc" style="font-size:' + px(u * 1.18) + ";margin-top:" + px(u * 0.5) + '">' + hlSheet(s, s.primary.desc) + "</div>" +
+      '<div class="b-cs-ex" style="font-size:' + px(u * 1.18) + ";margin-top:" + px(u * 0.7) + ";padding:" + px(u * 0.7) + " " + px(u) + '">' + hlSheet(s, s.primary.ex) + "</div></div></div>";
     /* the 12 entries */
     h += '<div class="b-cs-grid" style="left:' + px(p) + ";top:" + px(gy) + ";width:" + px(heroW) + ";height:" + px(gh) +
       ";grid-template-columns:repeat(" + cols + ",1fr);grid-template-rows:repeat(" + rows + ",1fr);gap:" + px(gap) + '">';
@@ -466,9 +484,9 @@
         '<div class="b-cs-hd"><span class="b-cs-idx" style="font-size:' + px(u) + '">' + String(j + 1).padStart(2, "0") + "</span>" +
         '<span class="b-cs-name" style="font-size:' + px(u * 1.12) + '">' + esc(it.name) + "</span></div>" +
         '<div class="b-cs-rule" style="margin:' + px(u * 0.7) + ' 0"></div>' +
-        '<div class="b-cs-sig" style="font-size:' + px(u * (wide ? 1.6 : 1.5)) + '">' + hlGo(it.sig) + "</div>" +
-        '<div class="b-cs-desc" style="font-size:' + px(u * 1.15) + ";margin-top:" + px(u * 0.55) + '">' + hlGo(it.desc) + "</div>" +
-        '<div class="b-cs-ex" style="font-size:' + px(u * 1.1) + ";margin-top:auto;padding:" + px(u * 0.75) + " " + px(u) + '">' + hlGo(it.ex) + "</div></div>";
+        '<div class="b-cs-sig" style="font-size:' + px(u * (wide ? 1.6 : 1.5)) + '">' + hlSheet(s, it.sig) + "</div>" +
+        '<div class="b-cs-desc" style="font-size:' + px(u * 1.15) + ";margin-top:" + px(u * 0.55) + '">' + hlSheet(s, it.desc) + "</div>" +
+        '<div class="b-cs-ex" style="font-size:' + px(u * 1.1) + ";margin-top:auto;padding:" + px(u * 0.75) + " " + px(u) + '">' + hlSheet(s, it.ex) + "</div></div>";
     });
     return h + "</div>";
   };
@@ -579,10 +597,12 @@
 
   /* wallpapers with words: each family has its own design and data in copy.js */
   function wpAdd(list, design, kind, numbered) {
-    list.forEach(function (w, wi) {
+    var langOf = function (x) { return x.lang || "go"; };
+    list.forEach(function (w) {
+      var group = numbered ? list.filter(function (x) { return langOf(x) === langOf(w); }) : [];
+      var spec = numbered ? Object.assign({ no: group.indexOf(w) + 1, total: group.length }, w) : w;
       w.f.split("").forEach(function (k) {
         var F = C.wallpaperFormats[k];
-        var spec = numbered ? Object.assign({ no: wi + 1 }, w) : w;
         add({ dir: F.dir, name: kind + "-" + w.id, w: F.w, h: F.h, use: F.use, draw: function () {
           var g = geo(F.w, F.h), inner = DS[design](spec, g);
           return '<div class="b-cv b-s-' + (w.bg || "deep") + '"' + (w.theme ? ' data-theme="' + w.theme + '"' : "") + ' style="width:' + F.w + "px;height:" + F.h + "px;--u:" + px(g.u) + (w.pal ? ";" + palStyle(w.pal) : "") + '">' + inner + "</div>";

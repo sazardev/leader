@@ -1382,6 +1382,1137 @@ var COPY = {
           ex: "defer func(){ err = wrap(err) }()"
         }
       ]
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "lang": "python",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "Twelve corners of the language, one line of code each — the whole sheet at a glance.",
+      "primary": {
+        "sig": "print(\"Hello, Leader\")",
+        "desc": "Start here: the smallest Python program prints something and moves on.",
+        "ex": "print(\"Hello, Leader\")"
+      },
+      "items": [
+        {
+          "name": "Syntax",
+          "sig": "def greet(name: str) -> str:",
+          "desc": "Indentation defines the block; four spaces, no braces.",
+          "ex": "return f\"Hello, {name}\""
+        },
+        {
+          "name": "Types",
+          "sig": "x: int = 42",
+          "desc": "Annotations document the value and let basedpyright check it.",
+          "ex": "name: str = \"Leader\""
+        },
+        {
+          "name": "Strings",
+          "sig": "f\"{name=}\"",
+          "desc": "An f-string interpolates; the = suffix prints the expression too.",
+          "ex": "f\"{name=}\""
+        },
+        {
+          "name": "Lists",
+          "sig": "[x * 2 for x in xs]",
+          "desc": "A comprehension builds a list in one readable line.",
+          "ex": "[x * 2 for x in range(3)]"
+        },
+        {
+          "name": "Dicts",
+          "sig": "d.get(key, default)",
+          "desc": "Read a key without raising KeyError when it is absent.",
+          "ex": "d.get(\"missing\", 0)"
+        },
+        {
+          "name": "Sets",
+          "sig": "{1, 2} | {2, 3}",
+          "desc": "Set union removes duplicates; membership is O(1).",
+          "ex": "{1, 2} | {2, 3}"
+        },
+        {
+          "name": "Loops",
+          "sig": "for i, x in enumerate(xs):",
+          "desc": "Index and value together, no manual counter.",
+          "ex": "for i, x in enumerate(xs):"
+        },
+        {
+          "name": "Functions",
+          "sig": "def f(x: int = 0) -> int:",
+          "desc": "Default values, annotations and a return type in one line.",
+          "ex": "def f(x: int = 0) -> int: return x"
+        },
+        {
+          "name": "Classes",
+          "sig": "@dataclass",
+          "desc": "Generates __init__, __repr__ and equality from the fields.",
+          "ex": "@dataclass\nclass User:\n    name: str"
+        },
+        {
+          "name": "Errors",
+          "sig": "except ValueError as e:",
+          "desc": "Catch the specific error; keep the traceback with raise.",
+          "ex": "except ValueError as e:"
+        },
+        {
+          "name": "Files",
+          "sig": "Path(\"data.txt\").read_text()",
+          "desc": "Read a whole file with pathlib, no manual close.",
+          "ex": "Path(\"data.txt\").read_text()"
+        },
+        {
+          "name": "Modules",
+          "sig": "if __name__ == \"__main__\":",
+          "desc": "Run main only when the file is executed, not when imported.",
+          "ex": "if __name__ == \"__main__\":\n    main()"
+        }
+      ]
+    },
+    {
+      "id": "python-data",
+      "name": "Data",
+      "lang": "python",
+      "ac": "var(--aqua)",
+      "f": "dpuk",
+      "intro": "The pandas moves you use every day: read, filter, group, join and write the result back.",
+      "primary": {
+        "sig": "df.groupby(\"city\")[\"sales\"].sum()",
+        "desc": "Split, aggregate and combine — the core pandas move.",
+        "ex": "df.groupby(\"city\")[\"sales\"].sum()"
+      },
+      "items": [
+        {
+          "name": "Read",
+          "sig": "pd.read_csv(\"data.csv\")",
+          "desc": "Read a CSV into a DataFrame; dtype and parse_dates are your friends.",
+          "ex": "pd.read_csv(\"data.csv\")"
+        },
+        {
+          "name": "Select",
+          "sig": "df[[\"city\", \"sales\"]]",
+          "desc": "Select columns; double brackets keep a DataFrame.",
+          "ex": "df[[\"city\", \"sales\"]]"
+        },
+        {
+          "name": "Filter",
+          "sig": "df[df.sales > 100]",
+          "desc": "Boolean mask: keep the rows where the condition is true.",
+          "ex": "df[df.sales > 100]"
+        },
+        {
+          "name": "Assign",
+          "sig": "df.assign(total=df.qty * df.price)",
+          "desc": "Add or replace columns without mutating the original.",
+          "ex": "df.assign(total=df.qty * df.price)"
+        },
+        {
+          "name": "Sort",
+          "sig": "df.sort_values(\"sales\", ascending=False)",
+          "desc": "Order rows by one or more columns.",
+          "ex": "df.sort_values(\"sales\", ascending=False)"
+        },
+        {
+          "name": "Group",
+          "sig": "df.groupby(\"city\")[\"sales\"].sum()",
+          "desc": "Split by key, aggregate and combine the result.",
+          "ex": "df.groupby(\"city\")[\"sales\"].sum()"
+        },
+        {
+          "name": "Agg",
+          "sig": "df.groupby(\"city\").agg(mean=\"sales\")",
+          "desc": "Named aggregation: one column per output, named by you.",
+          "ex": "df.groupby(\"city\").agg(mean=(\"sales\", \"mean\"))"
+        },
+        {
+          "name": "Merge",
+          "sig": "df.merge(other, on=\"id\", how=\"left\")",
+          "desc": "Join two DataFrames; left keeps every row of df.",
+          "ex": "df.merge(other, on=\"id\", how=\"left\")"
+        },
+        {
+          "name": "Pivot",
+          "sig": "df.pivot_table(index=\"city\", values=\"sales\")",
+          "desc": "Rows to columns with an aggregation; the spreadsheet pivot.",
+          "ex": "df.pivot_table(index=\"city\", values=\"sales\", aggfunc=\"sum\")"
+        },
+        {
+          "name": "Dates",
+          "sig": "pd.to_datetime(df[\"date\"])",
+          "desc": "Parse strings into datetime64 so resampling and .dt work.",
+          "ex": "pd.to_datetime(df[\"date\"])"
+        },
+        {
+          "name": "Parquet",
+          "sig": "df.to_parquet(\"data.parquet\")",
+          "desc": "Typed, compressed and faster than CSV; needs pyarrow.",
+          "ex": "df.to_parquet(\"data.parquet\")"
+        },
+        {
+          "name": "Plot",
+          "sig": "df.plot.bar(x=\"city\", y=\"sales\")",
+          "desc": "Quick plot from a DataFrame; returns a matplotlib Axes.",
+          "ex": "df.plot.bar(x=\"city\", y=\"sales\")"
+        }
+      ]
+    },
+    {
+      "id": "python-numpy",
+      "name": "NumPy",
+      "lang": "python",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "Arrays, shapes and vectorized math — the layer pandas and scikit-learn are built on.",
+      "primary": {
+        "sig": "arr = np.array([1, 2, 3])",
+        "desc": "The ndarray: one dtype, contiguous memory, vectorized math.",
+        "ex": "arr = np.array([1, 2, 3])"
+      },
+      "items": [
+        {
+          "name": "Array",
+          "sig": "np.array([1, 2, 3])",
+          "desc": "Build an ndarray from any sequence.",
+          "ex": "np.array([1, 2, 3])"
+        },
+        {
+          "name": "Arange",
+          "sig": "np.arange(0, 10, 2)",
+          "desc": "Evenly spaced values in a half-open range.",
+          "ex": "np.arange(0, 10, 2)"
+        },
+        {
+          "name": "Linspace",
+          "sig": "np.linspace(0, 1, 5)",
+          "desc": "A fixed number of points, endpoints included.",
+          "ex": "np.linspace(0, 1, 5)"
+        },
+        {
+          "name": "Reshape",
+          "sig": "arr.reshape(2, 3)",
+          "desc": "Change the shape without copying when the layout allows it.",
+          "ex": "arr.reshape(2, 3)"
+        },
+        {
+          "name": "Slicing",
+          "sig": "arr[1:4]",
+          "desc": "Views, not copies: slice assignment changes the original.",
+          "ex": "arr[1:4]"
+        },
+        {
+          "name": "Mask",
+          "sig": "arr[arr > 0]",
+          "desc": "Boolean indexing keeps the values where the mask is true.",
+          "ex": "arr[arr > 0]"
+        },
+        {
+          "name": "Where",
+          "sig": "np.where(cond, a, b)",
+          "desc": "Vectorized if/else: choose element by element.",
+          "ex": "np.where(arr > 0, arr, 0)"
+        },
+        {
+          "name": "Concat",
+          "sig": "np.concatenate([a, b])",
+          "desc": "Join arrays along an existing axis; np.stack adds one.",
+          "ex": "np.concatenate([a, b])"
+        },
+        {
+          "name": "Broadcast",
+          "sig": "a[:, None] + b[None, :]",
+          "desc": "Shapes align from the right; add axes to broadcast.",
+          "ex": "a[:, None] + b[None, :]"
+        },
+        {
+          "name": "Stats",
+          "sig": "arr.mean(axis=0)",
+          "desc": "Reduce along an axis; axis=0 goes down the rows.",
+          "ex": "arr.mean(axis=0)"
+        },
+        {
+          "name": "RNG",
+          "sig": "rng = np.random.default_rng(42)",
+          "desc": "The modern generator: reproducible, no global state.",
+          "ex": "rng.normal(size=100)"
+        },
+        {
+          "name": "Save",
+          "sig": "np.savez(\"data.npz\", arr=arr)",
+          "desc": "Store several arrays in one compressed file.",
+          "ex": "np.savez(\"data.npz\", arr=arr)"
+        }
+      ]
+    },
+    {
+      "id": "python-plotting",
+      "name": "Plotting",
+      "lang": "python",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "The object-oriented matplotlib API, plus the seaborn shortcut for DataFrames.",
+      "primary": {
+        "sig": "fig, ax = plt.subplots()",
+        "desc": "The object-oriented API: draw on ax, then save fig.",
+        "ex": "fig, ax = plt.subplots()"
+      },
+      "items": [
+        {
+          "name": "Subplots",
+          "sig": "fig, ax = plt.subplots(figsize=(8, 4))",
+          "desc": "One figure and one Axes; the basis of every plot.",
+          "ex": "fig, ax = plt.subplots()"
+        },
+        {
+          "name": "Plot",
+          "sig": "ax.plot(x, y, marker=\"o\")",
+          "desc": "Line plot; markers make individual points visible.",
+          "ex": "ax.plot(x, y, marker=\"o\")"
+        },
+        {
+          "name": "Scatter",
+          "sig": "ax.scatter(x, y, c=colors)",
+          "desc": "Two numeric variables, one point per observation.",
+          "ex": "ax.scatter(x, y)"
+        },
+        {
+          "name": "Bar",
+          "sig": "ax.bar(labels, values)",
+          "desc": "Compare categories; horizontal is ax.barh.",
+          "ex": "ax.bar(labels, values)"
+        },
+        {
+          "name": "Hist",
+          "sig": "ax.hist(values, bins=30)",
+          "desc": "The distribution of one numeric variable.",
+          "ex": "ax.hist(values, bins=30)"
+        },
+        {
+          "name": "Labels",
+          "sig": "ax.set(xlabel=\"x\", ylabel=\"y\", title=\"Plot\")",
+          "desc": "Label the axes and title in one call.",
+          "ex": "ax.set(xlabel=\"x\", title=\"Plot\")"
+        },
+        {
+          "name": "Legend",
+          "sig": "ax.legend(loc=\"best\")",
+          "desc": "Show the label of each plotted series.",
+          "ex": "ax.legend()"
+        },
+        {
+          "name": "Limits",
+          "sig": "ax.set_xlim(0, 10)",
+          "desc": "Zoom or pad an axis; set_ylim for the other.",
+          "ex": "ax.set_xlim(0, 10)"
+        },
+        {
+          "name": "Layout",
+          "sig": "fig.tight_layout()",
+          "desc": "Stop labels from colliding before you save.",
+          "ex": "fig.tight_layout()"
+        },
+        {
+          "name": "Save",
+          "sig": "fig.savefig(\"plot.png\", dpi=150)",
+          "desc": "Write PNG, PDF or SVG; dpi matters for raster.",
+          "ex": "fig.savefig(\"plot.png\", dpi=150)"
+        },
+        {
+          "name": "Style",
+          "sig": "plt.style.use(\"ggplot\")",
+          "desc": "A quick global look; seaborn has its own themes.",
+          "ex": "plt.style.use(\"ggplot\")"
+        },
+        {
+          "name": "Seaborn",
+          "sig": "sns.scatterplot(data=df, x=\"x\", y=\"y\")",
+          "desc": "DataFrame-aware plotting with sensible defaults.",
+          "ex": "sns.scatterplot(data=df, x=\"x\", y=\"y\")"
+        }
+      ]
+    },
+    {
+      "id": "python-jupyter",
+      "name": "Jupyter",
+      "lang": "python",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "Lab, kernels, magics and the shortcuts that turn a notebook into a workbench.",
+      "primary": {
+        "sig": "uv run jupyter lab",
+        "desc": "Launch JupyterLab inside the project's uv environment.",
+        "ex": "uv run jupyter lab"
+      },
+      "items": [
+        {
+          "name": "Launch",
+          "sig": "uv run jupyter lab",
+          "desc": "Run it from the project root so the kernel sees .venv.",
+          "ex": "uv run jupyter lab"
+        },
+        {
+          "name": "Kernel",
+          "sig": "Python 3.14 (pydata-book)",
+          "desc": "Select the project kernel; it carries pandas and NumPy.",
+          "ex": "Kernel → Change kernel"
+        },
+        {
+          "name": "Run",
+          "sig": "%run script.py",
+          "desc": "Execute a Python file in the notebook namespace.",
+          "ex": "%run script.py"
+        },
+        {
+          "name": "Time",
+          "sig": "%timeit sum(range(1000))",
+          "desc": "Measure a statement; %%timeit measures a whole cell.",
+          "ex": "%timeit sum(range(1000))"
+        },
+        {
+          "name": "Shell",
+          "sig": "!uv add seaborn",
+          "desc": "Run a shell command; prefix with ! in a cell.",
+          "ex": "!uv add seaborn"
+        },
+        {
+          "name": "Help",
+          "sig": "pd.DataFrame?",
+          "desc": "Show the docstring; ?? shows the source when available.",
+          "ex": "pd.DataFrame?"
+        },
+        {
+          "name": "Plots",
+          "sig": "%matplotlib inline",
+          "desc": "Render matplotlib figures inside the notebook.",
+          "ex": "%matplotlib inline"
+        },
+        {
+          "name": "Display",
+          "sig": "display(df.head())",
+          "desc": "Render a rich object; the last expression also displays.",
+          "ex": "display(df.head())"
+        },
+        {
+          "name": "Export",
+          "sig": "jupyter nbconvert --to html nb.ipynb",
+          "desc": "Run and export a notebook to HTML or PDF.",
+          "ex": "jupyter nbconvert --to html nb.ipynb"
+        },
+        {
+          "name": "Widgets",
+          "sig": "interact(f, x=(0, 10))",
+          "desc": "Sliders and controls for interactive exploration.",
+          "ex": "interact(f, x=(0, 10))"
+        },
+        {
+          "name": "Restart",
+          "sig": "Kernel → Restart & Run All",
+          "desc": "A clean state: imports, variables and outputs rebuilt.",
+          "ex": "Restart & Run All"
+        },
+        {
+          "name": "Install",
+          "sig": "uv add jupyterlab ipykernel",
+          "desc": "Notebook tooling belongs to the project, not the global Python.",
+          "ex": "uv add jupyterlab ipykernel"
+        }
+      ]
+    },
+    {
+      "id": "python-types",
+      "name": "Types",
+      "lang": "python",
+      "ac": "var(--red)",
+      "f": "dpuk",
+      "intro": "Annotations that pay for themselves: basedpyright turns them into navigation and errors.",
+      "primary": {
+        "sig": "def greet(name: str) -> str:",
+        "desc": "Annotate the input and the output; basedpyright checks both.",
+        "ex": "def greet(name: str) -> str:"
+      },
+      "items": [
+        {
+          "name": "Annotate",
+          "sig": "x: int = 42",
+          "desc": "A variable annotation documents intent and catches mistakes.",
+          "ex": "x: int = 42"
+        },
+        {
+          "name": "Optional",
+          "sig": "str | None",
+          "desc": "The value may be missing; narrow it with an if before use.",
+          "ex": "name: str | None = None"
+        },
+        {
+          "name": "Containers",
+          "sig": "list[str]",
+          "desc": "Built-in generics: list, dict, tuple and set.",
+          "ex": "names: list[str] = []"
+        },
+        {
+          "name": "Dict",
+          "sig": "dict[str, int]",
+          "desc": "Key and value types; use TypedDict for fixed keys.",
+          "ex": "counts: dict[str, int] = {}"
+        },
+        {
+          "name": "TypedDict",
+          "sig": "class User(TypedDict):",
+          "desc": "A dictionary with a fixed set of typed keys.",
+          "ex": "class User(TypedDict):\n    name: str"
+        },
+        {
+          "name": "Protocol",
+          "sig": "class Closeable(Protocol):",
+          "desc": "Structural typing: any object with the method fits.",
+          "ex": "class Closeable(Protocol):\n    def close(self) -> None: ..."
+        },
+        {
+          "name": "Dataclass",
+          "sig": "@dataclass",
+          "desc": "Fields become the constructor, repr and equality.",
+          "ex": "@dataclass\nclass User:\n    name: str"
+        },
+        {
+          "name": "Literal",
+          "sig": "Literal[\"r\", \"w\"]",
+          "desc": "Only these exact values are allowed.",
+          "ex": "mode: Literal[\"r\", \"w\"] = \"r\""
+        },
+        {
+          "name": "TypeVar",
+          "sig": "T = TypeVar(\"T\")",
+          "desc": "A generic function that preserves the input type.",
+          "ex": "def first(xs: list[T]) -> T:"
+        },
+        {
+          "name": "Cast",
+          "sig": "cast(int, value)",
+          "desc": "Tell the checker what you know; no runtime conversion.",
+          "ex": "n = cast(int, value)"
+        },
+        {
+          "name": "Reveal",
+          "sig": "reveal_type(value)",
+          "desc": "Ask basedpyright what type it inferred.",
+          "ex": "reveal_type(df)"
+        },
+        {
+          "name": "Check",
+          "sig": "basedpyright .",
+          "desc": "The same analyzer as the LSP, over the whole project.",
+          "ex": "basedpyright ."
+        }
+      ]
+    },
+    {
+      "id": "python-files",
+      "name": "Files",
+      "lang": "python",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "pathlib for paths, csv/json for the formats, parquet when the data gets big.",
+      "primary": {
+        "sig": "Path(\"data.csv\").read_text()",
+        "desc": "pathlib: one object for paths, reading and writing.",
+        "ex": "Path(\"data.csv\").read_text()"
+      },
+      "items": [
+        {
+          "name": "Path",
+          "sig": "Path(\"data\") / \"file.csv\"",
+          "desc": "Join paths with /; no string concatenation.",
+          "ex": "Path(\"data\") / \"file.csv\""
+        },
+        {
+          "name": "Read",
+          "sig": "Path(\"data.csv\").read_text()",
+          "desc": "Read text with UTF-8 by default; pass encoding explicitly.",
+          "ex": "Path(\"data.csv\").read_text(encoding=\"utf-8\")"
+        },
+        {
+          "name": "Write",
+          "sig": "Path(\"out.txt\").write_text(text)",
+          "desc": "Create or truncate the file in one call.",
+          "ex": "Path(\"out.txt\").write_text(text)"
+        },
+        {
+          "name": "Bytes",
+          "sig": "Path(\"img.png\").read_bytes()",
+          "desc": "Binary data as bytes; write_bytes for the reverse.",
+          "ex": "Path(\"img.png\").read_bytes()"
+        },
+        {
+          "name": "Glob",
+          "sig": "list(Path(\"data\").glob(\"*.csv\"))",
+          "desc": "Iterate matching paths; rglob searches recursively.",
+          "ex": "list(Path(\"data\").glob(\"*.csv\"))"
+        },
+        {
+          "name": "Exists",
+          "sig": "Path(\"data.csv\").exists()",
+          "desc": "Check before opening; is_file and is_dir narrow further.",
+          "ex": "if path.exists():"
+        },
+        {
+          "name": "Mkdir",
+          "sig": "Path(\"out\").mkdir(parents=True)",
+          "desc": "Create a directory tree; exist_ok avoids races.",
+          "ex": "Path(\"out\").mkdir(parents=True, exist_ok=True)"
+        },
+        {
+          "name": "Iterdir",
+          "sig": "for p in Path(\".\").iterdir():",
+          "desc": "List the entries of a directory, one Path at a time.",
+          "ex": "for p in Path(\".\").iterdir():"
+        },
+        {
+          "name": "CSV",
+          "sig": "csv.DictReader(f)",
+          "desc": "Rows as dictionaries keyed by the header.",
+          "ex": "for row in csv.DictReader(f):"
+        },
+        {
+          "name": "JSON",
+          "sig": "json.loads(text)",
+          "desc": "Parse JSON into Python objects; json.dump writes it.",
+          "ex": "data = json.loads(text)"
+        },
+        {
+          "name": "Parquet",
+          "sig": "pd.read_parquet(\"data.parquet\")",
+          "desc": "Typed columnar data; needs pyarrow in the project.",
+          "ex": "pd.read_parquet(\"data.parquet\")"
+        },
+        {
+          "name": "Copy",
+          "sig": "shutil.copy2(src, dst)",
+          "desc": "Copy a file with its metadata; copytree for folders.",
+          "ex": "shutil.copy2(src, dst)"
+        }
+      ]
+    },
+    {
+      "id": "python-errors",
+      "name": "Errors",
+      "lang": "python",
+      "ac": "var(--red)",
+      "f": "dpuk",
+      "intro": "Catch what you can handle, add context and let everything else reach the top with its traceback.",
+      "primary": {
+        "sig": "try: ... except ValueError as e:",
+        "desc": "Catch what you can handle; let the rest bubble up.",
+        "ex": "except ValueError as e:"
+      },
+      "items": [
+        {
+          "name": "Try",
+          "sig": "try:",
+          "desc": "Run the risky part in a guarded block.",
+          "ex": "try:\n    parse(text)"
+        },
+        {
+          "name": "Except",
+          "sig": "except ValueError as e:",
+          "desc": "Catch a specific exception and keep it for the message.",
+          "ex": "except ValueError as e:"
+        },
+        {
+          "name": "Else",
+          "sig": "else:",
+          "desc": "Runs only when the try block did not raise.",
+          "ex": "else:\n    use(value)"
+        },
+        {
+          "name": "Finally",
+          "sig": "finally:",
+          "desc": "Always runs: close the file, release the lock.",
+          "ex": "finally:\n    f.close()"
+        },
+        {
+          "name": "Raise",
+          "sig": "raise ValueError(\"bad id\")",
+          "desc": "Signal an error with a clear message.",
+          "ex": "raise ValueError(\"bad id\")"
+        },
+        {
+          "name": "Custom",
+          "sig": "class ConfigError(Exception):",
+          "desc": "A named error callers can catch specifically.",
+          "ex": "class ConfigError(Exception): ..."
+        },
+        {
+          "name": "From",
+          "sig": "raise RuntimeError(\"load\") from err",
+          "desc": "Keep the original cause in the traceback chain.",
+          "ex": "raise RuntimeError(\"load\") from err"
+        },
+        {
+          "name": "Assert",
+          "sig": "assert x > 0, \"x must be positive\"",
+          "desc": "A developer check; not for user input, it can be disabled.",
+          "ex": "assert x > 0"
+        },
+        {
+          "name": "Suppress",
+          "sig": "contextlib.suppress(FileNotFoundError)",
+          "desc": "Ignore one expected error around a block.",
+          "ex": "with suppress(FileNotFoundError):"
+        },
+        {
+          "name": "Log",
+          "sig": "logging.exception(\"load failed\")",
+          "desc": "Log the message and the active traceback at ERROR.",
+          "ex": "except Exception:\n    logging.exception(\"load failed\")"
+        },
+        {
+          "name": "Traceback",
+          "sig": "traceback.print_exc()",
+          "desc": "Print the current exception with its stack.",
+          "ex": "traceback.print_exc()"
+        },
+        {
+          "name": "Group",
+          "sig": "except* ValueError as eg:",
+          "desc": "Handle several errors at once with ExceptionGroup.",
+          "ex": "except* ValueError as eg:"
+        }
+      ]
+    },
+    {
+      "id": "python-classes",
+      "name": "Classes",
+      "lang": "python",
+      "ac": "var(--aqua)",
+      "f": "dpuk",
+      "intro": "Plain classes, dataclasses and protocols: the shortest path from data to behavior.",
+      "primary": {
+        "sig": "@dataclass",
+        "desc": "The default for records: fields, constructor, repr and equality.",
+        "ex": "@dataclass\nclass User:\n    name: str"
+      },
+      "items": [
+        {
+          "name": "Class",
+          "sig": "class User:",
+          "desc": "A namespace for data and behavior.",
+          "ex": "class User:"
+        },
+        {
+          "name": "Init",
+          "sig": "def __init__(self, name: str):",
+          "desc": "Set up the instance; self is explicit.",
+          "ex": "def __init__(self, name: str):"
+        },
+        {
+          "name": "Dataclass",
+          "sig": "@dataclass",
+          "desc": "Generated methods from annotated fields.",
+          "ex": "@dataclass\nclass User:\n    name: str"
+        },
+        {
+          "name": "Repr",
+          "sig": "def __repr__(self) -> str:",
+          "desc": "A developer-facing representation, useful in debuggers.",
+          "ex": "return f\"User({self.name!r})\""
+        },
+        {
+          "name": "Property",
+          "sig": "@property",
+          "desc": "A method read like an attribute; add a setter if needed.",
+          "ex": "@property\ndef total(self) -> float:"
+        },
+        {
+          "name": "Inherit",
+          "sig": "class Admin(User):",
+          "desc": "Reuse the parent and override what changes.",
+          "ex": "class Admin(User):"
+        },
+        {
+          "name": "Super",
+          "sig": "super().__init__(name)",
+          "desc": "Call the parent implementation without naming it.",
+          "ex": "super().__init__(name)"
+        },
+        {
+          "name": "Classmethod",
+          "sig": "@classmethod",
+          "desc": "A factory that receives the class, not the instance.",
+          "ex": "@classmethod\ndef from_row(cls, row):"
+        },
+        {
+          "name": "Staticmethod",
+          "sig": "@staticmethod",
+          "desc": "A function that belongs to the class namespace only.",
+          "ex": "@staticmethod\ndef parse(text: str):"
+        },
+        {
+          "name": "Slots",
+          "sig": "__slots__ = (\"name\",)",
+          "desc": "Fixed attributes, less memory per instance.",
+          "ex": "__slots__ = (\"name\",)"
+        },
+        {
+          "name": "Protocol",
+          "sig": "class Closeable(Protocol):",
+          "desc": "Structural typing without inheritance.",
+          "ex": "class Closeable(Protocol): ..."
+        },
+        {
+          "name": "ABC",
+          "sig": "class Repo(ABC):",
+          "desc": "An abstract base: subclasses must implement the methods.",
+          "ex": "class Repo(ABC): ..."
+        }
+      ]
+    },
+    {
+      "id": "python-async",
+      "name": "Async",
+      "lang": "python",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "One event loop, many concurrent tasks: await, gather, timeouts and structured concurrency.",
+      "primary": {
+        "sig": "asyncio.run(main())",
+        "desc": "The entry point: one event loop, one top-level coroutine.",
+        "ex": "asyncio.run(main())"
+      },
+      "items": [
+        {
+          "name": "Async def",
+          "sig": "async def fetch():",
+          "desc": "A coroutine: calling it returns an awaitable, not the result.",
+          "ex": "async def fetch():"
+        },
+        {
+          "name": "Await",
+          "sig": "await fetch()",
+          "desc": "Yield control until the awaitable finishes.",
+          "ex": "data = await fetch()"
+        },
+        {
+          "name": "Gather",
+          "sig": "await asyncio.gather(a(), b())",
+          "desc": "Run several coroutines concurrently and collect results.",
+          "ex": "await asyncio.gather(a(), b())"
+        },
+        {
+          "name": "Task",
+          "sig": "asyncio.create_task(fetch())",
+          "desc": "Schedule work now; await the task when you need it.",
+          "ex": "task = asyncio.create_task(fetch())"
+        },
+        {
+          "name": "Sleep",
+          "sig": "await asyncio.sleep(0.1)",
+          "desc": "Yield to the loop; never use time.sleep in async code.",
+          "ex": "await asyncio.sleep(0.1)"
+        },
+        {
+          "name": "Timeout",
+          "sig": "asyncio.timeout(2)",
+          "desc": "Cancel the block when it takes too long (3.11+).",
+          "ex": "async with asyncio.timeout(2):"
+        },
+        {
+          "name": "Thread",
+          "sig": "await asyncio.to_thread(f)",
+          "desc": "Run blocking code in a worker thread.",
+          "ex": "await asyncio.to_thread(f)"
+        },
+        {
+          "name": "Queue",
+          "sig": "asyncio.Queue()",
+          "desc": "Producer/consumer handoff without locks.",
+          "ex": "q = asyncio.Queue()"
+        },
+        {
+          "name": "Lock",
+          "sig": "asyncio.Lock()",
+          "desc": "Mutual exclusion inside one event loop.",
+          "ex": "async with lock:"
+        },
+        {
+          "name": "Semaphore",
+          "sig": "asyncio.Semaphore(10)",
+          "desc": "Limit how many coroutines run at once.",
+          "ex": "async with sem:"
+        },
+        {
+          "name": "TaskGroup",
+          "sig": "async with asyncio.TaskGroup() as tg:",
+          "desc": "Structured concurrency: wait for all, cancel on failure.",
+          "ex": "tg.create_task(fetch())"
+        },
+        {
+          "name": "Cancel",
+          "sig": "task.cancel()",
+          "desc": "Request cancellation; the task sees CancelledError.",
+          "ex": "task.cancel()"
+        }
+      ]
+    },
+    {
+      "id": "python-testing",
+      "name": "Testing",
+      "lang": "python",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "pytest, fixtures and the editor shortcuts that turn a failing test into a diagnostic.",
+      "primary": {
+        "sig": "def test_total():",
+        "desc": "A test is a function named test_ that asserts the behavior.",
+        "ex": "def test_total():\n    assert total(df) == 6"
+      },
+      "items": [
+        {
+          "name": "Pytest",
+          "sig": "uv run pytest -q",
+          "desc": "Discover and run tests from the project root.",
+          "ex": "uv run pytest -q"
+        },
+        {
+          "name": "Assert",
+          "sig": "assert result == 6",
+          "desc": "Plain assert; pytest rewrites it to show the values.",
+          "ex": "assert result == 6"
+        },
+        {
+          "name": "Raises",
+          "sig": "with pytest.raises(ValueError):",
+          "desc": "Assert that the block raises the expected error.",
+          "ex": "with pytest.raises(ValueError):"
+        },
+        {
+          "name": "Fixture",
+          "sig": "@pytest.fixture",
+          "desc": "Shared setup injected by name into tests.",
+          "ex": "@pytest.fixture\ndef df(): ..."
+        },
+        {
+          "name": "Parametrize",
+          "sig": "@pytest.mark.parametrize(\"x\", [1, 2])",
+          "desc": "Run the same test once per case.",
+          "ex": "@pytest.mark.parametrize(\"x\", [1, 2])"
+        },
+        {
+          "name": "tmp_path",
+          "sig": "def test_write(tmp_path):",
+          "desc": "A fresh temporary directory per test.",
+          "ex": "path = tmp_path / \"out.txt\""
+        },
+        {
+          "name": "Monkeypatch",
+          "sig": "monkeypatch.setenv(\"APP_ENV\", \"test\")",
+          "desc": "Patch environment, attributes or cwd for one test.",
+          "ex": "monkeypatch.setenv(\"APP_ENV\", \"test\")"
+        },
+        {
+          "name": "Marks",
+          "sig": "@pytest.mark.slow",
+          "desc": "Label tests; run them with -m slow or skip them.",
+          "ex": "@pytest.mark.slow"
+        },
+        {
+          "name": "Approx",
+          "sig": "pytest.approx(0.1 + 0.2)",
+          "desc": "Compare floats with a tolerance instead of ==.",
+          "ex": "assert 0.1 + 0.2 == pytest.approx(0.3)"
+        },
+        {
+          "name": "Coverage",
+          "sig": "uv run pytest --cov",
+          "desc": "Report which lines the tests executed.",
+          "ex": "uv run pytest --cov"
+        },
+        {
+          "name": "Menu",
+          "sig": "<leader>pm",
+          "desc": "Run the test under the cursor and mark the result.",
+          "ex": "<leader>pm"
+        },
+        {
+          "name": "Doctest",
+          "sig": "python -m doctest file.py",
+          "desc": "Run the examples embedded in docstrings.",
+          "ex": "python -m doctest file.py"
+        }
+      ]
+    },
+    {
+      "id": "python-packaging",
+      "name": "Packaging",
+      "lang": "python",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "uv is the whole toolchain: Python, virtualenv, dependencies, lockfile, runner and build.",
+      "primary": {
+        "sig": "uv add pandas",
+        "desc": "Add a runtime dependency and update pyproject and uv.lock.",
+        "ex": "uv add pandas"
+      },
+      "items": [
+        {
+          "name": "Init",
+          "sig": "uv init --app my-app",
+          "desc": "A new project with pyproject, .python-version and src/.",
+          "ex": "uv init --app my-app"
+        },
+        {
+          "name": "Add",
+          "sig": "uv add pandas numpy",
+          "desc": "Resolve, install and record the dependencies.",
+          "ex": "uv add pandas numpy"
+        },
+        {
+          "name": "Dev",
+          "sig": "uv add --dev pytest ruff",
+          "desc": "Tools for development, not for the package runtime.",
+          "ex": "uv add --dev pytest ruff"
+        },
+        {
+          "name": "Sync",
+          "sig": "uv sync",
+          "desc": "Create or repair .venv from the lockfile.",
+          "ex": "uv sync"
+        },
+        {
+          "name": "Lock",
+          "sig": "uv lock",
+          "desc": "Resolve versions and write uv.lock without installing.",
+          "ex": "uv lock"
+        },
+        {
+          "name": "Upgrade",
+          "sig": "uv lock --upgrade",
+          "desc": "Move every dependency to the latest allowed version.",
+          "ex": "uv lock --upgrade"
+        },
+        {
+          "name": "Run",
+          "sig": "uv run python app.py",
+          "desc": "Run inside the project environment, no activation.",
+          "ex": "uv run python app.py"
+        },
+        {
+          "name": "uvx",
+          "sig": "uvx ruff check .",
+          "desc": "Run a tool once without adding it to the project.",
+          "ex": "uvx ruff check ."
+        },
+        {
+          "name": "pyproject",
+          "sig": "[project]",
+          "desc": "The source of truth: name, Python range and dependencies.",
+          "ex": "[project]\nname = \"my-app\""
+        },
+        {
+          "name": "Venv",
+          "sig": "uv venv --python 3.14",
+          "desc": "Create .venv with a specific interpreter.",
+          "ex": "uv venv --python 3.14"
+        },
+        {
+          "name": "Build",
+          "sig": "uv build",
+          "desc": "Build sdist and wheel into dist/.",
+          "ex": "uv build"
+        },
+        {
+          "name": "Pin",
+          "sig": "uv python pin 3.14",
+          "desc": "Write .python-version so everyone uses the same Python.",
+          "ex": "uv python pin 3.14"
+        }
+      ]
+    },
+    {
+      "id": "python-leader",
+      "name": "Leader",
+      "lang": "python",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "The Python menu and the keys you will use while writing, testing and running the code.",
+      "primary": {
+        "sig": "Space p",
+        "desc": "The Python menu: run, test, uv, Jupyter, lint and format.",
+        "ex": "Space p"
+      },
+      "items": [
+        {
+          "name": "Complete",
+          "sig": "<C-Space>",
+          "desc": "Suggestions from basedpyright and the buffer; Enter inserts.",
+          "ex": "<C-Space>"
+        },
+        {
+          "name": "Hover",
+          "sig": "K",
+          "desc": "Documentation and signature of the symbol under the cursor.",
+          "ex": "K"
+        },
+        {
+          "name": "Signature",
+          "sig": "<C-k>",
+          "desc": "The function signature while you type the arguments.",
+          "ex": "<C-k>"
+        },
+        {
+          "name": "Symbols",
+          "sig": "gO",
+          "desc": "Functions and classes in the current file.",
+          "ex": "gO"
+        },
+        {
+          "name": "Definition",
+          "sig": "gd",
+          "desc": "Jump to where the symbol is defined.",
+          "ex": "gd"
+        },
+        {
+          "name": "References",
+          "sig": "grr",
+          "desc": "Every use of the symbol in the project.",
+          "ex": "grr"
+        },
+        {
+          "name": "Rename",
+          "sig": "grn",
+          "desc": "Rename the symbol and all its references.",
+          "ex": "grn"
+        },
+        {
+          "name": "Actions",
+          "sig": "<leader>ca",
+          "desc": "Quick fixes, Ruff fixes and Add import.",
+          "ex": "<leader>ca"
+        },
+        {
+          "name": "Hints",
+          "sig": "<leader>ph",
+          "desc": "Toggle call-argument names and return types.",
+          "ex": "<leader>ph"
+        },
+        {
+          "name": "Ruff",
+          "sig": "<leader>pv",
+          "desc": "Lint the project; px fixes what it can.",
+          "ex": "<leader>pv"
+        },
+        {
+          "name": "Types",
+          "sig": "<leader>py",
+          "desc": "Run basedpyright over the whole project.",
+          "ex": "<leader>py"
+        },
+        {
+          "name": "Jupyter",
+          "sig": "<leader>pj",
+          "desc": "Launch JupyterLab with uv run.",
+          "ex": "<leader>pj"
+        }
+      ]
     }
   ],
 
