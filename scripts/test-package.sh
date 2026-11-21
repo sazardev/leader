@@ -65,9 +65,20 @@ check "the AppStream result is well-formed" "python3 -c \"import xml.etree.Eleme
 check "the changelog in the tree is this version's" "zcat '$tmp/usr/share/doc/leader-editor/changelog.gz' | head -1 | grep -q '\[$VERSION\]'"
 
 # ── scripts ─────────────────────────────────────────────────────────────────
-for s in app/package.sh app/install.sh app/package/install.sh app/package/stage-tree.sh app/package/leader-installer.sh; do
+for s in app/package.sh app/install.sh app/package/install.sh app/package/stage-tree.sh app/package/leader-installer.sh scripts/pack-docs.sh; do
   check "$s parses" "bash -n '$ROOT/$s'"
 done
+check "the docs bundle manifest is complete" "python3 - <<PY
+from pathlib import Path
+root = Path('$ROOT')
+files = [x.strip() for x in (root/'scripts/docs-bundle.txt').read_text().splitlines() if x.strip() and not x.startswith('#')]
+assert files and all((root/f).is_file() for f in files)
+assert 'docs/offline.html' in files and 'docs/cheatsheets/python.md' in files
+PY"
+check "the binary embeds the docs manifest" "grep -q 'scripts/docs-bundle.txt' '$APP/crates/leader-gui/build.rs' && grep -q 'mod docs;' '$APP/crates/leader-gui/src/main.rs'"
+check "docs are an installer extra, not the default" "grep -q -- '--extras' '$APP/package/install.sh' && grep -q 'EXTRAS=0' '$APP/package/install.sh' && grep -q -- '--extras' '$APP/install.sh'"
+check "the installer accepts --extras in a dry run" "bash '$APP/package/install.sh' --dry-run --no-config --extras --prefix \"\$(mktemp -d)\""
+check "the manual page documents leader docs" "grep -q 'leader docs' '$APP/assets/leader.1'"
 check "leader-setup parses" "sh -n '$APP/package/leader-setup'"
 check "the installer accepts this machine (glibc and desktop checks)" "bash '$APP/package/install.sh' --dry-run --no-config --prefix \"\$(mktemp -d)\""
 check "the installer's --help works" "bash '$APP/package/install.sh' --help"

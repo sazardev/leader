@@ -7,6 +7,7 @@
 #   ./install.sh                 install (asks before installing the config or opening Leader; in a pipe it just does it)
 #   ./install.sh --yes           ask nothing
 #   ./install.sh --no-config     only the app (you manage Neovim and the config yourself)
+#   ./install.sh --extras        also copy the embedded docs, cheat sheets and offline guide to share/leader-editor/docs
 #   ./install.sh --prefix DIR    install somewhere else than ~/.local
 #   ./install.sh --uninstall     remove the app (the config and your files stay)
 #   ./install.sh --dry-run       show what it would do
@@ -16,12 +17,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="$(cat "$HERE/VERSION" 2>/dev/null || echo dev)"
 REPO="https://github.com/sazardev/leader"
 CONFIG_INSTALLER="https://raw.githubusercontent.com/sazardev/leader/master/install.sh"
-PREFIX="$HOME/.local" YES=0 CONFIG=1 DRY=0 UNINSTALL=0
+PREFIX="$HOME/.local" YES=0 CONFIG=1 DRY=0 UNINSTALL=0 EXTRAS=0
 [ -t 0 ] || YES=1
 while [ $# -gt 0 ]; do
   case "$1" in
     -y | --yes) YES=1 ;;
     --no-config) CONFIG=0 ;;
+    --extras) EXTRAS=1 ;;
     --prefix) PREFIX="${2:?--prefix needs a directory}"; shift ;;
     --prefix=*) PREFIX="${1#--prefix=}" ;;
     --uninstall) UNINSTALL=1 ;;
@@ -74,7 +76,7 @@ if [ "$UNINSTALL" = 1 ]; then
   step "Removing the app"
   remove_files
   refresh_menus
-  ok "removed $BIN, leader-setup, its menu entry, icons and manual pages (the config in ~/.config/nvim and your files stay)"
+  ok "removed $BIN, leader-setup, its menu entry, icons, manual pages and docs if installed (the config in ~/.config/nvim and your files stay)"
   exit 0
 fi
 
@@ -125,6 +127,19 @@ refresh_menus
 if [ "$DRY" = 1 ] || "$BIN" --version >/dev/null 2>&1; then ok "$BIN"; else die "$BIN does not run here: build it from source with app/install.sh ($REPO)"; fi
 ok "Leader in your applications menu"
 case ":$PATH:" in *":$PREFIX/bin:"*) ;; *) warn "add $PREFIX/bin to your PATH to type \`leader\` in a shell" ;; esac
+
+# ── 2b. Docs are an opt-in extra: the default install stays clean ──────────────
+if [ "$EXTRAS" = 1 ]; then
+  step "Installing the offline documentation (extra)"
+  DOCS_DIR="$PREFIX/share/leader-editor/docs"
+  if [ "$DRY" = 1 ]; then
+    info "[dry-run] $BIN docs --extract-to $DOCS_DIR"
+  else
+    "$BIN" docs --extract-to "$DOCS_DIR" >/dev/null
+    (cd "$DOCS_DIR" && find . -type f) | while IFS= read -r f; do echo "$DOCS_DIR/${f#./}" >>"$MANIFEST"; done
+    ok "$(find "$DOCS_DIR" -type f | wc -l) files in $DOCS_DIR (guide, cheat sheets, offline)"
+  fi
+fi
 
 # ── 3. The editor it runs: Neovim and Leader's config ─────────────────────────
 step "The editor: Neovim and Leader's config"

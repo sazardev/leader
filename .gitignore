@@ -13,3 +13,6 @@ evals/results/last.json
 
 # Cloudflare local cache (wrangler pages deploy)
 .wrangler/
+
+# Generated documentation pack (scripts/pack-docs.sh)
+docs/downloads/

@@ -4,6 +4,7 @@
 # main ./install.sh first (or ./install.sh --app, which ends here).
 #
 #   app/install.sh              build and install into ~/.local (bin/leader, share/applications, share/icons)
+#   --extras                    also copy the embedded docs, cheat sheets and offline guide into share/leader-editor/docs
 #   --prefix DIR                install somewhere else (default ~/.local)
 #   --uninstall                 remove what this script installed
 #   --dry-run                   show what it would do
@@ -13,11 +14,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PREFIX="$HOME/.local" DRY=0 UNINSTALL=0
+PREFIX="$HOME/.local" DRY=0 UNINSTALL=0 EXTRAS=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --prefix) PREFIX="${2:?--prefix needs a directory}"; shift ;;
     --prefix=*) PREFIX="${1#--prefix=}" ;;
+    --extras) EXTRAS=1 ;;
     --uninstall) UNINSTALL=1 ;;
     --dry-run) DRY=1 ;;
     -h | --help) awk 'NR > 1 { if (/^#/) { sub(/^# ?/, ""); print } else exit }' "${BASH_SOURCE[0]}"; exit 0 ;;
@@ -75,5 +77,7 @@ else
   bash "$ROOT/package/stage-tree.sh" "$ROOT/target/release/leader" "$pkg" "$VERSION"
   install -m755 "$ROOT/package/install.sh" "$pkg/install.sh"
   echo "$VERSION" >"$pkg/VERSION"
-  LEADER_LOCAL_BUILD=1 bash "$pkg/install.sh" --yes --no-config --prefix "$PREFIX"
+  args=(--yes --no-config --prefix "$PREFIX")
+  [ "$EXTRAS" = 1 ] && args+=(--extras)
+  LEADER_LOCAL_BUILD=1 bash "$pkg/install.sh" "${args[@]}"
 fi

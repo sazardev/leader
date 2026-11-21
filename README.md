@@ -345,6 +345,8 @@ The principles (the same across the whole repo) and where they show:
 - **[The documentation site](https://leader.sazardev.stream/docs/)**: everything below in one searchable page (`/` to search). It is generated from these Markdown files (`scripts/gen-docs.sh`; the pre-commit hook regenerates it).
 - **[The offline guide](https://leader.sazardev.stream/offline)**: the same documentation in **one HTML file** with the fonts embedded, no network needed. The file is `docs/offline.html` (`scripts/gen-offline.sh` keeps it up to date).
 - **[The FAQ](docs/FAQ.md)**: short answers about installation, platforms, the agent, privacy, updates, sessions and offline use.
+- **[The docs pack (.zip)](https://leader.sazardev.stream/downloads/leader-docs.zip)**: the guide, the offline HTML and every cheat sheet in one download.
+- **`leader docs`**: the same pack is embedded in the binary, so the installed app carries no loose docs by default. It extracts to `~/.local/share/leader/docs/VERSION` and opens the guide; `leader docs --path` and `--extract-to DIR` are there for scripts. The desktop installer's `--extras` flag opts into copying it to `share/leader-editor/docs` (removed by `--uninstall`).
 - **In the app**: Help → *Documentation* opens the site; Help → *Offline Guide* opens the single-file guide from the clone (or the live copy).
 - [`CHEATSHEET.md`](CHEATSHEET.md): **all** the keys. It is generated from the real keymaps (`scripts/gen-cheatsheet.sh`; the pre-commit hook regenerates it). Inside nvim, the dashboard's *Mappings* button shows the same.
 - [`docs/cheatsheets/`](docs/cheatsheets/README.md): what the code doesn't say (workflows, tools, pitfalls), one page per language and the agent's.

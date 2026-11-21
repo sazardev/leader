@@ -8,6 +8,8 @@ leader \- Neovim with the Leader config: nvim in a terminal, its own GPU window 
 .B leader \-\-help
 |
 .B \-\-version
+|
+.B leader docs [\-\-path | \-\-extract\-to DIR | \-\-list]
 .SH DESCRIPTION
 .B leader
 is the Leader editor: Neovim with Leader's configuration.
@@ -24,6 +26,21 @@ files, \fB+cmd\fR and \fB\-d\fR work as usual in both.
 The first launch without any Neovim configuration runs
 .BR leader\-setup (1)
 in the window itself, which installs Leader's config.
+.PP
+.B leader docs
+extracts the cheatsheets, the generated guide and the standalone offline HTML embedded in the binary into
+.IR ~/.local/share/leader/docs/VERSION
+and opens the guide. It needs no files installed next to the app: the documentation travels inside
+.BR leader .
+Use
+.B \-\-path
+to print the directory,
+.B \-\-extract\-to DIR
+to put the files elsewhere, or
+.B \-\-list
+to see what is inside. The release installer's
+.B \-\-extras
+option copies the same pack into the install prefix; it is off by default so a normal install stays clean.
 .SH ENVIRONMENT
 .TP
 .B LEADER_NVIM

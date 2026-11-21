@@ -895,6 +895,7 @@ dependencies = [
  "arboard",
  "bytemuck",
  "cosmic-text",
+ "flate2",
  "leader-nvim",
  "png",
  "pollster",

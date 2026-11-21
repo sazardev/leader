@@ -20,3 +20,7 @@ pollster = "1"
 arboard = { version = "3", features = ["wayland-data-control"] }
 smol_str = "0.3"
 png = "0.18"
+flate2 = "1"
+
+[build-dependencies]
+flate2 = "1"

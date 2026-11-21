@@ -12,7 +12,7 @@ STYLUA  ?= $(or $(shell command -v stylua),$(wildcard $(HOME)/.local/share/nvim/
 
 .DEFAULT_GOAL := help
 .PHONY: help dev run open build kill bench bench-edit timing snap restart \
-        test test-app test-gui test-agent eval eval-table test-package check lint fmt fmt-lua docs cheatsheet \
+        test test-app test-gui test-agent eval eval-table test-package check lint fmt fmt-lua docs docs-pack cheatsheet \
         doctor stack setup ai ai-auto \
         package install uninstall icons clean
 
@@ -90,6 +90,9 @@ fmt-lua:
 
 docs: ## Regenerate the web docs from the Markdown (the pre-commit hook does it too)
 	@scripts/gen-docs.sh --worktree
+
+docs-pack: ## Build the downloadable docs ZIP in docs/downloads (same files the binary embeds)
+	@scripts/pack-docs.sh
 
 cheatsheet: ## Regenerate CHEATSHEET.md from the real keymaps
 	@scripts/gen-cheatsheet.sh

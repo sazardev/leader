@@ -5,6 +5,7 @@ mod app;
 mod appbar;
 mod boxdraw;
 mod clipboard;
+mod docs;
 mod font;
 mod input;
 mod platform;
@@ -23,6 +24,7 @@ const HELP: &str = "leader — Neovim with the Leader config: in a terminal it i
 itself, from the desktop menu (or with --gui) it opens its own window
 
 usage: leader [--gui] [--reuse] [nvim arguments…]
+       leader docs [--path | --extract-to DIR | --list]
 
   In a terminal (stdin or stdout is a TTY) leader is nvim: every argument goes to nvim exactly as typed,
   with the same terminal, signals and exit code. Launched without a terminal (the applications menu) it
@@ -31,6 +33,7 @@ usage: leader [--gui] [--reuse] [nvim arguments…]
   --gui, --window  open the GPU window even from a terminal (same as LEADER_GUI=1)
   --reuse, -r      open the files in the window that is already running (instant: no new window, no new Neovim);
                    starts a window as usual when none is. Same as LEADER_REUSE=1.
+  docs             the cheatsheets, the guide and the offline docs embedded in this binary; `leader docs --help`
 
 environment:
   LEADER_NVIM    nvim binary to run (default: nvim on PATH)
@@ -72,6 +75,13 @@ fn env_flag(name: &str) -> bool {
     std::env::var_os(name).is_some_and(|v| v != "0")
 }
 
+/// Print one line without panicking when a pipe (`leader --help | head`) closes early.
+fn say(line: &str) {
+    use std::io::Write;
+    let mut out = std::io::stdout().lock();
+    let _ = writeln!(out, "{line}");
+}
+
 /// Runs Neovim in the terminal, replacing this process: `leader file.go` is `nvim file.go`.
 fn exec_nvim(args: &[std::ffi::OsString]) -> ! {
     let bin = std::env::var_os("LEADER_NVIM").unwrap_or_else(|| "nvim".into());
@@ -99,8 +109,9 @@ fn main() {
     platform::prepare_env();
     let mut args: Vec<_> = std::env::args_os().skip(1).collect();
     match args.first().and_then(|a| a.to_str()) {
-        Some("--help" | "-h") => return println!("{HELP}"),
-        Some("--version" | "-V") => return println!("leader {}", env!("CARGO_PKG_VERSION")),
+        Some("--help" | "-h") => return say(HELP),
+        Some("--version" | "-V") => return say(&format!("leader {}", env!("CARGO_PKG_VERSION"))),
+        Some("docs") => return docs::run(&args[1..]),
         _ => {}
     }
     // `--reuse`: hand the files to the window that is already running and leave before anything is built
@@ -119,11 +130,8 @@ fn main() {
     // `--gui`/`--window` (and their env forms) force the window from a terminal; `--reuse` already means a window.
     let gui_flag = args.iter().any(|a| a == "--gui" || a == "--window");
     args.retain(|a| a != "--gui" && a != "--window");
-    let force_window = gui_flag
-        || env_flag("LEADER_GUI")
-        || flagged
-        || env_flag("LEADER_REUSE")
-        || std::env::var_os("LEADER_SNAPSHOT").is_some();
+    let force_window =
+        gui_flag || env_flag("LEADER_GUI") || flagged || env_flag("LEADER_REUSE") || std::env::var_os("LEADER_SNAPSHOT").is_some();
     // Neovim is what runs inside the window: without it there is nothing to draw, and a menu launch has no terminal to say so
     if std::env::var_os("LEADER_NVIM").is_none() && !platform::on_path("nvim") {
         platform::tell(

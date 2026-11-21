@@ -644,12 +644,12 @@ footer a{color:var(--dim)}
 <div class="scrim" id="scrim"></div>
 <div class="layout">
 <aside id="nav">
-<div class="offline-card"><b>Offline guide</b><p>One HTML file with the whole guide and this search. Open it anywhere, no network needed.</p><a href="../offline.html">Open</a><a class="dl" href="../offline.html" download="leader-offline-guide.html">Download</a></div>
+<div class="offline-card"><b>Offline guide</b><p>One HTML file with the whole guide and this search. Open it anywhere, no network needed.</p><a href="../offline.html">Open</a><a class="dl" href="../offline.html" download="leader-offline-guide.html">Download</a><a href="https://leader.sazardev.stream/downloads/leader-docs.zip">Docs pack .zip</a></div>
 @NAV@
 </aside>
 <main id="main">
 @SECTIONS@
-<footer>Generated from the repository's Markdown (README.md, CHEATSHEET.md, docs/FAQ.md, docs/cheatsheets/, AGENTS.md) by <code>scripts/gen-docs.lua</code>: edit those, never this page. Keys come from the config's real keymaps. <a href="../offline.html">Offline copy</a> · <a href="../offline.html" download="leader-offline-guide.html">Download</a>.</footer>
+<footer>Generated from the repository's Markdown (README.md, CHEATSHEET.md, docs/FAQ.md, docs/cheatsheets/, AGENTS.md) by <code>scripts/gen-docs.lua</code>: edit those, never this page. Keys come from the config's real keymaps. <a href="../offline.html">Offline copy</a> · <a href="../offline.html" download="leader-offline-guide.html">Download</a> · <a href="https://leader.sazardev.stream/downloads/leader-docs.zip">All docs (.zip)</a>.</footer>
 </main>
 <aside id="toc" aria-label="On this page"><p class="grp">On this page</p><div id="toc-list"></div><a class="top" href="#main">↑ Top</a></aside>
 </div>
