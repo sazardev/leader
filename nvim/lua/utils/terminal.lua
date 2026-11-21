@@ -146,6 +146,30 @@ local function live_named(name)
   return term
 end
 
+--- A live named float, or a fresh one (created lazily).
+---@param name string
+---@param cmd string
+---@param dir string
+---@return table
+local function ensure_float(name, cmd, dir)
+  local term = live_named(name)
+  if term then
+    term.dir = dir
+    term.direction = "float"
+    term.cmd = cmd
+    return term
+  end
+  term = require("toggleterm.terminal").Terminal:new {
+    dir = dir,
+    direction = "float",
+    display_name = name,
+    close_on_exit = true,
+    cmd = cmd,
+  }
+  named_terms[name] = term
+  return term
+end
+
 --- Toggle a persistent floating terminal running `cmd` (an IPython REPL, a TUI…).
 --- Opening focuses it; pressing the same key again (or Esc) hides it and the process survives.
 ---@param name string display name ("Python REPL")
@@ -153,76 +177,26 @@ end
 ---@param dir string
 ---@return table
 function M.float_repl(name, cmd, dir)
-  local term = live_named(name)
-  if term and term:is_open() then
+  local term = ensure_float(name, cmd, dir)
+  if term:is_open() then
     term:close()
-    return term
-  end
-  if not term then
-    term = require("toggleterm.terminal").Terminal:new {
-      dir = dir,
-      direction = "float",
-      display_name = name,
-      close_on_exit = true,
-      cmd = cmd,
-    }
-    named_terms[name] = term
   else
-    term.dir = dir
-    term.direction = "float"
-    term.cmd = cmd
-  end
-  term:open()
-  return term
-end
-
---- Send `text` to a named floating terminal, starting it with `cmd` when needed.
---- `go_back` keeps the editor focused: sending a selection does not steal the cursor.
----@param name string
----@param cmd string
----@param dir string
----@param text string
----@return table
-function M.send_to(name, cmd, dir, text)
-  local term = live_named(name)
-  if not term then
-    term = require("toggleterm.terminal").Terminal:new {
-      dir = dir,
-      direction = "float",
-      display_name = name,
-      close_on_exit = true,
-      cmd = cmd,
-    }
-    named_terms[name] = term
-  end
-  if not term:is_open() then
     term:open()
   end
-  term:send(text, true)
   return term
 end
 
---- Send a line or a block (bracketed paste + Enter) to a floating REPL, starting it if needed.
---- This is the reliable path for IPython: a multi-line paste arrives as one prompt_toolkit
---- paste event, so `def`/`for` blocks execute as a whole and no `%cpaste` state is left behind.
+--- Send a line or a block to a floating REPL, starting it when needed. A block is
+--- written to a temp file and run with `%run -i`: indentation, definitions and variables
+--- survive, unlike pasting a multi-line block into a prompt that may still be starting.
 ---@param name string
 ---@param cmd string
 ---@param dir string
 ---@param text string
----@param block boolean? true = bracketed paste, false = one line + Enter
+---@param block boolean? true = run the selection as a file, false = one line + Enter
 ---@return table?
 function M.send_text(name, cmd, dir, text, block)
-  local term = live_named(name)
-  if not term then
-    term = require("toggleterm.terminal").Terminal:new {
-      dir = dir,
-      direction = "float",
-      display_name = name,
-      close_on_exit = true,
-      cmd = cmd,
-    }
-    named_terms[name] = term
-  end
+  local term = ensure_float(name, cmd, dir)
   local previous = vim.api.nvim_get_current_win()
   local was_open = term:is_open()
   if not was_open then
@@ -243,12 +217,15 @@ function M.send_text(name, cmd, dir, text, block)
     end
     local payload
     if block then
-      local file = "/tmp/opencode/leader-ipython-block.py"
+      local file = vim.fn.tempname() .. ".py"
       local ok = vim.fn.writefile(vim.split(text, "\n", { plain = true }), file)
       if ok ~= 0 then
         return
       end
       payload = "%run -i " .. file .. "\r"
+      vim.defer_fn(function()
+        vim.fn.delete(file)
+      end, 30000)
     else
       payload = text .. "\r"
     end
