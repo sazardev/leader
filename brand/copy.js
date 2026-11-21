@@ -2513,6 +2513,1163 @@ var COPY = {
           "ex": "<leader>pj"
         }
       ]
+    },
+    {
+      "id": "python-basics",
+      "name": "Primeros pasos",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "Variables, print, if, bucles y funciones: lo mínimo para escribir tu primer programa.",
+      "primary": {
+        "sig": "print(\"Hola, mundo\")",
+        "desc": "El primer programa: imprime algo y sigue.",
+        "ex": "print(\"Hola, mundo\")"
+      },
+      "items": [
+        {
+          "name": "Variable",
+          "sig": "nombre = \"Ana\"",
+          "desc": "Un nombre apunta a un valor; no necesitas declarar el tipo.",
+          "ex": "edad = 30"
+        },
+        {
+          "name": "Tipos",
+          "sig": "int, float, str, bool",
+          "desc": "Los cuatro tipos básicos; type(x) te dice cuál es.",
+          "ex": "type(42)"
+        },
+        {
+          "name": "Print",
+          "sig": "print(\"Hola\", nombre)",
+          "desc": "Muestra valores separados por un espacio.",
+          "ex": "print(\"Hola\", nombre)"
+        },
+        {
+          "name": "Input",
+          "sig": "nombre = input(\"Nombre: \")",
+          "desc": "Lee una línea del teclado; siempre devuelve str.",
+          "ex": "edad = int(input(\"Edad: \"))"
+        },
+        {
+          "name": "f-string",
+          "sig": "f\"Hola, {nombre}\"",
+          "desc": "Interpola variables y expresiones dentro del texto.",
+          "ex": "f\"{edad + 1}\""
+        },
+        {
+          "name": "If",
+          "sig": "if edad >= 18:",
+          "desc": "Ejecuta el bloque solo si la condición es verdadera.",
+          "ex": "if edad >= 18:\n    print(\"mayor\")"
+        },
+        {
+          "name": "Else",
+          "sig": "else:",
+          "desc": "El camino alternativo cuando el if no se cumple.",
+          "ex": "else:\n    print(\"menor\")"
+        },
+        {
+          "name": "For",
+          "sig": "for fruta in frutas:",
+          "desc": "Recorre una colección elemento a elemento.",
+          "ex": "for fruta in frutas:\n    print(fruta)"
+        },
+        {
+          "name": "While",
+          "sig": "while n > 0:",
+          "desc": "Repite mientras la condición siga siendo verdadera.",
+          "ex": "while n > 0:\n    n -= 1"
+        },
+        {
+          "name": "Función",
+          "sig": "def saludar(nombre):",
+          "desc": "Agrupa código reutilizable bajo un nombre.",
+          "ex": "def saludar(nombre):\n    return f\"Hola, {nombre}\""
+        },
+        {
+          "name": "Comentario",
+          "sig": "# esto es un comentario",
+          "desc": "El intérprete lo ignora; sirve para explicar el porqué.",
+          "ex": "# suma los precios"
+        },
+        {
+          "name": "Indentación",
+          "sig": "    print(\"dentro\")",
+          "desc": "Cuatro espacios definen el bloque; no hay llaves.",
+          "ex": "if True:\n    print(\"dentro\")"
+        }
+      ]
+    },
+    {
+      "id": "python-lists",
+      "name": "Listas",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--aqua)",
+      "f": "dpuk",
+      "intro": "Crear, leer, añadir, quitar, ordenar y recorrer una lista sin perderte.",
+      "primary": {
+        "sig": "frutas = [\"manzana\", \"pera\"]",
+        "desc": "Una lista guarda varios valores en orden.",
+        "ex": "frutas.append(\"uva\")"
+      },
+      "items": [
+        {
+          "name": "Crear",
+          "sig": "frutas = [\"pera\", \"uva\"]",
+          "desc": "Ordenada, mutable y admite cualquier tipo.",
+          "ex": "[1, \"dos\", True]"
+        },
+        {
+          "name": "Índice",
+          "sig": "frutas[0]",
+          "desc": "El primero está en 0; el último en -1.",
+          "ex": "frutas[-1]"
+        },
+        {
+          "name": "Slicing",
+          "sig": "frutas[1:3]",
+          "desc": "Copia una porción: inicio incluido, fin excluido.",
+          "ex": "frutas[:2]"
+        },
+        {
+          "name": "Añadir",
+          "sig": "frutas.append(\"kiwi\")",
+          "desc": "Añade al final; extend añade varios.",
+          "ex": "frutas.append(\"kiwi\")"
+        },
+        {
+          "name": "Insertar",
+          "sig": "frutas.insert(1, \"uva\")",
+          "desc": "Inserta en una posición y desplaza el resto.",
+          "ex": "frutas.insert(1, \"uva\")"
+        },
+        {
+          "name": "Quitar",
+          "sig": "frutas.remove(\"pera\")",
+          "desc": "Borra la primera aparición; falla si no existe.",
+          "ex": "frutas.remove(\"pera\")"
+        },
+        {
+          "name": "Pop",
+          "sig": "ultima = frutas.pop()",
+          "desc": "Saca y devuelve el último; pop(i) saca el índice i.",
+          "ex": "primera = frutas.pop(0)"
+        },
+        {
+          "name": "Del",
+          "sig": "del frutas[0]",
+          "desc": "Borra por índice sin devolver el valor.",
+          "ex": "del frutas[0]"
+        },
+        {
+          "name": "Ordenar",
+          "sig": "frutas.sort()",
+          "desc": "Ordena en el sitio; sorted(lista) devuelve una nueva.",
+          "ex": "sorted(frutas, reverse=True)"
+        },
+        {
+          "name": "Invertir",
+          "sig": "frutas.reverse()",
+          "desc": "Da la vuelta a la lista en el sitio.",
+          "ex": "frutas[::-1]"
+        },
+        {
+          "name": "Longitud",
+          "sig": "len(frutas)",
+          "desc": "Cuántos elementos hay; in comprueba pertenencia.",
+          "ex": "\"pera\" in frutas"
+        },
+        {
+          "name": "Copiar",
+          "sig": "copia = frutas.copy()",
+          "desc": "Copia superficial; una asignación solo comparte la lista.",
+          "ex": "copia = frutas[:]"
+        }
+      ]
+    },
+    {
+      "id": "python-listops",
+      "name": "Listas II",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "Comprehensions, map/filter, ordenar con clave, aplanar y quitar duplicados.",
+      "primary": {
+        "sig": "[x * 2 for x in nums]",
+        "desc": "Una comprehension transforma toda la lista de una vez.",
+        "ex": "[x * 2 for x in [1, 2, 3]]"
+      },
+      "items": [
+        {
+          "name": "Comprehension",
+          "sig": "[x * 2 for x in nums]",
+          "desc": "Transforma y filtra en una sola expresión.",
+          "ex": "[x for x in nums if x > 0]"
+        },
+        {
+          "name": "Filtrar",
+          "sig": "[x for x in nums if x % 2 == 0]",
+          "desc": "El if del final decide qué elementos entran.",
+          "ex": "[x for x in nums if x > 0]"
+        },
+        {
+          "name": "Map",
+          "sig": "list(map(str, nums))",
+          "desc": "Aplica una función a cada elemento.",
+          "ex": "list(map(str, [1, 2]))"
+        },
+        {
+          "name": "Filter",
+          "sig": "list(filter(None, items))",
+          "desc": "Deja solo los elementos que cumplen la función.",
+          "ex": "list(filter(bool, items))"
+        },
+        {
+          "name": "Sort key",
+          "sig": "sorted(palabras, key=len)",
+          "desc": "Ordena por una función: longitud, minúsculas, etc.",
+          "ex": "sorted(palabras, key=str.lower)"
+        },
+        {
+          "name": "Dicts",
+          "sig": "sorted(items, key=lambda x: x[1])",
+          "desc": "Ordena una lista de tuplas por el segundo valor.",
+          "ex": "sorted(items, key=lambda x: x[1])"
+        },
+        {
+          "name": "Anidar",
+          "sig": "matriz = [[1, 2], [3, 4]]",
+          "desc": "Listas dentro de listas: accede con dos índices.",
+          "ex": "matriz[0][1]"
+        },
+        {
+          "name": "Aplanar",
+          "sig": "[x for fila in matriz for x in fila]",
+          "desc": "Doble for en una comprehension para aplanar.",
+          "ex": "[x for fila in matriz for x in fila]"
+        },
+        {
+          "name": "Únicos",
+          "sig": "list(dict.fromkeys(items))",
+          "desc": "Quita duplicados conservando el orden.",
+          "ex": "list(dict.fromkeys(items))"
+        },
+        {
+          "name": "Trocear",
+          "sig": "[items[i:i+3] for i in range(0, len(items), 3)]",
+          "desc": "Parte una lista en trozos de tamaño fijo.",
+          "ex": "[items[i:i+3] for i in range(0, len(items), 3)]"
+        },
+        {
+          "name": "Zip",
+          "sig": "list(zip(a, b))",
+          "desc": "Empareja dos listas; zip(*pares) las separa.",
+          "ex": "list(zip([1, 2], \"ab\"))"
+        },
+        {
+          "name": "Sumar",
+          "sig": "sum(nums)",
+          "desc": "Suma, min, max y any/all trabajan sobre la lista.",
+          "ex": "max(nums)"
+        }
+      ]
+    },
+    {
+      "id": "python-dicts",
+      "name": "Diccionarios",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "La estructura clave de Python: acceso, get, items, merge, comprensión y conteo.",
+      "primary": {
+        "sig": "usuario[\"nombre\"]",
+        "desc": "Accede a un valor por su clave; usa get si puede faltar.",
+        "ex": "usuario.get(\"edad\", 0)"
+      },
+      "items": [
+        {
+          "name": "Crear",
+          "sig": "usuario = {\"nombre\": \"Ana\"}",
+          "desc": "Pares clave-valor; las claves son únicas.",
+          "ex": "{\"edad\": 30, \"activo\": True}"
+        },
+        {
+          "name": "Acceder",
+          "sig": "usuario[\"nombre\"]",
+          "desc": "Devuelve el valor; lanza KeyError si la clave no existe.",
+          "ex": "usuario[\"nombre\"]"
+        },
+        {
+          "name": "Get",
+          "sig": "usuario.get(\"edad\", 0)",
+          "desc": "Devuelve el valor o el default, sin lanzar error.",
+          "ex": "usuario.get(\"edad\", 0)"
+        },
+        {
+          "name": "Añadir",
+          "sig": "usuario[\"email\"] = \"a@x.com\"",
+          "desc": "Asignar una clave nueva la crea; si existe, la sobrescribe.",
+          "ex": "usuario[\"edad\"] = 31"
+        },
+        {
+          "name": "Update",
+          "sig": "usuario.update({\"edad\": 31})",
+          "desc": "Mezcla otro dict; las claves repetidas se actualizan.",
+          "ex": "usuario.update({\"edad\": 31})"
+        },
+        {
+          "name": "Eliminar",
+          "sig": "del usuario[\"email\"]",
+          "desc": "Borra la clave; pop devuelve el valor y permite default.",
+          "ex": "usuario.pop(\"email\", None)"
+        },
+        {
+          "name": "Claves",
+          "sig": "usuario.keys()",
+          "desc": "Vista de las claves; values() de los valores.",
+          "ex": "list(usuario.keys())"
+        },
+        {
+          "name": "Items",
+          "sig": "for k, v in usuario.items():",
+          "desc": "Recorre clave y valor a la vez.",
+          "ex": "for k, v in usuario.items():"
+        },
+        {
+          "name": "Merge",
+          "sig": "a | b",
+          "desc": "Une dos dicts en uno nuevo (Python 3.9+).",
+          "ex": "{**a, **b}"
+        },
+        {
+          "name": "Comprensión",
+          "sig": "{k: v * 2 for k, v in d.items()}",
+          "desc": "Construye un dict transformando claves o valores.",
+          "ex": "{k: v for k, v in d.items() if v}"
+        },
+        {
+          "name": "Anidado",
+          "sig": "data[\"user\"][\"name\"]",
+          "desc": "Un dict dentro de otro; usa get para no romper.",
+          "ex": "data.get(\"user\", {}).get(\"name\")"
+        },
+        {
+          "name": "Contar",
+          "sig": "d[k] = d.get(k, 0) + 1",
+          "desc": "El patrón clásico para contar; Counter lo automatiza.",
+          "ex": "Counter(items)"
+        }
+      ]
+    },
+    {
+      "id": "python-json",
+      "name": "JSON",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--yellow)",
+      "f": "dpuk",
+      "intro": "Leer y escribir JSON, entender sus tipos y sacar datos de una API.",
+      "primary": {
+        "sig": "json.loads(texto)",
+        "desc": "Convierte texto JSON en dicts, listas y valores de Python.",
+        "ex": "json.loads('{\"ok\": true}')"
+      },
+      "items": [
+        {
+          "name": "Cargar",
+          "sig": "json.loads(texto)",
+          "desc": "Convierte un string JSON en dicts, listas y escalares.",
+          "ex": "json.loads('{\"ok\": true}')"
+        },
+        {
+          "name": "Volcar",
+          "sig": "json.dumps(data)",
+          "desc": "Convierte objetos Python en un string JSON.",
+          "ex": "json.dumps({\"ok\": True})"
+        },
+        {
+          "name": "Archivo",
+          "sig": "json.load(f)",
+          "desc": "Lee un archivo abierto y devuelve el objeto.",
+          "ex": "with open(\"data.json\") as f:\n    data = json.load(f)"
+        },
+        {
+          "name": "Guardar",
+          "sig": "json.dump(data, f)",
+          "desc": "Escribe JSON en un archivo abierto.",
+          "ex": "json.dump(data, f, indent=2)"
+        },
+        {
+          "name": "Indent",
+          "sig": "json.dumps(data, indent=2)",
+          "desc": "Salida legible para humanos; sin indent va compacta.",
+          "ex": "json.dumps(data, indent=2)"
+        },
+        {
+          "name": "Acentos",
+          "sig": "ensure_ascii=False",
+          "desc": "Conserva los acentos y caracteres no ASCII.",
+          "ex": "json.dumps(data, ensure_ascii=False)"
+        },
+        {
+          "name": "Tipos",
+          "sig": "dict ↔ object",
+          "desc": "JSON object→dict, array→list, string→str, number→int/float, null→None.",
+          "ex": "json.loads('null') is None"
+        },
+        {
+          "name": "Navegar",
+          "sig": "data[\"items\"][0][\"id\"]",
+          "desc": "Encadena índices y claves para llegar al dato.",
+          "ex": "data[\"items\"][0][\"id\"]"
+        },
+        {
+          "name": "Faltantes",
+          "sig": "data.get(\"items\", [])",
+          "desc": "Si la clave puede faltar, usa get con un default.",
+          "ex": "data.get(\"items\", [])"
+        },
+        {
+          "name": "Líneas",
+          "sig": "for line in f: json.loads(line)",
+          "desc": "JSON Lines: un objeto por línea, ideal para logs.",
+          "ex": "[json.loads(l) for l in f]"
+        },
+        {
+          "name": "API",
+          "sig": "requests.get(url).json()",
+          "desc": "Una API devuelve JSON; .json() lo convierte.",
+          "ex": "requests.get(url).json()"
+        },
+        {
+          "name": "Errores",
+          "sig": "json.JSONDecodeError",
+          "desc": "Captura el error si el texto no es JSON válido.",
+          "ex": "except json.JSONDecodeError:"
+        }
+      ]
+    },
+    {
+      "id": "python-strings",
+      "name": "Strings",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "Cortar, unir, limpiar, buscar y formatear texto con los métodos que más se usan.",
+      "primary": {
+        "sig": "\"hola\".upper()",
+        "desc": "Los strings son inmutables: cada método devuelve uno nuevo.",
+        "ex": "\"hola\".upper()"
+      },
+      "items": [
+        {
+          "name": "f-string",
+          "sig": "f\"{nombre}, {edad}\"",
+          "desc": "Interpola variables y expresiones; el formato va tras :.",
+          "ex": "f\"{precio:.2f}\""
+        },
+        {
+          "name": "Concatenar",
+          "sig": "\"Hola, \" + nombre",
+          "desc": "Une strings; mejor f-string cuando hay variables.",
+          "ex": "\"Hola, \" + nombre"
+        },
+        {
+          "name": "Slice",
+          "sig": "texto[0:5]",
+          "desc": "Corta un string; no modifica el original.",
+          "ex": "texto[::-1]"
+        },
+        {
+          "name": "Split",
+          "sig": "\"a,b,c\".split(\",\")",
+          "desc": "Parte por un separador y devuelve una lista.",
+          "ex": "\"a,b,c\".split(\",\")"
+        },
+        {
+          "name": "Join",
+          "sig": "\", \".join(items)",
+          "desc": "Une una lista de strings con un separador.",
+          "ex": "\", \".join([\"a\", \"b\"])"
+        },
+        {
+          "name": "Strip",
+          "sig": "texto.strip()",
+          "desc": "Quita espacios (o caracteres) de ambos extremos.",
+          "ex": "texto.strip()"
+        },
+        {
+          "name": "Replace",
+          "sig": "texto.replace(\"viejo\", \"nuevo\")",
+          "desc": "Devuelve una copia con las apariciones cambiadas.",
+          "ex": "texto.replace(\" \", \"_\")"
+        },
+        {
+          "name": "Buscar",
+          "sig": "texto.find(\"py\")",
+          "desc": "Índice de la primera aparición, o -1 si no está.",
+          "ex": "\"py\" in texto"
+        },
+        {
+          "name": "Prefijo",
+          "sig": "texto.startswith(\"http\")",
+          "desc": "Comprueba el inicio; endswith mira el final.",
+          "ex": "texto.endswith(\".csv\")"
+        },
+        {
+          "name": "Mayúsculas",
+          "sig": "texto.lower()",
+          "desc": "lower/upper/capitalize/title para normalizar.",
+          "ex": "texto.strip().lower()"
+        },
+        {
+          "name": "Multilínea",
+          "sig": "\"\"\"línea 1\nlínea 2\"\"\"",
+          "desc": "Las triples comillas conservan los saltos de línea.",
+          "ex": "\"\"\"hola\nmundo\"\"\""
+        },
+        {
+          "name": "Raw",
+          "sig": "r\"C:\\datos\"",
+          "desc": "Sin escapes: ideal para rutas y regex.",
+          "ex": "r\"\\d+\""
+        }
+      ]
+    },
+    {
+      "id": "python-sets-tuples",
+      "name": "Sets y tuplas",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "Sets para duplicados y pertenencia; tuplas para datos fijos y desempaquetado.",
+      "primary": {
+        "sig": "{1, 2} | {2, 3}",
+        "desc": "Un set elimina duplicados y responde ¿está o no está?.",
+        "ex": "{1, 2} | {2, 3}"
+      },
+      "items": [
+        {
+          "name": "Set",
+          "sig": "{1, 2, 3}",
+          "desc": "Colección sin duplicados y sin orden garantizado.",
+          "ex": "set([1, 2, 2])"
+        },
+        {
+          "name": "Añadir",
+          "sig": "s.add(4)",
+          "desc": "Añade un elemento; update añade varios.",
+          "ex": "s.add(4)"
+        },
+        {
+          "name": "Quitar",
+          "sig": "s.discard(2)",
+          "desc": "Discard no falla si no está; remove sí.",
+          "ex": "s.discard(2)"
+        },
+        {
+          "name": "Unión",
+          "sig": "a | b",
+          "desc": "Todos los elementos de ambos sets.",
+          "ex": "{1, 2} | {2, 3}"
+        },
+        {
+          "name": "Intersección",
+          "sig": "a & b",
+          "desc": "Solo lo que está en los dos.",
+          "ex": "{1, 2} & {2, 3}"
+        },
+        {
+          "name": "Diferencia",
+          "sig": "a - b",
+          "desc": "Lo que está en a y no en b.",
+          "ex": "{1, 2} - {2, 3}"
+        },
+        {
+          "name": "Duplicados",
+          "sig": "list(set(items))",
+          "desc": "Quita duplicados; el orden puede cambiar.",
+          "ex": "list(set(items))"
+        },
+        {
+          "name": "Pertenencia",
+          "sig": "x in s",
+          "desc": "Muy rápido: usa set si preguntas muchas veces.",
+          "ex": "3 in {1, 2, 3}"
+        },
+        {
+          "name": "Tupla",
+          "sig": "punto = (10, 20)",
+          "desc": "Como una lista, pero inmutable y hashable.",
+          "ex": "x, y = punto"
+        },
+        {
+          "name": "Desempaquetar",
+          "sig": "a, b = (1, 2)",
+          "desc": "Asigna cada elemento a un nombre.",
+          "ex": "a, b = b, a"
+        },
+        {
+          "name": "Namedtuple",
+          "sig": "Point = namedtuple(\"Point\", \"x y\")",
+          "desc": "Tupla con nombres de campo, legible y ligera.",
+          "ex": "p = Point(1, 2); p.x"
+        },
+        {
+          "name": "Frozenset",
+          "sig": "frozenset({1, 2})",
+          "desc": "Set inmutable: puede ser clave de dict o elemento de set.",
+          "ex": "frozenset({1, 2})"
+        }
+      ]
+    },
+    {
+      "id": "python-control",
+      "name": "Control",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--red)",
+      "f": "dpuk",
+      "intro": "if, match, for, while y los atajos que hacen el flujo fácil de leer.",
+      "primary": {
+        "sig": "for i, x in enumerate(xs):",
+        "desc": "Recorre con índice sin llevar un contador a mano.",
+        "ex": "for i, x in enumerate(xs):"
+      },
+      "items": [
+        {
+          "name": "If",
+          "sig": "if x > 0:",
+          "desc": "La condición se evalúa como verdadero o falso.",
+          "ex": "if x > 0:"
+        },
+        {
+          "name": "Elif",
+          "sig": "elif x == 0:",
+          "desc": "Varias ramas en orden; solo entra la primera que cumple.",
+          "ex": "elif x == 0:"
+        },
+        {
+          "name": "Else",
+          "sig": "else:",
+          "desc": "El caso contrario, cuando ninguna rama anterior entra.",
+          "ex": "else:"
+        },
+        {
+          "name": "Truthy",
+          "sig": "if items:",
+          "desc": "Listas, dicts y strings vacíos son falsy; el resto truthy.",
+          "ex": "if not items:"
+        },
+        {
+          "name": "Match",
+          "sig": "match valor:",
+          "desc": "Estructuras por patrón, más claro que muchos elif.",
+          "ex": "case {\"tipo\": \"a\"}:"
+        },
+        {
+          "name": "For",
+          "sig": "for x in items:",
+          "desc": "Recorre cualquier iterable.",
+          "ex": "for x in items:"
+        },
+        {
+          "name": "Range",
+          "sig": "range(0, 10, 2)",
+          "desc": "Inicio, fin excluido y paso.",
+          "ex": "list(range(3))"
+        },
+        {
+          "name": "Enumerate",
+          "sig": "for i, x in enumerate(items):",
+          "desc": "Índice y valor, sin contador manual.",
+          "ex": "for i, x in enumerate(items):"
+        },
+        {
+          "name": "Zip",
+          "sig": "for a, b in zip(xs, ys):",
+          "desc": "Recorre dos listas en paralelo.",
+          "ex": "for a, b in zip(xs, ys):"
+        },
+        {
+          "name": "While",
+          "sig": "while condicion:",
+          "desc": "Repite mientras sea verdadero; asegura que cambie.",
+          "ex": "while n > 0:\n    n -= 1"
+        },
+        {
+          "name": "Break",
+          "sig": "break",
+          "desc": "Sale del bucle inmediatamente.",
+          "ex": "if x == target:\n    break"
+        },
+        {
+          "name": "For-else",
+          "sig": "for ...: ... else:",
+          "desc": "El else se ejecuta si el bucle no hizo break.",
+          "ex": "for x in xs:\n    if x == target:\n        break\nelse:\n    print(\"no está\")"
+        }
+      ]
+    },
+    {
+      "id": "python-functions",
+      "name": "Funciones",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--green)",
+      "f": "dpuk",
+      "intro": "Parámetros, retorno, *args, **kwargs, lambda y buenas firmas con tipos.",
+      "primary": {
+        "sig": "def saludar(nombre: str) -> str:",
+        "desc": "Una función con nombre, tipo de entrada y de salida.",
+        "ex": "return f\"Hola, {nombre}\""
+      },
+      "items": [
+        {
+          "name": "Def",
+          "sig": "def saludar(nombre):",
+          "desc": "Define una función; el cuerpo va indentado.",
+          "ex": "def saludar(nombre):"
+        },
+        {
+          "name": "Return",
+          "sig": "return f\"Hola, {nombre}\"",
+          "desc": "Devuelve un valor y termina la función.",
+          "ex": "return resultado"
+        },
+        {
+          "name": "Argumentos",
+          "sig": "def f(a, b):",
+          "desc": "Los parámetros se pasan por posición o por nombre.",
+          "ex": "f(1, 2)"
+        },
+        {
+          "name": "Defaults",
+          "sig": "def f(x=0):",
+          "desc": "Valor por defecto si no se pasa el argumento.",
+          "ex": "def f(x=0):"
+        },
+        {
+          "name": "Keyword",
+          "sig": "f(nombre=\"Ana\")",
+          "desc": "Pasar por nombre deja la llamada más clara.",
+          "ex": "f(nombre=\"Ana\")"
+        },
+        {
+          "name": "*args",
+          "sig": "def f(*args):",
+          "desc": "Recibe un número variable de argumentos posicionales.",
+          "ex": "f(1, 2, 3)"
+        },
+        {
+          "name": "**kwargs",
+          "sig": "def f(**kwargs):",
+          "desc": "Recibe argumentos con nombre como un dict.",
+          "ex": "f(a=1, b=2)"
+        },
+        {
+          "name": "Scope",
+          "sig": "global contador",
+          "desc": "Las variables de función son locales; evita global.",
+          "ex": "contador += 1"
+        },
+        {
+          "name": "Lambda",
+          "sig": "lambda x: x * 2",
+          "desc": "Función anónima para una expresión corta.",
+          "ex": "sorted(xs, key=lambda x: x[1])"
+        },
+        {
+          "name": "Docstring",
+          "sig": "\"\"\"Qué hace y qué devuelve.\"\"\"",
+          "desc": "Documenta la función; help(f) la muestra.",
+          "ex": "help(f)"
+        },
+        {
+          "name": "Tipos",
+          "sig": "def f(x: int) -> str:",
+          "desc": "Anotaciones: documentan y basedpyright las revisa.",
+          "ex": "def f(x: int) -> str:"
+        },
+        {
+          "name": "Recursión",
+          "sig": "return f(n - 1)",
+          "desc": "Una función que se llama a sí misma; define el caso base.",
+          "ex": "if n <= 1:\n    return 1"
+        }
+      ]
+    },
+    {
+      "id": "python-errors-beginner",
+      "name": "Errores",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--red)",
+      "f": "dpuk",
+      "intro": "Los errores que verás primero y cómo leer el traceback sin entrar en pánico.",
+      "primary": {
+        "sig": "try: ... except ValueError as e:",
+        "desc": "Captura el error que esperas; deja el resto para el traceback.",
+        "ex": "except ValueError as e:"
+      },
+      "items": [
+        {
+          "name": "Traceback",
+          "sig": "Traceback (most recent call last):",
+          "desc": "Se lee de abajo arriba: la última línea es el error real.",
+          "ex": "# mira la última línea"
+        },
+        {
+          "name": "NameError",
+          "sig": "print(nombre)",
+          "desc": "Usaste un nombre que no existe o no está en scope.",
+          "ex": "nombre = \"Ana\""
+        },
+        {
+          "name": "TypeError",
+          "sig": "\"2\" + 2",
+          "desc": "Mezclaste tipos incompatibles; convierte antes.",
+          "ex": "int(\"2\") + 2"
+        },
+        {
+          "name": "ValueError",
+          "sig": "int(\"hola\")",
+          "desc": "El tipo es correcto, el valor no se puede convertir.",
+          "ex": "int(\"2\")"
+        },
+        {
+          "name": "KeyError",
+          "sig": "d[\"falta\"]",
+          "desc": "La clave no existe; usa get para un default.",
+          "ex": "d.get(\"falta\")"
+        },
+        {
+          "name": "IndexError",
+          "sig": "xs[10]",
+          "desc": "El índice se sale de la lista; comprueba len.",
+          "ex": "xs[-1]"
+        },
+        {
+          "name": "AttributeError",
+          "sig": "\"x\".push(\"y\")",
+          "desc": "Ese objeto no tiene ese método o atributo.",
+          "ex": "\"x\".upper()"
+        },
+        {
+          "name": "ZeroDivision",
+          "sig": "1 / 0",
+          "desc": "No se puede dividir entre cero; valida antes.",
+          "ex": "if b != 0:"
+        },
+        {
+          "name": "Try/except",
+          "sig": "try: ... except ValueError:",
+          "desc": "Captura solo el error que sabes manejar.",
+          "ex": "try:\n    n = int(texto)\nexcept ValueError:"
+        },
+        {
+          "name": "Finally",
+          "sig": "finally:",
+          "desc": "Se ejecuta siempre: cierra recursos.",
+          "ex": "finally:\n    f.close()"
+        },
+        {
+          "name": "Raise",
+          "sig": "raise ValueError(\"dato inválido\")",
+          "desc": "Lanza un error con un mensaje claro.",
+          "ex": "raise ValueError(\"dato inválido\")"
+        },
+        {
+          "name": "Debug",
+          "sig": "breakpoint()",
+          "desc": "Abre pdb en esa línea; inspecciona variables.",
+          "ex": "breakpoint()"
+        }
+      ]
+    },
+    {
+      "id": "python-files-beginner",
+      "name": "Archivos",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--blue)",
+      "f": "dpuk",
+      "intro": "open/with, pathlib, CSV y JSON: leer y escribir datos sin romper nada.",
+      "primary": {
+        "sig": "Path(\"datos.csv\").read_text()",
+        "desc": "pathlib lee el archivo entero sin abrir y cerrar a mano.",
+        "ex": "Path(\"datos.csv\").read_text()"
+      },
+      "items": [
+        {
+          "name": "Open",
+          "sig": "with open(\"datos.txt\") as f:",
+          "desc": "with cierra el archivo aunque haya un error.",
+          "ex": "with open(\"datos.txt\") as f:"
+        },
+        {
+          "name": "Read",
+          "sig": "texto = f.read()",
+          "desc": "Lee todo el contenido como un string.",
+          "ex": "texto = f.read()"
+        },
+        {
+          "name": "Líneas",
+          "sig": "for linea in f:",
+          "desc": "Itera el archivo línea a línea sin cargarlo entero.",
+          "ex": "for linea in f:"
+        },
+        {
+          "name": "Escribir",
+          "sig": "with open(\"out.txt\", \"w\") as f:",
+          "desc": "w crea o trunca; escribe con f.write().",
+          "ex": "f.write(\"hola\\n\")"
+        },
+        {
+          "name": "Añadir",
+          "sig": "open(\"out.txt\", \"a\")",
+          "desc": "a añade al final sin borrar lo anterior.",
+          "ex": "f.write(\"más\\n\")"
+        },
+        {
+          "name": "Encoding",
+          "sig": "open(path, encoding=\"utf-8\")",
+          "desc": "Sé explícito con UTF-8 para acentos y símbolos.",
+          "ex": "open(path, encoding=\"utf-8\")"
+        },
+        {
+          "name": "Pathlib",
+          "sig": "Path(\"datos.txt\").read_text()",
+          "desc": "Lee el archivo entero en una línea.",
+          "ex": "Path(\"datos.txt\").read_text()"
+        },
+        {
+          "name": "Existe",
+          "sig": "Path(\"datos.txt\").exists()",
+          "desc": "Comprueba antes de abrir; is_file/is_dir afinan.",
+          "ex": "if path.exists():"
+        },
+        {
+          "name": "CSV",
+          "sig": "csv.reader(f)",
+          "desc": "Filas como listas; DictReader las da como dicts.",
+          "ex": "for fila in csv.reader(f):"
+        },
+        {
+          "name": "DictReader",
+          "sig": "csv.DictReader(f)",
+          "desc": "La primera fila es el encabezado; cada fila un dict.",
+          "ex": "for fila in csv.DictReader(f):"
+        },
+        {
+          "name": "DictWriter",
+          "sig": "csv.DictWriter(f, fieldnames=cols)",
+          "desc": "Escribe dicts con encabezado y orden de columnas.",
+          "ex": "writer.writeheader()"
+        },
+        {
+          "name": "JSON",
+          "sig": "json.load(f)",
+          "desc": "Lee un archivo JSON abierto con with.",
+          "ex": "data = json.load(f)"
+        }
+      ]
+    },
+    {
+      "id": "python-modules-uv",
+      "name": "Módulos y uv",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--aqua)",
+      "f": "dpuk",
+      "intro": "import, módulos propios, venv y uv: de un archivo a un proyecto.",
+      "primary": {
+        "sig": "uv add requests",
+        "desc": "Añade una dependencia al proyecto y actualiza el lockfile.",
+        "ex": "uv add requests"
+      },
+      "items": [
+        {
+          "name": "Import",
+          "sig": "import math",
+          "desc": "Trae un módulo de la stdlib; úsalo como math.sqrt.",
+          "ex": "math.sqrt(9)"
+        },
+        {
+          "name": "From",
+          "sig": "from pathlib import Path",
+          "desc": "Importa solo el nombre que necesitas.",
+          "ex": "Path(\".\")"
+        },
+        {
+          "name": "Alias",
+          "sig": "import pandas as pd",
+          "desc": "Un alias corto para escribir menos.",
+          "ex": "pd.DataFrame()"
+        },
+        {
+          "name": "Stdlib",
+          "sig": "json, csv, pathlib, datetime",
+          "desc": "Mucho de lo que necesitas ya viene con Python.",
+          "ex": "import json, csv, pathlib"
+        },
+        {
+          "name": "Módulo",
+          "sig": "import utils",
+          "desc": "Un archivo utils.py del proyecto es un módulo.",
+          "ex": "utils.saludar()"
+        },
+        {
+          "name": "Paquete",
+          "sig": "from paquete import modulo",
+          "desc": "Una carpeta con __init__.py agrupa módulos.",
+          "ex": "from app import models"
+        },
+        {
+          "name": "__name__",
+          "sig": "if __name__ == \"__main__\":",
+          "desc": "Ejecuta main solo si corres el archivo directamente.",
+          "ex": "if __name__ == \"__main__\":\n    main()"
+        },
+        {
+          "name": "uv init",
+          "sig": "uv init --app mi-app",
+          "desc": "Crea pyproject, .python-version y una estructura.",
+          "ex": "uv init --app mi-app"
+        },
+        {
+          "name": "uv add",
+          "sig": "uv add requests",
+          "desc": "Añade una dependencia y actualiza uv.lock.",
+          "ex": "uv add requests"
+        },
+        {
+          "name": "uv run",
+          "sig": "uv run python app.py",
+          "desc": "Ejecuta dentro del entorno del proyecto.",
+          "ex": "uv run python app.py"
+        },
+        {
+          "name": "uv sync",
+          "sig": "uv sync",
+          "desc": "Recrea .venv desde el lockfile.",
+          "ex": "uv sync"
+        },
+        {
+          "name": "venv",
+          "sig": "uv venv",
+          "desc": "Crea .venv; no hace falta activarlo con uv run.",
+          "ex": "uv venv"
+        }
+      ]
+    },
+    {
+      "id": "python-recipes",
+      "name": "Recetas",
+      "lang": "python",
+      "set": "starter",
+      "label": "Starter sheet",
+      "ac": "var(--purple)",
+      "f": "dpuk",
+      "intro": "Recetas para contar, agrupar, ordenar, aplanar y convertir listas y dicts.",
+      "primary": {
+        "sig": "Counter(items)",
+        "desc": "Cuenta cuántas veces aparece cada elemento.",
+        "ex": "Counter([\"a\", \"b\", \"a\"])"
+      },
+      "items": [
+        {
+          "name": "Contar",
+          "sig": "Counter(items)",
+          "desc": "Cuenta frecuencias en una línea.",
+          "ex": "Counter([\"a\", \"b\", \"a\"])"
+        },
+        {
+          "name": "Ordenar dict",
+          "sig": "sorted(d.items(), key=lambda kv: kv[1])",
+          "desc": "Ordena por valor; reverse=True para descendente.",
+          "ex": "sorted(d.items(), key=lambda kv: kv[1], reverse=True)"
+        },
+        {
+          "name": "Merge dicts",
+          "sig": "a | b",
+          "desc": "Une dos dicts; b gana en claves repetidas.",
+          "ex": "{**a, **b}"
+        },
+        {
+          "name": "Únicos",
+          "sig": "list(dict.fromkeys(xs))",
+          "desc": "Quita duplicados conservando el orden.",
+          "ex": "list(dict.fromkeys(xs))"
+        },
+        {
+          "name": "Aplanar",
+          "sig": "[x for fila in m for x in fila]",
+          "desc": "Convierte una matriz en una lista plana.",
+          "ex": "[x for fila in m for x in fila]"
+        },
+        {
+          "name": "Trocear",
+          "sig": "[xs[i:i+3] for i in range(0, len(xs), 3)]",
+          "desc": "Parte una lista en bloques de tamaño fijo.",
+          "ex": "[xs[i:i+3] for i in range(0, len(xs), 3)]"
+        },
+        {
+          "name": "Transponer",
+          "sig": "list(zip(*m))",
+          "desc": "Convierte filas en columnas.",
+          "ex": "list(zip(*[[1, 2], [3, 4]]))"
+        },
+        {
+          "name": "Agrupar",
+          "sig": "defaultdict(list)",
+          "desc": "Agrupa valores por clave sin comprobar si existe.",
+          "ex": "d[k].append(v)"
+        },
+        {
+          "name": "Sumar por clave",
+          "sig": "sum(d[k] for k in claves)",
+          "desc": "Suma solo las claves que te interesan.",
+          "ex": "sum(d[k] for k in claves)"
+        },
+        {
+          "name": "Any/all",
+          "sig": "any(xs)",
+          "desc": "¿Alguno es verdadero? all: ¿todos lo son?",
+          "ex": "all(x > 0 for x in xs)"
+        },
+        {
+          "name": "Min/max key",
+          "sig": "max(items, key=len)",
+          "desc": "El elemento con la clave máxima según una función.",
+          "ex": "max(items, key=len)"
+        },
+        {
+          "name": "A JSON/CSV",
+          "sig": "json.dumps(lista, indent=2)",
+          "desc": "Convierte listas de dicts a JSON o CSV.",
+          "ex": "json.dumps(lista, indent=2)"
+        }
+      ]
     }
   ],
 

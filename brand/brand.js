@@ -458,13 +458,14 @@
     var gy = p + topH + topGap + heroH + heroGap, gh = H - p - gy, gap = u * 1.1;
     var cw = (W - 2 * p - (cols - 1) * gap) / cols, ch = (gh - (rows - 1) * gap) / rows;
     var heroW = W - 2 * p, primW = heroW * (wide ? 0.345 : 0.55), introW = heroW - primW - u * 4;
-    var sheetKind = s.id === (s.lang || "go") ? "General sheet" : "Focused sheet";
+    var sheetKind = s.label || (s.id === (s.lang || "go") ? "General sheet" : "Focused sheet");
+    var series = s.set === "starter" ? (s.lang || "go") + " starter" : (s.lang || "go");
     var h = field(g, { op: 0.09, dp: u * 2.1, mask: "linear-gradient(115deg,#000 0,transparent 64%)" });
     /* top: the mark on the left, what this is on the right */
     h += '<div class="b-cs-top" style="left:' + px(p) + ";top:" + px(p) + ";width:" + px(heroW) + ";height:" + px(topH) + '">' +
       '<div class="b-cs-brand" style="gap:' + px(u * 1.05) + '">' + mark("currentColor", topH) + '<b style="font-size:' + px(u * 1.75) + '">Leader</b></div>' +
       '<div class="b-cs-meta"><div class="a" style="font-size:' + px(u * 1.12) + '">' + esc(s.name) + " cheatsheet</div>" +
-      '<div class="b" style="font-size:' + px(u) + ";margin-top:" + px(u * 0.35) + '">' + esc(s.lang || "go") + " · " + String(s.no).padStart(2, "0") + " / " + (s.total || 13) + " · " + s.items.length + " entries</div></div></div>";
+      '<div class="b" style="font-size:' + px(u) + ";margin-top:" + px(u * 0.35) + '">' + esc(series) + " · " + String(s.no).padStart(2, "0") + " / " + (s.total || 13) + " · " + s.items.length + " entries</div></div></div>";
     /* hero: the theme, then the one call to know */
     h += '<div class="b-cs-hero" style="left:' + px(p) + ";top:" + px(p + topH + topGap) + ";width:" + px(heroW) + ";height:" + px(heroH) + '">' +
       '<div class="b-cs-intro"><div class="b-cs-eb" style="font-size:' + px(u * 1.05) + '">' + esc(sheetKind) + '</div>' +
@@ -597,9 +598,9 @@
 
   /* wallpapers with words: each family has its own design and data in copy.js */
   function wpAdd(list, design, kind, numbered) {
-    var langOf = function (x) { return x.lang || "go"; };
+    var keyOf = function (x) { return (x.lang || "go") + "/" + (x.set || "core"); };
     list.forEach(function (w) {
-      var group = numbered ? list.filter(function (x) { return langOf(x) === langOf(w); }) : [];
+      var group = numbered ? list.filter(function (x) { return keyOf(x) === keyOf(w); }) : [];
       var spec = numbered ? Object.assign({ no: group.indexOf(w) + 1, total: group.length }, w) : w;
       w.f.split("").forEach(function (k) {
         var F = C.wallpaperFormats[k];
