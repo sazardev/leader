@@ -2,6 +2,12 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.23.1] - 2026-11-21
+
+### Fixes
+
+- **python:** save the file before running it (973e238)
+
 ## [1.23.0] - 2026-11-20
 
 ### Highlights
