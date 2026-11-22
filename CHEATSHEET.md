@@ -726,6 +726,7 @@ _Where: `python`_
 | `<leader>pc` | coverage |
 | `<leader>pe` | interpreter in use |
 | `<leader>ph` | toggle inlay hints |
+| `<leader>pn` | insert imports (picker) |
 | `<leader>pPi` | init a uv project |
 | `<leader>pPv` | create virtual environment |
 | `<leader>pPp` | install and pin Python |

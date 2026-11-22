@@ -52,12 +52,17 @@ return {
       -- lazydev only exists in Lua files (completes require() and plugin modules)
       -- gotags only in Go: struct tags derived from the field name (utils/gotags.lua)
       per_filetype = {
+        -- pysmart: canonical imports (pd, np, train_test_split…) added at the top of the file; pydata: real data
+        -- paths inside read_csv("…") and the columns of the df that was read (0 tokens, cached per file)
+        python = { "pysmart", "pydata", "lsp", "path", "snippets", "buffer" },
         lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
         go = { "gotags", "gosmart", "lsp", "path", "snippets", "buffer" },
         cs = { "csharpsmart", "lsp", "path", "snippets", "buffer" },
         dart = { "dartsmart", "lsp", "path", "snippets", "buffer" },
       },
       providers = {
+        pysmart = { name = "PyImport", module = "utils.pysmart", score_offset = 95 },
+        pydata = { name = "PyData", module = "utils.pydata", score_offset = 95 },
         lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         gotags = { name = "GoTags", module = "utils.gotags", score_offset = 100 },
         -- constructor / struct{} depending on context, and filters out snippets that do not apply (utils/gosmart.lua)

@@ -499,6 +499,52 @@ local function inlay_hints()
   log.info("Python: inlay hints " .. (enabled and "off" or "on"))
 end
 
+--- Insert canonical imports at the top of the file (bundles or single statements). The completion source does the
+--- same for a typed alias; this is the explicit picker for when you want several at once.
+local function insert_imports()
+  local pyimports = require "utils.pyimports"
+  local buf = vim.api.nvim_get_current_buf()
+  local items, entries = {}, {}
+  for _, bundle in ipairs(pyimports.bundles()) do
+    items[#items + 1] = { label = bundle.label, desc = bundle.desc, group = "Bundles" }
+    entries[#entries] = { ids = bundle.ids }
+  end
+  for _, row in ipairs(pyimports.CATALOG) do
+    items[#items + 1] = { label = row.label, desc = row.detail .. " · " .. row.line, group = row.group }
+    entries[#entries] = { ids = { row.id } }
+  end
+  local modal = require "utils.modal"
+  modal.checklist(items, {
+    title = "Python imports",
+    intro = {
+      {
+        { "Added at the top of ", modal.hl.muted },
+        { vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":t"), modal.hl.folder },
+      },
+      { { "Already imported statements are skipped.", modal.hl.muted } },
+      "",
+    },
+    confirm = "Insert",
+    footer = "Space toggle · a all",
+  }, function(indexes)
+    local statements = {}
+    for _, index in ipairs(indexes) do
+      for _, id in ipairs(entries[index].ids) do
+        local row = pyimports.get(id)
+        if row then
+          statements[#statements + 1] = row.line
+        end
+      end
+    end
+    local added = pyimports.apply(buf, statements)
+    if #added == 0 then
+      log.info "Python: imports already there"
+    else
+      log.info("Python: added " .. table.concat(added, " · "))
+    end
+  end)
+end
+
 local maps = {
   { "r", "run file", run_file },
   { "p", "run project (entry point)", run_project },
@@ -545,6 +591,7 @@ local maps = {
     end,
   },
   { "h", "toggle inlay hints", inlay_hints },
+  { "n", "insert imports (picker)", insert_imports },
   { "Pi", "init a uv project", init_project },
   { "Pv", "create virtual environment", create_venv },
   { "Pp", "install and pin Python", pin_python },
@@ -562,6 +609,46 @@ vim.api.nvim_create_user_command("PythonInit", init_project, {
 vim.api.nvim_create_user_command("PythonDoctor", doctor, {
   desc = "Python: check/install uv, ruff, basedpyright and debugpy",
   force = true,
+})
+
+vim.api.nvim_create_user_command("PyImport", function(opts)
+  local pyimports = require "utils.pyimports"
+  local statements = {}
+  for _, word in ipairs(vim.split(opts.args, "%s+", { trimempty = true })) do
+    local row = pyimports.get(word)
+    if not row then
+      for _, candidate in ipairs(pyimports.CATALOG) do
+        if candidate.label == word or candidate.line == word then
+          row = candidate
+          break
+        end
+      end
+    end
+    if row then
+      statements[#statements + 1] = row.line
+    else
+      log.warn("Python: unknown import " .. word)
+    end
+  end
+  local added = pyimports.apply(0, statements)
+  if #added == 0 then
+    log.info "Python: imports already there"
+  else
+    log.info("Python: added " .. table.concat(added, " · "))
+  end
+end, {
+  nargs = "+",
+  force = true,
+  desc = "Python: insert import statements at the top of the file",
+  complete = function()
+    local pyimports = require "utils.pyimports"
+    local names = {}
+    for _, row in ipairs(pyimports.CATALOG) do
+      names[#names + 1] = row.id
+      names[#names + 1] = row.label
+    end
+    return names
+  end,
 })
 
 vim.list_extend(maps, require("langtest").maps())

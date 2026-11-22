@@ -102,6 +102,23 @@ local defaults = {
     },
   },
 
+  -- Python data analysis (lua/utils/pyimports.lua, lua/utils/pydata.lua): 0-token imports, real file paths and
+  -- dataframe columns, all cached. Text files are read in Lua; Excel/parquet ask the project's python once.
+  python = {
+    imports = {
+      enabled = true,
+      -- A package that is not installed still suggests its import, with `uv add <pkg>` in the detail
+      suggest_missing = true,
+    },
+    data = {
+      enabled = true,
+      sample_bytes = 16384, -- header + a few rows, read once per file (mtime + size)
+      max_columns = 200,
+      roots = { "data", "datasets", "" }, -- relative to the project root, where read_csv("…") looks
+      python_timeout_ms = 4000, -- Excel/parquet columns via the project's python
+    },
+  },
+
   -- Languages (see lua/languages/): disable by name the ones you do not use.
   languages = {
     disabled = {}, -- registry names that are off (the installer writes it to local.lua)

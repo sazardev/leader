@@ -14,6 +14,9 @@ Filetype: `python`. Pack `python` (installer checklist, or `<leader>Sp` → Lang
 | Floating IPython | `<leader>pF` toggles a persistent float; `<leader>ps` sends the line or visual selection, keeps definitions, and returns focus to the editor |
 | Inlay hints | `basedpyright` (call-argument names and return types; on by default, `<leader>ph` toggles) |
 | Auto-import | basedpyright code action (`<leader>ca`) and completion; local modules, the stdlib, and modules already imported |
+| Package/data imports | typed aliases (`pd`, `np`, `plt`…) and symbols (`train_test_split`) offer canonical imports, added at the top of the file (0 tokens) |
+| Data file paths | inside `pd.read_csv("…")`, `read_excel`, `read_parquet`, `open(…)`: real project files, filtered by reader |
+| DataFrame columns | `df["…` and `df.…` after `df = pd.read_csv(…)`: the columns of that file, with a rough type from a sample |
 | Treesitter | `python`, `toml`, `requirements` |
 
 **Installed for you**: Python 3 is a system tool (the setup wizard offers it); `./install.sh` installs **uv** when the
@@ -115,9 +118,42 @@ The script name is exactly the key in `[project.scripts]`: for `plot-xy = "plot_
 `<leader>pj` starts JupyterLab from the project; `<leader>pI` opens IPython with the current file loaded. Add them to
 the project with `<leader>pd` (`ipython jupyterlab`) so they see the project's pandas/NumPy.
 
+## Imports, paths and columns (no AI, no process for text files)
+
+Three small local helpers make the data-analysis loop much shorter. They cost 0 tokens and stay out of the way when
+you are not doing data work.
+
+**Imports.** Type `pd`, `np`, `plt`, `sns`, `Path`, `train_test_split`, `StandardScaler`… and the completion menu offers
+the canonical statement. Accepting it leaves the alias you typed at the cursor and inserts `import pandas as pd` (or the
+matching `from … import …`) at the top of the file, after the module docstring and the other imports — never in the
+middle of a function. Already-present statements are skipped. A package that is not installed in the project still
+offers the import with a `uv add <pkg>` hint, so nothing is hidden while you are learning. For several at once,
+`<leader>pn` opens a checklist with ready-made bundles (data-analysis starter, plots, machine learning, statistics)
+and every individual import; `:PyImport pandas numpy` does the same from a command. `uv add` in the same session is
+picked up the next time the package list is read.
+
+**Paths.** Inside a reader call — `pd.read_csv("…")`, `read_excel`, `read_json`, `read_parquet`, `read_html`, `open(…)`,
+`Path(…)` — completion lists the files that actually exist. It looks under `data/`, `datasets/` and the project root
+first (then the buffer's folder), filters by what the reader can open, and appends `/` to folders so you can keep
+walking down the tree. The detail column shows the size and extension, and the documentation window shows the first
+lines of the file. Paths typed from `~`, `/` or `./` work too. `readcsv`, `readexcel`, `readparquet` and `readjson`
+snippets start you at the right place inside the string.
+
+**Columns.** Once a variable is assigned from a reader (`df = pd.read_csv("data/sales.csv")`), `df["…`, `df.loc[:, "…`
+and `df.…` complete with that file's column names. The type guess next to each column (`int`, `float`, `date`, `bool`,
+`str`) comes from the first rows, not from a model. CSV/TSV, JSON and Markdown tables are parsed in Lua from the header
+and cached by `mtime + size` (one read per file, a few KB); Excel and parquet ask the project's Python **once** in the
+background and cache the answer. With `read_sql("SELECT …", con)` the columns come straight from the SELECT list.
+No server, no AI, no work until you type where a column belongs.
+
+Knobs live in `core.settings.python`: `imports.enabled`, `imports.suggest_missing`, `data.enabled`,
+`data.sample_bytes`, `data.max_columns`, `data.roots` and `data.python_timeout_ms`. Text parsing stays under
+`sample_bytes`; a corrupted or binary file simply offers no columns instead of slowing typing down.
+
 ## Snippets
 
-`testfunction`, `parametrize`, `fixture`, `dataclass` (frozen, slots), `ifmain`, `exception` (with its data).
+`testfunction`, `parametrize`, `fixture`, `dataclass` (frozen, slots), `ifmain`, `exception` (with its data),
+`readcsv`, `readexcel`, `readparquet`, `readjson` (they open the path completion above), `dfhead`, `dfinfo`.
 
 ## Pitfalls
 

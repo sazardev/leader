@@ -78,5 +78,63 @@
       "\t\tself.$3 = $3"
     ],
     "description": "an exception with its data"
+  },
+  "read csv": {
+    "prefix": [
+      "readcsv"
+    ],
+    "body": [
+      "${1:df} = pd.read_csv(\"${2:data/}\")",
+      "${0}"
+    ],
+    "description": "read a CSV into a DataFrame (path completion inside the string)"
+  },
+  "read excel": {
+    "prefix": [
+      "readexcel"
+    ],
+    "body": [
+      "${1:df} = pd.read_excel(\"${2:data/}\")",
+      "${0}"
+    ],
+    "description": "read an Excel sheet into a DataFrame"
+  },
+  "read parquet": {
+    "prefix": [
+      "readparquet"
+    ],
+    "body": [
+      "${1:df} = pd.read_parquet(\"${2:data/}\")",
+      "${0}"
+    ],
+    "description": "read a parquet file into a DataFrame"
+  },
+  "read json": {
+    "prefix": [
+      "readjson"
+    ],
+    "body": [
+      "${1:df} = pd.read_json(\"${2:data/}\")",
+      "${0}"
+    ],
+    "description": "read a JSON file into a DataFrame"
+  },
+  "dataframe head": {
+    "prefix": [
+      "dfhead"
+    ],
+    "body": [
+      "${1:df}.head(${2:5})"
+    ],
+    "description": "the first rows of a DataFrame"
+  },
+  "dataframe info": {
+    "prefix": [
+      "dfinfo"
+    ],
+    "body": [
+      "${1:df}.info()"
+    ],
+    "description": "columns, types and nulls of a DataFrame"
   }
 }
