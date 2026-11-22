@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.26.1] - 2026-11-22
+
+### Performance
+
+- **python:** instant completions at every keystroke (635bb2e)
+
+### Other changes
+
+- chore(packaging): point the Arch packages at v1.26.0 (ddf9d2f)
+
 ## [1.26.0] - 2026-11-22
 
 ### Features
