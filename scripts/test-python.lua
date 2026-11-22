@@ -1,6 +1,6 @@
--- Tests for the Python project helpers (utils/python.lua): module paths, pyproject scripts, versions, the venv and the
--- entry points (scripts, __main__.py, Django, FastAPI, Flask, Streamlit, plain scripts). Hermetic: temporary project
--- directories, no uv, pytest or network.
+-- Tests for the Python helpers (utils/python.lua: module paths, pyproject scripts, versions, the venv and the entry
+-- points; servers/basedpyright_prewarm.lua: the aliases to warm). Hermetic: temporary project directories, no uv,
+-- pytest, LSP or network.
 local fails = 0
 local function print(...)
   io.stdout:write(table.concat(vim.tbl_map(tostring, { ... }), "\t"), "\n")
@@ -35,6 +35,80 @@ eq("data stack: JupyterLab", vim.tbl_contains(py.DATA.runtime, "jupyterlab"), tr
 eq("data stack: Excel", vim.tbl_contains(py.DATA.runtime, "openpyxl"), true)
 eq("data stack: HDF5", vim.tbl_contains(py.DATA.runtime, "tables"), true)
 eq("data stack: pytest-cov", vim.tbl_contains(py.DATA.dev, "pytest-cov"), true)
+
+-- basedpyright prewarm: one completion position after each imported alias (pure, no LSP)
+local prewarm = require "servers.basedpyright_prewarm"
+local imported = {
+  "import pandas as pd",
+  "import matplotlib.pyplot as plt",
+  "from numpy import array as arr",
+  "def f():",
+  "    xpd.not_an_alias()",
+  "    pd.read_csv('x')",
+  "    plt.figure()",
+  "    arr.T",
+}
+eq("prewarm: aliases and positions", prewarm.targets(imported), {
+  { alias = "pd", line = 5, character = 7 },
+  { alias = "plt", line = 6, character = 8 },
+  { alias = "arr", line = 7, character = 8 },
+})
+eq("prewarm: limit", #prewarm.targets(imported, 2), 2)
+eq("prewarm: no imports", prewarm.targets { "print('x')" }, {})
+eq("prewarm: from-import without as", prewarm.targets { "from math import sqrt", "x = sqrt.pi" }, {
+  { alias = "sqrt", line = 1, character = 9 },
+})
+
+-- Python import aliases and the instant attribute completions (pure)
+local imports = require "utils.pyimports"
+local attrs = require "utils.pyattrs"
+eq("aliases: dotted and simple", imports.aliases {
+  "import pandas as pd",
+  "import matplotlib.pyplot as plt",
+  "import os",
+  "from numpy import array as arr",
+  "from pathlib import Path",
+}, { pd = "pandas", plt = "matplotlib.pyplot", os = "os", arr = "numpy.array", Path = "pathlib.Path" })
+eq("attrs: exported names", attrs.parse(table.concat({
+  "from x import (",
+  "    alpha,",
+  "    beta as gamma,",
+  ")",
+  "from y import delta",
+  "def phi(): pass",
+  "async def chi(): pass",
+  "class Kappa: pass",
+  "_private = 1",
+}, "\n")), { "alpha", "beta", "delta", "phi", "chi", "Kappa" })
+
+eq("attrs: DataFrame variable", attrs.variables({
+  "import pandas as pd",
+  "df = pd.read_csv('data.csv')",
+  "s = pd.Series([1, 2])",
+  "local = other.read_csv('x')",
+}, { pd = "pandas" }), { df = "pandas.DataFrame", s = "pandas.Series" })
+eq("attrs: class members", attrs.class_members(table.concat({
+  "class Other:",
+  "    def other(self): pass",
+  "",
+  "class DataFrame:",
+  "    def groupby(self): pass",
+  "    def head(self): pass",
+  "    def groupby(self): pass",
+  "",
+  "def outside(): pass",
+}, "\n"), "DataFrame"), { "groupby", "head" })
+
+local builtins = require "utils.pybuiltins"
+for _, word in ipairs { "print", "len", "range", "for", "if", "None" } do
+  eq("builtins: " .. word, vim.tbl_contains(builtins.words(), word), true)
+end
+local got_builtins
+builtins.new():get_completions({ line = "    pri", cursor = { 1, 7 }, bufnr = 0 }, function(r) got_builtins = r end)
+eq("builtins: print suggested", vim.tbl_contains(vim.tbl_map(function(i) return i.label end, got_builtins.items), "print"), true)
+local got_attr
+builtins.new():get_completions({ line = "pd.pr", cursor = { 1, 5 }, bufnr = 0 }, function(r) got_attr = r end)
+eq("builtins: attributes left to pyattrs", #got_attr.items, 0)
 
 -- ── fixtures on disk ───────────────────────────────────────────────────────
 local root = vim.fn.tempname()

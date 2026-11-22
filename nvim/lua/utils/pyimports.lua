@@ -359,6 +359,37 @@ function M.matches(word, installed)
   return out
 end
 
+--- Aliases bound by the imports of a Python buffer, mapped to the module/symbol they point at (pure).
+--- `import a.b as c` → c = "a.b"; `import a.b` → a = "a.b"; `from a import b as c` → c = "a.b".
+---@param lines string[]
+---@return table<string, string>
+function M.aliases(lines)
+  local out = {}
+  for _, line in ipairs(lines) do
+    local mod = line:match "^%s*from%s+([%w_.]+)%s+import"
+    if mod then
+      local name, as = line:match "^%s*from%s+[%w_.]+%s+import%s+([%w_]+)%s+as%s+([%w_]+)"
+      if not name then
+        name = line:match "^%s*from%s+[%w_.]+%s+import%s+([%w_]+)"
+      end
+      if name then
+        out[as or name] = mod .. "." .. name
+      end
+    else
+      local name, as = line:match "^%s*import%s+([%w_.]+)%s+as%s+([%w_]+)"
+      if name then
+        out[as] = name
+      else
+        name = line:match "^%s*import%s+([%w_.]+)"
+        if name then
+          out[name:match "^([%w_]+)"] = name
+        end
+      end
+    end
+  end
+  return out
+end
+
 -- ── top-of-file insertion ────────────────────────────────────────────────────
 
 local function is_import(line)
@@ -454,11 +485,19 @@ end
 
 -- ── installed packages (fast directory scan, once per project) ────────────────
 
-local installed_cache = {}
+local installed_cache, stamp_cache = {}, {}
 
 local function venv_stamp(root)
+  -- pysmart calls this on every keystroke: reuse the stat for half a second (uv add is not a per-key event).
+  local now = vim.uv.now()
+  local hit = stamp_cache[root]
+  if hit and now - hit.at < 500 then
+    return hit.value
+  end
   local lib = vim.uv.fs_stat(root .. "/.venv/lib") or vim.uv.fs_stat(root .. "/venv/lib")
-  return lib and lib.mtime.sec or 0
+  local value = lib and lib.mtime.sec or 0
+  stamp_cache[root] = { value = value, at = now }
+  return value
 end
 
 --- Top-level packages present in the project's virtual environment.
@@ -508,7 +547,7 @@ end
 
 --- Forget the cached scan (after `uv add` in the same session)
 function M.reset()
-  installed_cache = {}
+  installed_cache, stamp_cache = {}, {}
 end
 
 return M

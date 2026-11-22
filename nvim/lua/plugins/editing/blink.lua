@@ -53,8 +53,9 @@ return {
       -- gotags only in Go: struct tags derived from the field name (utils/gotags.lua)
       per_filetype = {
         -- pysmart: canonical imports (pd, np, train_test_split…) added at the top of the file; pydata: real data
-        -- paths inside read_csv("…") and the columns of the df that was read (0 tokens, cached per file)
-        python = { "pysmart", "pydata", "lsp", "path", "snippets", "buffer" },
+        -- paths inside read_csv("…") and the columns of the df that was read (0 tokens, cached per file); pyattrs:
+        -- exported names of an installed module; pybuiltins: print/len/for/if… — both instant while basedpyright works
+        python = { "pysmart", "pydata", "pyattrs", "pybuiltins", "lsp", "path", "snippets", "buffer" },
         lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
         go = { "gotags", "gosmart", "lsp", "path", "snippets", "buffer" },
         cs = { "csharpsmart", "lsp", "path", "snippets", "buffer" },
@@ -63,6 +64,8 @@ return {
       providers = {
         pysmart = { name = "PyImport", module = "utils.pysmart", score_offset = 95 },
         pydata = { name = "PyData", module = "utils.pydata", score_offset = 95 },
+        pyattrs = { name = "PyAttr", module = "utils.pyattrs", score_offset = 90 },
+        pybuiltins = { name = "PyBuiltin", module = "utils.pybuiltins", score_offset = 92 },
         lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         gotags = { name = "GoTags", module = "utils.gotags", score_offset = 100 },
         -- constructor / struct{} depending on context, and filters out snippets that do not apply (utils/gosmart.lua)
@@ -81,6 +84,10 @@ return {
           end,
         },
         lsp = {
+          -- blink waits for EVERY provider before showing the menu (2 s by default). A language server can take that
+          -- long for the first completion at a new position: show what the local sources already have, then merge the
+          -- LSP items when they arrive instead of holding the menu open.
+          timeout_ms = 150,
           transform_items = function(ctx, items)
             return require("utils.gosmart").quiet_lsp(ctx, items)
           end,
@@ -115,8 +122,9 @@ return {
         },
       },
       documentation = {
-        auto_show = true,
-        auto_show_delay_ms = 0, -- no wait on select (default is 500 ms)
+        -- Resolving a doc costs ~120–400 ms the first time for a pandas/numpy symbol. Moving through the list must
+        -- not pay that per item: <C-space> still shows the documentation on demand (and hides it again).
+        auto_show = false,
         window = { border = require("ui.flat").border "beside" },
       },
     },

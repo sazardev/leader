@@ -120,7 +120,7 @@ the project with `<leader>pd` (`ipython jupyterlab`) so they see the project's p
 
 ## Imports, paths and columns (no AI, no process for text files)
 
-Three small local helpers make the data-analysis loop much shorter. They cost 0 tokens and stay out of the way when
+Four small local helpers make the data-analysis loop much shorter. They cost 0 tokens and stay out of the way when
 you are not doing data work.
 
 **Imports.** Type `pd`, `np`, `plt`, `sns`, `Path`, `train_test_split`, `StandardScaler`… and the completion menu offers
@@ -131,6 +131,17 @@ offers the import with a `uv add <pkg>` hint, so nothing is hidden while you are
 `<leader>pn` opens a checklist with ready-made bundles (data-analysis starter, plots, machine learning, statistics)
 and every individual import; `:PyImport pandas numpy` does the same from a command. `uv add` in the same session is
 picked up the next time the package list is read.
+
+**Attributes and builtins.** Typing `pd.`, `plt.` or `np.` immediately offers the names that module actually exports,
+read from its installed stubs/source (`.pyi` first, then `.py`) and cached by `mtime + size`. A variable assigned from
+`pd.read_csv(…)`/`pd.DataFrame(…)` gets the methods of `DataFrame` (`df.groupby`, `df.head`…); `pd.Series(…)` gets
+`Series`. `print`, `len`, `for`,
+`if`, `None`… are offered locally too, even in an empty file. basedpyright takes about a second to answer a completion
+at a **new** position — it caches per position and every keystroke invalidates the old one — so these local items keep
+the menu useful while it works; the typed, documented LSP items arrive alongside them. The module aliases are also
+warmed once when the server attaches, so completions on code that is already in the file are instant. Blink shows the
+menu after 150 ms instead of waiting up to 2 s for every provider, then merges the LSP items when they arrive.
+Turn the local attribute items off with `attributes.enabled = false` if you only want LSP completions.
 
 **Paths.** Inside a reader call — `pd.read_csv("…")`, `read_excel`, `read_json`, `read_parquet`, `read_html`, `open(…)`,
 `Path(…)` — completion lists the files that actually exist. It opens again right after typing `/` (so `data/` alone is
@@ -148,8 +159,8 @@ and cached by `mtime + size` (one read per file, a few KB); Excel and parquet as
 background and cache the answer. With `read_sql("SELECT …", con)` the columns come straight from the SELECT list.
 No server, no AI, no work until you type where a column belongs.
 
-Knobs live in `core.settings.python`: `imports.enabled`, `imports.suggest_missing`, `data.enabled`,
-`data.sample_bytes`, `data.max_columns`, `data.roots` and `data.python_timeout_ms`. Text parsing stays under
+Knobs live in `core.settings.python`: `imports.enabled`, `imports.suggest_missing`, `attributes.enabled`,
+`data.enabled`, `data.sample_bytes`, `data.max_columns`, `data.roots` and `data.python_timeout_ms`. Text parsing stays under
 `sample_bytes`; a corrupted or binary file simply offers no columns instead of slowing typing down.
 
 ## Snippets

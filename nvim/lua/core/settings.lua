@@ -117,6 +117,9 @@ local defaults = {
       roots = { "data", "datasets", "" }, -- relative to the project root, where read_csv("…") looks
       python_timeout_ms = 4000, -- Excel/parquet columns via the project's python
     },
+    -- Instant `pd.` / `plt.` suggestions from the installed stubs/source (cached per file); the LSP still supplies
+    -- the typed, documented items. Turn off if you only want LSP completions.
+    attributes = { enabled = true },
   },
 
   -- Languages (see lua/languages/): disable by name the ones you do not use.
