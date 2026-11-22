@@ -497,18 +497,24 @@ function M.path_items(ctx, raw, reader, qpos)
   if dir ~= "" then
     part = raw:sub(#dir + 1)
   end
+  local root = py.root(vim.fs.dirname(bufname))
+  local bufdir = vim.fs.dirname(bufname)
   local roots = {}
-  if raw:sub(1, 2) == "~/" then
-    roots = { vim.fn.expand "~" .. "/" .. dir }
-  elseif raw:sub(1, 1) == "/" then
-    roots = { "/" .. dir }
-  else
-    local root = py.root(vim.fs.dirname(bufname))
-    for _, r in ipairs(settings().roots or { "data", "datasets", "" }) do
-      local base = r == "" and root or root .. "/" .. r
-      roots[#roots + 1] = base .. (dir ~= "" and "/" .. dir or "")
+  if dir ~= "" then
+    -- The folder is already typed: look exactly there (relative to the project or the buffer) and keep it in the
+    -- inserted text, so accepting `data/sa` never turns into just `sales.csv`.
+    if raw:sub(1, 2) == "~/" then
+      roots = { vim.fn.expand "~" .. "/" .. dir:sub(3) }
+    elseif raw:sub(1, 1) == "/" then
+      roots = { dir }
+    else
+      roots = { root .. "/" .. dir, bufdir .. "/" .. dir }
     end
-    roots[#roots + 1] = vim.fs.dirname(bufname) .. (dir ~= "" and "/" .. dir or "")
+  else
+    for _, r in ipairs(settings().roots or { "data", "datasets", "" }) do
+      roots[#roots + 1] = r == "" and root or root .. "/" .. r
+    end
+    roots[#roots + 1] = bufdir
   end
   local range = {
     start = { line = ctx.cursor[1] - 1, character = qpos },
@@ -525,10 +531,10 @@ function M.path_items(ctx, raw, reader, qpos)
         end
         if name:sub(1, 1) ~= "." and vim.startswith(name, part) then
           local e = extension(name)
-          local prefix = ""
-          -- a file found in `data/` while the user only typed `"` needs the folder in the inserted path
-          if dir == "" and raw:sub(1, 1) ~= "/" and raw:sub(1, 2) ~= "~/" then
-            local rel = vim.fs.relpath(py.root(vim.fs.dirname(bufname)), basedir)
+          local prefix = dir
+          -- with no typed folder, a file found in `data/` needs the folder in the inserted path
+          if prefix == "" then
+            local rel = vim.fs.relpath(root, basedir)
             if rel and rel ~= "" and rel ~= "." then
               prefix = rel .. "/"
             end
@@ -589,6 +595,11 @@ end
 
 function Source:enabled()
   return vim.bo.filetype == "python"
+end
+
+-- `/` must reopen the menu right after `data/` (with an empty filename), and `"`/`'` at the start of a reader call.
+function Source:get_trigger_characters()
+  return { "/", '"', "'", ".", "\\" }
 end
 
 function Source:resolve(item, callback)

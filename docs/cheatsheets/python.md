@@ -133,9 +133,11 @@ and every individual import; `:PyImport pandas numpy` does the same from a comma
 picked up the next time the package list is read.
 
 **Paths.** Inside a reader call — `pd.read_csv("…")`, `read_excel`, `read_json`, `read_parquet`, `read_html`, `open(…)`,
-`Path(…)` — completion lists the files that actually exist. It looks under `data/`, `datasets/` and the project root
-first (then the buffer's folder), filters by what the reader can open, and appends `/` to folders so you can keep
-walking down the tree. The detail column shows the size and extension, and the documentation window shows the first
+`Path(…)` — completion lists the files that actually exist. It opens again right after typing `/` (so `data/` alone is
+enough, no letter needed). It looks under `data/`, `datasets/` and the project root first (then the buffer's folder),
+filters by what the reader can open, and appends `/` to folders so you can keep walking down the tree. The label and
+the inserted text are the **whole path you typed**: accepting `data/sa` gives `data/sales.csv`, never a bare filename
+that loses the folder. The detail column shows the size and extension, and the documentation window shows the first
 lines of the file. Paths typed from `~`, `/` or `./` work too. `readcsv`, `readexcel`, `readparquet` and `readjson`
 snippets start you at the right place inside the string.
 

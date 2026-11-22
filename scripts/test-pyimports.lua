@@ -188,14 +188,21 @@ ok(
 
 vim.api.nvim_buf_set_lines(code, 0, -1, false, { 'df = pd.read_csv("data/' })
 local paths = complete(pydata_source, 'df = pd.read_csv("data/', 23, code, 1)
-ok("pydata: path completion", paths and #paths.items > 0, vim.inspect(paths and paths.items))
+ok("pydata: path completion right after the slash", paths and #paths.items > 0, vim.inspect(paths and paths.items))
 ok(
-  "pydata: csv files under data/",
-  #paths.items >= 1 and paths.items[1].label == "sales.csv",
+  "pydata: keeps the typed folder in the label",
+  #paths.items >= 1 and paths.items[1].label == "data/sales.csv",
   vim.inspect(vim.tbl_map(function(i)
     return i.label
   end, paths.items))
 )
+local partial = complete(pydata_source, 'df = pd.read_csv("data/sa', 25, code, 1)
+ok(
+  "pydata: accepting a partial keeps the whole path",
+  #partial.items >= 1 and partial.items[1].textEdit.newText == "data/sales.csv",
+  vim.inspect(partial and partial.items)
+)
+ok("pydata: triggers on slash", vim.tbl_contains(pydata_source:get_trigger_characters(), "/"))
 
 if fails > 0 then
   print("FAILURES: " .. fails)
