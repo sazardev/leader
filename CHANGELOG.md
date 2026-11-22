@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.26.0] - 2026-11-22
+
+### Features
+
+- **python:** add 0-token imports, data paths and columns (3373323)
+
+### Fixes
+
+- **python:** keep typed folder in data path completions (e938cef)
+
 ## [1.25.0] - 2026-11-21
 
 ### Features
