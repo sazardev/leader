@@ -26,12 +26,12 @@ local M = {
         autoImportCompletions = true,
         autoSearchPaths = true,
         useLibraryCodeForTypes = true,
-        inlayHints = { callArgumentNames = true, variableTypes = false, functionReturnTypes = true },
+        inlayHints = { callArgumentNames = true, variableTypes = true, functionReturnTypes = true },
       },
     },
   },
-  -- Inlay hints on by default for Python: call-argument names and unannotated return types.
-  -- <leader>ph toggles them (languages/actions/python.lua).
+  -- Inlay hints on by default for Python: inferred variable types (`x: list[int]`), call-argument
+  -- names and unannotated return types. <leader>ph toggles them (languages/actions/python.lua).
   on_attach = function(_, bufnr)
     vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
   end,
