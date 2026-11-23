@@ -826,6 +826,12 @@ local defaults = {
 
   -- vim.o.<key> = value
   options = {
+    -- Indentation: PEP 8 / standard code style (4 spaces, never tabs) applied GLOBALLY.
+    -- Overrides NvChad's default of 2 spaces (nvchad.options). One width for every language.
+    expandtab = true, -- insert spaces, never literal tabs
+    shiftwidth = 4, -- width of one indent (>>, autoindent)
+    softtabstop = 4, -- spaces a Tab key inserts in insert mode
+    tabstop = 4, -- width of a literal tab if one ever appears
     cmdheight = 0,
     showmode = false,
     showcmd = false,

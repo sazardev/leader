@@ -736,6 +736,14 @@ _Where: `python`_
 | `<leader>pCg` | REPL generate code with local model |
 | `<leader>pCt` | REPL chat with local model |
 | `<leader>pCf` | REPL toggle local completion (FIM) |
+| `<leader>pKu` | clean remove unused imports |
+| `<leader>pKs` | clean sort and dedupe imports |
+| `<leader>pKa` | clean add missing imports |
+| `<leader>pKv` | clean remove unused variables (ruff F841) |
+| `<leader>pKc` | clean all imports |
+| `<leader>pKt` | clean toggle cleanup on save |
+| `<leader>pk` | clean all imports |
+| `<leader>pQ` | clean remove unused variables (ruff F841) |
 | `<leader>pPi` | init a uv project |
 | `<leader>pPv` | create virtual environment |
 | `<leader>pPp` | install and pin Python |
