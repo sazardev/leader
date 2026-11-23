@@ -2,6 +2,18 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.27.0] - 2026-11-23
+
+### Features
+
+- **python:** REPL workspace, standard imports and import cleanup (12001e9)
+- **python:** show inferred variable types as inlay hints (7175a16)
+- **sql:** make completion, queries and results feel instant (10b7978)
+
+### Other changes
+
+- style(core): use four-space indentation globally (64b98a1)
+
 ## [1.26.1] - 2026-11-22
 
 ### Performance
