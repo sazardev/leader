@@ -16,7 +16,8 @@ function M.check()
     vim.health.ok(("Connection: %s · %s · %s"):format(c.name, c.kind, connections.shown(c.target)))
     local list = connections.of(root)
     if #list > 1 then
-      vim.health.info(("Found %d connections (the first one is used):"):format(#list))
+      local current = connections.current(root)
+      vim.health.info(("Found %d connections (using %s):"):format(#list, current and current.name or "—"))
       for _, item in ipairs(list) do
         vim.health.info(("  %s · %s · %s"):format(item.name, item.kind, connections.shown(item.target)))
       end
@@ -32,6 +33,17 @@ function M.check()
     else
       vim.health.error(("Client: %s is not installed"):format(binary), { d and d.install or "" })
     end
+  end
+  local source = require("sqlrun").dialect_source()
+  vim.health.info(("Dialect: %s (%s)"):format(require("sqlrun").dialect(), source))
+  local lsp = require "sqlrun.lsp"
+  local description = "sqls: " .. lsp.describe(root)
+  if lsp.get(root).status == "connected" then
+    vim.health.ok(description)
+  elseif lsp.get(root).status == "error" then
+    vim.health.error(description)
+  else
+    vim.health.info(description)
   end
   local install = {
     sqls = ":MasonInstall sqls",

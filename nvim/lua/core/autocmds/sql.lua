@@ -1,7 +1,7 @@
 -- ── SQL: the :Sql command and the per-buffer hook ───────────────────────────
 -- `:Sql` opens the info panel; every subcommand is the same thing as its <leader>Q key (run, file, explain, analyze,
--- tables, describe, schema, connections, info, history, ping, fix, format, stop, new). The FileType hook loads sqlrun
--- for a .sql buffer, which is what puts the connection/dialect chip on the statusline.
+-- tables, describe, schema, connections, dialect, favorite(s), check, plan, ping, fix, format, stop, new). The FileType
+-- hook loads sqlrun for a .sql buffer: the connection/dialect chip on the statusline and the local 0-token checks.
 local SUBCOMMANDS = {
   "run",
   "file",
@@ -11,8 +11,13 @@ local SUBCOMMANDS = {
   "describe",
   "schema",
   "connections",
+  "dialect",
   "info",
   "history",
+  "favorite",
+  "favorites",
+  "check",
+  "plan",
   "ping",
   "fix",
   "format",
@@ -42,6 +47,36 @@ function M.setup()
     pattern = "sql",
     callback = function()
       require("sqlrun").attach()
+    end,
+  })
+
+  -- Local checks: one debounced pass per burst of typing, never a process (SQLFluff is the process one).
+  local ns = vim.api.nvim_create_namespace "sqlcheck"
+  local timers = {}
+  vim.api.nvim_create_autocmd({ "TextChanged", "BufWritePost", "BufEnter" }, {
+    group = group,
+    pattern = "*.sql",
+    callback = function(ev)
+      if (require("core.settings").sql or {}).check == false then
+        return
+      end
+      if timers[ev.buf] then
+        pcall(function()
+          timers[ev.buf]:stop()
+        end)
+      end
+      timers[ev.buf] = vim.defer_fn(function()
+        timers[ev.buf] = nil
+        if not vim.api.nvim_buf_is_valid(ev.buf) then
+          return
+        end
+        local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, -1, false)
+        local text = table.concat(lines, "\n")
+        local ok, diags = pcall(require("sqlrun.check").check, text, require("sqlrun").dialect())
+        if ok then
+          vim.diagnostic.set(ns, ev.buf, diags)
+        end
+      end, 250)
     end,
   })
 end

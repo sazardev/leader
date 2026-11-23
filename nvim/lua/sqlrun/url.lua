@@ -44,12 +44,73 @@ end
 ---@field query table<string, string>
 ---@field query_string string
 
---- Splits a URL; nil when it has no `scheme://` (a DSN or a plain path)
+--- `key=value` pairs from a query string or a semicolon-separated DSN, keys lowercased and spaces removed
+---@param text string
+---@param sep string
+---@return table<string, string>
+local function pairs_of(text, sep)
+  local out = {}
+  for pair in (text or ""):gmatch("[^" .. sep .. "]+") do
+    local key, value = pair:match "^%s*([^=]+)%s*=%s*(.-)%s*$"
+    if key then
+      out[key:lower():gsub("%s+", "")] = decode(value)
+    end
+  end
+  return out
+end
+
+--- Go's MySQL DSN (`app:pass@tcp(db:3306)/app?parseTime=true`) and ODBC SQL Server DSN
+--- (`server=db,1433;user id=sa;password=…;database=app`) are both found by dialects.detect; parse them into the same
+--- shape as a URL so the clients can actually run them, instead of offering a connection that always fails.
+---@param target string?
+---@return SqlUrl?
+function M.parse_dsn(target)
+  if type(target) ~= "string" then
+    return nil
+  end
+  local userinfo, endpoint, dbpath, qs = target:match("^([^@]+)@tcp%((.-)%)(/?[^?]*)%??(.*)$")
+  if userinfo and endpoint then
+    local user, password = userinfo:match "^([^:]*):?(.*)$"
+    local host, port = split_host(endpoint)
+    local path = dbpath ~= "" and (dbpath:sub(1, 1) == "/" and dbpath or ("/" .. dbpath)) or ""
+    return {
+      scheme = "mysql",
+      user = decode(user or ""),
+      password = password ~= "" and decode(password) or nil,
+      host = host,
+      port = port,
+      database = decode((path:gsub("^/", ""))),
+      path = path,
+      query = pairs_of(qs, "&"),
+      query_string = qs,
+    }
+  end
+  if target:lower():match "^%s*server%s*=" or target:lower():match "^%s*data source%s*=" then
+    local p = pairs_of(target, ";")
+    local host, port = split_host((p.server or p["datasource"] or ""):gsub(",", ":"))
+    return {
+      scheme = "sqlserver",
+      user = p["userid"] or p.uid,
+      password = p.password or p.pwd,
+      host = host,
+      port = port,
+      database = p.database or p["initialcatalog"],
+      path = p.database and ("/" .. p.database) or "",
+      query = p,
+      query_string = "",
+    }
+  end
+end
+
+--- Splits a URL or a DSN; nil when there is neither (a plain file path).
 ---@param target string?
 ---@return SqlUrl?
 function M.parse(target)
   if type(target) ~= "string" then
     return nil
+  end
+  if not target:match "^%a[%w+.-]*://" then
+    return M.parse_dsn(target)
   end
   local scheme, rest = target:match "^(%a[%w+.-]*)://(.*)$"
   if not scheme then

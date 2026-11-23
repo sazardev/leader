@@ -41,6 +41,7 @@ function M.root()
     dir = vim.fn.getcwd()
   end
   return vim.fs.root(dir, {
+    "config.yml",
     ".env",
     ".git",
     ".sqlfluff",
@@ -54,11 +55,26 @@ function M.root()
   }) or dir
 end
 
---- The dialect of the current project's connection, or the fallback from `settings.sql.dialect`
+--- The dialect of the current project: the one set with <leader>QD wins, then the connection's, then the fallback.
 ---@return SqlDialect
 function M.dialect_info()
-  local c = connections.current(M.root())
+  local root = M.root()
+  local forced = require("sqlrun.dialect").get(root)
+  local chosen = forced and dialects.get(forced) or nil
+  if chosen then
+    return chosen
+  end
+  local c = connections.current(root)
   return (c and dialects.get(c.kind)) or dialects.fallback()
+end
+
+--- Where the dialect came from: "forced" (<leader>QD), "connection" or "default" (settings.sql.dialect)
+---@return string
+function M.dialect_source()
+  if require("sqlrun.dialect").get(M.root()) then
+    return "forced"
+  end
+  return connections.current(M.root()) and "connection" or "default"
 end
 
 --- The dialect id ("postgres", "sqlite", "mysql", "mariadb", "sqlserver", "duckdb")
@@ -129,7 +145,8 @@ end
 ---@param text string
 ---@param c SqlConnection
 ---@param label string what ran ("statement", "selection", "file", "explain")
-local function send(text, c, label)
+---@param where { buf: integer, last: integer }? where to put the inline result mark
+local function send(text, c, label, where)
   if not text or vim.trim(text) == "" then
     return
   end
@@ -177,6 +194,15 @@ local function send(text, c, label)
         lines[#lines + 1] = line
       end
       results.show { name = "sql://results", lines = lines, rerun = M.again }
+      if where and require("core.settings").sql.inline_results ~= false then
+        local inline = require "sqlrun.inline"
+        inline.show(
+          where.buf,
+          where.last,
+          inline.label(inline.rows(res.stdout or ""), ms, ok),
+          ok and "SqlStatus" or "SqlFailed"
+        )
+      end
       if was_stopped then
         return
       end
@@ -238,18 +264,23 @@ function M.run()
   end
   local mode = vim.fn.mode()
   if mode == "v" or mode == "V" or mode == "\22" then
-    local text = table.concat(vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode }), "\n")
-    vim.api.nvim_feedkeys(vim.keycode "<Esc>", "nx", false)
+    local a, b = vim.fn.getpos "v"[2], vim.fn.getpos "."[2]
+    local text = current_text()
+    if not text then
+      return
+    end
+    local where = { buf = vim.api.nvim_get_current_buf(), last = math.max(a, b) }
     return guarded(text, function()
-      send(text, c, "selection")
+      send(text, c, "selection", where)
     end)
   end
   local s = statement.at(buffer_lines(), vim.api.nvim_win_get_cursor(0)[1])
   if not s then
     return log.info "SQL: no statement here"
   end
+  local where = { buf = vim.api.nvim_get_current_buf(), last = s.last }
   guarded(s.text, function()
-    send(s.text .. ";", c, ("statement, lines %d-%d"):format(s.first, s.last))
+    send(s.text .. ";", c, ("statement, lines %d-%d"):format(s.first, s.last), where)
   end)
 end
 
@@ -259,13 +290,15 @@ function M.run_file()
   if not c then
     return
   end
-  local text = table.concat(buffer_lines(), "\n")
+  local lines = buffer_lines()
+  local text = table.concat(lines, "\n")
   local risky
-  for _, s in ipairs(statement.split(buffer_lines())) do
+  for _, s in ipairs(statement.split(lines)) do
     risky = risky or statement.risky(s.text) and s.text
   end
+  local where = { buf = vim.api.nvim_get_current_buf(), last = #lines }
   guarded(risky or "", function()
-    send(text, c, "file")
+    send(text, c, "file", where)
   end)
 end
 
@@ -304,6 +337,34 @@ function M.explain(analyze)
     }, { title = "Run it?", confirm = "Run", danger = true }, go)
   end
   go()
+end
+
+--- <leader>QP: show the plan first, run the query with `E` in the results (no surprise writes)
+local planned ---@type { text: string, c: SqlConnection, root: string }?
+function M.plan()
+  local c = connection()
+  if not c then
+    return
+  end
+  local s = statement.at(buffer_lines(), vim.api.nvim_win_get_cursor(0)[1])
+  if not s then
+    return log.info "SQL: no statement here"
+  end
+  local d = dialects.get(c.kind)
+  planned = { text = s.text .. ";", c = c, root = M.root() }
+  send(d.explain(c, s.text, false), c, "plan · E runs the query")
+end
+
+--- `E` in the results buffer: execute the statement whose plan is on screen
+function M.run_planned()
+  if not planned or planned.root ~= M.root() then
+    return log.info "SQL: no plan to run (use <leader>QP first)"
+  end
+  local p = planned
+  planned = nil
+  guarded(p.text, function()
+    send(p.text, p.c, "planned query")
+  end)
 end
 
 --- <leader>Qt: the tables of the connection
@@ -370,30 +431,54 @@ function M.fix()
     vim.list_extend(cmd, { "--stdin-filename", name })
   end
   local text = table.concat(buffer_lines(), "\n") .. "\n"
-  local res = vim
-    .system(cmd, {
-      stdin = text,
-      text = true,
-      cwd = M.root(),
-      timeout = cfg().timeout_ms or 30000,
-    })
-    :wait()
-  local fixed = res.stdout or ""
-  if fixed == "" or fixed == text then
-    if res.code ~= 0 then
-      local first = diagnose.first_line(res.stderr)
-      return log.warn("SQL: SQLFluff: " .. (first ~= "" and first or "it could not fix the buffer"))
-    end
-    return log.info "SQL: SQLFluff had nothing to fix"
+  local buf = vim.api.nvim_get_current_buf()
+  local tick = vim.api.nvim_buf_get_changedtick(buf)
+  -- One process in the background: the editor must not freeze while SQLFluff reads the whole buffer.
+  vim.system(cmd, {
+    stdin = text,
+    text = true,
+    cwd = M.root(),
+    timeout = cfg().timeout_ms or 30000,
+  }, function(res)
+    vim.schedule(function()
+      if not vim.api.nvim_buf_is_valid(buf) or vim.api.nvim_buf_get_changedtick(buf) ~= tick then
+        return log.warn "SQL: SQLFluff's result was discarded (the buffer changed meanwhile)"
+      end
+      local fixed = res.stdout or ""
+      if fixed == "" or fixed == text then
+        if res.code ~= 0 then
+          local first = diagnose.first_line(res.stderr)
+          return log.warn("SQL: SQLFluff: " .. (first ~= "" and first or "it could not fix the buffer"))
+        end
+        return log.info "SQL: SQLFluff had nothing to fix"
+      end
+      local pos = vim.api.nvim_win_get_cursor(0)
+      local fixed_lines = vim.split(fixed:gsub("\r\n", "\n"), "\n", { plain = true })
+      while #fixed_lines > 0 and fixed_lines[#fixed_lines] == "" do
+        table.remove(fixed_lines)
+      end
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, fixed_lines)
+      local row = math.min(pos[1], vim.api.nvim_buf_line_count(buf))
+      local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1] or ""
+      pcall(vim.api.nvim_win_set_cursor, 0, { row, math.min(pos[2], math.max(#line - 1, 0)) })
+      log.info "SQL: SQLFluff fixed the buffer"
+    end)
+  end)
+end
+
+--- <leader>QK: the local checks in the quickfix (they are also live diagnostics while you type)
+function M.check()
+  local diags = require("sqlrun.check").check(table.concat(buffer_lines(), "\n"), M.dialect())
+  if #diags == 0 then
+    return log.info "SQL: local checks found nothing"
   end
-  local pos = vim.api.nvim_win_get_cursor(0)
-  local fixed_lines = vim.split(fixed:gsub("\r\n", "\n"), "\n", { plain = true })
-  while #fixed_lines > 0 and fixed_lines[#fixed_lines] == "" do
-    table.remove(fixed_lines)
-  end
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, fixed_lines)
-  pcall(vim.api.nvim_win_set_cursor, 0, { math.min(pos[1], vim.api.nvim_buf_line_count(0)), pos[2] })
-  log.info "SQL: SQLFluff fixed the buffer"
+  vim.fn.setqflist(vim.tbl_map(function(d)
+    local type = d.severity == vim.diagnostic.severity.ERROR and "E"
+      or (d.severity == vim.diagnostic.severity.WARN and "W" or "I")
+    return { bufnr = 0, lnum = d.lnum + 1, col = d.col + 1, text = d.message, type = type }
+  end, diags), "r")
+  vim.cmd "copen"
+  log.info(("SQL: %d local finding%s"):format(#diags, #diags == 1 and "" or "s"))
 end
 
 --- Lips the sqls server of this buffer so the next start reads the connection that was just picked
@@ -403,6 +488,10 @@ local function restart_sqls()
   if #clients == 0 then
     return
   end
+  local root = M.root()
+  local lsp = require "sqlrun.lsp"
+  lsp.clear(root)
+  lsp.set(root, { status = "starting", detail = "restarting" })
   for _, client in ipairs(clients) do
     client:stop(true)
   end
@@ -501,12 +590,120 @@ function M.pick()
   end)
 end
 
+--- The statement under the cursor, or the visual selection, with its terminator (shared by run and save)
+---@return string?
+local function current_text()
+  local mode = vim.fn.mode()
+  if mode == "v" or mode == "V" or mode == "\22" then
+    local text = table.concat(vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode }), "\n")
+    vim.api.nvim_feedkeys(vim.keycode "<Esc>", "nx", false)
+    text = text:gsub("%s+$", "")
+    return text ~= "" and (text .. (text:match ";$" and "" or ";")) or nil
+  end
+  local s = statement.at(buffer_lines(), vim.api.nvim_win_get_cursor(0)[1])
+  return s and s.text or nil
+end
+
+--- <leader>QV: remember the statement under the cursor (or the selection) with a name
+function M.save_favorite()
+  local text = current_text()
+  if not text or vim.trim(text) == "" then
+    return log.info "SQL: no statement here"
+  end
+  local suggested = require("sqlrun.history").title(text, 40)
+  require("utils.modal").input({
+    { { "Name this query.", require("utils.modal").hl.muted } },
+    { { suggested, require("utils.modal").hl.file } },
+  }, { title = "Save SQL query", confirm = "Save" }, function(name)
+    name = vim.trim(name or "")
+    if name == "" then
+      return
+    end
+    require("sqlrun.favorites").save(M.root(), name, text)
+    log.info("SQL: saved " .. name)
+  end)
+end
+
+--- <leader>Qv: the named queries of this project; Enter runs, Ctrl+x forgets
+function M.favorites()
+  local root = M.root()
+  local list = require("sqlrun.favorites").load(root)
+  if #list == 0 then
+    return log.info "SQL: no saved queries here (<leader>QV saves one)"
+  end
+  local items = vim.tbl_map(function(favorite)
+    return {
+      label = favorite.name,
+      desc = require("sqlrun.history").title(favorite.text, 70),
+      value = favorite,
+    }
+  end, list)
+  require("tasks.picker").choose(items, {
+    title = "SQL queries · " .. vim.fn.fnamemodify(root, ":~"),
+    width = 32,
+    hint = "Enter run · C-x forget",
+    maps = {
+      {
+        "<C-x>",
+        function(favorite)
+          if require("sqlrun.favorites").forget(root, favorite.name) then
+            log.info("SQL: forgot " .. favorite.name)
+          end
+        end,
+      },
+    },
+  }, function(favorite)
+    local c = connection()
+    if not c then
+      return
+    end
+    guarded(favorite.text, function()
+      send(favorite.text, c, "saved " .. favorite.name)
+    end)
+  end)
+end
+
+--- <leader>QD: say what dialect this project is (keywords, SQLFluff and sql-formatter follow at once)
+function M.dialect_menu()
+  local root = M.root()
+  local forced = require("sqlrun.dialect").get(root)
+  local current = M.dialect()
+  local items = {
+    {
+      label = (forced and "  " or "● ") .. "auto (from connection)",
+      desc = "detect it from DATABASE_URL or a .db file · " .. current,
+      value = "auto",
+    },
+  }
+  for _, d in ipairs(dialects.all()) do
+    items[#items + 1] = {
+      label = (forced == d.id and "● " or "  ") .. d.label .. " · " .. d.id,
+      desc = ("client %s · sqls %s"):format(d.client, d.sqls or "—"),
+      value = d.id,
+    }
+  end
+  require("tasks.picker").choose(items, {
+    title = "SQL dialect · " .. vim.fn.fnamemodify(root, ":~"),
+    width = 32,
+    hint = "Enter use · keywords/format/lint follow it",
+  }, function(id)
+    local problem = require("sqlrun.dialect").set(root, id)
+    if problem then
+      return log.warn("SQL: " .. problem)
+    end
+    status_cache = { root = nil, at = 0, text = "" }
+    log.info(("SQL: dialect %s"):format(id == "auto" and "auto (from connection)" or id))
+  end)
+end
+
 --- `r` in the results: the last run again
 function M.again()
   if not last then
     return log.info "SQL: nothing ran yet"
   end
-  send(last.text, last.c, last.label)
+  guarded(last.text, function()
+    send(last.text, last.c, last.label)
+  end)
 end
 
 --- The statusline chip: "PG app", "PG app …" while it runs, "PG app ✗" for a minute after it failed
@@ -545,7 +742,11 @@ function M.statusline_state()
   if not last_ok and last_root == root and now - last_at < 60000 then
     return text .. " ✗", "SqlFailed"
   end
-  return text, "SqlStatus"
+  -- sqls' own connection state: ✓ connected, … connecting, ! could not connect
+  local lsp = require "sqlrun.lsp"
+  local state = lsp.get(root)
+  local group = state.status == "starting" and "SqlRunning" or (state.status == "error" and "SqlFailed" or "SqlStatus")
+  return text .. lsp.marker(root), group
 end
 
 --- Called by the FileType autocmd: loads the module (and the chip) for a SQL buffer
@@ -575,8 +776,13 @@ function M.sql_command(fargs)
     schema = M.schema,
     connections = M.pick,
     connection = M.pick,
+    dialect = M.dialect_menu,
     info = M.info,
     history = M.history,
+    favorite = M.save_favorite,
+    favorites = M.favorites,
+    check = M.check,
+    plan = M.plan,
     ping = M.ping,
     fix = M.fix,
     format = function()
@@ -588,7 +794,7 @@ function M.sql_command(fargs)
   local fn = map[sub]
   if not fn then
     return log.warn(
-      ("SQL: unknown command %q (run, file, explain, analyze, tables, describe, schema, connections, info, history, ping, fix, format, stop)"):format(
+      ("SQL: unknown command %q (run, file, explain, analyze, tables, describe, schema, connections, dialect, info, history, favorite, favorites, ping, fix, format, stop)"):format(
         sub
       )
     )

@@ -22,7 +22,7 @@ The connections of a project are found, never asked, in this order:
 1. The ones added with `<leader>Qn` (kept per project in the state dir, never in `.env` or `settings`).
 2. `settings.sql.connections` (`{ name = "local", url = "postgres://…" }`, `{ name = "data", sqlite = "data/app.db" }`,
    or `{ name = "ms", driver = "sqlserver", url = "Server=…;Database=…" }` when the string is a DSN instead of a URL).
-3. The project's `.env`, `.env.local`, `.env.development`: `DATABASE_URL`, any `*_DATABASE_URL` / `*_DB_URL` /
+3. The project's `.env`, `.env.local`, `.env.development`, `.env.development.local`: `DATABASE_URL`, any `*_DATABASE_URL` / `*_DB_URL` /
    `*_DATABASE_URI`, `POSTGRES_URL`, `MYSQL_URL`, `MARIADB_URL`, `MSSQL_URL`, `SQLSERVER_URL`, `SQLITE_URL`.
 4. `DATABASE_URL` of the environment Neovim was started in.
 5. The SQLite and DuckDB files under the root (`*.db`, `*.sqlite`, `*.sqlite3`, `*.duckdb`, `*.ddb`; not in
@@ -33,13 +33,27 @@ file path, and the dialect is detected from it. `Ctrl+x` in the picker removes a
 ones in `.env` and `settings` are only read. Passwords are never shown (`postgres://app:•••@localhost/app`).
 
 Adding a connection restarts `sqls` for the buffer, so completion follows the new default immediately. A `config.yml`
-at the root (sqls' own) still wins over all of this.
+at the root (sqls' own) still wins over all of this. A SQLite/DuckDB connection whose file is gone is skipped (no empty
+database is created in its place) and the reason is shown on the chip and in `:Sql info`.
+
+When there is no connection, or detection is wrong, `<leader>QD` (or `:Sql dialect`) fixes the dialect for this project
+without editing anything: `auto` goes back to detection, the other choices remember `sqlite`, `postgres`, etc. The
+choice drives the keyword source, SQLFluff and sql-formatter at once. sqls still needs a real connection to know the
+tables — the dialect alone does not invent one.
 
 ## Tools
 
 - **Completion and navigation** — `sqls`, connected to the real database: tables, columns, joins through foreign keys,
   hover and signature help. It starts with the project (`.env`, `.git`, `.sqlfluff`, `compose.yaml`… are its root
-  markers). A project connection added with `<leader>Qn` becomes its default.
+  markers). A project connection added with `<leader>Qn` becomes its default. sqls only reads connections from
+  `initializationOptions` at start and from `workspace/didChangeConfiguration` afterwards; the config sends both, so
+  a newly opened buffer connects at once instead of answering "no database connection". Its keyword list is short, so
+  `LIMIT`, `ORDER BY`, `GROUP BY`, `COUNT`… come from a local, dialect-aware source instead: they appear instantly even
+  while sqls is still thinking, and they also work with no connection. Inside a string, a comment or after `table.` the
+  local source steps aside. A second local source reads the real schema from the same connection (`FROM` → tables,
+  `o.` or `WHERE` → columns): one fast query per project, cached for five minutes, so completion stays instant and also
+  works for DuckDB (sqls has no driver there). Credentials are masked in every message, picker, info panel and health
+  check, including `?password=…` in a URL.
 - **Linter and analyzer** — `sqlfluff` (`:MasonInstall sqlfluff`) runs on save and on leaving insert; parse and
   templating errors (`PRS`, `TMP`, `LXR`) are errors, the style rules are warnings. It always uses the connection's
   dialect, even when a `.sqlfluff` exists: the database is the source of truth. `<leader>QF` applies its fixes to the
@@ -52,10 +66,12 @@ at the root (sqls' own) still wins over all of this.
   split, `Ctrl+y` puts the table name at the cursor. `<leader>Qt` and `<leader>Qd` are the quick `\dt+`/`\d+` forms.
 - **History** — `<leader>Qh` lists what ran in this project, newest first (Enter inserts it, `Ctrl+r` runs it again);
   `settings.sql.history` caps it (100 by default, `0` turns it off).
-- **Info** — `<leader>Qi` (or `:Sql info`) says the connection, the dialect, the four tools and what is missing, with
-  the keys. `:checkhealth sqlrun` has the same facts without opening a panel.
+- **Info** — `<leader>Qi` (or `:Sql info`) says the connection, whether sqls is actually connected, where the dialect
+  came from, the four tools and what is missing, with the keys. `:checkhealth sqlrun` has the same facts without
+  opening a panel. A URL or `passwd=…` in a server message is masked before it reaches any of them.
 - **Statusline** — a `PG app` / `SQLite data` / `MSSQL app` chip while a `*.sql` buffer is open; it turns yellow while
-  a query runs and red for a minute after one failed.
+  a query runs and red for a minute after one failed. Once a query is not running, a `✓` means sqls is connected, `…`
+  that it is starting and `!` that it could not connect (the reason is in `:Sql info`).
 
 The results split (`sql://results`) is text: `r` runs the last statement again (for a table described from the schema
 browser, it describes it again), `q` closes it, `Ctrl+y` copies all of it (rows as the client draws them, `∅` for
@@ -70,11 +86,31 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md). What they do:
   `SET SHOWPLAN_ALL`/`SET STATISTICS PROFILE` in SQL Server, `EXPLAIN`/`EXPLAIN ANALYZE` in DuckDB).
 - **Asks before it hurts**: DELETE/UPDATE with no WHERE, DROP TABLE/SCHEMA, TRUNCATE, ALTER TABLE … DROP
   (`settings.sql.confirm_risky`). Explain analyze only runs a read without asking.
-- Tables, describe the table under the cursor, schema browser, connection picker, new connection, info, history, ping,
-  stop, last run, format, SQLFluff fix.
+- Tables, describe the table under the cursor, schema browser, connection picker, new connection, dialect picker,
+  info, history, ping, stop, last run, format, SQLFluff fix.
 - `:Sql` takes the same names: `:Sql run`, `:Sql explain`, `:Sql analyze`, `:Sql tables`, `:Sql describe`,
-  `:Sql schema`, `:Sql connections`, `:Sql info`, `:Sql history`, `:Sql ping`, `:Sql fix`, `:Sql format`,
-  `:Sql stop`, `:Sql new`. A bare `:Sql` opens the info panel.
+  `:Sql schema`, `:Sql connections`, `:Sql dialect`, `:Sql info`, `:Sql history`, `:Sql ping`, `:Sql fix`,
+  `:Sql format`, `:Sql stop`, `:Sql new`. A bare `:Sql` opens the info panel.
+
+## More ways in
+
+- **Named queries** — the statement under the cursor (or a selection) can be saved with a name, per project, in the
+  state dir. The picker runs one with Enter and forgets it with `Ctrl+x`; they are different from history, which is
+  automatic. `:Sql favorite` saves, `:Sql favorites` picks.
+- **Inline results** — after a run the statement's last line gets a quiet `✓ 8 rows · 101 ms` extmark (red on failure).
+  The results split still opens; the mark is just there so you can see the cost while you keep typing. Turn it off with
+  `settings.sql.inline_results = false`.
+- **Local checks** — `settings.sql.check` adds debounced diagnostics with no process: `SELECT *`, `LIMIT` without
+  `ORDER BY`, a `DELETE`/`UPDATE` without `WHERE`, a `JOIN` with no `ON`/`USING`, a dangling comma. SQLFluff remains the
+  style/parser checker, when it is installed. `:Sql check` puts the same findings in the quickfix.
+- **Predictions** — after `FROM` you get real tables, after `o.` / `WHERE` / `ON` / `GROUP BY` / `HAVING` real columns
+  (`utils/sqlschema.lua`). Typing three letters of a query you ran before offers its full text from the project's
+  history (`utils/sqlpredict.lua`). All local, 0 tokens.
+- **Results out** — in `sql://results`, `<leader>c` / `<leader>j` / `<leader>m` write the boxed rows as CSV, JSON or
+  Markdown to a fresh file in the state dir (never overwriting), `yc` copies the row under the cursor, `<C-y>` copies
+  everything. Ordinary `j`/`k` navigation and the `c` operator still work in that buffer.
+- **Plan first** — `:Sql plan` shows `EXPLAIN` (or `EXPLAIN QUERY PLAN`) with `E runs the query` in the header; `E` in
+  the results buffer executes that statement after the usual risky-question. Nothing is written until you press it.
 
 ## Setup
 
@@ -85,8 +121,8 @@ folder's name.
 
 ## Snippets
 
-`createtable` (identity id, timestamps), `createindex`, `upsert` (`on conflict … do update`), `withquery`, `transaction`,
-plus engine-specific ones: `mysqlcreatetable`, `mysqlupsert` (`on duplicate key update`), `sqliteupsert`,
+`selectlimit`, `countrows`, `leftjoin`, `groupcount`, `wherein` for everyday queries, then `createtable` (identity id,
+timestamps), `createindex`, `upsert` (`on conflict … do update`), `withquery`, `transaction`, plus engine-specific ones: `mysqlcreatetable`, `mysqlupsert` (`on duplicate key update`), `sqliteupsert`,
 `tsqlcreatetable` (identity + `datetime2`), `tsqlmerge` (`MERGE`).
 
 ## Pitfalls

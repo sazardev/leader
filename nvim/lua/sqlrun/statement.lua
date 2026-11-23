@@ -73,7 +73,16 @@ function M.split(lines)
         end
       elseif state == "'" or state == '"' then
         local e = line:find(state, i, true)
-        if e then
+        local slash = line:find("\\", i, true) -- MySQL/MariaDB escape a quote with a backslash
+        if slash and (not e or slash < e) then
+          if slash + 1 <= n then
+            piece[#piece + 1] = line:sub(i, slash + 1)
+            i = slash + 2
+          else
+            piece[#piece + 1] = line:sub(i)
+            break
+          end
+        elseif e then
           piece[#piece + 1] = line:sub(i, e)
           i = e + 1
           if line:sub(i, i) == state then -- '' is an escaped quote: still inside
@@ -136,19 +145,23 @@ end
 ---@return string?
 function M.risky(text)
   local t = " " .. bare(text):lower():gsub("%s+", " ") .. " "
-  if t:match "^%s*drop " or t:find(" drop table ", 1, true) or t:find(" drop schema ", 1, true) then
+  local function has(word)
+    return t:find("%f[%w]" .. word .. "%f[%W]") ~= nil
+  end
+  -- A CTE can hide the mutating verb in the middle of the text (`with x as (…) delete from …`).
+  if has("drop") and (has("table") or has("schema") or has("view") or has("database")) then
     return "it drops a table or schema"
   end
-  if t:match "^%s*truncate " then
+  if has("truncate") then
     return "it empties a table"
   end
-  if (t:match "^%s*delete " or t:find(" delete from ", 1, true)) and not t:find(" where ", 1, true) then
+  if has("delete") and not has("where") then
     return "a DELETE with no WHERE removes every row"
   end
-  if t:match "^%s*update " and not t:find(" where ", 1, true) then
+  if has("update") and not has("where") then
     return "an UPDATE with no WHERE changes every row"
   end
-  if t:match "^%s*alter table " and t:find(" drop ", 1, true) then
+  if has("alter") and has("drop") then
     return "it drops a column or constraint"
   end
   return nil
@@ -159,6 +172,9 @@ end
 ---@return boolean
 function M.reads(text)
   local t = bare(text):lower():gsub("^%s+", "")
+  if t:find("%f[%w]for%s+update%f[%W]") or t:find("%f[%w]for%s+share%f[%W]") then
+    return false -- it locks rows even though it reads them
+  end
   if t:match "^select%s" or t:match "^values%s" or t:match "^table%s" then
     return true
   end

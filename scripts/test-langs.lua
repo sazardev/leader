@@ -728,6 +728,7 @@ write(
 )
 write(sqlroot .. "/data/app.db", "")
 write(sqlroot .. "/data/warehouse.duckdb", "")
+write("/tmp/mine.db", "") -- a file connection is only usable when its file exists
 conn.invalidate(sqlroot)
 conn.add(sqlroot, "sqlite:///tmp/mine.db", "mine")
 conn.invalidate(sqlroot)
@@ -744,6 +745,68 @@ eq(
     { "data/app.db", "sqlite3", sqlroot .. "/data/app.db" },
   }
 )
+-- sqls does not read Neovim's config.settings: it connects at `initialize` from
+-- initializationOptions and afterwards from workspace/didChangeConfiguration.
+local sqls_cfg = require("servers.sqls")
+local expected = conn.sqls(sqlroot)
+local sqls_params = { initializationOptions = nil }
+local sqls_config = { root_dir = sqlroot, settings = {} }
+sqls_cfg.before_init(sqls_params, sqls_config)
+eq(
+  "sqls: the picked connection goes in initializationOptions, not just config.init_options",
+  sqls_params.initializationOptions.connectionConfig,
+  expected[1]
+)
+eq("sqls: the connection list goes in settings", sqls_config.settings.sqls.connections, expected)
+vim.fn.delete("/tmp/mine.db")
+local pushed
+sqls_cfg.on_attach({
+  config = sqls_config,
+  notify = function(_, method, message)
+    pushed = { method, message }
+  end,
+})
+eq("sqls: on attach pushes the settings to the server", pushed, {
+  "workspace/didChangeConfiguration",
+  { settings = sqls_config.settings },
+})
+
+-- keywords: LIMIT must exist even though sqls does not offer it; the dialect adds its own words
+local words = require("utils.sqlkeywords")
+ok("sql keywords: LIMIT, ORDER BY and a function are offered", vim.tbl_contains(words.words("postgres"), "LIMIT")
+  and vim.tbl_contains(words.words("postgres"), "ORDER BY")
+  and vim.tbl_contains(words.words("postgres"), "COUNT"))
+ok("sql keywords: the dialect narrows the list", vim.tbl_contains(words.words("postgres"), "ILIKE")
+  and not vim.tbl_contains(words.words("sqlite"), "ILIKE")
+  and vim.tbl_contains(words.words("sqlite"), "PRAGMA"))
+eq("sql keywords: a string, a comment and a column are not code", {
+  words.junk_context("select 'lim"),
+  words.junk_context("select 1 -- lim"),
+  words.junk_context("select /* lim */ 1"),
+  words.junk_context("select o."),
+  words.junk_context("select li"),
+}, { true, true, false, false, false })
+
+-- dialect override: <leader>QD changes what keywords, SQLFluff and the formatter speak
+local forced = require "sqlrun.dialect"
+forced.set(sqlroot, "sqlite")
+eq("dialect: a forced dialect is remembered", forced.get(sqlroot), "sqlite")
+forced.set(sqlroot, "auto")
+eq("dialect: auto forgets the override", forced.get(sqlroot), nil)
+eq("dialect: an unknown name is refused", { forced.set(sqlroot, "oracle") }, { "unknown dialect: oracle" })
+
+-- the connection state is one shared, safe answer
+local state = require "sqlrun.lsp"
+eq("sqls state: credentials never reach a message", state.redact(
+  "Failed to connect to postgres://app:s3cret@localhost/app passwd=hunter2 password=letmein"
+), "Failed to connect to postgres://app:•••@localhost/app passwd=••• password=•••")
+state.set(sqlroot, { status = "connected", detail = "mine" })
+eq("sqls state: connected is visible", { state.marker(sqlroot), state.describe(sqlroot) }, { " ✓", "connected · mine" })
+state.set(sqlroot, { status = "error", detail = "no database connection" })
+eq("sqls state: a failure replaces success", { state.marker(sqlroot), state.describe(sqlroot) }, { " !", "not connected · no database connection" })
+state.clear(sqlroot)
+eq("sqls state: a restart forgets the old state", state.get(sqlroot).status, "off")
+
 local added, problem = conn.add(sqlroot, "sqlite:///tmp/added.db", "added")
 eq("connections: a project connection is remembered", { added and added.name, added and added.kind, problem }, {
   "added",
@@ -761,6 +824,96 @@ eq(
   { conn.remove(sqlroot, "/tmp/added.db"), #conn.extras(sqlroot) },
   { true, 1 }
 )
+-- audit regressions: secrets, escapes, DSNs and dialect detection
+eq(
+  "shown: a password in the query string is masked without mangling the URL",
+  conn.shown("postgres://app@localhost/app?password=hunter2"),
+  "postgres://app@localhost/app?password=•••"
+)
+eq(
+  "env: a quoted value with an inline comment is still a URL",
+  conn.parse_env('DATABASE_URL="postgres://u:p@h/db" # note'),
+  { DATABASE_URL = "postgres://u:p@h/db" }
+)
+eq(
+  "connections: an unknown driver is refused",
+  { conn.add(sqlroot, "redis://h", "x", "oracle") },
+  { nil, "unknown driver: oracle" }
+)
+local st = require "sqlrun.statement"
+eq(
+  "statement: a backslash-escaped quote does not swallow the next statement",
+  #st.split({ "select 'it\\'s' from t;", "select 2;" }),
+  2
+)
+ok("statement: a DELETE hidden in a CTE is risky", st.risky("with x as (select 1) delete from t") ~= nil)
+ok("statement: SELECT FOR UPDATE is not a safe read", st.reads("select * from t for update") == false)
+local msq = dialects.get("mysql").command({ kind = "mysql", target = "app:pass@tcp(db:3306)/app" }, "mysql")
+ok("mysql: a DSN builds real client flags", msq and vim.tbl_contains(msq.cmd, "--host=db"))
+local mss = dialects.get("sqlserver").command(
+  { kind = "sqlserver", target = "server=db,1433;user id=sa;password=x;database=app" },
+  "sqlcmd"
+)
+ok("sqlserver: an ODBC DSN builds real client flags", mss and vim.tbl_contains(mss.cmd, "-S"))
+local setuproot = base .. "/setup-sql"
+write(setuproot .. "/.env", "DATABASE_URL=postgres://u@localhost/app.db\n")
+write(setuproot .. "/data/app.db", "")
+eq("setup: a postgres database whose name ends in .db is still postgres",
+  require("langsetup.langs.sql").vars(setuproot).dialect, "postgres")
+local sqlsnips = vim.json.decode(table.concat(vim.fn.readfile(root .. "/nvim/snippets/sql.json"), "\n"))
+ok(
+  "sql snippets: every body parses (no nested placeholders)",
+  vim.iter(vim.tbl_values(sqlsnips)):all(function(snip)
+    return pcall(vim.lsp._snippet_grammar.parse, table.concat(snip.body, "\n"))
+  end)
+)
+local ss = require "utils.sqlschema"
+ok("sqlschema: FROM asks for tables", ss.context("select * from ").kind == "tables")
+ok("sqlschema: an alias asks for columns", ss.context("select o.").kind == "alias")
+ok("sqlschema: WHERE asks for columns", ss.context("select * from t where ").kind == "columns")
+eq("sqlschema: the alias resolves to its table", ss.table_for({ "select * from orders o" }, "o"), "orders")
+
+-- named queries, inline results, local checks and exports
+local favorites = require "sqlrun.favorites"
+local favs = favorites.add({}, "daily", "select 1;", 1)
+favs = favorites.add(favs, "weekly", "select 2;", 2)
+eq("favorites: the newest name is first", vim.tbl_map(function(f)
+  return f.name
+end, favs), { "weekly", "daily" })
+favs = favorites.add(favs, "daily", "select 3;", 3)
+eq("favorites: the same name replaces its text", { favs[1].name, favs[1].text }, { "daily", "select 3;" })
+local left, removed = favorites.remove(favs, "daily")
+eq("favorites: remove by name", { removed, #left }, { true, 1 })
+
+local inline = require "sqlrun.inline"
+eq("inline: boxed rows exclude the header", inline.rows("| a | b |\n| 1 | x |\n| 2 | y |"), 2)
+eq("inline: a failure has no row count", inline.label(0, 12, false), " ✗ failed · 12 ms")
+eq("inline: one row is singular", inline.label(1, 75, true), " ✓ 1 row · 75 ms")
+
+local check = require "sqlrun.check"
+local checked = check.check("select * from orders limit 10", "sqlite")
+ok("checks: SELECT * and LIMIT without ORDER BY are reported", #checked >= 2)
+local dangling = check.check("select a, from t", "sqlite")
+ok(
+  "checks: a dangling comma is an error",
+  vim.iter(dangling):any(function(d)
+    return d.severity == vim.diagnostic.severity.ERROR
+  end)
+)
+local joined = check.check("select a from a join b", "sqlite")
+ok("checks: a join with no condition is warned", #joined >= 1)
+
+local export = require "sqlrun.export"
+local box = { "-- ok", "| a | b |", "|---|---|", "| 1 | x |", "| 2 | y |" }
+local cells = export.cells(box)
+eq("export: boxed cells become rows", { cells.header, cells.rows }, { { "a", "b" }, { { "1", "x" }, { "2", "y" } } })
+eq("export: CSV", export.csv(cells), { "a,b", "1,x", "2,y" })
+eq("export: JSON", export.json(cells), { '{"a": "1", "b": "x"}', '{"a": "2", "b": "y"}' })
+eq("export: the row under the cursor", export.row_at(box, 4), "1 | x")
+ok("predictions: ON, GROUP BY and HAVING ask for columns", require("utils.sqlschema").context("select * from t on ").kind == "columns"
+  and require("utils.sqlschema").context("select * from t group by ").kind == "columns"
+  and require("utils.sqlschema").context("select * from t having ").kind == "columns")
+
 local hist = require("sqlrun.history")
 local entries = hist.add({}, { text = "select 1", at = 1 }, 3)
 entries = hist.add(entries, { text = "select 2", at = 2 }, 3)

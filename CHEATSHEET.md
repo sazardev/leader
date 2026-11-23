@@ -727,6 +727,15 @@ _Where: `python`_
 | `<leader>pe` | interpreter in use |
 | `<leader>ph` | toggle inlay hints |
 | `<leader>pn` | insert imports (picker) |
+| `<leader>pCn` | REPL new session |
+| `<leader>pCw` | REPL open workspace |
+| `<leader>pCc` | REPL send cell to IPython |
+| `<leader>pCx` | REPL split code into cells |
+| `<leader>pCo` | REPL segment output |
+| `<leader>pCa` | REPL explain output with local model |
+| `<leader>pCg` | REPL generate code with local model |
+| `<leader>pCt` | REPL chat with local model |
+| `<leader>pCf` | REPL toggle local completion (FIM) |
 | `<leader>pPi` | init a uv project |
 | `<leader>pPv` | create virtual environment |
 | `<leader>pPp` | install and pin Python |
@@ -893,18 +902,23 @@ _Where: `sql`_
 | `<leader>Qa` | run file |
 | `<leader>Qe` | explain |
 | `<leader>QE` | explain analyze |
+| `<leader>QP` | plan then run |
 | `<leader>Qt` | tables |
 | `<leader>Qd` | describe table under cursor |
 | `<leader>Qs` | schema browser |
 | `<leader>Qc` | connection |
+| `<leader>QD` | dialect (auto/sqlite/postgres…) |
 | `<leader>Qn` | new connection |
 | `<leader>Qi` | connection info |
 | `<leader>Qh` | query history |
+| `<leader>Qv` | saved queries |
+| `<leader>QV` | save query under cursor |
 | `<leader>Qp` | ping connection |
 | `<leader>Qx` | stop query |
 | `<leader>Ql` | last run again |
 | `<leader>Qf` | format |
 | `<leader>QF` | fix with sqlfluff |
+| `<leader>QK` | local checks |
 | `<leader>QSf` | setup .sql-formatter.json |
 | `<leader>QSc` | setup compose.yaml (database) |
 | `<leader>QSe` | setup .editorconfig |

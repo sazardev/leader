@@ -60,6 +60,8 @@ return {
         go = { "gotags", "gosmart", "lsp", "path", "snippets", "buffer" },
         cs = { "csharpsmart", "lsp", "path", "snippets", "buffer" },
         dart = { "dartsmart", "lsp", "path", "snippets", "buffer" },
+        -- sqlschema: real tables/columns from the connection (also without sqls); sqlkeywords: LIMIT/ORDER BY/...
+        sql = { "sqlschema", "sqlkeywords", "sqlpredict", "lsp", "path", "snippets", "buffer" },
       },
       providers = {
         pysmart = { name = "PyImport", module = "utils.pysmart", score_offset = 95 },
@@ -75,6 +77,12 @@ return {
         -- Dart: widgets, Riverpod providers and freezed classes for the project's stack, named after the file, with
         -- their import and `part` lines (utils/dartsmart.lua)
         dartsmart = { name = "DartSmart", module = "utils.dartsmart", score_offset = 90 },
+        -- real tables/columns from the project's database, cached (utils/sqlschema.lua)
+        sqlschema = { name = "SqlSchema", module = "utils.sqlschema", score_offset = 88 },
+        -- dialect-aware keywords and functions: instant, 0 tokens (utils/sqlkeywords.lua)
+        sqlkeywords = { name = "SqlKeyword", module = "utils.sqlkeywords" },
+        -- your own past queries in this project (utils/sqlpredict.lua)
+        sqlpredict = { name = "SqlQuery", module = "utils.sqlpredict", score_offset = 70 },
         -- friendly-snippets' flutter.json uses the language id "flutter", which is not
         -- a real Neovim filetype (it is always "dart"): requested explicitly.
         -- when starting a declaration in Go: no stray buffer words nor the generic func/type from the LSP

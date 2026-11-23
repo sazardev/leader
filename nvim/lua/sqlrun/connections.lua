@@ -26,7 +26,8 @@ function M.parse_env(text)
       key, value = line:match "^%s*([%w_]+)%s*=%s*(.-)%s*$"
     end
     if key and not line:match "^%s*#" then
-      local quoted = value:match '^"(.*)"$' or value:match "^'(.*)'$"
+      -- A comment after a quoted value is still a comment (`URL="postgres://…" # note`).
+      local quoted = value:match '^"([^"]*)"' or value:match "^'([^']*)'"
       out[key] = quoted or (value:gsub("%s+#.*$", ""))
     end
   end
@@ -294,14 +295,17 @@ end
 
 ---@type table<string, { at: integer, list: SqlConnection[] }>
 local cache = {}
+---@type table<string, { at: integer, value: string? }>
+local chosen_cache = {}
 
 --- Forgets what was read for a project (after adding, removing or picking a connection)
 ---@param root string?
 function M.invalidate(root)
   if root then
     cache[root] = nil
+    chosen_cache[root] = nil
   else
-    cache = {}
+    cache, chosen_cache = {}, {}
   end
 end
 
@@ -361,9 +365,15 @@ end
 ---@param root string
 ---@return string?
 function M.chosen(root)
+  local hit = chosen_cache[root]
+  if hit and vim.uv.now() - hit.at < 3000 then
+    return hit.value
+  end
   local data = read_json(vim.fn.stdpath "state" .. "/sqlrun.json")
   local value = data[root]
-  return type(value) == "string" and value or nil
+  value = type(value) == "string" and value or nil
+  chosen_cache[root] = { at = vim.uv.now(), value = value }
+  return value
 end
 
 --- The connections in sqls' shape (servers/sqls.lua): the one picked first, so it is sqls' default
@@ -384,7 +394,7 @@ function M.sqls(root)
     end
   end
   local out = {}
-  for _, c in ipairs(ordered) do
+  for _, c in ipairs(M.usable(ordered)) do
     local d = dialects.get(c.kind)
     if d and d.sqls then
       local entry = { alias = c.name, driver = d.sqls }
@@ -471,6 +481,12 @@ function M.add(root, target, name, driver)
   if not kind or not value then
     return nil, "not a database URL or a SQLite/DuckDB file"
   end
+  if not dialects.get(kind) then
+    return nil, "unknown driver: " .. tostring(driver)
+  end
+  if value:sub(1, 1) == "~" then
+    value = vim.fn.expand(value)
+  end
   if (kind == "sqlite" or kind == "duckdb") and not value:match "^/" and not value:match "^%a:[/\\]" then
     value = root .. "/" .. value
   end
@@ -516,11 +532,51 @@ function M.remove(root, target)
   return removed
 end
 
---- The connection to use in a project: the one picked (when it still exists), else the first
+--- A file database that is not on disk cannot be used: sqls would create an empty one and the runner would fail.
+---@param c SqlConnection
+---@return string? the missing path
+local function missing_file(c)
+  if (c.kind == "sqlite" or c.kind == "duckdb") and c.target ~= ":memory:" then
+    if not vim.uv.fs_stat(c.target) then
+      return c.target
+    end
+  end
+end
+
+--- Connections whose file is really there (the rest are still listed in the picker, so they can be fixed)
+---@param list SqlConnection[]
+---@return SqlConnection[]
+function M.usable(list)
+  local out = {}
+  for _, c in ipairs(list) do
+    if not missing_file(c) then
+      out[#out + 1] = c
+    end
+  end
+  return out
+end
+
+--- The file of the connection that would be used but is gone, if any (so callers can say why)
+---@param root string
+---@return string?
+function M.missing(root)
+  local list = M.of(root)
+  local want = M.chosen(root)
+  local c
+  for _, item in ipairs(list) do
+    if item.target == want then
+      c = item
+      break
+    end
+  end
+  return missing_file(c or list[1] or {})
+end
+
+--- The connection to use in a project: the one picked (when it still exists), else the first usable one
 ---@param root string
 ---@return SqlConnection?
 function M.current(root)
-  local list = M.of(root)
+  local list = M.usable(M.of(root))
   local want = M.chosen(root)
   for _, c in ipairs(list) do
     if c.target == want then
@@ -530,18 +586,50 @@ function M.current(root)
   return list[1]
 end
 
---- A URL without its password, for the screen ("postgres://app:•••@localhost/app")
----@param target string
+local SECRET_KEYS = { password = true, passwd = true, pwd = true, token = true, access_token = true }
+
+--- Masks `key=value` secrets that appear after a `?` or in a DSN (not only user:pass@).
+---@param text string
+---@return string
+local function mask_pairs(text)
+  local out = text:gsub("([%w_%-]*[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]%s*=%s*)([^%s&;]+)", "%1•••")
+  out = out:gsub("([%w_%-]*[Pp][Ww][Dd]%s*=%s*)([^%s&;]+)", "%1•••")
+  return (out:gsub("([%w_%-]*[Tt][Oo][Kk][Ee][Nn]%s*=%s*)([^%s&;]+)", "%1•••"))
+end
+
+--- A target without its credentials, for the screen ("postgres://app:•••@localhost/app?sslmode=REQUIRED").
+---@param target string?
 ---@return string
 function M.shown(target)
-  local masked = target:gsub("^(%a[%w+.-]*://[^:/@]+):[^@]*@", "%1:•••@")
-  if masked == target then
-    masked = target:gsub("^(%a[%w+.-]*://):[^@]*@", "%1:•••@")
+  if type(target) ~= "string" then
+    return ""
   end
-  if masked == target then
-    masked = target:gsub("^([^:@/]+):[^@]*@", "%1:•••@")
+  if not target:find("://", 1, true) then
+    -- Keep the DSN's own shape (`app:•••@tcp(db:3306)/app`): never mistake a scheme's `:` for a password's.
+    return mask_pairs(target:gsub("^([^:@/]+):[^@]+@", "%1:•••@"))
   end
-  return masked
+  local parsed = url.parse(target)
+  if not parsed then
+    return mask_pairs(target)
+  end
+  local authority = ""
+  if parsed.user then
+    authority = parsed.user .. (parsed.password and ":•••" or "") .. "@"
+  end
+  local host = parsed.host or ""
+  if parsed.port then
+    host = host .. ":" .. parsed.port
+  end
+  local out = parsed.scheme .. "://" .. authority .. host .. parsed.path
+  if parsed.query_string ~= "" then
+    local parts = {}
+    for pair in parsed.query_string:gmatch "[^&;]+" do
+      local key = pair:match "^([^=]*)=(.*)$"
+      parts[#parts + 1] = (key and SECRET_KEYS[key:lower()]) and (key .. "=•••") or pair
+    end
+    out = out .. "?" .. table.concat(parts, "&")
+  end
+  return out
 end
 
 --- A chip-sized description: "PG app", "SQLite data", "MSSQL app"

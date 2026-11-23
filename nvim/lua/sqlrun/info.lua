@@ -45,9 +45,11 @@ function M.lines(c, root)
     "",
     ("**Project** `%s`"):format(vim.fn.fnamemodify(root, ":~")),
     ("**Connection** %s"):format(connection_line(c)),
-    ("**Dialect** `%s` (%s): client `%s` · sqls `%s` · SQLFluff `%s` · formatter `%s`"):format(
+    ("**sqls** %s"):format(require("sqlrun.lsp").describe(root)),
+    ("**Dialect** `%s` (%s, %s): client `%s` · sqls `%s` · SQLFluff `%s` · formatter `%s`"):format(
       d.id,
       label,
+      require("sqlrun").dialect_source(),
       d.client,
       d.sqls or "—",
       d.sqlfluff,

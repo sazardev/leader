@@ -36,8 +36,13 @@ function M.show(opts)
     buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_name(buf, opts.name)
     vim.bo[buf].bufhidden = "hide"
+    vim.bo[buf].buftype = "nofile" -- never written by :w, never part of a session as a file
     vim.bo[buf].swapfile = false
-    vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = buf, nowait = true, desc = "SQL close results" })
+    vim.keymap.set("n", "q", function()
+      if #vim.api.nvim_tabpage_get_wins(0) > 1 then
+        pcall(vim.api.nvim_win_close, vim.api.nvim_get_current_win(), false)
+      end
+    end, { buffer = buf, nowait = true, desc = "SQL close results" })
   end
   vim.bo[buf].modifiable = true
   vim.bo[buf].filetype = opts.filetype or ""
@@ -47,6 +52,12 @@ function M.show(opts)
   vim.keymap.set("n", "<C-y>", function()
     copy(buf)
   end, { buffer = buf, nowait = true, desc = "SQL copy results" })
+  vim.keymap.set("n", "E", function()
+    require("sqlrun").run_planned()
+  end, { buffer = buf, nowait = true, desc = "SQL run planned query" })
+  if opts.name == "sql://results" then
+    require("sqlrun.export").keys(buf) -- csv/json/markdown and copy-row
+  end
   if vim.fn.bufwinid(buf) == -1 then
     local from = vim.api.nvim_get_current_win()
     local height = require("core.settings").sql.results_height or 15

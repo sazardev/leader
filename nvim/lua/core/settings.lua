@@ -138,6 +138,8 @@ local defaults = {
     dialect = "postgres",
     timeout_ms = 30000, -- a query that takes longer is stopped
     results_height = 15, -- lines of the results split
+    inline_results = true, -- show "✓ N rows · X ms" under the statement after a run (extmark, no window)
+    check = true, -- local 0-token diagnostics (SELECT *, LIMIT without ORDER BY, cartesian joins…)
     confirm_risky = true, -- DELETE/UPDATE with no WHERE, DROP, TRUNCATE ask before they run
     history = 100, -- runs remembered per project for <leader>Qh (0 = off)
   },
