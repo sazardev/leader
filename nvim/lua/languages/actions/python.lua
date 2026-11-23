@@ -30,6 +30,24 @@ local function current_file()
   return vim.fn.shellescape(vim.fn.expand "%:p")
 end
 
+--- A REPL workspace module, loaded only when its key is pressed.
+local function repl(action)
+  return function()
+    require("pyrepl")[action]()
+  end
+end
+
+--- An import-cleanup action on the current buffer, loaded only when pressed.
+local function clean(action)
+  return function()
+    if action == "toggle" then
+      require("pyclean").toggle()
+    else
+      require("pyclean")[action](0)
+    end
+  end
+end
+
 --- The terminal runs the file on disk, not the unsaved buffer: save it first
 ---@return boolean
 local function ensure_saved()
@@ -592,6 +610,26 @@ local maps = {
   },
   { "h", "toggle inlay hints", inlay_hints },
   { "n", "insert imports (picker)", insert_imports },
+  -- REPL workspace: one folder of named sessions/cells, with the local model in the same place.
+  { "Cn", "REPL new session", repl "new_session" },
+  { "Cw", "REPL open workspace", repl "workspace" },
+  { "Cc", "REPL send cell to IPython", repl "send_cell", { "n", "x" } },
+  { "Cx", "REPL split code into cells", repl "split_cells" },
+  { "Co", "REPL segment output", repl "segment_output" },
+  { "Ca", "REPL explain output with local model", repl "explain_output" },
+  { "Cg", "REPL generate code with local model", repl "generate" },
+  { "Ct", "REPL chat with local model", repl "chat" },
+  { "Cf", "REPL toggle local completion (FIM)", repl "fim" },
+  -- Import cleanup: the submenu is the canonical place; `k`/`Q` are flat shortcuts.
+  { "Ku", "clean remove unused imports", clean "remove_unused" },
+  { "Ks", "clean sort and dedupe imports", clean "sort" },
+  { "Ka", "clean add missing imports", clean "add_missing" },
+  { "Kv", "clean remove unused variables (ruff F841)", clean "remove_unused_vars" },
+  { "Kc", "clean all imports", clean "clean" },
+  { "Kt", "clean toggle cleanup on save", clean "toggle" },
+  { "k", "clean all imports", clean "clean" },
+  { "Q", "clean remove unused variables (ruff F841)", clean "remove_unused_vars" },
+
   { "Pi", "init a uv project", init_project },
   { "Pv", "create virtual environment", create_venv },
   { "Pp", "install and pin Python", pin_python },
@@ -649,6 +687,24 @@ end, {
     end
     return names
   end,
+})
+
+-- Import cleanup commands (the menu keys above are shortcuts of these).
+for name, action in pairs {
+  PyClean = "clean",
+  PyUnusedImports = "remove_unused",
+  PySortImports = "sort",
+  PyAddImports = "add_missing",
+  PyUnusedVars = "remove_unused_vars",
+} do
+  vim.api.nvim_create_user_command(name, clean(action), {
+    force = true,
+    desc = "Python: " .. action:gsub("_", " ") .. " (import cleanup)",
+  })
+end
+vim.api.nvim_create_user_command("PyCleanToggle", clean "toggle", {
+  force = true,
+  desc = "Python: toggle import cleanup on save",
 })
 
 vim.list_extend(maps, require("langtest").maps())

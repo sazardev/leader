@@ -109,6 +109,14 @@ local defaults = {
       enabled = true,
       -- A package that is not installed still suggests its import, with `uv add <pkg>` in the detail
       suggest_missing = true,
+      -- Add the canonical import at the top of the file as soon as an alias (`np`, `pd`, `plt`…) is typed
+      -- or a snippet using it is expanded. Strings/comments and ambiguous names are skipped.
+      auto_on_type = true,
+    },
+    -- Import cleanup (<leader>pK / :PyClean). On save only the safe, 0-token steps run (unused imports,
+    -- dedupe/sort, missing imports); the unsafe ruff F841 fix stays an explicit command.
+    clean = {
+      on_save = true,
     },
     data = {
       enabled = true,
@@ -120,6 +128,13 @@ local defaults = {
     -- Instant `pd.` / `plt.` suggestions from the installed stubs/source (cached per file); the LSP still supplies
     -- the typed, documented items. Turn off if you only want LSP completions.
     attributes = { enabled = true },
+    -- REPL workspace (<leader>pC): one named IPython session + one .py of cells per session, kept in
+    -- stdpath("state")/python-repl (or `folder`). `output_lines` is how much of the terminal the local model sees.
+    repl = {
+      folder = nil,
+      session = "default",
+      output_lines = 120,
+    },
   },
 
   -- Languages (see lua/languages/): disable by name the ones you do not use.

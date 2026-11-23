@@ -16,6 +16,8 @@ local MODULES = {
   "diagnostics",
   "herdr",
   "sql",
+  "pyimports",
+  "pyclean",
 }
 
 function M.setup()

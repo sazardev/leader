@@ -16,6 +16,6 @@ return {
     name = "Python",
     prefix = "p",
     maps = require "languages.actions.python",
-    groups = { S = "setup", D = "debug", P = "project" },
+    groups = { S = "setup", D = "debug", P = "project", C = "REPL / IPython", K = "clean imports" },
   },
 }

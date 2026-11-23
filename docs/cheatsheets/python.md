@@ -12,9 +12,10 @@ Filetype: `python`. Pack `python` (installer checklist, or `<leader>Sp` → Lang
 | Debug | `debugpy` (Mason; `Pk` repairs it) |
 | Notebooks / REPL | JupyterLab, IPython (project dependencies, or the system ones) |
 | Floating IPython | `<leader>pF` toggles a persistent float; `<leader>ps` sends the line or visual selection, keeps definitions, and returns focus to the editor |
-| Inlay hints | `basedpyright` (call-argument names and return types; on by default, `<leader>ph` toggles) |
+| Inlay hints | `basedpyright` (inferred variable types, call-argument names and return types; on by default, `<leader>ph` toggles) |
 | Auto-import | basedpyright code action (`<leader>ca`) and completion; local modules, the stdlib, and modules already imported |
-| Package/data imports | typed aliases (`pd`, `np`, `plt`…) and symbols (`train_test_split`) offer canonical imports, added at the top of the file (0 tokens) |
+| Clean imports | remove unused ones, dedupe/sort into stdlib / third-party / local sections, add missing ones, and optionally remove unused variables (ruff F841); on save by default |
+| Package/data imports | typed aliases (`np`, `pd`, `plt`, `sns`, `sp`, `sk`, `torch`, `tf`, `cv2`, `px`…) and symbols (`train_test_split`) offer canonical imports, added at the top of the file (0 tokens); with `python.imports.auto_on_type` they are also inserted as soon as you type the alias or expand a snippet that uses it |
 | Data file paths | inside `pd.read_csv("…")`, `read_excel`, `read_parquet`, `open(…)`: real project files, filtered by reader |
 | DataFrame columns | `df["…` and `df.…` after `df = pd.read_csv(…)`: the columns of that file, with a rough type from a sample |
 | Treesitter | `python`, `toml`, `requirements` |
@@ -59,6 +60,18 @@ The script name is exactly the key in `[project.scripts]`: for `plot-xy = "plot_
   tab completion). `Esc` hides it and the process survives; `<leader>pF` brings it back. `<leader>ps` sends the current
   line or the visual selection: one line goes directly, a block is executed with `%run -i` so indentation and
   definitions persist. The cursor stays in the editor, which makes this the fast loop for exploring data.
+- **REPL workspace** (`<leader>pC`, the *REPL / IPython* group): a more structured version of that loop. Each named
+  session has its own terminal, its own `.py` notebook of `# %%` cells under `stdpath("state")/python-repl` and its own
+  saved, prompt-segmented output. Start or switch sessions from the picker; the first use creates a "default" one and
+  opens its cell file. `Send cell` executes the cell under the cursor (or the selection) through `%run -i`, so
+  definitions and indentation survive. `Split code into cells` inserts `# %%` before top-level `def`/`class`/decorators
+  and after the import block (idempotent, never rewrites existing markers). `Segment output` parses `In [n]:` / `Out[n]:`
+  (and plain `>>>`) into readable blocks and keeps a `.out.txt` next to the cells.
+  The **local model** lives in the same group: `Explain output` sends the last lines of that session's terminal to the
+  configured light backend (the one from `<leader>am`, so Ollama/LM Studio work with no token), `Generate code` asks for
+  Python and runs the answer straight into the REPL, `Chat` opens the agent chat with the current cell and the session
+  output already in the composer, and `Toggle local completion` switches the FIM ghost text used while typing cells.
+  The folder is configurable with `settings.python.repl.folder`; `output_lines` caps what the model reads from the terminal.
 - **Tests in the editor** (the same keys in every language with tests): the test under the cursor (a `test_…`
   function, a method of a `Test…` class, a whole `Test…` class), the file, the project, the last run again. pytest runs
   with a JUnit report: each test line gets a mark (✓ passed, ✗ failed, ○ skipped, … running), a failure is a
@@ -67,6 +80,25 @@ The script name is exactly the key in `[project.scripts]`: for `plot-xy = "plot_
   file toggle jumps between a module and its test (creating `tests/test_<name>.py` when there is none). The output key
   shows what pytest printed.
 - **Coverage**: `python -m pytest --cov` (needs `pytest-cov`).
+- **Standard imports and snippets** (0 tokens, no model): the catalog in `utils/pyimports.lua` holds the aliases the
+  industry actually uses — `np`, `pd`, `plt`, `sns`, `sp`, `sk`, `torch`, `tf`, `cv2`, `xgb`, `lgb`, `px`, `sm`/`smf`,
+  `pl`, `pq` — plus the common sklearn/scipy symbols and stdlib helpers. Typing the alias offers the canonical statement
+  as a completion; accepting it keeps the alias where you typed it and inserts the import after the docstring/`__future__`
+  and the existing imports. With `python.imports.auto_on_type = true` (the default) the import is added **as soon as the
+  alias appears as a whole word in the line**, so expanding a snippet that uses `pd`/`np`/`plt` leaves the file clean too.
+  Aliases inside strings and comments are ignored, and ambiguous short names (`go`, `os`, `sys`, `re`, `json`) are only
+  offered as completions, never inserted on typing. The dataset snippets (`readcsv`, `pddf`, `pltfig`, `sksplit`,
+  `skpipe`, `skreport`, `spmin`, `pxfig`…) use those standard aliases; `<leader>pn` opens the picker of every import and
+  of the ready-made bundles (data analysis, ML, deep learning, plots).
+- **Clean imports** (`<leader>pK`, or the flat `k` for "clean all" and `Q` for unused variables; every action also has a
+  `:PyClean`, `:PyUnusedImports`, `:PySortImports`, `:PyAddImports`, `:PyUnusedVars`, `:PyCleanToggle` command): the
+  unused-import check is pure Lua and deliberately conservative — a bound name found anywhere outside its own import
+  (even in a comment, a string or `__all__`) keeps the import, so re-exports and dynamic use are never broken. Sorting
+  groups statements into `__future__`, stdlib, third-party and relative sections, deduping exact repeats. Missing imports
+  come from the same catalog as the auto-import (0 tokens). Removing unused **variables** is the one step that needs a
+  real Python parser: it goes through ruff's `F841` fix with `--unsafe-fixes` and is an explicit command only, never part
+  of the save hook. `python.clean.on_save` (default true, toggle with `<leader>pKt`) runs the three safe steps in
+  `BufWritePre`; `settings.python.clean` is where it lives.
 - **ruff**: check the project, fix what it can, organize imports in the file, format the buffer (also on save).
 - **basedpyright**: check the whole project from the command line (the LSP already reports diagnostics in the open
   files; this is the full check).

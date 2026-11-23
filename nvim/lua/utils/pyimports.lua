@@ -13,6 +13,7 @@ local M = {}
 ---@field detail string short description
 ---@field words string[] extra prefixes that match this row
 ---@field package string top-level package (for the installed check)
+---@field auto boolean? false = never insert it just because the alias was typed (ambiguous short names)
 
 --- @type PyImport[]
 local CATALOG = {
@@ -286,6 +287,269 @@ local CATALOG = {
     words = {},
     package = "sqlalchemy",
   },
+
+  -- Scientific / ML: the aliases used in the industry (the full module names also match as prefixes).
+  {
+    id = "sklearn",
+    group = "scikit-learn",
+    label = "sk",
+    line = "import sklearn as sk",
+    detail = "scikit-learn module",
+    words = { "sklearn" },
+    package = "sklearn",
+  },
+  {
+    id = "torch",
+    group = "ML",
+    label = "torch",
+    line = "import torch",
+    detail = "PyTorch",
+    words = {},
+    package = "torch",
+  },
+  {
+    id = "tensorflow",
+    group = "ML",
+    label = "tf",
+    line = "import tensorflow as tf",
+    detail = "TensorFlow / Keras",
+    words = { "tensorflow" },
+    package = "tensorflow",
+  },
+  {
+    id = "opencv",
+    group = "ML",
+    label = "cv2",
+    line = "import cv2",
+    detail = "OpenCV",
+    words = { "opencv" },
+    package = "cv2",
+  },
+  {
+    id = "xgboost",
+    group = "ML",
+    label = "xgb",
+    line = "import xgboost as xgb",
+    detail = "gradient boosting",
+    words = { "xgboost" },
+    package = "xgboost",
+  },
+  {
+    id = "lightgbm",
+    group = "ML",
+    label = "lgb",
+    line = "import lightgbm as lgb",
+    detail = "gradient boosting",
+    words = { "lightgbm" },
+    package = "lightgbm",
+  },
+  {
+    id = "scipy.optimize.alias",
+    group = "SciPy",
+    label = "opt",
+    line = "import scipy.optimize as opt",
+    detail = "optimization",
+    words = {},
+    package = "scipy",
+  },
+  {
+    id = "scipy.signal.alias",
+    group = "SciPy",
+    label = "sig",
+    line = "import scipy.signal as sig",
+    detail = "signal processing",
+    words = {},
+    package = "scipy",
+  },
+  {
+    id = "scipy.integrate",
+    group = "SciPy",
+    label = "integrate",
+    line = "from scipy import integrate",
+    detail = "integration",
+    words = {},
+    package = "scipy",
+  },
+  {
+    id = "scipy.spatial",
+    group = "SciPy",
+    label = "spatial",
+    line = "from scipy import spatial",
+    detail = "distances / trees",
+    words = {},
+    package = "scipy",
+  },
+  {
+    id = "sklearn.metrics.accuracy",
+    group = "scikit-learn",
+    label = "accuracy_score",
+    line = "from sklearn.metrics import accuracy_score",
+    detail = "accuracy",
+    words = {},
+    package = "sklearn",
+  },
+  {
+    id = "sklearn.metrics.mse",
+    group = "scikit-learn",
+    label = "mean_squared_error",
+    line = "from sklearn.metrics import mean_squared_error",
+    detail = "regression error",
+    words = {},
+    package = "sklearn",
+  },
+  {
+    id = "sklearn.model_selection.grid",
+    group = "scikit-learn",
+    label = "GridSearchCV",
+    line = "from sklearn.model_selection import GridSearchCV",
+    detail = "hyperparameter search",
+    words = {},
+    package = "sklearn",
+  },
+  {
+    id = "sklearn.pipeline",
+    group = "scikit-learn",
+    label = "Pipeline",
+    line = "from sklearn.pipeline import Pipeline",
+    detail = "chained steps",
+    words = {},
+    package = "sklearn",
+  },
+  {
+    id = "sklearn.preprocessing.label",
+    group = "scikit-learn",
+    label = "LabelEncoder",
+    line = "from sklearn.preprocessing import LabelEncoder",
+    detail = "encode labels",
+    words = {},
+    package = "sklearn",
+  },
+  {
+    id = "sklearn.linear_model.logistic",
+    group = "scikit-learn",
+    label = "LogisticRegression",
+    line = "from sklearn.linear_model import LogisticRegression",
+    detail = "classification",
+    words = {},
+    package = "sklearn",
+  },
+
+  -- Data / visualization
+  {
+    id = "plotly.express",
+    group = "Data",
+    label = "px",
+    line = "import plotly.express as px",
+    detail = "interactive plots",
+    words = { "plotly" },
+    package = "plotly",
+  },
+  {
+    id = "plotly.graph_objects",
+    group = "Data",
+    label = "go",
+    line = "import plotly.graph_objects as go",
+    detail = "interactive figures",
+    words = {},
+    package = "plotly",
+    auto = false, -- too common as a variable name: never auto-insert while typing
+  },
+  {
+    id = "missingno",
+    group = "Data",
+    label = "msno",
+    line = "import missingno as msno",
+    detail = "missing-value plots",
+    words = {},
+    package = "missingno",
+  },
+
+  -- Stdlib utilities (the short ones are opt-in only: completion still offers them).
+  {
+    id = "datetime",
+    group = "Stdlib",
+    label = "dt",
+    line = "import datetime as dt",
+    detail = "dates and times",
+    words = { "datetime" },
+    package = "",
+  },
+  {
+    id = "collections.defaultdict",
+    group = "Stdlib",
+    label = "defaultdict",
+    line = "from collections import defaultdict",
+    detail = "dict with defaults",
+    words = {},
+    package = "",
+  },
+  {
+    id = "typing.Any",
+    group = "Stdlib",
+    label = "Any",
+    line = "from typing import Any",
+    detail = "type hints",
+    words = {},
+    package = "",
+  },
+  {
+    id = "typing.Dict",
+    group = "Stdlib",
+    label = "Dict",
+    line = "from typing import Dict",
+    detail = "type hints",
+    words = {},
+    package = "",
+  },
+  {
+    id = "timedelta",
+    group = "Stdlib",
+    label = "timedelta",
+    line = "from datetime import timedelta",
+    detail = "time intervals",
+    words = {},
+    package = "",
+  },
+  {
+    id = "json",
+    group = "Stdlib",
+    label = "json",
+    line = "import json",
+    detail = "JSON files",
+    words = {},
+    package = "",
+    auto = false,
+  },
+  {
+    id = "os",
+    group = "Stdlib",
+    label = "os",
+    line = "import os",
+    detail = "operating system",
+    words = {},
+    package = "",
+    auto = false,
+  },
+  {
+    id = "sys",
+    group = "Stdlib",
+    label = "sys",
+    line = "import sys",
+    detail = "system / interpreter",
+    words = {},
+    package = "",
+    auto = false,
+  },
+  {
+    id = "re",
+    group = "Stdlib",
+    label = "re",
+    line = "import re",
+    detail = "regular expressions",
+    words = {},
+    package = "",
+    auto = false,
+  },
 }
 
 M.CATALOG = CATALOG
@@ -307,6 +571,13 @@ function M.bundles()
       ids = { "train_test_split", "StandardScaler", "LinearRegression", "classification_report" },
     },
     { label = "Statistics", desc = "scipy.stats + statsmodels", ids = { "scipy.stats", "statsmodels.api" } },
+    {
+      label = "Machine learning starter",
+      desc = "sklearn split, scaling, model, metrics",
+      ids = { "train_test_split", "StandardScaler", "LogisticRegression", "classification_report" },
+    },
+    { label = "Deep learning", desc = "torch + tensorflow + OpenCV", ids = { "torch", "tensorflow", "opencv" } },
+    { label = "Interactive plots", desc = "plotly express + graph_objects", ids = { "plotly.express", "plotly.graph_objects" } },
   }
 end
 
@@ -319,6 +590,37 @@ end
 ---@return PyImport?
 function M.get(id)
   return by_id[id]
+end
+
+--- Whole-word alias lookup for typing-triggered imports. Only distinctive aliases qualify (see `auto = false`).
+---@param word string
+---@return PyImport?
+function M.auto_alias(word)
+  if #word < 2 then
+    return
+  end
+  for _, row in ipairs(CATALOG) do
+    if row.auto ~= false and row.label == word then
+      return row
+    end
+  end
+end
+
+--- Catalog rows whose alias appears as a whole word in `line` (`np.`, `pd.read_csv`, `train_test_split(`…).
+--- Pure: no buffer, no process. Used when text changes in insert mode and by the tests.
+---@param line string
+---@return PyImport[]
+function M.used_in_line(line)
+  local out = {}
+  for _, row in ipairs(CATALOG) do
+    if row.auto ~= false then
+      local pattern = "%f[%w_]" .. vim.pesc(row.label) .. "%f[^%w_]"
+      if line:find(pattern) then
+        out[#out + 1] = row
+      end
+    end
+  end
+  return out
 end
 
 local function settings()
@@ -481,6 +783,68 @@ function M.apply(buf, statements)
   local at = M.insert_row(lines)
   vim.api.nvim_buf_set_lines(buf, at, at, false, missing)
   return missing
+end
+
+--- Blank out quoted strings and comments, keeping byte positions. Shared with
+--- the typing-triggered auto-import (utils/pyauto.lua) and the cleanup module.
+---@param line string
+---@return string
+function M.mask(line)
+  local out, i, quote = {}, 1, nil
+  while i <= #line do
+    local c = line:sub(i, i)
+    if quote then
+      if c == "\\" then
+        out[#out + 1] = "  "
+        i = i + 2
+      else
+        out[#out + 1] = " "
+        if c == quote then
+          quote = nil
+        end
+        i = i + 1
+      end
+    elseif c == '"' or c == "'" then
+      quote = c
+      out[#out + 1] = " "
+      i = i + 1
+    elseif c == "#" then
+      while i <= #line do
+        out[#out + 1] = " "
+        i = i + 1
+      end
+    else
+      out[#out + 1] = c
+      i = i + 1
+    end
+  end
+  return table.concat(out)
+end
+
+--- Pure counterpart of `apply`: returns new lines with the statements inserted at the top.
+---@param lines string[]
+---@param statements string[]
+---@return string[]
+function M.apply_to_lines(lines, statements)
+  local seen, missing = {}, {}
+  for _, statement in ipairs(statements or {}) do
+    local row = M.get(statement)
+    local line = row and row.line or statement
+    if line and line ~= "" and not seen[line] and not M.has(lines, line) then
+      seen[line] = true
+      missing[#missing + 1] = line
+    end
+  end
+  if #missing == 0 then
+    return lines
+  end
+  table.sort(missing)
+  local out = vim.deepcopy(lines)
+  local at = M.insert_row(out)
+  for i = #missing, 1, -1 do
+    table.insert(out, at + 1, missing[i])
+  end
+  return out
 end
 
 -- ── installed packages (fast directory scan, once per project) ────────────────

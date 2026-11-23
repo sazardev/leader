@@ -204,6 +204,70 @@ ok(
 )
 ok("pydata: triggers on slash", vim.tbl_contains(pydata_source:get_trigger_characters(), "/"))
 
+-- ── standard aliases + auto-import on typing ───────────────────────────────────
+local alias_expect = {
+  { "np", "import numpy as np" },
+  { "pd", "import pandas as pd" },
+  { "plt", "import matplotlib.pyplot as plt" },
+  { "sns", "import seaborn as sns" },
+  { "sp", "import scipy as sp" },
+  { "sk", "import sklearn as sk" },
+  { "torch", "import torch" },
+  { "tf", "import tensorflow as tf" },
+  { "cv2", "import cv2" },
+  { "xgb", "import xgboost as xgb" },
+  { "lgb", "import lightgbm as lgb" },
+  { "px", "import plotly.express as px" },
+  { "opt", "import scipy.optimize as opt" },
+  { "sig", "import scipy.signal as sig" },
+  { "dt", "import datetime as dt" },
+}
+for _, pair in ipairs(alias_expect) do
+  ok("alias " .. pair[1], imports.auto_alias(pair[1]) and imports.auto_alias(pair[1]).line == pair[2])
+end
+eq("ambiguous go is not auto", imports.auto_alias("go"), nil)
+eq("ambiguous json is not auto", imports.auto_alias("json"), nil)
+eq("too short is not auto", imports.auto_alias("x"), nil)
+local in_line = imports.used_in_line("a = np.array([1]); df = pd.DataFrame(a)")
+eq("used_in_line: two aliases", #in_line, 2)
+eq("used_in_line: whole words only", #imports.used_in_line("mynp = xnp"), 0)
+
+local pyauto = require "utils.pyauto"
+eq("statements: alias in code", pyauto.statements_for({ "x = 1" }, "a = np.array([1])"), { "import numpy as np" })
+eq("statements: whole word only", pyauto.statements_for({ "x = 1" }, "mynp = 1"), {})
+eq("statements: inside a comment", pyauto.statements_for({ "x = 1" }, "# np is great"), {})
+eq("statements: inside a string", pyauto.statements_for({ "x = 1" }, 's = "np"'), {})
+
+-- buffer level: typing on line 1 must keep the cursor on the typed line
+local live = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_name(live, vim.fn.tempname() .. ".py")
+vim.api.nvim_buf_set_lines(live, 0, -1, false, { "a = np.array([1])" })
+vim.api.nvim_set_current_buf(live)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+local inserted = pyauto.ensure(live)
+eq("auto: inserted at the top", inserted, { "import numpy as np" })
+eq("auto: buffer lines", vim.api.nvim_buf_get_lines(live, 0, -1, false), {
+  "import numpy as np",
+  "a = np.array([1])",
+})
+ok("auto: cursor stays on the code line", vim.api.nvim_win_get_cursor(0)[1] == 2)
+eq("auto: idempotent", pyauto.ensure(live), {})
+
+-- snippets file: standard aliases used by the snippets, with no duplicate prefixes
+local f = assert(io.open("nvim/snippets/python.json", "r"))
+local snippets = vim.json.decode(f:read "*a")
+f:close()
+ok("snippets: json valid", type(snippets) == "table")
+for _, key in ipairs { "nparray", "pddf", "pltfig", "sksplit", "skpipe", "skreport", "spmin", "pxfig" } do
+  local found = false
+  for _, snip in pairs(snippets) do
+    if vim.tbl_contains(snip.prefix, key) then
+      found = true
+    end
+  end
+  ok("snippet prefix " .. key, found)
+end
+
 if fails > 0 then
   print("FAILURES: " .. fails)
 else
