@@ -8,19 +8,19 @@ It reads the same real mappings as [`CHEATSHEET.md`](../../CHEATSHEET.md): globa
 
 - **Left:** mappings grouped by menu or feature. The badge is the mode (`N` Normal, `V` Visual, `O` Operator-pending, `I` Insert, `T` Terminal). The number beside a group is its result count.
 - **Right:** the selected key, its action, where it applies, a concrete **Example**, detailed **Usage**, numbered **Steps**, the expected **Result** and practical **Notes**. Scroll the pane when the explanation is longer than the window.
-- **Bottom:** a live search input above the active language, modes, sources and order. The chips are buttons.
+- **Bottom left:** only the live search input and the shortcut chip bar. Counts, active filters and sort labels stay out of the way.
 
 On a narrow terminal the list and detail pane take turns instead of squeezing both into the window.
 
 ## Find anything
 
-Press `/` or click the search bar under the list, then type. The input is live: every keystroke updates the results, count and detail pane immediately, without a modal or an Enter press. Every word must match somewhere in the row, so `go race` finds the Go race-test command without needing to remember its exact key. Search covers:
+Press `/` or click the search bar under the list, then type. The input is live and fuzzy: every keystroke updates and ranks the results immediately, without a modal or an Enter press. Exact key and action matches rank first; abbreviations and out-of-order typos still work when the characters appear in order. Matched characters are highlighted. Every query term must match some field, so `go race` finds the Go race-test command without remembering its exact key. Search covers:
 
 - the key notation and action;
 - language, menu, mode, source and availability;
-- the example and usage text.
+- the concrete example text.
 
-`Enter` keeps the query and returns to the list. `Esc` clears it and returns; `Ctrl+U` clears it while staying in the input. `r` clears the search and every filter at once.
+`Ctrl+n` / `Ctrl+p` (or `Tab` / `Shift+Tab`) move through ranked results without leaving the input. `Enter` keeps the query and returns to the list. `Esc` clears it and returns; `Ctrl+U` clears it while staying in the input. `r` clears the search and every filter at once.
 
 ### Useful searches
 
@@ -35,7 +35,7 @@ Press `/` or click the search bar under the list, then type. The input is live: 
 
 - `l` chooses a language. **All languages** includes everything; **Global** contains shared shortcuts; a language shows its contextual menu.
 - `f` opens the mode and source checklist. Modes and sources are independent, so you can combine, for example, Visual + Leader menus.
-- `s` orders by key ascending or descending, action, language or mode. Ordering applies inside each visible group.
+- `s` orders the unfiltered browser by key ascending or descending, action, language or mode. While searching, relevance always wins so the best match stays first.
 - `Tab` folds or unfolds the group under the cursor. `{` and `}` jump between groups.
 - `r` returns to all languages, all modes, all sources, empty search and key order.
 
@@ -64,7 +64,7 @@ Examples describe the situation in which to press the key. Usage explains the wo
 - `j` / `k` or arrows move through mappings.
 - `Enter` or `l` opens the detail pane; `h` or `Esc` goes back.
 - `q` closes the finder from the list.
-- `/` focuses the live search; results change as you type. `Enter` keeps the query, `Esc` clears it and `Ctrl+U` clears it in place.
+- `/` focuses the live fuzzy search; results change and rank as you type, with matches highlighted. `Ctrl+n` / `Ctrl+p` or `Tab` / `Shift+Tab` move through results in place. `Enter` keeps the query, `Esc` clears it and `Ctrl+U` clears it in place.
 - `l` chooses language; `f` filters; `s` orders; `r` resets.
 - `y` copies the selected key notation.
 - `?` opens the complete help, including mouse controls.

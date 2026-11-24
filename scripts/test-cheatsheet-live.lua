@@ -37,6 +37,7 @@ local ok, err = xpcall(function()
     assert(entry.steps and #entry.steps >= 3, "missing steps: " .. entry.key .. " / " .. entry.action)
     assert(entry.result and entry.result ~= "", "missing result: " .. entry.key .. " / " .. entry.action)
     assert(entry.notes and #entry.notes > 0, "missing notes: " .. entry.key .. " / " .. entry.action)
+    assert(entry.search and entry.search.key == entry.key:lower(), "missing normalized search fields: " .. entry.key)
     seen[signature] = true
   end
 

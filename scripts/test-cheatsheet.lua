@@ -151,10 +151,6 @@ entries[1].example = "race detector"
 st.filter = "race detector"
 eq("model: examples are searchable", keys(model.visible(st)), { "<leader>gr" })
 entries[1].example = nil
-entries[1].steps = { "race detector workflow" }
-st.filter = "detector workflow"
-eq("model: steps are searchable", keys(model.visible(st)), { "<leader>gr" })
-entries[1].steps = nil
 st.filter = ""
 st.modes.n, st.modes.x, st.modes.o, st.modes.t = false, false, false, false
 eq("model: mode filter", keys(model.visible(st)), { "<Tab>" })
@@ -196,6 +192,18 @@ eq("model: Global second", languages[2].value, "Global")
 eq("model: language counts", languages[3], { label = "Go", value = "Go", count = 2 })
 eq("model: all modes label", model.active_modes(st), "All")
 eq("model: all sources label", model.active_sources(st), "All")
+local exact_score = model.score(entries[1], "go run")
+local fuzzy_score = model.score(entries[1], "gorun")
+ok("model: exact match ranks above fuzzy", exact_score > fuzzy_score)
+eq("model: impossible fuzzy query", model.score(entries[1], "zzzz"), nil)
+local marks = model.marks("<leader>gr", "gr")
+ok("model: fuzzy marks point at real bytes", marks[10] or marks[11] or marks[12])
+st.filter = "save"
+eq("model: best match ranks first", model.ranked(st)[1].key, "<leader>w")
+local ranked_groups = model.grouped(st)
+eq("model: search has one ranked group", #ranked_groups, 1)
+eq("model: ranked group name", ranked_groups[1].name, "Results")
+st.filter = ""
 
 -- View: rows, highlights, details and footer all describe the same filtered state.
 local view = require("cheatsheet")
@@ -203,7 +211,7 @@ local modal = require("utils.modal")
 local market = require("utils.market")
 st = model.state(entries)
 local rows = view.rows(st)
-eq("view: title count", rows[1].count, 6)
+eq("view: title has no count", rows[1].title, "MAPPINGS")
 ok(
   "view: group rows",
   vim.iter(rows):any(function(row)
@@ -213,7 +221,7 @@ ok(
 local go_group = vim.iter(rows):find(function(row)
   return row.group == "Go"
 end)
-eq("view: group count", go_group.count, 2)
+eq("view: group has no count", go_group.count, nil)
 local go = vim.iter(rows):find(function(row)
   return row.entry and row.entry.key == "<leader>gr"
 end)
@@ -222,6 +230,13 @@ ok(
   "view: key is painted",
   vim.iter(line):any(function(seg)
     return seg[1] == "<leader>gr" and seg[2] == view.hl.key
+  end)
+)
+local highlighted = view.list_line({ entry = go.entry, filter = "gr" })
+ok(
+  "view: fuzzy matches are highlighted",
+  vim.iter(highlighted):any(function(seg)
+    return seg[2] == view.hl.match
   end)
 )
 local pane, pane_rows = view.pane(st, go, 70)
@@ -249,19 +264,8 @@ end
 ok("view: mouse can copy", pane_actions.copy ~= nil)
 ok("view: mouse can search", pane_actions.search ~= nil)
 ok("view: mouse can choose language", pane_actions.language ~= nil)
-local summary = view.summary(st)
-ok("view: footer has result count", (summary[1][1][1] .. summary[1][2][1]):find("6 shortcuts", 1, true) ~= nil)
 local saved_cols = vim.o.columns
 vim.o.columns = 60
-local narrow_summary = view.summary(st)
-ok(
-  "view: narrow footer fits",
-  vim.iter(narrow_summary):all(function(line)
-    return vim.fn.strdisplaywidth(table.concat(vim.tbl_map(function(segment)
-      return segment[1]
-    end, line))) <= 60
-  end)
-)
 local narrow_hints = view.hints(st, "list")
 local hint_width = vim.fn.strdisplaywidth(table.concat(vim.tbl_map(function(segment)
   return segment[1]
@@ -273,7 +277,8 @@ vim.o.columns = saved_cols
 
 -- Controls: search, language, filters, sort and reset update the model, not a second copy of it.
 local spec = view.spec(st)
-eq("view: compact footer", spec.summary_rows, 3)
+eq("view: footer only has shortcuts", spec.summary_rows, 1)
+eq("view: footer has no status text", #spec.summary(st), 0)
 ok("view: live search input is configured", spec.live_input ~= nil)
 local function control(name, mode)
   for _, key in ipairs(spec.keys[mode or "list"]) do
@@ -369,6 +374,16 @@ eq("live search: first keystroke updates", m.filter, "g")
 type_live("go")
 eq("live search: query updates", m.filter, "go")
 eq("live search: results update immediately", #model.visible(m), 3)
+local before_next = vim.api.nvim_win_get_cursor(m.wins.list)[1]
+local next_result
+for _, mapping in ipairs(vim.api.nvim_buf_get_keymap(m.bufs.input, "i")) do
+  if mapping.lhs:lower() == "<c-n>" and mapping.callback then
+    next_result = mapping.callback
+  end
+end
+next_result()
+ok("live search: Ctrl-n moves without leaving input", vim.api.nvim_win_get_cursor(m.wins.list)[1] ~= before_next)
+eq("live search: Ctrl-n keeps input focus", vim.api.nvim_get_current_win(), m.wins.input)
 type_live("go test")
 eq("live search: refined query updates", #model.visible(m), 1)
 local clear
@@ -381,8 +396,14 @@ clear()
 eq("live search: Ctrl-U clears in place", m.filter, "")
 eq("live search: Ctrl-U keeps focus", vim.api.nvim_get_current_win(), m.wins.input)
 type_live("go test")
-local footer = table.concat(vim.api.nvim_buf_get_lines(m.bufs.summary, 0, -1, false), "\n")
-ok("live search: count updates in the footer", footer:find("1 of 6", 1, true) ~= nil)
+local footer_lines = vim.api.nvim_buf_get_lines(m.bufs.summary, 0, -1, false)
+local footer = table.concat(footer_lines, "\n")
+eq("live search: footer is one shortcut row", #footer_lines, 1)
+ok("live search: footer keeps shortcuts", footer:find("Search", 1, true) ~= nil)
+ok(
+  "live search: footer has no counts or filters",
+  footer:find("MAPPINGS", 1, true) == nil and footer:find("All ", 1, true) == nil and footer:find("%d") == nil
+)
 vim.cmd("stopinsert")
 local accept
 for _, mapping in ipairs(vim.api.nvim_buf_get_keymap(m.bufs.input, "i")) do

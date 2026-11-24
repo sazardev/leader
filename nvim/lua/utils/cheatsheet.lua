@@ -505,6 +505,16 @@ function M.entries()
     entry.result = described.result
     entry.notes = described.notes
     entry.note = described.note
+    entry.search = {
+      key = entry.key:lower(),
+      action = entry.action:lower(),
+      full = (entry.full or ""):lower(),
+      language = (entry.language or ""):lower(),
+      group = (entry.group or ""):lower(),
+      source = entry.source:lower(),
+      where = (entry.where or ""):lower(),
+      docs = entry.example:lower(),
+    }
   end
 
   table.sort(out, function(a, b)

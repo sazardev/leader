@@ -607,6 +607,22 @@ local function build(spec, state)
   end
   if spec.live_input then
     local ib = m.bufs.input
+    local function step_results(step)
+      local _, at = M.current(m)
+      for _ = 1, math.max(vim.v.count1, 1) do
+        local next_row = at + step
+        while m.rows[next_row] and not selectable(m, m.rows[next_row]) do
+          next_row = next_row + step
+        end
+        if not m.rows[next_row] then
+          break
+        end
+        at = next_row
+      end
+      pcall(vim.api.nvim_win_set_cursor, m.wins.list, { at, 0 })
+      m.view = "pane"
+      M.refresh(m, true)
+    end
     map(ib, { "i", "a" }, function()
       M.focus_input(m, m.input_return)
     end, "Edit filter")
@@ -619,6 +635,16 @@ local function build(spec, state)
     vim.keymap.set("i", "<Esc>", function()
       leave_input(true)
     end, { buffer = ib, nowait = true, desc = "Clear search and go back" })
+    for _, key in ipairs { "<C-n>", "<C-j>", "<Tab>" } do
+      vim.keymap.set("i", key, function()
+        step_results(1)
+      end, { buffer = ib, nowait = true, desc = "Next result" })
+    end
+    for _, key in ipairs { "<C-p>", "<C-k>", "<S-Tab>" } do
+      vim.keymap.set("i", key, function()
+        step_results(-1)
+      end, { buffer = ib, nowait = true, desc = "Previous result" })
+    end
     vim.keymap.set("i", "<C-u>", function()
       local prefix = spec.live_input.prefix or "/ "
       m.updating_input = true

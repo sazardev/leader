@@ -521,6 +521,7 @@ function M.build(t)
   g.CheatsheetExample = { fg = t.green, bold = true }
   g.CheatsheetUsage = { fg = t.fg }
   g.CheatsheetNote = { fg = t.faint, italic = true }
+  g.CheatsheetMatch = { fg = t.yellow, bold = true, underline = true }
   -- the terminal float: the theme's own background (one step over the `deep` editor, like the demo's)
   g.FlatTerm = { fg = t.fg, bg = t.bg }
   g.FlatTermBorder = { fg = t.bg, bg = t.bg }

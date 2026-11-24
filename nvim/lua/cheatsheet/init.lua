@@ -26,6 +26,7 @@ M.hl = flat
       example = "CheatsheetExample",
       usage = "CheatsheetUsage",
       note = "CheatsheetNote",
+      match = "CheatsheetMatch",
     }
   or {
     title = "Title",
@@ -38,6 +39,7 @@ M.hl = flat
     example = "DiagnosticOk",
     usage = vim.fn.hlexists "WhichKeyDesc" > 0 and "WhichKeyDesc" or "Comment",
     note = "Comment",
+    match = "IncSearch",
   }
 
 ---@param text string
@@ -60,6 +62,30 @@ local function cap(text)
   return (text:gsub("^%l", string.upper))
 end
 
+--- Splits text into matched and unmatched runs without rebuilding the buffer on every keystroke.
+---@param text string
+---@param hl string
+---@param query string
+---@return table[]
+local function painted(text, hl, query)
+  local marks = model.marks(text, query)
+  if not next(marks) then
+    return { { text, hl } }
+  end
+  local out, start, matched = {}, 1, nil
+  for at = 1, #text + 1 do
+    local hit = at <= #text and marks[at] == true or false
+    if at == 1 then
+      matched = hit
+    elseif hit ~= matched then
+      out[#out + 1] = { text:sub(start, at - 1), matched and M.hl.match or hl }
+      start, matched = at, hit
+    end
+  end
+  out[#out + 1] = { text:sub(start), matched and M.hl.match or hl }
+  return out
+end
+
 --- The state after a filter changes: redraw, then put the cursor on the first real key.
 ---@param m table
 local function refresh(m)
@@ -80,15 +106,14 @@ end
 ---@return table[]
 function M.rows(st)
   local groups = model.grouped(st)
-  local count = 0
+  local searching = vim.trim(st.filter or "") ~= ""
+  local rows = { { title = searching and "RESULTS" or "MAPPINGS" }, { spacer = true } }
   for _, group in ipairs(groups) do
-    count = count + #group.entries
-  end
-  local rows = { { title = "MAPPINGS", count = count, total = #st.entries }, { spacer = true } }
-  for _, group in ipairs(groups) do
-    rows[#rows + 1] = { group = group.name, count = #group.entries }
+    if not searching then
+      rows[#rows + 1] = { group = group.name }
+    end
     for _, entry in ipairs(group.entries) do
-      rows[#rows + 1] = { entry = entry }
+      rows[#rows + 1] = { entry = entry, filter = st.filter or "" }
     end
     rows[#rows + 1] = { spacer = true }
   end
@@ -100,19 +125,11 @@ end
 function M.list_line(row)
   local width = list_width()
   if row.title then
-    local count = row.count == row.total and tostring(row.count) or (row.count .. " / " .. row.total)
-    return {
-      { "  " .. row.title, M.hl.title },
-      { fit("  " .. count, math.max(width - 12, 1)), M.hl.meta },
-    }
+    return { { "  " .. row.title, M.hl.title } }
   elseif row.spacer then
     return { { "" } }
   elseif row.group then
-    local name = fit(row.group:upper(), math.max(width - 10, 8))
-    return {
-      { "  " .. name, M.hl.group },
-      { "  " .. row.count, M.hl.meta },
-    }
+    return { { "  " .. fit(row.group:upper(), width - 4), M.hl.group } }
   end
   local entry = row.entry
   local modes = {}
@@ -126,11 +143,12 @@ function M.list_line(row)
   local key_room = math.min(24, math.max(8, math.floor(width * 0.56)))
   local key = fit(entry.key, key_room)
   local used = vim.fn.strdisplaywidth(prefix .. key .. "  ")
-  return {
-    { prefix, M.hl.mode },
-    { key, M.hl.key },
-    { "  " .. fit(entry.action, math.max(width - used, 4)), M.hl.action },
-  }
+  local action = fit(entry.action, math.max(width - used, 4))
+  local line = { { prefix, M.hl.mode } }
+  vim.list_extend(line, painted(key, M.hl.key, row.filter or ""))
+  line[#line + 1] = { "  " }
+  vim.list_extend(line, painted(action, M.hl.action, row.filter or ""))
+  return line
 end
 
 ---@param m table
@@ -235,33 +253,6 @@ function M.pane(m, row, width)
     paragraph(described.note, M.hl.note)
   end
   return lines, clickable
-end
-
----@param m table
----@return table[]
-function M.summary(m)
-  local shown = #model.visible(m)
-  local cols = vim.o.columns
-  local count = shown == #m.entries and (shown .. " shortcuts") or (shown .. " of " .. #m.entries)
-  local sort_width = math.max(math.floor(cols * 0.30), 8)
-  local count_width = math.max(cols - 10 - 7 - sort_width - 6, 8)
-  local language = m.language == "All" and "All languages" or m.language
-  local modes = model.active_modes(m)
-  local sources = model.active_sources(m)
-  local filters = language
-    .. "  ·  "
-    .. (modes == "All" and "All modes" or ("Modes " .. modes))
-    .. "  ·  "
-    .. (sources == "All" and "All sources" or sources)
-  return {
-    {
-      { "  MAPPINGS", M.hl.title },
-      { fit("  " .. count, count_width), M.hl.meta },
-      { "   Sort ", M.hl.hint },
-      { fit(model.sort_label(m.sort), sort_width), M.hl.action },
-    },
-    { { "  " .. fit(filters, cols - 4), M.hl.meta } },
-  }
 end
 
 ---@param m table
@@ -429,12 +420,14 @@ function M.spec(st)
     list_line = M.list_line,
     pane = M.pane,
     pane_click = pane_click,
-    summary = M.summary,
+    summary = function()
+      return {}
+    end,
     hints = M.hints,
-    summary_rows = 3,
+    summary_rows = 1,
     live_input = {
       prefix = "/ ",
-      placeholder = "Search mappings…",
+      placeholder = "Fuzzy search mappings…",
       hl_prefix = M.hl.key,
       hl_placeholder = M.hl.hint,
     },
@@ -442,7 +435,9 @@ function M.spec(st)
       return "No mappings match. Change language, modes, sources or search, or press r to reset."
     end,
     help = {
-      { "/", "focus the live search; type to filter immediately" },
+      { "/", "focus the live fuzzy search; type to rank results immediately" },
+      { "Ctrl+n / Ctrl+p", "move through results without leaving the search input" },
+      { "Tab / Shift+Tab", "next / previous result while searching" },
       { "Enter", "keep the search and return to the list" },
       { "Esc", "clear the live search and return to the list" },
       { "l", "choose a language (Global includes shared shortcuts)" },

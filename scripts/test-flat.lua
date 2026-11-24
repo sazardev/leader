@@ -36,7 +36,7 @@ local REQUIRED = {
   "TelescopePreviewLine", "TelescopePreviewMatch", "FlashLabel", "MultiCursorCursor", "GrugFarResultsMatchRemoved", "FlatNotify", "FlatNotifyError", "FlatKey", "NvStartNormal", "NvStartSel", "NvStartBtn",
   "AgentInput", "AgentStatus", "AgentFloat", "CommitHeader", "CommitAI", "FlatFresh1", "FlatFresh" .. groups.FRESH_STEPS,
   "CheatsheetTitle", "CheatsheetKey", "CheatsheetGroup", "CheatsheetAction", "CheatsheetMeta", "CheatsheetHint", "CheatsheetMode",
-  "CheatsheetExample", "CheatsheetUsage", "CheatsheetNote",
+  "CheatsheetExample", "CheatsheetUsage", "CheatsheetNote", "CheatsheetMatch",
 }
 
 for name, p in pairs(PALETTES) do
@@ -78,6 +78,7 @@ for name, p in pairs(PALETTES) do
   check(g.CheatsheetKey.fg == t.yellow and g.CheatsheetGroup.fg == t.purple, name .. ": Mappings keys and groups use the design accents")
   check(g.CheatsheetKey.bg == nil and g.CheatsheetMeta.bg == nil, name .. ": Mappings text must work on both panes without a background")
   check(g.CheatsheetExample.fg == t.green and g.CheatsheetNote.italic, name .. ": Mappings examples and notes have their own quiet emphasis")
+  check(g.CheatsheetMatch.fg == t.yellow and g.CheatsheetMatch.underline, name .. ": Mappings fuzzy matches are visible")
   check(color.contrast(t.dim, t.soft) >= 3.5, name .. ": dim text unreadable over the block")
   check(color.contrast(t.faint, t.soft) >= 1.9, name .. ": faint hints vanish over the block")
 

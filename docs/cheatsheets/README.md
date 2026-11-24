@@ -49,7 +49,7 @@ The language menus open an integrated terminal (toggleterm) and run the commands
 
 The exact keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md); here, how they combine.
 
-- **Find a shortcut**: open **Mappings** with `<leader>ch`, `:Cheatsheet` or the start screen's button. `/` focuses the live search (results update as you type) across keys, actions, languages, modes and examples; `l` chooses a language; `f` filters by mode and origin; `s` orders the results; `r` clears everything. Hover previews with the mouse, click opens details, and every key includes an example, detailed usage, numbered steps, expected result and practical notes. See [mappings.md](mappings.md) for the full workflow.
+- **Find a shortcut**: open **Mappings** with `<leader>ch`, `:Cheatsheet` or the start screen's button. `/` focuses the live fuzzy search (results update and rank as you type, with matches highlighted) across keys, actions, languages, modes and examples; `l` chooses a language; `f` filters by mode and origin; `s` orders the results; `r` clears everything. Hover previews with the mouse, click opens details, and every key includes an example, detailed usage, numbered steps, expected result and practical notes. See [mappings.md](mappings.md) for the full workflow.
 
 - **Jump and come back**: after `gd` / `grr` / `Ctrl+click`, `Esc` returns to where you were (if you didn't edit there); it also closes popups and clears the highlight. `Ctrl+o` / `Ctrl+i` walk the jump history.
 - **Line diagnostic** (`<leader>xd`): opens a popup; press it again to enter it and copy the text.

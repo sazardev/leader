@@ -104,6 +104,150 @@ function M.haystack(entry)
     :lower()
 end
 
+local FIELD_WEIGHTS = {
+  { name = "key", weight = 9 },
+  { name = "action", weight = 6 },
+  { name = "full", weight = 4 },
+  { name = "language", weight = 6 },
+  { name = "group", weight = 5 },
+  { name = "source", weight = 2 },
+  { name = "where", weight = 2 },
+  { name = "docs", weight = 1 },
+}
+
+--- Real entries carry normalized fields so typing never rebuilds their long documentation text.
+---@param entry table
+---@return table
+local function search_fields(entry)
+  if entry.search then
+    return entry.search
+  end
+  return {
+    key = (entry.key or ""):lower(),
+    action = (entry.action or ""):lower(),
+    full = (entry.full or ""):lower(),
+    language = (entry.language or ""):lower(),
+    group = (entry.group or ""):lower(),
+    source = M.source_label(entry.source):lower(),
+    where = (entry.where or ""):lower(),
+    docs = (entry.example or ""):lower(),
+  }
+end
+
+---@param text string
+---@param at integer
+---@return boolean
+local function boundary(text, at)
+  return at == 1 or text:sub(at - 1, at - 1):match "[%w_]" == nil
+end
+
+--- Exact substrings win; otherwise match an ordered subsequence with consecutive and word-boundary bonuses.
+---@param text string
+---@param term string
+---@return integer?, table<integer, boolean>?
+local function fuzzy(text, term)
+  text, term = text or "", term or ""
+  if term == "" then
+    return 0, {}
+  end
+  local first, last = text:find(term, 1, true)
+  if first then
+    local positions = {}
+    for at = first, last do
+      positions[at] = true
+    end
+    return 140 + (first == 1 and 45 or 0) + (boundary(text, first) and 12 or 0) - first * 0.05, positions
+  end
+
+  -- Two-letter queries stay exact; otherwise every long document would contain a g…o or a…n subsequence.
+  if #term < 3 then
+    return nil
+  end
+
+  local positions, cursor, previous = {}, 1, nil
+  local consecutive, gaps, edges = 0, 0, 0
+  for i = 1, #term do
+    local at = text:find(term:sub(i, i), cursor, true)
+    if not at then
+      return nil
+    end
+    if not previous then
+      edges = boundary(text, at) and 1 or 0
+    elseif at == previous + 1 then
+      consecutive = consecutive + 1
+    else
+      gaps = gaps + at - previous - 1
+      if boundary(text, at) then
+        edges = edges + 1
+      end
+    end
+    positions[at] = true
+    previous, cursor = at, at + 1
+  end
+  return 24 + consecutive * 15 + edges * 10 - gaps * 2 - previous * 0.08, positions
+end
+
+--- Fuzzy score for one mapping. Every query term must match some field.
+---@param entry table
+---@param query string
+---@return integer?
+function M.score(entry, query)
+  local terms = {}
+  for term in (query or ""):lower():gmatch "%S+" do
+    terms[#terms + 1] = term
+  end
+  if #terms == 0 then
+    return 0
+  end
+  local fields = search_fields(entry)
+  local total = 0
+  for _, term in ipairs(terms) do
+    local best
+    for _, field in ipairs(FIELD_WEIGHTS) do
+      local text = fields[field.name] or ""
+      local score = fuzzy(text, term)
+      if score and score > 0 and not (field.name == "docs" and not text:find(term, 1, true)) then
+        local weighted = score * field.weight + (field.name == "key" and 25 or 0)
+        if not best or weighted > best then
+          best = weighted
+        end
+      end
+    end
+    if not best then
+      return nil
+    end
+    total = total + best
+  end
+  return math.floor(total)
+end
+
+--- Byte positions to paint for a query, used by the list's match highlighting.
+---@param text string
+---@param query string
+---@return table<integer, boolean>
+function M.marks(text, query)
+  local out = {}
+  for term in (query or ""):lower():gmatch "%S+" do
+    local _, positions = fuzzy((text or ""):lower(), term)
+    for at in pairs(positions or {}) do
+      out[at] = true
+    end
+  end
+  return out
+end
+
+local function filter_key(st)
+  local modes = {}
+  for _, mode in ipairs(M.MODES) do
+    modes[#modes + 1] = st.modes[mode.id] and "1" or "0"
+  end
+  local sources = {}
+  for _, source in ipairs(M.SOURCES) do
+    sources[#sources + 1] = st.sources[source.id] and "1" or "0"
+  end
+  return table.concat({ st.filter or "", st.language or "All", table.concat(modes), table.concat(sources) }, "\0")
+end
+
 ---@param entry table
 ---@param st table
 ---@return boolean
@@ -118,16 +262,7 @@ function M.matches(entry, st)
   for _, candidate in ipairs(entry.modes or {}) do
     mode = mode or st.modes[candidate] == true
   end
-  if not mode then
-    return false
-  end
-  local text = M.haystack(entry)
-  for word in (st.filter or ""):lower():gmatch "%S+" do
-    if not text:find(word, 1, true) then
-      return false
-    end
-  end
-  return true
+  return mode and M.score(entry, st.filter) ~= nil
 end
 
 --- Zero-padded numbers make "item 2" sort before "item 10" without a parser.
@@ -170,16 +305,61 @@ end
 ---@param st table
 ---@return table[]
 function M.visible(st)
-  return vim.tbl_filter(function(entry)
-    return M.matches(entry, st)
-  end, st.entries or {})
+  local key = filter_key(st)
+  if st._visible_key == key then
+    return st._visible
+  end
+  local out = {}
+  for _, entry in ipairs(st.entries or {}) do
+    if M.matches(entry, st) then
+      table.insert(out, entry)
+    end
+  end
+  st._visible_key, st._visible = key, out
+  return out
+end
+
+--- Search results are ranked globally like navi; the unfiltered browser keeps its groups and chosen order.
+---@param st table
+---@return table[]
+function M.ranked(st)
+  local list = M.visible(st)
+  if vim.trim(st.filter or "") == "" then
+    return list
+  end
+  local key = filter_key(st)
+  if st._ranked_key == key then
+    return st._ranked
+  end
+  local scored = {}
+  for _, entry in ipairs(list) do
+    table.insert(scored, { entry = entry, score = M.score(entry, st.filter) or 0 })
+  end
+  table.sort(scored, function(a, b)
+    if a.score ~= b.score then
+      return a.score > b.score
+    end
+    if (a.entry.group or ""):lower() ~= (b.entry.group or ""):lower() then
+      return (a.entry.group or ""):lower() < (b.entry.group or ""):lower()
+    end
+    return a.entry.key < b.entry.key
+  end)
+  local out = vim.tbl_map(function(item)
+    return item.entry
+  end, scored)
+  st._ranked_key, st._ranked = key, out
+  return out
 end
 
 ---@param st table
 ---@return { name: string, entries: table[] }[]
 function M.grouped(st)
+  local list = M.ranked(st)
+  if vim.trim(st.filter or "") ~= "" then
+    return #list > 0 and { { name = "Results", entries = list } } or {}
+  end
   local groups = {}
-  for _, entry in ipairs(M.visible(st)) do
+  for _, entry in ipairs(list) do
     local name = entry.group or "Other"
     groups[name] = groups[name] or { name = name, entries = {} }
     table.insert(groups[name].entries, entry)
