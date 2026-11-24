@@ -52,6 +52,12 @@ end
 function M.setup()
   local map = vim.keymap.set
 
+  vim.api.nvim_create_user_command("Cheatsheet", function()
+    require("cheatsheet").open()
+  end, { desc = "Open the searchable mappings cheatsheet" })
+  -- Overrides NvChad's plain <leader>ch grid with Leader's own searchable view.
+  map("n", "<leader>ch", "<cmd>Cheatsheet<CR>", { desc = "Cheatsheet open searchable mappings" })
+
   map("n", ";", ":", { desc = "General command mode (; instead of :)" })
   -- jk = Esc, but with the completion menu open it only closes it (like Esc in blink)
   map("i", "jk", function()

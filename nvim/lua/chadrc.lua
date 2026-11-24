@@ -14,7 +14,6 @@ M.base46 = {
 }
 
 M.nvdash = require("ui.dashboard").config()
-M.cheatsheet = require("ui.dashboard").cheatsheet()
 
 -- the floating terminal (Alt+i): the demo's, a block in the theme's own background over the `deep` editor,
 -- 5% from each side, 14% from the top, 12% from the bottom

@@ -42,8 +42,8 @@ function M.contexts()
 end
 
 --- `desc` an action is registered with. It starts with the first word of the
---- menu name ("Go run", "Git status"): NvCheatsheet (the dashboard's Mappings button)
---- groups by the first word of the desc, and requires at least two.
+--- menu name ("Go run", "Git status"): CHEATSHEET.md and the live Mappings view
+--- group by the first word of the desc, and require at least two.
 ---@param ctx table
 ---@param text string
 ---@return string

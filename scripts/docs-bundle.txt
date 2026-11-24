@@ -20,6 +20,7 @@ docs/cheatsheets/go.md
 docs/cheatsheets/herdr.md
 docs/cheatsheets/java-kotlin.md
 docs/cheatsheets/lua.md
+docs/cheatsheets/mappings.md
 docs/cheatsheets/markdown.md
 docs/cheatsheets/panes.md
 docs/cheatsheets/python.md

@@ -509,6 +509,18 @@ function M.build(t)
   -- the full-screen lists (utils/market.lua: project picker, SPEC/STACK markets, doctor): the chosen row, and its bar
   g.MarketSel = { bg = color.blend(t.soft, t.fg, 0.13) }
   g.MarketBar = { fg = t.yellow, bg = color.blend(t.soft, t.fg, 0.13) }
+  -- Mappings (<leader>ch): the same language as which-key — yellow keys, purple groups, faint metadata —
+  -- with no backgrounds, so the text works on both the soft list and the editor-colored reading pane.
+  g.CheatsheetTitle = { fg = t.fg, bold = true }
+  g.CheatsheetKey = { fg = t.yellow, bold = true }
+  g.CheatsheetGroup = { fg = t.purple, bold = true }
+  g.CheatsheetAction = { fg = t.fg }
+  g.CheatsheetMeta = { fg = t.dim }
+  g.CheatsheetHint = { fg = t.faint }
+  g.CheatsheetMode = { fg = t.aqua }
+  g.CheatsheetExample = { fg = t.green, bold = true }
+  g.CheatsheetUsage = { fg = t.fg }
+  g.CheatsheetNote = { fg = t.faint, italic = true }
   -- the terminal float: the theme's own background (one step over the `deep` editor, like the demo's)
   g.FlatTerm = { fg = t.fg, bg = t.bg }
   g.FlatTermBorder = { fg = t.bg, bg = t.bg }

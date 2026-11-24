@@ -22,6 +22,7 @@ local worktree = vim.tbl_contains(arg, "--worktree")
 local PAGES = {
   { "overview", "Overview", "README.md", "Start" },
   { "guides", "Workflows", "docs/cheatsheets/README.md", "Start" },
+  { "mappings", "Mappings", "docs/cheatsheets/mappings.md", "Start" },
   { "faq", "FAQ", "docs/FAQ.md", "Start" },
   { "keys", "Every key", "CHEATSHEET.md", "Start" },
   { "changelog", "Changelog", "CHANGELOG.md", "Start" },

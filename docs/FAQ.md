@@ -92,8 +92,10 @@ Back up `local.lua` and `~/.local/state/nvim` to keep your setup; the rest is re
 
 ### How do I learn the keys?
 
-Press `<Space>` and read the menu; it only shows what applies to the current buffer. The dashboard's **Mappings** button
-opens the whole cheat sheet, and [`CHEATSHEET.md`](../CHEATSHEET.md) is the same file (generated from the real keymaps).
+Press `<Space>` and read the menu; it only shows what applies to the current buffer. **Mappings** (`<leader>ch`, `:Cheatsheet`
+or the dashboard's button) opens the whole live cheatsheet: `/` focuses a search input that filters as you type, `l` chooses a language, `f` filters by mode/source
+and `s` changes the order. Hover or click a mapping to see a concrete example, detailed usage, numbered steps, expected result and notes; the chips also work with the mouse.
+[`CHEATSHEET.md`](../CHEATSHEET.md) is the generated Markdown version of the same mappings.
 `<Space>Sp` is the settings panel. The [documentation](https://leader.sazardev.stream/docs/) has a page per language and
 per feature, and the [offline copy](offline.html) works without network.
 

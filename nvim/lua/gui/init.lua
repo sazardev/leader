@@ -597,7 +597,7 @@ function M.app_menu()
       items = {
         { label = "Welcome & Checks", hint = "Ctrl+Shift+W", run = M.actions.welcome },
         { label = "Every Menu", keys = "<leader>" },
-        { label = "All Keys", hint = ":NvCheatsheet", run = ex "NvCheatsheet" },
+        { label = "Keymap Finder…", hint = "<leader>ch", run = ex "Cheatsheet" },
         { label = "Settings", keys = "<leader>Sp" },
         { label = "Check Health", hint = ":checkhealth", run = ex "checkhealth" },
         { sep = true },

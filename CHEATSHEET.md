@@ -1193,7 +1193,7 @@ Preset `enter` plus the overrides from `plugins/editing/blink.lua`. `→` = trie
 
 ## Global shortcuts
 
-Sections = first word of the `desc` (same as the dashboard's **Mappings** button).
+Sections = first word of the `desc` (the live **Mappings** view groups the same way).
 
 ### Agent
 
@@ -1285,6 +1285,12 @@ Sections = first word of the `desc` (same as the dashboard's **Mappings** button
 | `<leader>at` | n,x | Convert |
 | `<leader>au` | n | Undo run |
 | `<leader>ax` | n | Stop |
+
+### Cheatsheet
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>ch` | n | Open searchable mappings |
 
 ### Clipboard
 

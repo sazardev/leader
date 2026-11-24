@@ -8,6 +8,7 @@
 --   spec.pane(m, row, width)  the lines of the right pane for the row, and optionally `rows` (line → anything, for keys)
 --   spec.result(m)?           the lines of the "what it does" view (key `p`); no function = no such view
 --   spec.summary(m)           the lines of the strip (the hint row is added)
+--   spec.empty(m)?            text when no row matches (default: «Nothing matches …»)
 --   spec.hints(m, mode)       `{ { key, word } }` for mode "list" | "pane" | "result"
 --   spec.help                 `{ { key, text } }` listed by `?`, after the keys every market has
 --   spec.keys                 `{ list = { { lhs, fn(m, row), desc } }, pane = { … }, all = { … } }`: they win over the base keys
@@ -16,6 +17,7 @@
 --   spec.initial(m)?          the row the cursor starts on (default: the first it can rest on)
 --   spec.pane_click(m, item, line, column)?  a click on a pane line that `pane` returned in its `rows` (a choice, a checkbox)
 --   spec.summary_rows         rows of the strip (default 7)
+--   spec.live_input?          { prefix, placeholder, hl_prefix, hl_placeholder }: an editable one-line filter under the panes
 --   spec.on_close(m)          when the market closes (save what it learned)
 --   spec.hjkl                 l / → only move to the pane and h / ← back (⏎ alone reads): lists where reading does
 --                             something big (the project picker opens the project)
@@ -29,6 +31,7 @@ local M = {}
 
 local NS = vim.api.nvim_create_namespace "Market"
 local SEL = vim.api.nvim_create_namespace "MarketSel"
+local HOVER = vim.api.nvim_create_namespace "MarketHover"
 M.NARROW = 100
 
 ---@alias MarketSeg { [1]: string, [2]: string? }
@@ -44,6 +47,7 @@ M.NARROW = 100
 ---@field show "list"|"pane"   narrow terminals: what takes the screen
 ---@field collapsed table<string, boolean>
 ---@field pane_rows table<integer, any>
+---@field input_return "list"|"pane"?
 
 --- Word-wraps `text` to `width` display columns
 ---@param text string
@@ -71,6 +75,7 @@ end
 function M.draw(buf, lines)
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
+  vim.api.nvim_buf_clear_namespace(buf, HOVER, 0, -1)
   vim.api.nvim_buf_set_lines(
     buf,
     0,
@@ -92,6 +97,46 @@ function M.draw(buf, lines)
     end
   end
   vim.bo[buf].modifiable = false
+end
+
+--- Draws the optional live input without replacing its line while the user is typing.
+---@param m Market
+function M.draw_input(m)
+  local buf, cfg = m.bufs.input, m.def.live_input
+  if not buf or not cfg or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  local query = m.filter or ""
+  local prefix = cfg.prefix or "/ "
+  local text = prefix .. query
+  local current = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  if not vim.deep_equal(current, { text }) then
+    m.updating_input = true
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
+    m.updating_input = false
+  end
+  vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
+  vim.api.nvim_buf_set_extmark(buf, NS, 0, 0, { end_col = #prefix, hl_group = cfg.hl_prefix or "NvModalKey" })
+  if query == "" then
+    vim.api.nvim_buf_set_extmark(buf, NS, 0, #prefix, {
+      virt_text = { { cfg.placeholder or "Filter…", cfg.hl_placeholder or "NvModalMuted" } },
+      virt_text_pos = "inline",
+    })
+  end
+end
+
+--- Focuses the live input and enters Insert mode. `where` is where Enter returns.
+---@param m Market
+---@param where? "list"|"pane"
+function M.focus_input(m, where)
+  if not m.bufs.input or not vim.api.nvim_win_is_valid(m.wins.input) then
+    return
+  end
+  m.input_return = where or (vim.api.nvim_get_current_win() == m.wins.pane and "pane" or "list")
+  vim.api.nvim_set_current_win(m.wins.input)
+  local prefix = m.def.live_input.prefix or "/ "
+  vim.api.nvim_win_set_cursor(m.wins.input, { 1, #prefix + #(m.filter or "") })
+  vim.cmd "startinsert!"
 end
 
 --- The row of key chips: a key and its word
@@ -121,7 +166,7 @@ local function visible_rows(m)
   local out, folded = {}, false
   for _, row in ipairs(m.def.rows(m)) do
     if row.group then
-      folded = m.collapsed[row.group] == true
+      folded = (m.filter or "") == "" and m.collapsed[row.group] == true
       row.collapsed = folded or nil
       out[#out + 1] = row
     elseif not folded or row.spacer or row.title then
@@ -142,7 +187,8 @@ end
 function M.layout(m)
   local cols, rows = vim.o.columns, vim.o.lines - vim.o.cmdheight - 1 -- the statusline stays
   local strip = m.def.summary_rows or 7
-  local top = rows - strip
+  local input = m.def.live_input and 1 or 0
+  local top = rows - strip - input
   local function cfg(row, col, width, height, hide)
     return { relative = "editor", row = row, col = col, width = width, height = height, hide = hide or false }
   end
@@ -155,7 +201,10 @@ function M.layout(m)
     vim.api.nvim_win_set_config(m.wins.list, cfg(0, 0, left, top))
     vim.api.nvim_win_set_config(m.wins.pane, cfg(0, left, cols - left, top))
   end
-  vim.api.nvim_win_set_config(m.wins.summary, cfg(top, 0, cols, strip))
+  if input == 1 then
+    vim.api.nvim_win_set_config(m.wins.input, cfg(top, 0, cols, 1))
+  end
+  vim.api.nvim_win_set_config(m.wins.summary, cfg(top + input, 0, cols, strip))
 end
 
 --- The row under the cursor stands out: the whole row lit and a bar at its left edge (the cursor block is hidden).
@@ -179,7 +228,8 @@ end
 --- same), only the bar, the pane and the strip follow.
 ---@param m Market
 ---@param moved boolean?
-function M.refresh(m, moved)
+---@param keep_input boolean?  do not redraw the editable input while TextChanged is running
+function M.refresh(m, moved, keep_input)
   local w, spec = m.wins, m.def
   if not vim.api.nvim_win_is_valid(w.list) then
     return
@@ -192,7 +242,8 @@ function M.refresh(m, moved)
       any = any or spec.selectable(row)
     end
     if not any then
-      lines[#lines + 1] = { { "  Nothing matches «" .. m.filter .. "»", modal.hl.muted } }
+      local text = spec.empty and spec.empty(m) or ("Nothing matches «" .. m.filter .. "»")
+      lines[#lines + 1] = { { "  " .. text, modal.hl.muted } }
     end
     local at = vim.api.nvim_win_get_cursor(w.list)[1]
     M.draw(m.bufs.list, lines)
@@ -212,11 +263,13 @@ function M.refresh(m, moved)
 
   local strip = spec.summary_rows or 7
   local summary = spec.summary(m)
-  while #summary < strip - 2 do
+  while #summary < strip - 1 do
     summary[#summary + 1] = { { "" } }
   end
-  summary[#summary + 1] = { { "" } }
-  local mode = (m.view == "result" and "result") or (vim.api.nvim_get_current_win() == w.pane and "pane") or "list"
+  local current = vim.api.nvim_get_current_win()
+  local mode = (m.view == "result" and "result")
+    or (current == w.pane or (current == w.input and m.input_return == "pane")) and "pane"
+    or "list"
   local hints = M.hints(spec.hints(m, mode))
   summary[#summary + 1] = hints
   -- where each key chip sits, so a click on it does what the key does
@@ -228,6 +281,9 @@ function M.refresh(m, moved)
     end),
   }
   M.draw(m.bufs.summary, summary)
+  if not keep_input then
+    M.draw_input(m)
+  end
 end
 
 ---@param m Market
@@ -314,11 +370,20 @@ local function build(spec, state)
   m.collapsed = {}
   m.rows = {}
   m.pane_rows = {}
+  m.input_return = "list"
   m.wins, m.bufs = {}, {}
-  for _, name in ipairs { "list", "pane", "summary" } do
+  local names = { "list", "pane", "summary" }
+  if spec.live_input then
+    table.insert(names, 2, "input")
+  end
+  for _, name in ipairs(names) do
     local buf = vim.api.nvim_create_buf(false, true)
     vim.bo[buf].bufhidden = "wipe"
     vim.bo[buf].filetype = "market"
+    if name == "input" then
+      vim.bo[buf].modifiable = true
+      vim.b[buf].completion = false
+    end
     m.bufs[name] = buf
   end
   local flat = require("ui.flat").enabled()
@@ -326,11 +391,17 @@ local function build(spec, state)
     { relative = "editor", row = 0, col = 0, width = 10, height = 5, style = "minimal", border = "none", zindex = 40 }
   m.wins.pane = vim.api.nvim_open_win(m.bufs.pane, false, base)
   m.wins.summary = vim.api.nvim_open_win(m.bufs.summary, false, base)
+  if spec.live_input then
+    m.wins.input = vim.api.nvim_open_win(m.bufs.input, false, base)
+  end
   m.wins.list = vim.api.nvim_open_win(m.bufs.list, true, base)
   -- the list and the strip are blocks (the modal's color); the reading pane is the editor's own deep color
   local block = flat and "NormalFloat:NormalFloat,EndOfBuffer:NormalFloat" or "NormalFloat:Pmenu"
   vim.wo[m.wins.list].winhighlight = block .. ",CursorLine:MarketSel"
   vim.wo[m.wins.summary].winhighlight = block
+  if spec.live_input then
+    vim.wo[m.wins.input].winhighlight = flat and "NormalFloat:FlatInput,EndOfBuffer:FlatInput" or "NormalFloat:Pmenu"
+  end
   vim.wo[m.wins.pane].winhighlight = "NormalFloat:Normal,EndOfBuffer:Normal,CursorLine:FlatInput"
   for _, w in pairs(m.wins) do
     vim.wo[w].wrap = false
@@ -421,6 +492,9 @@ local function build(spec, state)
     M.refresh(m)
   end
   local function filter()
+    if spec.live_input then
+      return M.focus_input(m, "list")
+    end
     vim.ui.input({ prompt = "Filter: ", default = m.filter }, function(text)
       if text == nil then
         return
@@ -523,7 +597,43 @@ local function build(spec, state)
     end
   end
 
-  -- the mouse, in all three windows (a click moves the focus to the one under the pointer before it arrives)
+  local function leave_input(clear)
+    vim.cmd "stopinsert"
+    if clear then
+      m.filter = ""
+    end
+    M.refresh(m)
+    M.focus(m, m.input_return == "pane" and "pane" or "list")
+  end
+  if spec.live_input then
+    local ib = m.bufs.input
+    map(ib, { "i", "a" }, function()
+      M.focus_input(m, m.input_return)
+    end, "Edit filter")
+    map(ib, { "<Esc>", "q" }, function()
+      leave_input(false)
+    end, "Back to mappings")
+    vim.keymap.set("i", "<CR>", function()
+      leave_input(false)
+    end, { buffer = ib, nowait = true, desc = "Keep search" })
+    vim.keymap.set("i", "<Esc>", function()
+      leave_input(true)
+    end, { buffer = ib, nowait = true, desc = "Clear search and go back" })
+    vim.keymap.set("i", "<C-u>", function()
+      local prefix = spec.live_input.prefix or "/ "
+      m.updating_input = true
+      vim.api.nvim_buf_set_lines(ib, 0, -1, false, { prefix })
+      m.updating_input = false
+      vim.api.nvim_win_set_cursor(m.wins.input, { 1, #prefix })
+      m.filter = ""
+      m.rows = visible_rows(m)
+      pcall(vim.api.nvim_win_set_cursor, m.wins.list, { first(), 0 })
+      M.refresh(m, false, true)
+      M.draw_input(m)
+    end, { buffer = ib, nowait = true, desc = "Clear search" })
+  end
+
+  -- the mouse, in every window (a click moves the focus to the one under the pointer before it arrives)
   local function read_row(line)
     pcall(vim.api.nvim_set_current_win, m.wins.list)
     pcall(vim.api.nvim_win_set_cursor, m.wins.list, { line, 0 })
@@ -537,16 +647,68 @@ local function build(spec, state)
     pcall(vim.api.nvim_win_set_cursor, m.wins.pane, { 1, 0 })
     M.focus(m, "pane")
   end
+  local function clear_hover()
+    if m.hover and vim.api.nvim_buf_is_valid(m.hover.buf) then
+      pcall(vim.api.nvim_buf_clear_namespace, m.hover.buf, HOVER, 0, -1)
+    end
+    m.hover = nil
+  end
+  local function mark_hover(buf, line, from, to)
+    clear_hover()
+    if not vim.api.nvim_buf_is_valid(buf) or line < 1 then
+      return
+    end
+    pcall(vim.api.nvim_buf_set_extmark, buf, HOVER, line - 1, from, {
+      end_col = to,
+      hl_group = "NvModalBtn",
+      priority = 300,
+    })
+    m.hover = { buf = buf, line = line, from = from, to = to }
+  end
   local handlers = {
     move = function(pos)
       if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) and mouse.follow(m.wins.list, pos.line) then
+        clear_hover()
         m.view = "pane"
         M.refresh(m, true)
       elseif pos.winid == m.wins.pane and m.pane_rows[pos.line] ~= nil then
         mouse.follow(m.wins.pane, pos.line)
+        local item = m.pane_rows[pos.line]
+        local region = vim.iter(type(item) == "table" and item.actions or {}):find(function(action)
+          return pos.column - 1 >= action.from and pos.column - 1 < action.to
+        end)
+        if region then
+          mark_hover(m.bufs.pane, pos.line, region.from, region.to)
+        else
+          clear_hover()
+        end
+      elseif pos.winid == m.wins.summary and m.chips and pos.line == m.chips.row then
+        local chip = vim.iter(m.chips.list):find(function(chip)
+          return pos.column - 1 >= chip.from and pos.column - 1 < chip.to
+        end)
+        if chip then
+          mark_hover(m.bufs.summary, pos.line, chip.from, chip.to)
+        else
+          clear_hover()
+        end
+      else
+        clear_hover()
       end
     end,
     click = function(pos)
+      if spec.live_input and pos.winid == m.wins.input then
+        vim.api.nvim_set_current_win(m.wins.input)
+        local prefix = spec.live_input.prefix or "/ "
+        local line = vim.api.nvim_buf_get_lines(m.bufs.input, 0, 1, false)[1] or prefix
+        vim.api.nvim_win_set_cursor(m.wins.input, { 1, math.min(math.max(pos.column - 1, #prefix), #line) })
+        vim.cmd "startinsert!"
+        return
+      end
+      if pos.winid == m.wins.list and m.rows[pos.line] and m.rows[pos.line].group then
+        pcall(vim.api.nvim_set_current_win, m.wins.list)
+        pcall(vim.api.nvim_win_set_cursor, m.wins.list, { pos.line, 0 })
+        return fold()
+      end
       if pos.winid == m.wins.list and selectable(m, m.rows[pos.line]) then
         return read_row(pos.line)
       end
@@ -574,6 +736,31 @@ local function build(spec, state)
   end
 
   local group = vim.api.nvim_create_augroup("Market" .. m.bufs.list, { clear = true })
+  if spec.live_input then
+    vim.api.nvim_create_autocmd({ "TextChangedI", "TextChanged" }, {
+      buffer = m.bufs.input,
+      group = group,
+      callback = function()
+        if m.updating_input or m.closed or not vim.api.nvim_buf_is_valid(m.bufs.input) then
+          return
+        end
+        local prefix = spec.live_input.prefix or "/ "
+        local line = vim.api.nvim_buf_get_lines(m.bufs.input, 0, 1, false)[1] or prefix
+        local query = line:sub(1, #prefix) == prefix and line:sub(#prefix + 1) or line
+        if line ~= prefix .. query then
+          m.updating_input = true
+          vim.api.nvim_buf_set_lines(m.bufs.input, 0, -1, false, { prefix .. query })
+          vim.api.nvim_win_set_cursor(m.wins.input, { 1, #prefix + #query })
+          m.updating_input = false
+        end
+        m.filter = query
+        m.rows = visible_rows(m)
+        pcall(vim.api.nvim_win_set_cursor, m.wins.list, { first(), 0 })
+        M.refresh(m, false, true)
+        M.draw_input(m)
+      end,
+    })
+  end
   vim.api.nvim_create_autocmd("WinEnter", { -- in a narrow terminal what takes the screen follows the focus
     group = group,
     callback = function()

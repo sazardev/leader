@@ -2,14 +2,15 @@
 
 > **Keys: [`CHEATSHEET.md`](../../CHEATSHEET.md)** (repo root) — the **only** source.
 > It is **generated** by reading the real keymaps (`scripts/gen-cheatsheet.sh`) and regenerated on every commit;
-> it is not edited by hand and its tables are not duplicated here. Inside nvim, the dashboard's **Mappings** button
-> (`NvCheatsheet`) shows the same thing live.
+> it is not edited by hand and its tables are not duplicated here. Inside nvim, **Mappings** (`<leader>ch`, `:Cheatsheet`
+> or the dashboard's button) is a live, searchable view of those same mappings.
 >
 > These pages hold **what the code doesn't say**: what each thing does, workflows, tools, pitfalls.
 > `<leader>` = `Space`.
 
 | Cheatsheet | What it covers |
 |---|---|
+| [mappings.md](mappings.md) | **Mappings**: searchable live cheatsheet, language/mode/source filters, ordering, mouse controls, examples and maintenance |
 | [go.md](go.md) | **Go in depth**: struct tags, snippets, contextual completion, `<leader>g` menu |
 | [csharp.md](csharp.md) | **C# / .NET** (`<leader>c`): Roslyn or csharp-ls, smart ctor/props/DbSet/DI completion, tests in the editor (TRX), NuGet, solutions/projects, dotnet/EF Core, netcoredbg |
 | [agent.md](agent.md) | **Inline agent** (`<leader>a`): one-shot implement/review/explain/convert... with Claude, OpenCode or a local model (Ollama, OpenAI-compatible servers) |
@@ -48,6 +49,8 @@ The language menus open an integrated terminal (toggleterm) and run the commands
 
 The exact keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md); here, how they combine.
 
+- **Find a shortcut**: open **Mappings** with `<leader>ch`, `:Cheatsheet` or the start screen's button. `/` focuses the live search (results update as you type) across keys, actions, languages, modes and examples; `l` chooses a language; `f` filters by mode and origin; `s` orders the results; `r` clears everything. Hover previews with the mouse, click opens details, and every key includes an example, detailed usage, numbered steps, expected result and practical notes. See [mappings.md](mappings.md) for the full workflow.
+
 - **Jump and come back**: after `gd` / `grr` / `Ctrl+click`, `Esc` returns to where you were (if you didn't edit there); it also closes popups and clears the highlight. `Ctrl+o` / `Ctrl+i` walk the jump history.
 - **Line diagnostic** (`<leader>xd`): opens a popup; press it again to enter it and copy the text.
 - **Diagnostic blocks** (`utils/diagblocks.lua`): `<leader>xa` draws all of them under their line (a bar in the severity color, source/code and a `2/5` counter); `<leader>xc` toggles between all expanded and one by one (each one a single line, only the one on the cursor line opens); `<leader>xn`/`xp` jump to the next/previous and turn the view on in one-by-one mode. They show up on their own in every buffer with diagnostics (the text on the right, `virtual_text`, is off) and `<leader>xa` turns them off in that buffer; then only the tinted line number remains. In insert mode the blocks are hidden (nothing appears or pushes the code while you type) and come back when you leave with `Esc`; `diagnostics.update_in_insert = true` keeps them live. **Matched colors** (`ui/diagcolors.lua`): the `E2`/`W1` label in the status bar, the line number and each block's label are the SAME pill (background = the theme's `DiagnosticError/Warn/Info/Hint`, text = the theme background, bold), and the block's side bar uses that same accent; this way they change together with the theme (also with the theme inherited from the terminal and when Alacritty changes live: `diagcolors.sync()` detects the change on every status bar refresh and recomputes number and blocks, because base46 loads its cache without notifying through an event). **Gutter**: no icons either on the left or next to the code. The line number is drawn with the pill of the highest severity on the line (red error, yellow warning, blue info, cyan hint); the pill fits the digits, with a space on each side, so the number ends up centered (it is drawn by `'statuscolumn'`, defined in `settings.options`, and lines split by `wrap` only leave the gap) and git is a thin `┃` bar attached to the number (`signcolumn=no`: the statuscolumn draws the sign in ONE cell; with `signcolumn=yes` each sign takes two and an extra gap is left) (green added, blue changed, red deleted), so they are not confused. Your choice (`<leader>xa` on/off, `<leader>xc` expanded/collapsed) is global and saved in `stdpath("state")/diagblocks.json`, so it comes back the same when you reopen nvim; `settings.diagnostic_blocks` (`auto`, `mode`, `number`) only gives the initial value. `<leader>xn`/`xp` with the view off turn it on only in that buffer and don't touch what is saved. It updates on its own when diagnostics or the cursor change. The bottom panel (`<leader>xx`, Trouble) opens with focus: `Enter` jumps to the diagnostic and opens its popup, like `<leader>xd`.
@@ -80,6 +83,6 @@ Force it with `NVIM_LIGHT=1|0`. Per-machine settings in `lua/local.lua` (ignored
 
 - **Language**: `lua/languages/<name>.lua` + add it to `NAMES` in `languages/init.lua` + its page here.
 - **Plugin**: one file in `lua/plugins/<group>/`.
-- **New keymap**: give it a `desc` of **2+ words starting with its section** (`"Harpoon add file"`); the generator and NvCheatsheet group by the first word and drop single-word ones.
+- **New keymap**: give it a `desc` of **2+ words starting with its section** (`"Harpoon add file"`); the generator and Mappings group by the first word and drop single-word ones.
 - **Go snippet**: `nvim/snippets/go.json` (VSCode format).
 - After changing keys or menus: nothing to edit by hand; `scripts/gen-cheatsheet.sh` regenerates `CHEATSHEET.md` (the `pre-commit` hook does it on its own).
