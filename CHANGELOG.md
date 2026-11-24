@@ -2,6 +2,20 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.28.0] - 2026-11-24
+
+### Highlights
+
+- **Mappings is now a searchable guide**: a minimal flat finder with live search, language/mode/source filters, ordering, mouse previews and clickable actions. Every shortcut includes a concrete example, detailed usage, numbered steps, expected result and practical notes.
+
+### Features
+
+- **ui:** add searchable mapping guide (ca34338)
+
+### Other changes
+
+- chore(packaging): point the Arch packages at v1.27.0 (e0bade0)
+
 ## [1.27.0] - 2026-11-23
 
 ### Features
