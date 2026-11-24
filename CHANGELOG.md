@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.29.0] - 2026-11-24
+
+### Highlights
+
+- **Mappings, navi-style**: live fuzzy search with relevance ranking and match highlighting, `Ctrl+n` / `Ctrl+p` or `Tab` / `Shift+Tab` navigation without leaving the input, normalized search fields for speed, and a two-line footer with only the search bar and shortcut chips.
+
+### Features
+
+- **ui:** add fuzzy navi mapping search (bfe1489)
+
 ## [1.28.0] - 2026-11-24
 
 ### Highlights
