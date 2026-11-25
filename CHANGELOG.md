@@ -2,6 +2,21 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.29.1] - 2026-11-24
+
+### Highlights
+
+- **Optional OpenTUI surfaces**: an Activity Center feed and a second chat surface that renders and sends commands while Lua/Neovim keeps sessions, context, streaming, history and file writes. Both are opt-in binaries (`make chat`, `make activity`).
+- **Exact terminal colors**: the editor no longer renders washed out on drivers that expose a linear swapchain.
+
+### Features
+
+- **agent:** add optional OpenTUI chat and activity center (784babd)
+
+### Fixes
+
+- **gui:** keep terminal colors exact on linear surfaces (9e6b346)
+
 ## [1.29.0] - 2026-11-24
 
 ### Highlights
