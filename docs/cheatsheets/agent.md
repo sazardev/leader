@@ -69,7 +69,8 @@ the agent history, so the spend/budget guards apply unchanged.
   reads those files (inside the project, capped, at most 5) and injects them in the **next** turn, shown in that turn's
   `injected` footer like any `@file`; the request is used once. `settings.agent.chat.auto_need = false` disables it.
 - **Queue**: typing while an answer streams no longer gets refused: `Enter` queues the message (the placeholder counts what
-  waits) and it is sent as soon as the turn settles, in order. `Ctrl-X` stops the turn and the queue still goes.
+  waits) and it is sent as soon as the turn settles, in order. `Ctrl-X` stops only the chat turn — unrelated one-shot
+  agent calls keep running — and the queue still goes.
 - **Long chats say what was left out**: only the last `max_history_chars` (60 000; Minimal 12 000) reach the model. When
   older turns are dropped the turn footer says `history: oldest N chars not sent` and the first time a note names it.
 - **Write mode writes files**: a Write answer returns every changed file as a **complete fenced block with its path**
@@ -83,7 +84,21 @@ the agent history, so the spend/budget guards apply unchanged.
   `profile` (default `write`), `history_on_open`, `rail_width`,
   `input_height` (max rows of the composer, which starts at 3), `gap`, `show_context`, `show_thinking`,
   `show_tokens`, `max_history_chars`, `max_context_chars`, `max_mention_chars`, `notify`, `ask_picker`, `auto_need`,
-  `timeout_ms`, `autosave`.
+  `timeout_ms`, `autosave`, `opentui` (`enabled`, `binary`).
+
+## Optional OpenTUI Chat
+
+The same chat can also run in an isolated Rust/OpenTUI surface. It is **opt-in** and does not replace the Neovim panel:
+
+```bash
+make chat
+```
+
+Open it from **Chat › Open in OpenTUI**, the Agent settings, or `:Chat tui`. Both surfaces share the active session, model, profile, history, streaming and Write-file application. OpenTUI only renders and sends commands; Neovim remains the source of truth.
+
+Keys: `Ctrl-S` send, `Ctrl-C` stop, `Ctrl-N` new, `Ctrl-H` history, `Ctrl-M` model, `Ctrl-P` profile, `Ctrl-G` close a picker, `Ctrl-Q` quit. `Enter` adds a newline. Hiding the floating window keeps the TUI and chat alive; `Ctrl-Q` stops the TUI cleanly.
+
+The bridge uses two process-local atomic JSON files under Neovim's cache, readable only by the user (`0600` on Unix). It is not shipped with `leader` yet; building it downloads OpenTUI's pinned native library and verifies its checksum.
 
 **Clear file** moved from `<leader>aC` to `<leader>aW` (`:AgentClear file` still works).
 

@@ -88,13 +88,29 @@ function M.setup()
       require("agent.chat").set_view "mini"
     elseif arg == "help" then
       require("agent.chat").help()
+    elseif arg == "tui" or arg == "opentui" then
+      require("agent.chat.opentui").open()
     else
       require("agent.chat").open()
     end
   end, {
     nargs = "?",
     complete = function()
-      return { "new", "history", "sessions", "model", "effort", "profile", "adr", "collapse", "full", "mini", "help" }
+      return {
+        "new",
+        "history",
+        "sessions",
+        "model",
+        "effort",
+        "profile",
+        "adr",
+        "collapse",
+        "full",
+        "mini",
+        "help",
+        "tui",
+        "opentui",
+      }
     end,
     desc = "Toggle Leader Chat (backend-agnostic, <leader>aC)",
   })

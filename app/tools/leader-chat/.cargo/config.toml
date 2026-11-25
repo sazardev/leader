@@ -1,0 +1,3 @@
+[env]
+OPENTUI_LIB_DIR = { value = "vendor/opentui-native", relative = true }
+OPENTUI_LIB_HINT = "run scripts/fetch-opentui.sh from app/tools/leader-chat"

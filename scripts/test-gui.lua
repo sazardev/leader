@@ -239,6 +239,13 @@ check(
   end),
   cm
 )
+check(
+  "the chat menu offers the OpenTUI surface",
+  vim.iter(cm):any(function(it)
+    return it.label == "Open in OpenTUI"
+  end),
+  cm
+)
 local chat_visible = require("gui.menu").visible(cm)
 check(
   "the chat menu hides what is not running",
@@ -304,6 +311,37 @@ vim.cmd "enew"
 vim.bo.buftype = "nofile"
 local kept = gui.state()
 check("special buffers keep the last file", kept.file == "main.lua", kept.file)
+-- activity: the feed is process-local and bounded; the optional TUI only reads it
+local activity = require "gui.activity"
+activity.FILE = vim.fn.tempname() .. ".json"
+activity.reset()
+activity.begin("lsp:1", "gopls", "indexing", "loading packages", 25)
+activity.progress("lsp:1", "loading packages", 50)
+check("activity keeps one running item", #activity.running() == 1 and activity.newest().percent == 50)
+activity.done("lsp:1", "ready")
+activity.done("save", "saved main.lua", "done", "editor")
+check("activity records finished events", #activity.events() == 2 and activity.events()[1].state == "done")
+check("activity writes atomically", activity.flush())
+local decoded = vim.json.decode(table.concat(vim.fn.readfile(activity.FILE), "\n"))
+check("activity feed is shaped", decoded.version == 1 and #decoded.events == 2 and #decoded.running == 0, decoded)
+local terminal = require "utils.terminal"
+local float_repl, opened = terminal.float_repl
+terminal.float_repl = function(name, cmd, dir)
+  opened = { name = name, cmd = cmd, dir = dir }
+end
+local old_binary = require("core.settings").gui.activity.binary
+require("core.settings").gui.activity.binary = vim.v.progpath
+activity.open()
+check(
+  "activity opens the optional TUI with its feed",
+  opened and opened.name == "Leader Activity" and opened.cmd:find("--file", 1, true) ~= nil,
+  opened
+)
+terminal.float_repl = float_repl
+require("core.settings").gui.activity.binary = old_binary
+os.remove(activity.FILE)
+activity.reset()
+
 -- activity: LSP progress shows while it runs and says it is ready when it ends
 local function progress(kind, extra)
   vim.api.nvim_exec_autocmds("LspProgress", {
@@ -323,7 +361,13 @@ check("progress shows while running", busy and busy.text:find "indexing" ~= nil 
 progress "end"
 local ready = gui.state().activity
 check("progress says when it is done", ready and ready.done == true and ready.text:find "ready" ~= nil, ready)
-check("actions exist", type(gui.actions.home) == "function" and type(gui.actions.history) == "function")
+check("activity is clickable", busy and busy.action == "activity" and ready.action == "activity", { busy, ready })
+check(
+  "actions exist",
+  type(gui.actions.home) == "function"
+    and type(gui.actions.history) == "function"
+    and type(gui.actions.activity) == "function"
+)
 
 -- menus: rows, separators, keys right-aligned to one width; the app and projects menus are made of runnable items
 local menu = require "gui.menu"

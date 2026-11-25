@@ -648,6 +648,11 @@ impl App {
                     self.action_at(&a, hit);
                 }
             }
+            Hit::Activity => {
+                if let Some(a) = self.bar.activity_action() {
+                    self.action_at(&a, hit);
+                }
+            }
             Hit::Tool(side, i) => {
                 if let Some(action) = self.bar.tool(side, i).map(|t| t.action.clone()) {
                     self.action_at(&action, hit);
@@ -683,7 +688,7 @@ impl App {
                 }
                 match self.bar_hit(self.mouse.pos) {
                     Hit::Outside => false,
-                    hit @ (Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Tool(..) | Hit::Chip(_)) => {
+                    hit @ (Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Tool(..) | Hit::Chip(_) | Hit::Activity) => {
                         self.mouse.button = Some(hit);
                         true
                     }
@@ -747,7 +752,7 @@ impl App {
         self.mouse.pos = pos;
         if self.mouse.pressed.is_none() {
             let hit = self.bar_hit(pos);
-            let clickable = matches!(hit, Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Tool(..) | Hit::Chip(_));
+            let clickable = matches!(hit, Hit::Button(_) | Hit::Path(_) | Hit::Mark | Hit::Tool(..) | Hit::Chip(_) | Hit::Activity);
             if self.bar.set_hover(clickable.then_some(hit)) {
                 self.render(event_loop);
             }

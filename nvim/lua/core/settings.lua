@@ -616,6 +616,12 @@ local defaults = {
       auto_need = true, -- inject the files the last answer requested with `@need: path` (once)
       timeout_ms = 180000, -- a chat turn may answer longer than a one-shot action
       title_from_first = true, -- name the session from the first user message
+      -- Optional OpenTUI surface for the same chat runtime. Built separately (`make chat`); it never owns sessions
+      -- or model processes. nil finds `leader-chat` on PATH or in this checkout.
+      opentui = {
+        enabled = true,
+        binary = nil,
+      },
     },
   },
 
@@ -668,6 +674,13 @@ local defaults = {
       panes = "<C-S-l>", -- the panes menu (splits, layouts, focus)
       terminal_pane = "<C-S-j>", -- the terminal pane (Alt+I stays the floating terminal)
       focus = "<C-A-z>", -- focus mode (hides the bar and the statusline)
+    },
+    -- Optional OpenTUI Activity Center: a short history of LSP, installs, saves and agent calls. The binary is built
+    -- separately (`make activity`) and reads a local JSON feed; nil finds `leader-activity` on PATH or in this checkout.
+    activity = {
+      enabled = true,
+      binary = nil, -- an explicit path or command; nil = auto-detect
+      max_events = 200,
     },
     workspace = {
       focus = {

@@ -39,6 +39,138 @@ local function current()
   return session
 end
 
+--- The active session without creating one or opening UI.
+---@return table?
+function M.active_session()
+  return require("agent.chat.window").session
+end
+
+--- Ensures a session for headless surfaces such as the optional OpenTUI chat.
+--- A running turn always keeps its session, even if the working directory changed.
+---@param opts { root?: string, fresh?: boolean }?
+---@return table
+function M.ensure_session(opts)
+  opts = opts or {}
+  local window = require "agent.chat.window"
+  if window.running and window.session then
+    return window.session
+  end
+  local root = opts.root or project_root()
+  if not opts.fresh and window.session and window.session.root == root then
+    return window.session
+  end
+  local previous = window.session
+  local session = require("agent.chat.session").new { root = root }
+  defaults(session)
+  if previous then
+    session.profile = previous.profile or session.profile
+    session.backend = previous.backend or session.backend
+    session.model = previous.model or session.model
+    session.effort = previous.effort or session.effort
+  end
+  window.session, window.home = session, nil
+  window.pending_text, window.pending_think, window.injected_names = "", "", nil
+  if window.is_open() then
+    window.draw()
+    window.refresh_placeholder()
+  end
+  return session
+end
+
+--- A fresh session without opening or focusing the Lua panel.
+---@return table?
+function M.new_headless()
+  if require("agent.chat.window").running then
+    return nil
+  end
+  return M.ensure_session { fresh = true }
+end
+
+--- Activates a persisted session without opening the Lua panel.
+---@param id string
+---@return boolean
+function M.open_session(id)
+  local window = require "agent.chat.window"
+  if window.running then
+    return false
+  end
+  local session = require("agent.chat.store").get(id)
+  if not session then
+    return false
+  end
+  window.session, window.home = session, nil
+  window.pending_text, window.pending_think, window.injected_names = "", "", nil
+  if window.is_open() then
+    window.draw()
+    window.refresh_placeholder()
+  end
+  return true
+end
+
+--- Session summaries for an external history view.
+---@param root string?
+---@return table[]
+function M.history(root)
+  local store = require "agent.chat.store"
+  local list = store.list_for_root(root or project_root())
+  local out = {}
+  for i, session in ipairs(list) do
+    if i > 50 then
+      break
+    end
+    out[#out + 1] = {
+      id = session.id,
+      title = session.title,
+      root = session.root,
+      profile = session.profile,
+      backend = session.backend,
+      model = session.model,
+      turns = session.turns or 0,
+      message_count = #(session.messages or {}),
+      updated = session.updated or 0,
+    }
+  end
+  return out
+end
+
+--- Headless configuration shared by both chat surfaces. Changes are rejected during a turn.
+---@param opts { backend?: string, model?: string, effort?: string?, profile?: string }
+---@return boolean
+function M.configure(opts)
+  opts = opts or {}
+  local window = require "agent.chat.window"
+  if window.running then
+    return false
+  end
+  local session = M.ensure_session()
+  if opts.profile then
+    if not require("agent.chat.profiles").PROFILES[opts.profile] then
+      return false
+    end
+    session.profile = opts.profile
+  end
+  if opts.backend then
+    if not require("agent.backends").is_available(opts.backend) then
+      return false
+    end
+    session.backend = opts.backend
+  end
+  if opts.model then
+    session.model = opts.model
+    session.effort = nil
+  elseif opts.effort ~= nil then
+    session.effort = opts.effort ~= "" and opts.effort or nil
+  end
+  if #(session.messages or {}) > 0 then
+    require("agent.chat.store").put(session)
+  end
+  if window.is_open() then
+    window.draw()
+    window.refresh_placeholder()
+  end
+  return true
+end
+
 --- Toggle the panel (open / hide). <leader>aC.
 --- The first open in a project with history lands on that history: select a
 --- conversation or type straight into the input to start a new one.
@@ -328,13 +460,23 @@ function M.clear()
   require("agent.chat.window").draw()
 end
 
---- Stop the running turn (if any).
+--- Stop the running chat turn (if any), without cancelling unrelated one-shot calls.
 function M.stop()
-  require("agent.calls").cancel() -- run via calls, so this is its handle
   local window = require "agent.chat.window"
+  if window.active_call then
+    require("agent.calls").cancel(window.active_call)
+  end
+  window.turn_cancelled = true
+  window.active_call, window.turn_id = nil, nil
   window.set_running(false)
   window.pending_text, window.pending_think = "", ""
   window.draw()
+  local next_text = window.dequeue()
+  if next_text then
+    vim.schedule(function()
+      M.send(next_text)
+    end)
+  end
 end
 
 --- Show help (only on demand: the chrome shows just "Enter send").
@@ -566,6 +708,12 @@ function M._launch(session, sel, clean, system, prompt, injected, profile, dropp
   local window = require "agent.chat.window"
   window.set_running(true)
   window.pending_text, window.pending_think = "", ""
+  window.turn_cancelled = false
+  local turn_id = ("%s:%d:%d"):format(session.id, os.time(), math.random(1, 1_000_000_000))
+  window.turn_id = turn_id
+  local function live()
+    return window.running and window.turn_id == turn_id and not window.turn_cancelled
+  end
   -- stream throttled like every other agent UI (settings.agent.stream_ms)
   local last_draw = 0
   local stream_gap = (require("core.settings").agent.stream_ms or 40) * 1e6
@@ -583,7 +731,11 @@ function M._launch(session, sel, clean, system, prompt, injected, profile, dropp
   end
 
   local function cleanup(ok, usage, err)
+    if not live() then
+      return
+    end
     window.set_running(false)
+    window.active_call, window.turn_id = nil, nil
     window.pending_text, window.pending_think = "", ""
     if ok then
       require("agent.chat.session").charge(session, usage)
@@ -614,29 +766,36 @@ function M._launch(session, sel, clean, system, prompt, injected, profile, dropp
     end
   end
 
-  require("agent.chat.runner").run(sel, { system = system, prompt = prompt }, {
+  local _, call = require("agent.chat.runner").run(sel, { system = system, prompt = prompt }, {
     on_text = function(delta)
-      if not window.running then
+      if not live() then
         return
       end
       window.pending_text = window.pending_text .. delta
       draw_soon()
     end,
     on_think = function(delta)
-      if not window.running then
+      if not live() then
         return
       end
       window.pending_think = window.pending_think .. delta
       draw_soon()
     end,
   }, function(ok, body, usage, err)
+    if not live() then
+      return
+    end
     -- capture the reasoning before clearing the live stream; it belongs to the transcript
     local thinking = window.pending_think
     window.pending_text, window.pending_think = "", ""
     -- keep the turn in the transcript even on failure (the error is visible)
     require("agent.chat.session").add(session, { role = "user", text = clean })
     local applied = { files = {}, unchanged = {}, skipped = {}, errors = {} }
-    if ok and (session.profile or "write") == "write" and require("core.settings").agent.chat.apply ~= false then
+    if
+      ok
+      and (profile or session.profile or "write") == "write"
+      and require("core.settings").agent.chat.apply ~= false
+    then
       applied = require("agent.chat.apply").run(session, body)
       if #applied.files > 0 then
         require("utils.log").info(("Chat: applied %s"):format(table.concat(applied.files, ", ")))
@@ -668,6 +827,9 @@ function M._launch(session, sel, clean, system, prompt, injected, profile, dropp
     window.injected_names = nil
     cleanup(ok, usage, err)
   end)
+  if live() then
+    window.active_call = call
+  end
 end
 
 return M

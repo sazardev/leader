@@ -29,6 +29,9 @@ M.hist_draft = ""
 M.sent_text = nil -- prompt of the turn in flight (the session stores it when it settles)
 M.queue = {} -- messages typed while a turn runs; sent when it settles, in order
 M.run_started = nil -- hrtime of the running turn (the activity strip shows its age)
+M.active_call = nil -- the chat turn's call, so stopping chat never kills unrelated one-shots
+M.turn_id = nil -- identifies the live turn; late callbacks from a stopped turn are ignored
+M.turn_cancelled = false
 
 local ACTIVITY_NS = vim.api.nvim_create_namespace "chat.activity"
 local activity = { timer = nil, frame = 0 }

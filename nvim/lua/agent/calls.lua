@@ -7,6 +7,7 @@ local M = {}
 
 local FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
 local OUTCOME_MS = 4000
+local events = require "agent.events"
 
 ---@class AgentCall
 ---@field id integer
@@ -44,6 +45,7 @@ function M.start(req, model)
     quiet = req.quiet,
   }
   running[call.id] = call
+  events.emit("call.started", { call = call })
   return call
 end
 
@@ -51,6 +53,7 @@ end
 ---@param ok boolean
 function M.finish(call, ok)
   running[call.id] = nil
+  events.emit("call.settled", { call = call, ok = ok, cancelled = call.cancelled })
   if call.quiet or call.cancelled then
     return
   end
@@ -72,16 +75,20 @@ function M.running()
   return list
 end
 
---- Kills every running call (their callbacks answer "cancelled")
+--- Kills one call, or every running call when no call is given (their callbacks answer "cancelled").
+---@param call AgentCall?
 ---@return integer how many
-function M.cancel()
+function M.cancel(call)
   local n = 0
-  for _, call in pairs(running) do
-    call.cancelled = true
-    if call.handle then
-      pcall(call.handle.kill, call.handle, 15)
+  local list = call and { call } or vim.tbl_values(running)
+  for _, item in ipairs(list) do
+    if running[item.id] then
+      item.cancelled = true
+      if item.handle then
+        pcall(item.handle.kill, item.handle, 15)
+      end
+      n = n + 1
     end
-    n = n + 1
   end
   return n
 end

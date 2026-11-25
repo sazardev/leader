@@ -5,24 +5,35 @@ local K = dofile(ROOT .. "/scripts/agent-kit.lua")
 local eq, ok = K.eq, K.ok
 local FAKE = K.fake()
 local calls = require "agent.calls"
+local events = require "agent.events"
+local starts, settles = {}, {}
+events.on("call.started", function(ev)
+  starts[#starts + 1] = ev.call
+end)
+events.on("call.settled", function(ev)
+  settles[#settles + 1] = ev
+end)
 
 -- the registry alone
 eq("calls: nothing running, nothing shown", calls.statusline(), "")
 local call = calls.start({ action = "kit_screens" }, "fake/m")
 ok("calls: the label comes from the action", calls.running()[1].label == "screens")
 ok("calls: the badge is just the label", calls.statusline():find("screens", 1, true) ~= nil)
-ok("calls: no seconds, no phase", not calls.statusline():find("%d+s") and not calls.statusline():find("·", 1, true))
+ok("calls: no seconds, no phase", not calls.statusline():find "%d+s" and not calls.statusline():find("·", 1, true))
 eq("calls: the chip is blue while it runs", calls.statusline_group(), "AgentStatus")
 calls.finish(call, true)
 ok("calls: the outcome stays after it ends", calls.statusline():find("✓ screens", 1, true) ~= nil)
 eq("calls: green when it worked", calls.statusline_group(), "AgentDone")
-local failed = calls.start({ action = "x", label = "writing DESIGN.md" })
+local failed = calls.start { action = "x", label = "writing DESIGN.md" }
 calls.finish(failed, false)
 ok("calls: a failure says so", calls.statusline():find("✗ writing DESIGN.md", 1, true) ~= nil)
 eq("calls: red when it failed", calls.statusline_group(), "DartgenFailed")
-local quiet = calls.start({ action = "build_file", quiet = true })
+local quiet = calls.start { action = "build_file", quiet = true }
 eq("calls: a quiet call (the build has its own chip) is not shown", #calls.running(), 0)
 calls.finish(quiet, true)
+eq("calls: every request announces its start", #starts, 3)
+eq("calls: every request announces its outcome", #settles, 3)
+eq("calls: the outcome carries success", settles[3].ok, true)
 
 -- through oneshot: shown while the process runs, outcome after
 FAKE.text, FAKE.slow = "## Screens\nhello", true

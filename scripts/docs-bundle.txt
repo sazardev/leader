@@ -31,5 +31,7 @@ docs/cheatsheets/sql.md
 docs/cheatsheets/swift.md
 docs/cheatsheets/tasks.md
 docs/cheatsheets/terminal.md
+app/tools/leader-chat/README.md
+app/tools/leader-activity/README.md
 docs/cheatsheets/typescript.md
 docs/cheatsheets/web.md

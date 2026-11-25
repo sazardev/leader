@@ -62,6 +62,8 @@ pub struct Activity {
     /// 0..=100 when known: the progress line under the bar fills to it.
     pub percent: Option<f32>,
     pub done: bool,
+    /// Clicking the activity opens the Activity Center when the config provides one.
+    pub action: Option<String>,
 }
 
 /// What the config last sent.
@@ -209,6 +211,7 @@ impl State {
                 text: get(a, "text")?.as_str()?.to_string(),
                 percent: float(get(a, "percent")).map(|p| p.clamp(0.0, 100.0)),
                 done: flag(a, "done", false),
+                action: get(a, "action").and_then(Value::as_str).map(String::from),
             })
         });
         let padding = get(v, "padding");
@@ -262,6 +265,8 @@ pub enum Hit {
     Path(usize),
     /// A chip that has an action.
     Chip(usize),
+    /// The activity text: opens the Activity Center when it has an action.
+    Activity,
 }
 
 /// Hover backgrounds fade in, the wave runs through the mark, the bar steps back for a modal, activity comes and goes,
@@ -449,6 +454,11 @@ impl Bar {
         }
     }
 
+    /// The action of the activity currently on screen, including its short fade-out.
+    pub fn activity_action(&self) -> Option<String> {
+        self.shown.as_ref().and_then(|activity| activity.action.clone())
+    }
+
     /// The pointer moved onto something else; true when the bar must be drawn again.
     pub fn set_hover(&mut self, hover: Option<Hit>) -> bool {
         if hover == self.hover {
@@ -505,6 +515,7 @@ impl Bar {
             Hit::Button(Button::Minimize) => Some("Minimize".into()),
             Hit::Button(Button::Maximize) => Some(if self.maximized { "Restore" } else { "Maximize" }.into()),
             Hit::Button(Button::Close) => Some("Close".into()),
+            Hit::Activity => Some("Activity Center".into()),
             _ => None,
         }
     }
@@ -680,6 +691,12 @@ impl Bar {
             }
         }
         let pad = m.width * 0.5;
+        if self.shown.as_ref().and_then(|a| a.action.as_ref()).is_some() {
+            let w = self.activity_width(m);
+            if x >= l.activity_x - pad && x < l.activity_x + w + pad {
+                return Hit::Activity;
+            }
+        }
         for (i, (cx, w)) in l.chips.iter().enumerate() {
             if self.state.chips[i].action.is_some() && x >= cx - pad && x < cx + w + pad {
                 return Hit::Chip(i);
@@ -704,6 +721,7 @@ impl Bar {
             Hit::Tool(Side::Left, i) => l.left.get(i).map(|(x, _)| *x),
             Hit::Tool(Side::Right, i) => l.right.get(i).map(|(x, _)| *x),
             Hit::Chip(i) => l.chips.get(i).map(|(x, _)| *x),
+            Hit::Activity => Some(l.activity_x),
             _ => None,
         }
         .unwrap_or(0.0)
@@ -858,6 +876,12 @@ impl Bar {
             if alpha > 0.0 {
                 let x = l.activity_x + m.width;
                 let tint = |col: u32| mix(bg, col, alpha);
+                if a.action.is_some() {
+                    let lit = self.lit(Hit::Activity);
+                    if lit > 0.0 {
+                        out.push(quad(l.activity_x, block_y, self.activity_width(&m), block_h, hover_bg, lit, scene::RECT));
+                    }
+                }
                 if a.done {
                     text(out, fonts, glyphs, m, DONE_ICON, x, ty, tint(ink(c.green)), false)?;
                 } else {
@@ -1041,14 +1065,30 @@ mod tests {
     #[test]
     fn activity_fades_out_after_it_ends() {
         let mut b = Bar::default();
-        let mut s =
-            State { activity: Some(Activity { text: "lua_ls · indexing".into(), percent: Some(40.0), done: false }), ..State::default() };
+        let mut s = State {
+            activity: Some(Activity { text: "lua_ls · indexing".into(), percent: Some(40.0), done: false, action: None }),
+            ..State::default()
+        };
         b.set_state(s.clone());
         assert!(b.shown.is_some() && b.animating());
         s.activity = None;
         b.set_state(s);
         assert!(b.gone_at.is_some(), "it stays to fade out");
         assert!(b.shown.is_some());
+    }
+
+    #[test]
+    fn activity_with_an_action_is_clickable() {
+        let mut b = bar(&[], "a.rs");
+        b.state.activity =
+            Some(Activity { text: "gopls · indexing".into(), percent: Some(40.0), done: false, action: Some("activity".into()) });
+        b.set_state(b.state.clone());
+        let m = metrics();
+        let l = b.layout(&m, &m, 1000.0);
+        assert_eq!(b.hit(l.activity_x + 2.0, 10.0, 1000.0, &m, &m), Hit::Activity);
+        assert_eq!(b.tip().as_deref(), None, "no tooltip until it is hovered");
+        b.set_hover(Some(Hit::Activity));
+        assert_eq!(b.tip().as_deref(), Some("Activity Center"));
     }
 
     #[test]
@@ -1115,7 +1155,7 @@ mod tests {
         let s = State::from_value(&v);
         assert_eq!((s.path.len(), s.file.as_str(), s.modified, s.pad_x, s.pad_bottom), (2, "gui.lua", true, 4.0, 0.0));
         assert_eq!(s.chips, vec![Chip { text: "REC @q".into(), fg: None, bg: Some(0xff0000), gap: 1.0, action: None }]);
-        assert_eq!(s.activity, Some(Activity { text: "gopls".into(), percent: Some(100.0), done: false }));
+        assert_eq!(s.activity, Some(Activity { text: "gopls".into(), percent: Some(100.0), done: false, action: None }));
         assert!(s.controls_left && s.show_mark);
         assert_eq!(s.right.len(), 1, "a tool without an action is dropped");
         assert_eq!((s.right[0].tip.as_deref(), s.right[0].active), (Some("Theme"), true));

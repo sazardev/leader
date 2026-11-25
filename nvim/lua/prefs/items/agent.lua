@@ -129,6 +129,15 @@ return {
     apply = redraw_chat,
   },
   { group = "Agent", label = "Chat confirms before sending", kind = "toggle", id = "agent.chat.confirm_send" },
+  { group = "Agent", label = "OpenTUI Chat", kind = "toggle", id = "agent.chat.opentui.enabled" },
+  {
+    group = "Agent",
+    label = "Open Chat in OpenTUI",
+    kind = "action",
+    run = function()
+      require("agent.chat.opentui").open()
+    end,
+  },
   {
     group = "Agent",
     label = "Answer language",

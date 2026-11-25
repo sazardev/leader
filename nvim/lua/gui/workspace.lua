@@ -338,6 +338,12 @@ function M.chat_history()
   end)
 end
 
+function M.chat_opentui()
+  pcall(function()
+    require("agent.chat.opentui").open()
+  end)
+end
+
 function M.chat_model()
   pcall(function()
     require("agent.chat").pick_model()

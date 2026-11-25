@@ -13,7 +13,7 @@ STYLUA  ?= $(or $(shell command -v stylua),$(wildcard $(HOME)/.local/share/nvim/
 .DEFAULT_GOAL := help
 .PHONY: help dev run open build kill bench bench-edit timing snap restart \
         test test-app test-gui test-agent eval eval-table test-package check lint fmt fmt-lua docs docs-pack cheatsheet \
-        doctor stack setup ai ai-auto \
+        doctor stack setup ai ai-auto activity chat \
         package install uninstall icons clean
 
 help: ## List the targets
@@ -33,6 +33,20 @@ open: build ## Build and open Leader detached (the terminal stays free)
 build: ## Build the app (PROFILE=fast|dev|release)
 	@$(CARGO) build $(BUILDFLAGS) -p leader-gui 2>&1 | grep -vE "linker stderr|linker_messages|^\s*\|?\s*$$" ; test $${PIPESTATUS[0]} -eq 0
 	@echo "built $(BIN) ($$($(BIN) --version))"
+
+activity: ## Build the optional OpenTUI Activity Center (downloads its pinned native library)
+	@$(APP)/tools/leader-activity/scripts/fetch-opentui.sh
+	@cd $(APP)/tools/leader-activity && cargo build --locked --release
+	@mkdir -p $(APP)/target/activity
+	@install -m755 $(APP)/tools/leader-activity/target/release/leader-activity $(APP)/target/activity/leader-activity
+	@echo "built $(APP)/target/activity/leader-activity"
+
+chat: ## Build the optional OpenTUI Agent Chat (downloads its pinned native library)
+	@$(APP)/tools/leader-chat/scripts/fetch-opentui.sh
+	@cd $(APP)/tools/leader-chat && cargo build --locked --release
+	@mkdir -p $(APP)/target/chat
+	@install -m755 $(APP)/tools/leader-chat/target/release/leader-chat $(APP)/target/chat/leader-chat
+	@echo "built $(APP)/target/chat/leader-chat"
 
 restart: kill open ## Close every running Leader and open a fresh one (picks up Lua changes)
 

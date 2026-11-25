@@ -21,6 +21,7 @@ run() {
 run "agent and commits" "$ROOT/scripts/test-agent.sh"
 run "chat" "$ROOT/scripts/test-chat.sh"
 run "chat pure/render" "$ROOT/scripts/test-chat-pure.sh"
+run "chat OpenTUI bridge" "$ROOT/scripts/test-chat-opentui.sh"
 run "Go helpers" "$ROOT/scripts/test-go.sh"
 run "git sync" "$ROOT/scripts/test-gitsync.sh"
 run "GitHub menu" "$ROOT/scripts/test-github.sh"

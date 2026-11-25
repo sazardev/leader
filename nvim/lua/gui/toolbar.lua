@@ -211,6 +211,21 @@ M.TOOLS = {
     active = workspace.chat_open,
   },
   {
+    id = "activity",
+    side = "right",
+    on = false,
+    title = "Activity Center",
+    desc = "the history of LSP work, installs, saves and agent requests",
+    icon = "\u{f201}",
+    tip = function()
+      return "Activity Center"
+    end,
+    action = "activity",
+    active = function()
+      return require("gui.activity").is_open()
+    end,
+  },
+  {
     id = "theme",
     side = "right",
     on = true,

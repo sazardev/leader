@@ -11,6 +11,7 @@
 -- Sent only when something changed, with the flat design's colors.
 local settings = require "core.settings"
 local workspace = require "gui.workspace"
+local activity_feed = require "gui.activity"
 
 local M = {}
 
@@ -90,6 +91,7 @@ local function begin(key, name, title, message, percent)
     at = now,
     since = (running[key] or {}).since or now,
   }
+  activity_feed.begin(key, name, title, message, percent)
   tick()
   M.update()
 end
@@ -98,6 +100,7 @@ end
 ---@param text string? what to say for a moment once it is done (nil = nothing)
 local function done(key, text)
   running[key] = nil
+  activity_feed.done(key, text, nil, key == "save" and "editor" or nil)
   if text then
     finished = { text = text, until_ms = vim.uv.now() + 1600 }
     vim.defer_fn(M.update, 1700)
@@ -124,6 +127,7 @@ local function activity()
       -- "7/9 · codelldb 12.7 MB 31 KB/s · 6m 40s": what is going on, in numbers, with the bar filling
       message, percent = require("gui.progress").status_text(tracked, os.time())
       newest = vim.tbl_extend("force", newest, { percent = percent })
+      activity_feed.progress("mason", message, percent)
     end
     if message and message ~= "" and #message < 90 then
       parts[#parts + 1] = message
@@ -136,10 +140,10 @@ local function activity()
     if waited >= 30000 and newest.name == "gopls" then
       parts[#parts + 1] = "big projects take minutes the first time"
     end
-    return { text = table.concat(parts, " · "), percent = newest.percent }
+    return { text = table.concat(parts, " · "), percent = newest.percent, action = "activity" }
   end
   if finished and vim.uv.now() < finished.until_ms then
-    return { text = finished.text, done = true }
+    return { text = finished.text, done = true, action = "activity" }
   end
 end
 
@@ -442,6 +446,12 @@ function M.app_menu()
           end,
         },
         { sep = true },
+        {
+          label = "Activity Center",
+          run = function()
+            require("gui.activity").open()
+          end,
+        },
         {
           label = "Workspace",
           items = {
@@ -912,6 +922,12 @@ function M.chat_menu()
     { label = "New Chat", run = workspace.chat_new },
     { label = "History…", run = workspace.chat_history },
     { sep = true },
+    {
+      label = "Open in OpenTUI",
+      run = function()
+        require("agent.chat.opentui").open()
+      end,
+    },
     { label = "Model", detail = session and session.model or label, run = workspace.chat_model },
     { label = "Profile", detail = profile.label, items = profiles_sub },
     { label = "Effort", detail = session and (session.effort or "default") or "default", run = workspace.chat_effort },
@@ -1092,6 +1108,9 @@ M.actions = {
   chat_menu = function(col)
     require("gui.menu").open(M.chat_menu(), { col = col })
   end,
+  chat_opentui = function()
+    require("agent.chat.opentui").open()
+  end,
   chat_new = workspace.chat_new,
   chat_history = workspace.chat_history,
   chat_model = workspace.chat_model,
@@ -1130,6 +1149,9 @@ M.actions = {
   end,
   problems = function()
     workspace.toggle_problems()
+  end,
+  activity = function()
+    require("gui.activity").open()
   end,
   save_all = workspace.save_all,
   settings = feed "<leader>Sp",
@@ -1362,7 +1384,38 @@ function M.setup()
     { group = group, pattern = { "NvThemeReload", "GitSignsUpdate", "LeaderUpdateChecked" }, callback = M.update }
   )
 
-  -- activity: LSP work in progress ($/progress), plugin and language-tool installs, and a save
+  -- activity: LSP work in progress ($/progress), plugin and language-tool installs, saves and agent requests
+  activity_feed.setup()
+  local ok_events, agent_events = pcall(require, "agent.events")
+  if ok_events then
+    agent_events.on("job.started", function(ev)
+      local job = ev.job
+      if not job then
+        return
+      end
+      local target = job.target and job.target.path or nil
+      activity_feed.begin("agent:" .. job.id, "agent", job.action and job.action.label, target, nil, target)
+    end)
+    agent_events.on("job.settled", function(ev)
+      local job = ev.job
+      if job then
+        activity_feed.done("agent:" .. job.id, ev.outcome or job.state, ev.outcome, "agent")
+      end
+    end)
+    agent_events.on("call.started", function(ev)
+      local call = ev.call
+      if call then
+        activity_feed.begin("call:" .. call.id, "agent", call.label, call.model)
+      end
+    end)
+    agent_events.on("call.settled", function(ev)
+      local call = ev.call
+      if call then
+        local outcome = ev.cancelled and "cancelled" or (ev.ok and "done" or "error")
+        activity_feed.done("call:" .. call.id, outcome, outcome, "agent")
+      end
+    end)
+  end
   vim.api.nvim_create_autocmd("LspProgress", {
     group = group,
     callback = function(ev)

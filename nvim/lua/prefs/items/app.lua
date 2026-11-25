@@ -80,6 +80,23 @@ return {
   {
     group = "App",
     when = in_app,
+    label = "Activity Center",
+    kind = "toggle",
+    id = "gui.activity.enabled",
+    apply = push,
+  },
+  {
+    group = "App",
+    when = in_app,
+    label = "Open Activity Center",
+    kind = "action",
+    run = function()
+      require("gui.activity").open()
+    end,
+  },
+  {
+    group = "App",
+    when = in_app,
     label = "Focus mode",
     kind = "action",
     show = function()

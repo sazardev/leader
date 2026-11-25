@@ -8,6 +8,8 @@
 --   proposal.dropped     { job, how = "rejected"|"refined"|"discarded" }
 --   job.started          { job }                            the model is running
 --   job.settled          { job, outcome = "done"|"error"|"cancelled"|"denied" }
+--   call.started         { call }                            a one-shot or chat request is running
+--   call.settled         { call, ok, cancelled? }             that request has ended
 --
 -- A handler that fails never takes the emitter down (pcall), and handlers run in the order they were registered.
 local M = {}

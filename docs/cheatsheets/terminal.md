@@ -57,6 +57,24 @@ Normal mode (move, copy output with `y`, search with `/`); `i` goes back to typi
 - **Paste into the terminal**: `Ctrl+Shift+V` (the terminal does not see nvim's clipboard, so `p` pastes
   nvim's own yank, not the system's).
 
+## Activity Center (OpenTUI, optional)
+
+Leader can show a short, structured history of what the editor is doing: LSP progress, plugin and language-tool
+installs, saves, one-shot agent requests and chat turns. It is an optional Rust/OpenTUI program, separate from the
+main `leader` binary.
+
+```bash
+make activity
+```
+
+Open it from **View › Activity Center**, the optional Activity Center toolbar button, or by clicking the activity
+text in the app bar. Inside it, `1`/`2`/`3` filter all/running/done, `f` follows the newest event, `r` refreshes and
+`q` exits. Hiding the floating window keeps the process alive; `q` is the clean way to stop it.
+
+The TUI only reads a process-local JSON feed under Neovim's cache directory. It cannot start jobs or change files.
+If the binary is not built, Leader says so instead of failing. Building it downloads OpenTUI's pinned native library
+and verifies its checksum; it is not part of the normal app build or release package yet.
+
 ## Pitfalls
 
 - **Re-running a command while its terminal is busy types into the running process.** That is how the
