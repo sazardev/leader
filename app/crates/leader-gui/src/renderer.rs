@@ -11,6 +11,22 @@ use crate::scene::{self, Glyphs, Quad, View};
 
 const ATLAS_START: u32 = 1024;
 
+/// Formats whose bytes ARE sRGB colors: no conversion, and blending happens in sRGB space like a terminal.
+const SRGB_BYTES: [wgpu::TextureFormat; 2] = [wgpu::TextureFormat::Bgra8Unorm, wgpu::TextureFormat::Rgba8Unorm];
+
+/// Prefer an 8-bit non-sRGB surface. Drivers offer many formats (on WSL/Mesa the first non-sRGB one is
+/// `Rgba16Float`), but a float/10-bit surface is a LINEAR color space: writing sRGB values into it makes the
+/// compositor encode them again and the whole editor looks washed out.
+fn surface_format(supported: &[wgpu::TextureFormat], default: wgpu::TextureFormat) -> wgpu::TextureFormat {
+    SRGB_BYTES.into_iter().find(|f| supported.contains(f)).unwrap_or(default)
+}
+
+/// Whether the shader must convert sRGB colors to linear before writing to the surface.
+fn needs_linear(format: wgpu::TextureFormat) -> bool {
+    format.is_srgb()
+        || matches!(format, wgpu::TextureFormat::Rgba16Float | wgpu::TextureFormat::Rgba16Unorm | wgpu::TextureFormat::Rgb10a2Unorm)
+}
+
 pub struct Renderer {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
@@ -137,9 +153,13 @@ impl Renderer {
         let caps = surface.get_capabilities(&adapter);
         let mut config =
             surface.get_default_config(&adapter, size.width.max(1), size.height.max(1)).ok_or("surface not supported by the adapter")?;
-        // Terminal-exact colors: blend in sRGB space on a non-sRGB surface when there is one.
-        config.format = caps.formats.iter().copied().find(|f| !f.is_srgb()).unwrap_or(caps.formats[0]);
-        let linear = config.format.is_srgb();
+        // Terminal-exact colors: prefer an 8-bit non-sRGB surface so the bytes we write ARE the terminal's
+        // sRGB colors and blending happens in sRGB space (like a terminal). A float/10-bit surface is a
+        // LINEAR color space: writing sRGB values into one makes the compositor encode them a second time
+        // and the whole editor looks washed out. Only fall back to the surface's default when no 8-bit
+        // unorm format is offered (some drivers expose only sRGB formats).
+        config.format = surface_format(&caps.formats, config.format);
+        let linear = needs_linear(config.format);
         config.present_mode = [wgpu::PresentMode::Mailbox, wgpu::PresentMode::Fifo]
             .into_iter()
             .find(|m| caps.present_modes.contains(m))
@@ -335,7 +355,9 @@ impl Renderer {
     /// Records the one render pass of a frame into `target`.
     fn encode(&self, screen: &Screen, count: u32, target: &wgpu::TextureView) -> wgpu::CommandEncoder {
         let bg = scene::rgb(screen.colors.bg, 1.0);
-        let lin = |c: f32| if self.linear { if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) } } else { c };
+        let lin = |c: f32| {
+            if self.linear { if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) } } else { c }
+        };
         let clear = wgpu::Color { r: lin(bg[0]) as f64, g: lin(bg[1]) as f64, b: lin(bg[2]) as f64, a: 1.0 };
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("frame") });
         {
@@ -439,5 +461,32 @@ impl Renderer {
             }
         }
         (w, h, out)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wgpu::TextureFormat as F;
+
+    #[test]
+    fn prefers_srgb_bytes_over_float_and_srgb_surfaces() {
+        // The exact list Mesa exposes on WSL: the old code picked Rgba16Float first and washed out the theme.
+        let mesa = [F::Bgra8UnormSrgb, F::Rgba8UnormSrgb, F::Rgba16Float, F::Rgba16Unorm, F::Rgb10a2Unorm, F::Bgra8Unorm, F::Rgba8Unorm];
+        assert_eq!(surface_format(&mesa, F::Rgba16Float), F::Bgra8Unorm);
+        assert_eq!(surface_format(&mesa[4..], F::Rgba16Float), F::Bgra8Unorm);
+        assert_eq!(surface_format(&[F::Rgba8Unorm], F::Bgra8UnormSrgb), F::Rgba8Unorm);
+        assert_eq!(surface_format(&[F::Bgra8UnormSrgb], F::Bgra8UnormSrgb), F::Bgra8UnormSrgb);
+    }
+
+    #[test]
+    fn converts_only_on_linear_surfaces() {
+        assert!(!needs_linear(F::Bgra8Unorm));
+        assert!(!needs_linear(F::Rgba8Unorm));
+        assert!(needs_linear(F::Bgra8UnormSrgb));
+        assert!(needs_linear(F::Rgba8UnormSrgb));
+        assert!(needs_linear(F::Rgba16Float));
+        assert!(needs_linear(F::Rgba16Unorm));
+        assert!(needs_linear(F::Rgb10a2Unorm));
     }
 }
