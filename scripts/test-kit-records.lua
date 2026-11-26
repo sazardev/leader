@@ -178,6 +178,29 @@ ok(
   index:find("| [0001](0001-a.md) | A | d | superseded by [0003](0003-c.md) |", 1, true)
     and index:find("| [0003](0003-c.md) | C | d | accepted |", 1, true)
 )
+local waive_root = base .. "/waive"
+vim.fn.mkdir(waive_root, "p")
+write(waive_root .. "/AGENTS.md", "# A\n")
+local waive_path = adr.waive_check(
+  waive_root,
+  "stack-tools",
+  "package.json has STACK.md's tools",
+  "STACK.md only mentions Svelte in i18next's aside.",
+  "package.json lacks what STACK.md's Stack table names: svelte"
+)
+local waive_text = read(waive_root .. "/" .. waive_path) or ""
+ok("adr waive check: the waiver marker", waive_text:find("<!-- waived: stack-tools -->", 1, true) ~= nil)
+ok("adr waive check: the reason in the decision", waive_text:find("i18next's aside", 1, true) ~= nil)
+eq(
+  "adr waive check: read back by id",
+  adr.waived(waive_root)["stack-tools"],
+  waive_path:match "([^/]+)$"
+)
+eq(
+  "adr waive check: written once",
+  adr.waive_check(waive_root, "stack-tools", "x", "y", "z"),
+  waive_path
+)
 local bplan = require "agent.kit.build.plan"
 local with = bplan.request({ stack = "S" }, nil, nil, nil, summary)
 ok(

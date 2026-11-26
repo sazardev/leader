@@ -366,11 +366,71 @@ function M.waiver(root, id, tool, why, check, cmd)
   local text = M.render(number, entry):gsub("(\n## Status)", "\n<!-- waived: " .. id .. " -->\n%1", 1)
   text = text:gsub(
     "(\n## Consequences\n\n)",
-    "%1- The `" .. check .. "` check does not run; the build reports it as waived.\n"
+    "%1- The `"
+      .. check
+      .. "` check does not run; the build reports it as waived.\n"
       .. "- Later builds do not ask again: delete this ADR, or supersede it with one that installs the tool.\n",
     1
   )
   local name = ("%04d-%s.md"):format(number, M.slug(title))
+  local dir = root .. "/" .. M.DIR
+  vim.fn.mkdir(dir, "p")
+  local f = assert(io.open(dir .. "/" .. name, "w"))
+  f:write(text)
+  f:close()
+  files[name] = text
+  write_index(root, files)
+  return M.DIR .. "/" .. name
+end
+
+--- Records that a pure check's premise was proven false, so the check is waived in this project. The ADR carries
+--- `<!-- waived: id -->` (`waived` reads it), the index and the AGENTS.md link. The path, or the existing one.
+---@param root string
+---@param id string stable id ("stack-tools")
+---@param check string the check label
+---@param why string the diagnosis: why the check's premise does not hold
+---@param evidence string the check's output
+---@return string
+function M.waive_check(root, id, check, why, evidence)
+  local files = M.read(root)
+  local already = M.waived(root)[id]
+  if already then
+    return M.DIR .. "/" .. already
+  end
+  local number = M.next_number(vim.tbl_keys(files))
+  local reason = vim.trim(why or ""):gsub("%s+", " ")
+  if reason == "" then
+    reason = "The check's premise does not hold for this project."
+  end
+  if not reason:match "[.!?]$" then
+    reason = reason .. "."
+  end
+  local proof = vim.trim((evidence or ""):gsub("%s+", " "))
+  if #proof > 600 then
+    proof = proof:sub(1, 599) .. "…"
+  end
+  local entry = {
+    title = "Waive the check: " .. check,
+    date = os.date "%Y-%m-%d",
+    context = ("The `%s` check failed with: `%s` The diagnosis found the check's premise false: %s"):format(
+      check,
+      proof ~= "" and proof or "no output",
+      reason
+    ),
+    decisions = { ("Do not run the `%s` check in this project: %s"):format(check, reason) },
+    created = {},
+    changed = {},
+  }
+  local text = M.render(number, entry):gsub("(\n## Status)", "\n<!-- waived: " .. id .. " -->\n%1", 1)
+  text = text:gsub(
+    "(\n## Consequences\n\n)",
+    "%1- The `"
+      .. check
+      .. "` check does not run; the build reports it as waived.\n"
+      .. "- Supersede this ADR with one that fixes the check to run it again.\n",
+    1
+  )
+  local name = ("%04d-%s.md"):format(number, M.slug(entry.title))
   local dir = root .. "/" .. M.DIR
   vim.fn.mkdir(dir, "p")
   local f = assert(io.open(dir .. "/" .. name, "w"))

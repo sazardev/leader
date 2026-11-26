@@ -1093,6 +1093,44 @@ eq(
   {}
 )
 eq(
+  "build tools: an aside is not a stack choice (i18next's React/Vue/Svelte binding)",
+  bverify.missing_tools(
+    "\n## Stack\n\n| Layer | Choice | Why |\n| --- | --- | --- |\n"
+      .. "| Internationalization | i18next (with the React/Vue/Svelte binding of the project) | translations |\n\n## X\n",
+    '{"dependencies":{"i18next":"^25","react":"^19"}}'
+  ),
+  {}
+)
+eq(
+  "build tools: SvelteKit names Svelte",
+  bverify.missing_tools("\n## Stack\n| Framework | SvelteKit | x |\n## X\n", '{"dependencies":{}}'),
+  { "svelte" }
+)
+eq(
+  "build tools: a Markdown link keeps its label",
+  bverify.missing_tools(
+    "\n## Stack\n| Framework | [SvelteKit](https://kit.svelte.dev) | x |\n## X\n",
+    '{"dependencies":{}}'
+  ),
+  { "svelte" }
+)
+eq(
+  "build tools: a parenthetical that names the tool still counts",
+  bverify.missing_tools(
+    "\n## Stack\n| Framework | React Router 7 (Vite plugin) | x |\n## X\n",
+    '{"dependencies":{"react":"^19"}}'
+  ),
+  { "vite" }
+)
+eq(
+  "build tools: the row that names a missing tool goes with it",
+  bverify.missing_tools_report(
+    "\n## Stack\n| Build | Vite 8 (Rolldown) | fast |\n\n## X\n",
+    '{"devDependencies":{}}'
+  ),
+  { { name = "vite", layer = "Build", choice = "Vite 8 (Rolldown)" } }
+)
+eq(
   "build DOM: ids the code looks up that the HTML lacks",
   bverify.missing_ids {
     ["index.html"] = '<main id="app"><button id="start">go</button></main>',
@@ -1158,6 +1196,11 @@ eq(
 ok(
   "build progress: another failing test = progress",
   bmod.signature("go test", "--- FAIL: TestA (0.05s)") ~= bmod.signature("go test", "--- FAIL: TestB (0.05s)")
+)
+ok(
+  "build progress: a pure check's changed finding = progress",
+  bmod.signature("package.json has STACK.md's tools", "lacks: svelte")
+    ~= bmod.signature("package.json has STACK.md's tools", "lacks: vite")
 )
 eq(
   "build outside: a file the build did not write",
@@ -1368,6 +1411,58 @@ eq("clean: the saved run is forgotten", bstate.load(broot), nil)
 eq("clean: back to the pre-flight", bstate.run.phase, "ready")
 vim.cmd "silent! tabonly"
 
+-- a diagnosis that names a file and a fixer that changes nothing: one round, then stop (never recheck the same failure)
+local nroot = project("nobuild", { ["AGENTS.md"] = "# A\n", ["STACK.md"] = "# S\n\n## Stack\n| Layer | Choice | Why |\n| --- | --- | --- |\n" })
+local real_checks = bverify.checks
+bverify.checks = function()
+  return {
+    {
+      label = "a check that cannot pass",
+      waive = "no-pass",
+      fn = function()
+        return false, "boom"
+      end,
+    },
+  }
+end
+local nasked = {}
+package.loaded["agent"].complete = function(r, cb)
+  nasked[#nasked + 1] = r.action
+  if r.action == "kit_build_plan" then
+    return cb(true, '{"name":"t","files":[{"path":"src/a.txt","purpose":"a"}]}', {})
+  end
+  if r.action == "kit_build_diagnose" then
+    return cb(true, '{"verdict":"fix","diagnosis":"a.txt must change","files":[{"path":"src/a.txt"}]}', {})
+  end
+  if r.action == "kit_build_fix" then
+    return cb(true, "UNCHANGED", {})
+  end
+  cb(true, "hello\n", {})
+end
+bstate.run = nil
+vim.cmd.edit(vim.fn.fnameescape(nroot .. "/AGENTS.md"))
+build.open "foundation"
+build.go()
+vim.wait(1600)
+build.go()
+vim.wait(1500, function()
+  return bstate.run.phase == "failed"
+end)
+eq(
+  "build: a fix that writes nothing stops instead of looping",
+  { bstate.run.phase, bstate.run.fix_round, vim.tbl_count(nasked) },
+  { "failed", 1, 4 }
+)
+ok(
+  "build: and says the project was not touched",
+  bstate.run.outcome == "✗ a check that cannot pass failed"
+    and vim.iter(bstate.run.feed):any(function(e)
+      return e.text and e.text:find("no project file changed", 1, true)
+    end)
+)
+bverify.checks = real_checks
+vim.cmd "silent! tabonly"
+
 -- library: every preset in one list; use merges an add-on / adds a principle; embed inserts at the cursor
 local lib = require "agent.kit.library"
 local all = lib.entries()
@@ -1459,12 +1554,68 @@ ok(
     and dreq.prompt:find('<file path="calc_test.go">', 1, true)
 )
 eq("diagnose request: the same cached system prompt as the files", dreq.system, bprompt.system(dplan, { spec = "S" }))
+local with_evidence = bdiag.request(
+  "package.json lacks svelte",
+  {},
+  dplan,
+  { spec = "S" },
+  { ["package.json"] = '{"name":"x"}' },
+  nil,
+  { "package.json" },
+  "Round 1: nothing changed."
+)
+ok(
+  "diagnose request: a file the check reads is shown even when no error names it",
+  with_evidence.prompt:find('<file path="package.json">', 1, true) ~= nil
+)
+ok(
+  "diagnose request: earlier rounds are carried",
+  with_evidence.prompt:find("<previous>", 1, true) and with_evidence.prompt:find("Round 1", 1, true)
+)
+local again_diag = bdiag.again(dreq, "not JSON")
+ok(
+  "diagnose again: cache off and the reason in the request",
+  not again_diag.cache and again_diag.prompt:find("not JSON", 1, true) ~= nil
+)
 local parsed_diag = bdiag.parse(
   '{"diagnosis":"d","files":[{"path":"calc.go","change":"x"},{"path":"/etc/passwd","change":"y"}]}',
   { "calc.go", "calc_test.go" }
 )
 eq("diagnose parse: only planned paths", parsed_diag and #parsed_diag.files, 1)
+eq("diagnose parse: a code fix keeps its verdict", parsed_diag and parsed_diag.verdict, "fix")
 eq("diagnose parse: nothing usable", bdiag.parse("sorry", { "calc.go" }), nil)
+local checked = bdiag.parse(
+  "{\"verdict\":\"check\",\"diagnosis\":\"STACK.md only mentions Svelte in i18next's aside.\",\"files\":[]}",
+  { "calc.go" }
+)
+eq(
+  "diagnose parse: a check that is wrong is a verdict, not a bad answer",
+  checked and { checked.verdict, checked.diagnosis, #checked.files },
+  { "check", "STACK.md only mentions Svelte in i18next's aside.", 0 }
+)
+eq(
+  "diagnose parse: a check verdict never edits the project",
+  (bdiag.parse(
+    '{"verdict":"check","diagnosis":"the check is wrong","files":[{"path":"calc.go","change":"x"}]}',
+    { "calc.go" }
+  ) or {}).files,
+  {}
+)
+eq(
+  "diagnose parse: a check verdict may omit files",
+  (bdiag.parse('{"verdict":"check","diagnosis":"the check is wrong"}', { "calc.go" }) or {}).verdict,
+  "check"
+)
+eq(
+  "diagnose parse: empty files without a verdict = nothing safe to change",
+  (bdiag.parse('{"diagnosis":"a browser binary is missing","files":[]}', { "calc.go" }) or {}).verdict,
+  "none"
+)
+eq(
+  "diagnose parse: files without a verdict still fixes",
+  (bdiag.parse('{"diagnosis":"x","files":[{"path":"calc.go","change":"y"}]}', { "calc.go" }) or {}).verdict,
+  "fix"
+)
 eq("role: a test", bdiag.role("calc_test.go", {}, true), "test")
 eq("role: the code a failing test uses", bdiag.role("calc.go", { ["calc.go"] = "subject" }, false), "subject")
 eq("role: a file only the diagnosis names is its own fix", bdiag.role("pnpm-workspace.yaml", {}, false), nil)

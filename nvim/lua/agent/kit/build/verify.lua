@@ -17,11 +17,14 @@ local M = {}
 ---                                   for tests, the first golden files); a function says which command for that output, or none
 ---@field mend (fun(root: string, output: string): string|false)?  a fix written here, no command and no model (pnpm's
 ---                                   blocked build scripts); the string says what it did
----@field waive string?  the prerequisite id a refusal waives ("playwright"); an ADR then skips this check
+---@field waive string?  an ADR id that skips this check: a prerequisite the user declined ("playwright"), or a pure
+---                       check whose premise a diagnosis proved false ("stack-tools")
 ---@field waived boolean?  the project's ADR waived this check: it does not run (done, not failed)
 ---@field consent (fun(output: string): { id: string, tool: string, why: string, cmd: string[] }?)?  a missing tool the
 ---                                   user is asked to install (never downloaded silently)
 ---@field fn (fun(): boolean, string)?  a check done here, no command (STACK.md against the manifest)
+---@field read string[]?  files the check judges: shown whole to the diagnosis, never blamed by themselves
+---@field blame string?  the file the check owns when its output names none (the manifest it reads)
 
 --- Tools a STACK.md table names → the npm package that must then be in package.json
 M.NODE_TOOLS = {
@@ -37,17 +40,46 @@ M.NODE_TOOLS = {
   zod = "zod",
   drizzle = "drizzle-orm",
   svelte = "svelte",
+  sveltekit = "svelte",
   preact = "preact",
   lit = "lit",
   alpine = "alpinejs",
   elysia = "elysia",
 }
 
---- The packages STACK.md's Stack table names that package.json does not list (pure)
+--- The choice without its asides. `i18next (with the React/Vue/Svelte binding of the project)` names i18next, not
+--- Svelte: a parenthetical says what the choice allows, not what the project must install.
+---@param choice string
+---@return string
+local function choice_only(choice)
+  local text = choice:gsub("%[([^%]]*)%]%b()", "%1") -- a Markdown link counts as its label
+  text = text:gsub("%b()", function(group)
+    local inner = group:sub(2, -2):lower()
+    -- an aside that offers alternatives is not a requirement; a parenthetical that names the tool used ("Vite plugin") is
+    if
+      inner:find("binding", 1, true)
+      or inner:match "^%s*with%s"
+      or inner:match "^%s*e%.g%."
+      or inner:match "^%s*such as"
+      or inner:match "^%s*optional"
+    then
+      return " "
+    end
+    return group
+  end)
+  return text
+end
+
+---@class BuildMissingTool
+---@field name string    the npm package
+---@field layer string   STACK.md's row (first column)
+---@field choice string  STACK.md's row (second column), as written
+
+--- The packages STACK.md's Stack table names that package.json does not list, with the row that names them (pure)
 ---@param stack string STACK.md
 ---@param package_json string
----@return string[] missing, one per line: "vite (STACK.md: Build | Vite 8 …)"
-function M.missing_tools(stack, package_json)
+---@return BuildMissingTool[]
+function M.missing_tools_report(stack, package_json)
   local table_text = (stack or ""):match "\n## Stack%s*\n(.-)\n## " or ""
   local ok, json = pcall(vim.json.decode, package_json or "")
   if not ok or type(json) ~= "table" then
@@ -59,19 +91,34 @@ function M.missing_tools(stack, package_json)
       deps[name] = true
     end
   end
-  local out = {}
+  local out, seen = {}, {}
   for row in table_text:gmatch "[^\n]+" do
-    local choice = row:match "^|[^|]*|([^|]*)|"
+    local layer, choice = row:match "^|([^|]*)|([^|]*)|"
     if choice and not row:match "^|%s*%-" then
-      local words = " " .. choice:lower():gsub("[^%w]", " ") .. " "
+      local words = " " .. choice_only(choice):lower():gsub("[^%w]", " ") .. " "
       for word, pkg in pairs(M.NODE_TOOLS) do
-        if words:find(" " .. word .. " ", 1, true) and not deps[pkg] and not vim.tbl_contains(out, pkg) then
-          out[#out + 1] = pkg
+        if words:find(" " .. word .. " ", 1, true) and not deps[pkg] and not seen[pkg] then
+          seen[pkg] = true
+          out[#out + 1] = { name = pkg, layer = vim.trim(layer or ""), choice = vim.trim(choice) }
         end
       end
     end
   end
-  table.sort(out)
+  table.sort(out, function(a, b)
+    return a.name < b.name
+  end)
+  return out
+end
+
+--- The packages STACK.md's Stack table names that package.json does not list (pure)
+---@param stack string STACK.md
+---@param package_json string
+---@return string[]
+function M.missing_tools(stack, package_json)
+  local out = {}
+  for _, tool in ipairs(M.missing_tools_report(stack, package_json)) do
+    out[#out + 1] = tool.name
+  end
   return out
 end
 
@@ -718,15 +765,23 @@ local function kind_checks(root, prefer)
     if stack then
       out[#out + 1] = {
         label = "package.json has STACK.md's tools",
+        waive = "stack-tools",
+        blame = "package.json",
+        read = { "package.json" },
         fn = function()
-          local missing = M.missing_tools(stack, require("utils.project").read(root .. "/package.json") or "")
+          local missing = M.missing_tools_report(stack, require("utils.project").read(root .. "/package.json") or "")
           if #missing == 0 then
             return true, ""
           end
+          local lines = {}
+          for _, tool in ipairs(missing) do
+            lines[#lines + 1] = ("%s (STACK.md: %s | %s)"):format(tool.name, tool.layer, tool.choice)
+          end
           return false,
-            "package.json lacks what STACK.md's Stack table names: "
-              .. table.concat(missing, ", ")
-              .. ". Add them (and the scripts that use them: dev, build, test) to package.json."
+            "package.json lacks what STACK.md's Stack table names:\n"
+              .. table.concat(lines, "\n")
+              .. "\nAdd each one, and the scripts that use it (dev, build, test), to package.json. "
+              .. "If the row only mentions it as an option, rephrase STACK.md instead."
         end,
       }
     end
@@ -738,6 +793,7 @@ local function kind_checks(root, prefer)
     if has "index.html" then
       out[#out + 1] = {
         label = "every id the code looks up exists",
+        waive = "dom-ids",
         fn = function()
           local missing = M.missing_ids(web_files(root))
           return #missing == 0, table.concat(missing, "\n")
@@ -745,6 +801,7 @@ local function kind_checks(root, prefer)
       }
       out[#out + 1] = {
         label = "every control the page declares is handled",
+        waive = "dom-actions",
         fn = function()
           local unhandled = M.unhandled_actions(web_files(root))
           return #unhandled == 0, table.concat(unhandled, "\n")
@@ -752,6 +809,7 @@ local function kind_checks(root, prefer)
       }
       out[#out + 1] = {
         label = "every stylesheet and module is used",
+        waive = "assets-used",
         fn = function()
           local unused = M.orphans(web_files(root))
           return #unused == 0, table.concat(unused, "\n")
@@ -769,6 +827,9 @@ local function kind_checks(root, prefer)
     if has "astro.config.mjs" then
       out[#out + 1] = {
         label = "preview script",
+        waive = "astro-preview",
+        blame = "package.json",
+        read = { "package.json" },
         fn = function()
           local problem = M.preview_problem(require("utils.project").read(root .. "/package.json") or "")
           return problem == nil, problem or ""
@@ -897,6 +958,7 @@ function M.checks(root, prefer)
   if #list > 0 then
     list[#list + 1] = {
       label = "no type is declared twice",
+      waive = "types-once",
       fn = function()
         return M.duplicate_types(source_texts(root))
       end,

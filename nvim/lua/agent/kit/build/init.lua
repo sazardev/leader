@@ -12,7 +12,10 @@
 --   fix     the files the errors name, with their errors, `max_fixes` rounds; then check again. A file the diagnosis
 --           names but the errors do not (a missing config such as pnpm-workspace.yaml) is its own fix: `subject` is ONLY
 --           the code a failing test named, and its "otherwise this file is right as it is" made models answer UNCHANGED
---           for a file that did not exist, stalling the round.
+--           for a file that did not exist, stalling the round. A diagnosis may instead say the check is wrong (`check`)
+--           or that nothing can safely change (`none`): then no file is touched and the round stops. A pure check proven
+--           false can be waived by the user, with an ADR that later builds read. A fix round that writes no file also
+--           stops: repeating it would only repeat the same check and the same diagnosis.
 --   use     the app used like its user would (use/: scenarios from SPEC.md, a driver per kind of app, free checks per
 --           step, one verdict request); what fails is fixed, the same scenarios replayed (`use_rounds`)
 --   look    the rendered screens against DESIGN.md (Go teatest golden files), `look_rounds` times at most
@@ -62,13 +65,23 @@ function M.signature(label, output)
       end
     end
   end
+  if #names == 0 then -- a pure check names no file: its output is the progress (one missing tool fixed, one left)
+    for line in output:gmatch "[^\n]+" do
+      if vim.trim(line) ~= "" then
+        names[#names + 1] = vim.trim(line):sub(1, 160)
+        if #names >= 3 then
+          break
+        end
+      end
+    end
+  end
   table.sort(names)
   return label .. "|" .. table.concat(names, ";")
 end
 
 --- What is running now: the request's process (to stop it) and when this stretch of running began
 local live =
-  { handle = nil, fix_handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {}, review_at = nil }
+  { handle = nil, fix_handle = nil, since = nil, docs = nil, written = nil, prompts = {}, autofixed = {}, review_at = nil, previous = nil }
 
 local record -- forward (below: ADR and PROGRESS.md)
 
@@ -671,7 +684,8 @@ local roles = {}
 ---@param note string what is wrong, for every file
 ---@param blamed table<string, string[]> the errors per file (a file with none gets `head`)
 ---@param head string
-local function fix_files(list, note, blamed, head)
+---@param on_no_change fun()? what to do when the model changed no file at all (the default: stop, never loop)
+local function fix_files(list, note, blamed, head, on_no_change)
   local r = run()
   table.sort(list, function(x, y) -- the code first, then the tests that check it
     local tx, ty = verify.is_test(x.path) and 1 or 0, verify.is_test(y.path) and 1 or 0
@@ -680,7 +694,7 @@ local function fix_files(list, note, blamed, head)
     end
     return x.path < y.path
   end)
-  local i = 0
+  local i, changed = 0, 0
   local function next_fix()
     i = i + 1
     local item = list[i]
@@ -689,6 +703,17 @@ local function fix_files(list, note, blamed, head)
     end
     if not item then
       live.autofixed = {} -- new code may need the formatter again: it is free, the model's round is not
+      if changed == 0 then -- nothing was written: the check and the fix disagree, and another round would repeat it
+        if on_no_change then
+          return on_no_change()
+        end
+        return finish(
+          "failed",
+          "✗ no fix was written",
+          "fail",
+          (note ~= "" and note or "the model changed no file") .. " · the project was not touched"
+        )
+      end
       return check()
     end
     local path = item.path
@@ -705,6 +730,7 @@ local function fix_files(list, note, blamed, head)
     local role = diagnose.role(path, roles, verify.is_test(path))
     local why = role or (blamed[path] and "named in the errors" or (item.new and "a new file" or "named in the diagnosis"))
     local errors = blamed[path] and table.concat(blamed[path], "\n") or head
+    local existed = written()[path] ~= nil
     local before = written()[path] or ""
     local req = prompt.fix(
       path,
@@ -778,19 +804,21 @@ local function fix_files(list, note, blamed, head)
         state.feed("fail", ("%s: fix refused, %s"):format(path, weaker), usage_text(usage, ms))
         return next_fix()
       end
-      if content ~= before then
+      local wrote = content ~= before or (not existed and content == before)
+      if wrote then
         local done, why = write_file(r.root, path, content)
         if not done then
           return finish("failed", "✗ could not write " .. path, "fail", tostring(why))
         end
         written()[path] = content
+        changed = changed + 1
       end
       if file then
-        file.state, file.lines = content ~= before and "fixed" or "done", select(2, content:gsub("\n", ""))
+        file.state, file.lines = wrote and "fixed" or "done", select(2, content:gsub("\n", ""))
         file.cost = (file.cost or 0) + (usage and usage.cost or 0)
       end
-      view().code_done(path, content, content ~= before and "fixed" or "unchanged")
-      state.feed("out", path .. (content ~= before and "" or " · unchanged"), usage_text(usage, ms))
+      view().code_done(path, content, wrote and "fixed" or "unchanged")
+      state.feed("out", path .. (wrote and "" or " · unchanged"), usage_text(usage, ms))
       state.save()
       next_fix()
     end
@@ -799,17 +827,85 @@ local function fix_files(list, note, blamed, head)
   next_fix()
 end
 
+--- The diagnosis says no project file should change, or the fixer changed none: stop instead of looping. A pure check
+--- whose premise the diagnosis proved false can be waived by the user, with an ADR that records why.
+---@param failed BuildCheck?
+---@param plan BuildDiagnosis?
+---@param output string
+local function no_safe_change(failed, plan, output)
+  local r = run()
+  local label = failed and failed.label or "the check"
+  local diagnosis = plan and plan.diagnosis or ""
+  local verdict = plan and plan.verdict or "none"
+  if verdict == "check" and failed and failed.fn and failed.waive then
+    local modal = require "utils.modal"
+    local lines = {
+      { { label, modal.hl.warn } },
+      "",
+      { { diagnosis ~= "" and diagnosis or "The check's premise does not hold for this project.", modal.hl.muted } },
+      "",
+      { { "The check is wrong, not the project: the diagnosis names no file to fix.", modal.hl.muted } },
+      { { "Waive it? An ADR records why and later builds skip it. The code is not touched.", modal.hl.muted } },
+    }
+    local answered = false
+    return modal.confirm(lines, {
+      title = "The check disagrees",
+      confirm = "Waive the check",
+      cancel = "Stop",
+      on_cancel = function(declined)
+        if answered then
+          return
+        end
+        answered = true
+        if not declined then -- the window was closed by something else: do not record a waiver
+          return finish("stopped", "the waiver question was closed", "info", "Enter retries the check")
+        end
+        finish(
+          "failed",
+          "✗ " .. label .. " failed",
+          "fail",
+          (diagnosis ~= "" and diagnosis or "the check's premise does not hold") .. " · not waived"
+        )
+      end,
+    }, function()
+      if answered then
+        return
+      end
+      answered = true
+      local ok, path = pcall(require("agent.kit.adr").waive_check, r.root, failed.waive, label, diagnosis, output)
+      if not ok then
+        return finish("failed", "✗ could not waive " .. label, "fail", tostring(path))
+      end
+      state.feed("info", ("%s · waived: %s · the build goes on"):format(label, path))
+      check()
+    end)
+  end
+  local why = diagnosis ~= "" and diagnosis
+    or (verdict == "check" and "the check's premise does not hold" or "no project file changed")
+  finish("failed", "✗ " .. label .. " failed", "fail", why .. " · no project file changed")
+end
+
 -- fix: diagnose first (one request with everything in view), then each file the diagnosis names with its instruction;
 -- a fix that weakens a test is refused (the test stays as it was)
 ---@param blamed table<string, string[]>
 ---@param output string the failing check's output
-local function fix(blamed, output)
+---@param failed BuildCheck?
+local function fix(blamed, output, failed)
   local r = run()
   r.fix_round = r.fix_round + 1
   r.phase = "fix"
   local planned = owned()
   state.feed("step", ("round %d · diagnosing"):format(r.fix_round), M.model "fixes", "Fix")
-  local dreq = diagnose.request(output, blamed, r.plan, live.docs, written(), live.user)
+  local dreq = diagnose.request(
+    output,
+    blamed,
+    r.plan,
+    live.docs,
+    written(),
+    live.user,
+    failed and failed.read,
+    live.previous
+  )
   live.prompts["diagnosis"] = { system = dreq.system, prompt = dreq.prompt }
   state.feed(
     "in",
@@ -820,25 +916,64 @@ local function fix(blamed, output)
       size(#dreq.system + #dreq.prompt)
     )
   )
-  call(dreq, "fixes", nil, function(dok, dtext, dusage, dms)
+  local function on_diagnosis(dok, dtext, dusage, dms, retried)
     local plan = dok and diagnose.parse(dtext, planned)
+    if dok and not plan and not retried then -- one more request now beats a blind fix of the files the errors name
+      state.feed("info", "the diagnosis was not the JSON asked for · asked again")
+      local again = diagnose.again(dreq, "the answer was not the JSON object asked for")
+      return call(again, "fixes", nil, function(ok, text, usage, ms)
+        on_diagnosis(ok, text, usage, ms, true)
+      end)
+    end
     local list = {} ---@type { path: string, change: string }[]
     local note = ""
     if plan then
       note = plan.diagnosis
       list = plan.files
-      state.feed("out", "diagnosis · " .. plan.diagnosis, usage_text(dusage, dms))
+      state.feed(
+        "out",
+        ("diagnosis%s · %s"):format(plan.verdict ~= "fix" and (" (" .. plan.verdict .. ")") or "", plan.diagnosis),
+        usage_text(dusage, dms)
+      )
+      if plan.verdict ~= "fix" then
+        return no_safe_change(failed, plan, output)
+      end
       for _, f in ipairs(list) do
         state.feed("info", f.path .. ": " .. f.change)
       end
     else
+      -- a pure check never gets a blind fix: if its diagnosis is unusable, the honest answer is to stop
+      if failed and failed.fn then
+        state.feed("info", "the diagnosis of the check is unusable: the project is not touched")
+        return no_safe_change(failed, nil, output)
+      end
       for path in pairs(blamed) do
         list[#list + 1] = { path = path, change = "" }
       end
+      if #list == 0 then
+        state.feed("info", "no usable diagnosis and no file named: the check and the project disagree")
+        return no_safe_change(failed, nil, output)
+      end
       state.feed("info", "no usable diagnosis: fixing the files the errors name")
     end
+    -- what this round tried, so the next diagnosis does not repeat a change that did not help
+    local tried = {}
+    for _, f in ipairs(list) do
+      tried[#tried + 1] = f.path
+    end
+    local entry = ("Round %d: %s (files: %s)"):format(
+      r.fix_round,
+      note ~= "" and note or "the files the errors name",
+      table.concat(tried, ", ")
+    )
+    live.previous = ((live.previous and (live.previous .. "\n") or "") .. entry):sub(-4000)
     local head = table.concat(vim.list_slice(vim.split(vim.trim(output), "\n", { plain = true }), 1, 40), "\n")
-    fix_files(list, note, blamed, head)
+    fix_files(list, note, blamed, head, function()
+      no_safe_change(failed, plan, output)
+    end)
+  end
+  call(dreq, "fixes", nil, function(dok, dtext, dusage, dms)
+    on_diagnosis(dok, dtext, dusage, dms, false)
   end)
 end
 
@@ -1180,6 +1315,7 @@ check = function()
   if r.plan and scopes.get(r.scope).wiring then
     checks[#checks + 1] = {
       label = "the interface uses what the plan exports",
+      waive = "wiring",
       fn = function()
         local calls = wiring.split(wiring.find(r.plan, written()))
         return #calls == 0, wiring.report(calls)
@@ -1282,11 +1418,19 @@ check = function()
     local gomod = require("utils.project").read(r.root .. "/go.mod") or ""
     local blamed = verify.blame(output or "", planned, gomod:match "^module%s+(%S+)" or gomod:match "\nmodule%s+(%S+)")
     roles = {}
-    -- the manifest only when the tool itself did not run (no test failed, no file named)
+    local lines = vim.split(vim.trim(output or ""), "\n", { plain = true })
+    -- a pure check that reads one file (the manifest against STACK.md): it owns that file even when its sentence names none
+    if failed and failed.blame and not blamed[failed.blame] then
+      blamed[failed.blame] = vim.list_slice(lines, 1, 40)
+    end
+    -- the manifest only when the tool itself did not run (no test failed, no file named) and the check is not a pure one:
+    -- a pure check's false premise is not a missing dependency
     local tests_failed = (output or ""):find "%-%-%- FAIL" or (output or ""):find "FAIL:" or (output or ""):find "✗"
-    local manifest = next(blamed) == nil and not tests_failed and verify.manifest_of(planned)
+    local manifest = next(blamed) == nil
+      and not tests_failed
+      and not (failed and failed.fn)
+      and verify.manifest_of(planned)
     if manifest then -- no file named: the tool did not run, the manifest lacks something
-      local lines = vim.split(vim.trim(output or ""), "\n", { plain = true })
       blamed[manifest] = vim.list_slice(lines, 1, 40)
       state.feed(
         "info",
@@ -1307,7 +1451,7 @@ check = function()
         end
       end
     end
-    if next(blamed) == nil then
+    if next(blamed) == nil and not (failed and failed.fn) then
       return finish(
         "failed",
         "✗ " .. (failed and failed.label or "a check") .. " failed",
@@ -1342,7 +1486,7 @@ check = function()
           or "progress: the failure changed, another round"
       )
     end
-    fix(blamed, output or "")
+    fix(blamed, output or "", failed)
   end)
 end
 
@@ -1354,7 +1498,7 @@ local function write()
   if r.use then -- and a user: the same scenarios (they come from the documents), fresh rounds
     r.use = { fixes = 0, scenarios = r.use.scenarios, kind = r.use.kind }
   end
-  live.stuck, live.last_signature, live.user = 0, nil, nil
+  live.stuck, live.last_signature, live.user, live.previous = 0, nil, nil, nil
   begin()
   local i = 0
   local function next_file()
@@ -1762,7 +1906,7 @@ function M.go()
       end
     end
     r.fix_round, live.autofixed = 0, {}
-    live.stuck, live.last_signature = 0, nil
+    live.stuck, live.last_signature, live.previous = 0, nil, nil
     state.feed("step", "the checks again, then the fix", "0 tokens", "Resume")
     begin()
     return check()
@@ -1779,7 +1923,7 @@ function M.go()
     return write()
   end
   r.fix_round, live.autofixed = 0, {}
-  live.stuck, live.last_signature = 0, nil
+  live.stuck, live.last_signature, live.previous = 0, nil, nil
   begin()
   check()
 end
@@ -1793,7 +1937,7 @@ function M.recheck()
   live.docs = live.docs or M.docs(r.root, r.scope)
   live.written = nil
   r.fix_round, live.autofixed, r.outcome = 0, {}, nil
-  live.stuck, live.last_signature = 0, nil
+  live.stuck, live.last_signature, live.previous = 0, nil, nil
   state.feed("step", "the files as they are now", "0 tokens unless a fix is needed", "Check again")
   begin()
   check()
@@ -1849,7 +1993,7 @@ local function fresh_run()
   end
   local docs = M.docs(r.root, r.scope)
   live.docs, live.written, live.prompts, live.autofixed = docs, nil, {}, {}
-  live.stuck, live.last_signature, live.review_at = 0, nil, nil
+  live.stuck, live.last_signature, live.review_at, live.previous = 0, nil, nil, nil
   local tiers, max = r.tiers, r.max_fixes
   local new = state.new(r.root, M.doc_sizes(docs, r.scope), r.scope, r.task)
   new.tiers, new.max_fixes = tiers, max
