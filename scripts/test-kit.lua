@@ -1638,6 +1638,30 @@ do
     end
   end
   ok("pnpm: the install check can fix itself", install ~= nil and type(install.mend) == "function")
+  ok("pnpm: a missing package manager is a prerequisite, not a code bug", install ~= nil and type(install.consent) == "function")
+  local pm_req = install and install.consent("mise ERROR pnpm is not provided by the active node@26.13.1")
+  eq(
+    "pnpm: the install request names the package manager",
+    pm_req and pm_req.cmd,
+    { "npm", "install", "-g", "pnpm" }
+  )
+  eq(
+    "pnpm: a normal install failure is not the missing tool",
+    install and install.consent("ERR_PNPM_NO_MATCHING_VERSION"),
+    nil
+  )
+  ok(
+    "pnpm: an older pnpm is offered the declared version",
+    install
+      and install.consent("ERR_PNPM_BAD_PM_VERSION This project is configured to use v10.18.0 of pnpm")
+  )
+  local declared_req = bverify.package_manager_consent("pnpm", "pnpm@10.18.0+sha512.abc")("pnpm is not installed")
+  eq(
+    "pnpm: the version package.json declares is the one installed",
+    declared_req and declared_req.cmd,
+    { "npm", "install", "-g", "pnpm@10.18.0" }
+  )
+  eq("pnpm: npm itself has no install consent", bverify.package_manager_consent("npm", "npm@10"), nil)
   local out = table.concat({
     "ERR_PNPM_IGNORED_BUILDS",
     "",

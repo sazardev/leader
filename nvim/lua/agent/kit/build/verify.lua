@@ -708,6 +708,46 @@ function M.pnpm_allow_builds(root, output, major)
   )
 end
 
+--- The install request for the package manager package.json declares (`packageManager`), when the tool itself is
+--- missing or the environment cannot provide it (mise: `pnpm is not provided by the active node@…`). The command is
+--- shown to the user and only runs after they accept: never download a tool silently (the Playwright browser's rule).
+---@param pm string "pnpm" | "yarn"
+---@param declared string? package.json's `packageManager` (`pnpm@10.18.0`)
+---@return fun(output: string): { id: string, tool: string, why: string, cmd: string[] }?
+function M.package_manager_consent(pm, declared)
+  if pm ~= "pnpm" and pm ~= "yarn" then
+    return nil
+  end
+  local name, version = (declared or ""):match "^([%w%-]+)@([^%+]+)"
+  if name ~= pm then
+    version = nil
+  end
+  local tool = version and (pm .. " " .. version) or pm
+  local pkg = version and (pm .. "@" .. version) or pm
+  local req = {
+    id = "package-manager-" .. pm,
+    tool = tool,
+    why = ("package.json declares `%s` but the active environment does not provide that version"):format(tool),
+    cmd = { "npm", "install", "-g", pkg },
+  }
+  return function(output)
+    output = output or ""
+    if
+      output:find("is not provided by the active", 1, true)
+      or output:find("is not installed", 1, true)
+      or output:find("command not found", 1, true)
+      or output:find("ERR_PNPM_BAD_PM_VERSION", 1, true)
+      or output:find("configured to use", 1, true)
+      or output:find("current pnpm is", 1, true)
+      or output:find("Expected version", 1, true)
+      or output:find("%f[%a]not found%f[%A]")
+    then
+      return req
+    end
+    return nil
+  end
+end
+
 --- The checks for the project at `root` (by its manifest). `prefer`: the package manager STACK.md names (used when no
 --- lockfile says otherwise)
 ---@param root string
@@ -753,6 +793,7 @@ local function kind_checks(root, prefer)
     if pm == "npm" and scripts.packageManager and scripts.packageManager:match "^bun" then
       pm = "bun"
     end
+    local declared = scripts.packageManager
     -- only the project's own binaries (`bunx tsc` would download an unrelated package called tsc)
     local exec = ({
       bun = { "bun", "run" },
@@ -789,6 +830,7 @@ local function kind_checks(root, prefer)
       label = pm .. " install",
       cmd = { pm, "install" },
       mend = pm == "pnpm" and M.pnpm_allow_builds or nil,
+      consent = M.package_manager_consent(pm, declared),
     }
     if has "index.html" then
       out[#out + 1] = {

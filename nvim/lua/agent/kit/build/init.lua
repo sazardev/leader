@@ -1365,7 +1365,7 @@ check = function()
         live.autofixed[failed.label] = true
         local modal = require "utils.modal"
         local lines = {
-          { { req.tool .. " is not installed", modal.hl.warn } },
+          { { req.tool .. " is not available", modal.hl.warn } },
           "",
           { { req.why .. ".", modal.hl.muted } },
           "",

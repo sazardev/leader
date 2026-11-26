@@ -964,7 +964,10 @@ Checks (never commands written by the model): Go `go mod tidy` · `gofmt` (fixes
 `package.json has STACK.md's tools` (Vite, Vitest, TypeScript, Biome… named in the Stack table's **Choice** cell; a tool
 mentioned inside an aside as an option, such as i18next's `(with the React/Vue/Svelte binding of the project)`, is not a
 stack choice, and `SvelteKit` counts as `svelte`; the failure says the row it read) · install (the package
-manager STACK.md names when there is no lockfile yet; pnpm's blocked build scripts are approved in
+manager STACK.md names when there is no lockfile yet; if `packageManager` declares `pnpm@…`/`yarn@…` and the environment
+cannot provide it — mise's `pnpm is not provided by the active node@…`, a command not found — a modal offers
+`npm install -g pnpm@<declared>`, installs the exact version and runs the check again; a no writes an ADR and waives the
+install check; pnpm's blocked build scripts are approved in
 `pnpm-workspace.yaml` from the names pnpm gives (`onlyBuiltDependencies` on pnpm 10, `allowBuilds` on 11+, setting the
 placeholders pnpm 12 scaffolds to `true`), **0 tokens**: `agent.kit.build.auto_build_scripts = false` leaves it to the
 model; Playwright's browser is a **missing tool**: a small modal asks **Install / Don't install** (the command is shown).
