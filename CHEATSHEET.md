@@ -703,7 +703,7 @@ _Where: `python`_
 
 | Key | Action |
 |---|---|
-| `<leader>pr` | run file |
+| `<leader>pr` | run file (pretty output) |
 | `<leader>pp` | run project (entry point) |
 | `<leader>pl` | run as module (-m) |
 | `<leader>pi` | REPL with the file |

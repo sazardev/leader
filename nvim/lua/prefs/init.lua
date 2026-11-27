@@ -32,6 +32,7 @@ local NAMES = {
   "languages",
   "csharp",
   "go",
+  "python",
   "panes",
   "app",
   "system",

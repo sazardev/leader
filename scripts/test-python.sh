@@ -12,4 +12,11 @@ out="$(NVIM_NO_LOCAL=1 NVIM_LIGHT=0 nvim --headless \
 printf '%s\n' "$out"
 printf '%s\n' "$out" | grep -q '^FAIL\|^ERROR\|FAILURES' && exit 1
 printf '%s\n' "$out" | grep -q 'ALL OK' || exit 1
+
+# The pretty runner (<leader>pr): the pure helpers and the real command, without uv or network
+if command -v python3 >/dev/null 2>&1; then
+  python3 "$ROOT/scripts/test-pypretty.py" || exit 1
+else
+  echo "test-python: python3 is not in PATH (the pretty runner was not tested)"
+fi
 exit 0

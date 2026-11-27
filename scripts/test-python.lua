@@ -195,6 +195,39 @@ local labels = vim.tbl_map(function(item)
 end, py.project_files(p))
 eq("project_files: canonical order", labels, { "pyproject.toml", "uv.lock", ".python-version", "ruff.toml" })
 
+-- ── pretty output ──────────────────────────────────────────────────────────
+local pypretty = require "utils.pypretty"
+eq("pypretty: the runner ships next to the module", vim.fn.filereadable(pypretty.runner()), 1)
+local pretty_cmd = pypretty.command("uv run python", "/r/src/my pkg/mod.py")
+eq("pypretty: keeps the project's interpreter", vim.startswith(pretty_cmd, "uv run python "), true)
+eq("pypretty: runs the runner", pretty_cmd:find("runner.py", 1, true) ~= nil, true)
+eq("pypretty: quotes the script", vim.endswith(pretty_cmd, vim.fn.shellescape "/r/src/my pkg/mod.py"), true)
+eq(
+  "pypretty: a venv interpreter is passed through",
+  vim.startswith(pypretty.command("'/p/.venv/bin/python'", "/r/a.py"), "'/p/.venv/bin/python' "),
+  true
+)
+eq(
+  "pypretty: theme and traceback flags",
+  pypretty.command("python3", "/r/a.py", { light = true, locals = true }),
+  "python3 " .. vim.fn.shellescape(pypretty.runner()) .. " --light --locals " .. vim.fn.shellescape "/r/a.py"
+)
+eq(
+  "pypretty: no flags when both are off",
+  pypretty.command("python3", "/r/a.py", { light = false, locals = false }),
+  "python3 " .. vim.fn.shellescape(pypretty.runner()) .. " " .. vim.fn.shellescape "/r/a.py"
+)
+eq(
+  "pypretty: the clear flag",
+  pypretty.command("python3", "/r/a.py", { clear = false }),
+  "python3 " .. vim.fn.shellescape(pypretty.runner()) .. " --no-clear " .. vim.fn.shellescape "/r/a.py"
+)
+eq(
+  "pypretty: the plots flag",
+  pypretty.command("python3", "/r/a.py", { plots = false }),
+  "python3 " .. vim.fn.shellescape(pypretty.runner()) .. " --no-plots " .. vim.fn.shellescape "/r/a.py"
+)
+
 -- ── the menu ───────────────────────────────────────────────────────────────
 local ok, maps = pcall(require, "languages.actions.python")
 if not ok then

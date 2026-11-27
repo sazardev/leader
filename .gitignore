@@ -11,6 +11,10 @@ nul
 nvim/lua/local.lua
 evals/results/last.json
 
+# Python bytecode (the tests import utils/pypretty/runner.py)
+__pycache__/
+*.pyc
+
 # Cloudflare local cache (wrangler pages deploy)
 .wrangler/
 

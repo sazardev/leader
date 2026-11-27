@@ -7,6 +7,8 @@
 local actions = require "utils.actions"
 local log = require "utils.log"
 local py = require "utils.python"
+local pypretty = require "utils.pypretty"
+local settings = require "core.settings"
 local terminal = require "utils.terminal"
 
 ---@return string
@@ -126,7 +128,8 @@ local function run_project()
 end
 
 --- Run the file: a PEP 723 script goes through `uv run` (its inline dependencies); anything else through the project's
---- interpreter.
+--- interpreter. That interpreter runs `utils/pypretty/runner.py`: the same `python file.py`, with the output sized to
+--- the terminal (numpy/pandas), colored values and a clean traceback (settings.python.pretty turns it off).
 local function run_file()
   if vim.api.nvim_buf_get_name(0) == "" then
     return log.warn "Python: save the buffer first"
@@ -136,9 +139,21 @@ local function run_file()
   end
   local head = table.concat(vim.api.nvim_buf_get_lines(0, 0, 20, false), "\n")
   if vim.fn.executable "uv" == 1 and py.is_script(head) then
+    -- uv owns the command of a PEP 723 script: its dependencies are the ones the file it runs declares
     return terminal.run("uv run " .. current_file(), root())
   end
-  terminal.run(python() .. " " .. current_file(), root())
+  if not settings.python.pretty then
+    return terminal.run(python() .. " " .. current_file(), root())
+  end
+  terminal.run(
+    pypretty.command(python(), vim.fn.expand "%:p", {
+      light = vim.o.background == "light",
+      locals = settings.python.pretty_locals,
+      clear = settings.python.pretty_clear,
+      plots = settings.python.pretty_plots,
+    }),
+    root()
+  )
 end
 
 --- `python -m <package.module>`: the same file, but with the package's relative imports working
@@ -564,7 +579,7 @@ local function insert_imports()
 end
 
 local maps = {
-  { "r", "run file", run_file },
+  { "r", "run file (pretty output)", run_file },
   { "p", "run project (entry point)", run_project },
   { "l", "run as module (-m)", run_module },
   {

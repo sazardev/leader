@@ -105,6 +105,16 @@ local defaults = {
   -- Python data analysis (lua/utils/pyimports.lua, lua/utils/pydata.lua): 0-token imports, real file paths and
   -- dataframe columns, all cached. Text files are read in Lua; Excel/parquet ask the project's python once.
   python = {
+    -- <leader>pr runs the file through utils/pypretty/runner.py: the same `python file.py`, but numpy/pandas print as
+    -- Jupyter-like tables with dtypes, nulls, stats, sparklines, a heatmap and colored values, and a crash shows a
+    -- clean traceback. false = the plain interpreter command.
+    pretty = true,
+    -- rich's traceback shows the variables of each frame when this is on (`<leader>Sp`)
+    pretty_locals = false,
+    -- Clear the terminal pane (and its scrollback) before each `pr`, so only the last run is on screen
+    pretty_clear = true,
+    -- Draw matplotlib figures inside the terminal when a script calls plt.show()
+    pretty_plots = true,
     imports = {
       enabled = true,
       -- A package that is not installed still suggests its import, with `uv add <pkg>` in the detail

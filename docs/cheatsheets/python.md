@@ -11,6 +11,7 @@ Filetype: `python`. Pack `python` (installer checklist, or `<leader>Sp` → Lang
 | Format on save | `ruff` (organize imports, then format) |
 | Debug | `debugpy` (Mason; `Pk` repairs it) |
 | Notebooks / REPL | JupyterLab, IPython (project dependencies, or the system ones) |
+| Run output | `<leader>pr`: `array(…)`, boxed tables, dtypes/nulls, stats, sparklines, histogram, heatmap, formulas |
 | Floating IPython | `<leader>pF` toggles a persistent float; `<leader>ps` sends the line or visual selection, keeps definitions, and returns focus to the editor |
 | Inlay hints | `basedpyright` (inferred variable types, call-argument names and return types; on by default, `<leader>ph` toggles) |
 | Auto-import | basedpyright code action (`<leader>ca`) and completion; local modules, the stdlib, and modules already imported |
@@ -40,6 +41,39 @@ The keys are in [`CHEATSHEET.md`](../../CHEATSHEET.md). What they do:
   `<pkg>/`), Django's `manage.py runserver`, and `main.py` / `app.py` / `run.py` when it is a FastAPI app
   (`uvicorn … --reload`), a Flask app (`flask … run --debug`), a Streamlit app, or a plain script. One candidate runs
   directly; several open a picker.
+
+**Pretty output** (`<leader>pr`): the file key runs the script through `utils/pypretty/runner.py`, a small runner
+with plain `python file.py` semantics (same `argv`, `sys.path`, `__main__`, imports and exit code). Only how values
+look changes, Jupyter-style: numpy arrays print as `array([[1, 2, 3, 4], …])`; the long ones are cut with `...`
+(first/last values or rows) to fit the pane, while `shape`, `dtype` and the stats still describe every value in one
+dim line.
+DataFrames and Series become a boxed table (one cell per value, bold header, index, shape below) sized to the pane,
+with extra columns collapsed to `…` and extra rows to `...`; in narrow panes the summary lines are shortened too so
+nothing spills over. If the project has `sympy`, expressions are printed with its unicode pretty printer (`√`,
+`∑`, matrices); no dependency is installed for it. Long lists and dicts are cut with `... +N more` instead of one
+item per line.
+
+**Reading the data**: every numeric array, Series or column gets a dim `mean ± std · min…max · n=…` line, and values
+more than two standard deviations out are bold; the header's dtype row is colored by kind (int, float, text, bool,
+date) and counts nulls as `·N`; `None`/`NaN` print as `∅` and infinities as `∞`. A numeric Series gains a `spark`
+column (`▁▂▃▄▅▆▇█`) and a small histogram with ranges; numeric table cells get an Excel-like background by sign and
+magnitude (red/blue, with light or dark shades taken from `vim.o.background`), and correlation matrices add a
+`-1 red · 0 dim · +1 blue` legend. A run ends with a dim `✓ 0.42s · exit 0`. Each `pr` clears the pane (and its scrollback) first, so only the last
+result is on screen; `<leader>Sp` → Python → *Clear terminal on run* turns that off. Negative numbers are red, the
+rest cyan.
+A crash shows the traceback without the runner's own frames; with `rich` installed (`uv add --dev rich`) it is
+rich's panel, and `<leader>Sp` → Python → *Traceback with locals* adds the variables of each frame. Piped or
+redirected stdout is byte-identical to the plain command (nothing is patched when stdout is not a terminal),
+`NO_COLOR=1` keeps the layout and drops the colors, and `settings.python.pretty = false` (or `<leader>Sp` → Python →
+*Pretty run output*) restores the plain `python file.py`. A PEP 723 script keeps `uv run <file>` unchanged: uv owns
+the command that installs its inline dependencies.
+
+**Plots**: when a script calls `plt.show()`, the runner saves the figure as a transparent PNG under
+`$XDG_CACHE_HOME/leader/plots` (or `~/.cache/leader/plots`), draws it in the pane with truecolor quadrant blocks
+(`▀▄▌▐▚▞▖▗▘▙▛▜▝▟`, two pixels per axis per cell) scaled to the split, and prints a dim `→ /path/fig-….png` you can
+open with `o` or `xdg-open`. The background follows
+the theme (`--light`). `<leader>Sp` → Python → *Plots in terminal* disables it (a normal `show()` window returns).
+No extra dependency: matplotlib already brings Pillow.
 
 **Package vs file**: `uv init --app` writes `src/<pkg>/__init__.py` with a `main()` and a `[project.scripts]` entry.
 `uv run <script>` (the project key) calls `main`; `python src/<pkg>/__init__.py` (the file key) only executes the file,
@@ -207,8 +241,9 @@ Knobs live in `core.settings.python`: `imports.enabled`, `imports.suggest_missin
   submenu to create a project.
 - `Pv` recreating `.venv` deletes the packages installed in it; the modal warns first.
 - `Pp` may download a Python version; `uv python pin` only writes `.python-version`.
-- `r` is "run file", not "run project": a package `__init__.py` that only defines `main()` prints nothing; use the
-  project key (`uv run <script>`) or add the `if __name__ == "__main__": main()` guard. `l` needs `<pkg>/__main__.py`.
+- `r` runs the file (with the pretty output), not the project: a package `__init__.py` that only defines `main()`
+  prints nothing; use the project key (`uv run <script>`) or add the `if __name__ == "__main__": main()` guard. `l`
+  needs `<pkg>/__main__.py`.
 - `Pr` (`uv run …`) is for commands, not for shell syntax: what you type goes after `uv run` as-is.
 - Tests from a class that does not start with `Test` are not collected by pytest, so they get no mark either.
 - No global data stack: pandas/NumPy/JupyterLab live in each project's `.venv`, so `Pi` → `Data analysis` (or
