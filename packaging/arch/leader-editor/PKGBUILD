@@ -1,7 +1,7 @@
 # Maintainer: sazardev <sazardev@users.noreply.github.com>
 # Built from the tagged source with your own toolchain.
 pkgname=leader-editor
-pkgver=1.27.0
+pkgver=1.29.2
 pkgrel=1
 pkgdesc='Neovim with a fast, opinionated config in its own GPU window'
 arch=('x86_64' 'aarch64')
@@ -18,7 +18,7 @@ provides=('leader')
 conflicts=('leader-editor-bin')
 options=('!lto')
 source=("leader-$pkgver.tar.gz::https://github.com/sazardev/leader/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('ef0b907c83d27c68bd27654c3611bbd1e13b2d8ca84366c1c193444fbd50b369')
+sha256sums=('955a048a59b01a91fef10f609c19952b98e0071eac35e13a014f036332758852')
 
 prepare() {
   cd "leader-$pkgver/app"
