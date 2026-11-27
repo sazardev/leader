@@ -2,6 +2,17 @@
 
 All notable changes, newest first. Generated from the Conventional Commits since each tag (<leader>GRc).
 
+## [1.29.2] - 2026-11-26
+
+### Features
+
+- **python:** pretty run output with tables, stats and plots (b81906c)
+- **agent:** install the package manager package.json declares (c01db44)
+
+### Fixes
+
+- **agent:** a wrong check is a verdict, not a blind fix (cc4773c)
+
 ## [1.29.1] - 2026-11-24
 
 ### Highlights
